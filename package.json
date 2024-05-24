@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "nodemon",
     "build": "next build && tsc --project tsconfig.server.json",
-    "start": "cross-env NODE_ENV=production node dist/index.js"
+    "start": "cross-env NODE_ENV=production node --experimental-specifier-resolution=node dist/index.js"
   },
   "dependencies": {
+    "@colyseus/core": "^0.15.39",
+    "@colyseus/ws-transport": "^0.15.2",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
     "express": "^4.19.2",
