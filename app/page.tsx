@@ -8,7 +8,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <main>
+    <main className="flex h-full flex-col items-center justify-center">
       <Image
         src="/vercel.svg"
         alt="Vercel Logo"

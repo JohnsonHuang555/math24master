@@ -4,20 +4,20 @@ import { useEffect, useState } from 'react';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
-import useRoomClient from '@/lib/hooks/useRoomClient';
+import useRoomSocket from '@/lib/hooks/useRoomSocket';
 
 export default function SinglePlayPage() {
   const [currentSelect, setCurrentSelect] = useState<any>([]);
   // const [rooms, setRooms] = useState<any>();
-  const { client, createOrJoinRoom } = useRoomClient();
+  const { socket } = useRoomSocket();
 
   useEffect(() => {
-    const create = async () => {
-      const roomId = await createOrJoinRoom();
-      console.log(roomId);
-    };
-    create();
-  }, [client, createOrJoinRoom]);
+    // const create = async () => {
+    //   const roomId = await createOrJoinRoom();
+    //   console.log(roomId);
+    // };
+    // create();
+  }, []);
 
   // const getCurrentRooms = async () => {
   //   const r = await getRooms();

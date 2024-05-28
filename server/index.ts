@@ -1,12 +1,7 @@
-import { monitor } from '@colyseus/monitor';
-import { WebSocketTransport } from '@colyseus/ws-transport';
-import pkg from 'colyseus';
 import express from 'express';
 import { createServer } from 'http';
 import next from 'next';
-import Playing from './playing/index';
-
-const { Server } = pkg;
+import { Server } from 'socket.io';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
@@ -15,22 +10,18 @@ const handle = nextApp.getRequestHandler();
 
 nextApp.prepare().then(() => {
   const app = express();
+  const server = createServer(app);
+  const io = new Server(server);
 
-  app.all('*', (req: any, res: any) => {
+  app.all('*', (req, res) => {
     return handle(req, res);
   });
-  // newExpress.use('/colyseus', monitor());
 
-  const gameServer = new Server({
-    server: createServer(app),
-    // transport: new WebSocketTransport({
-    //   server: createServer(app), // provide the custom server for `WebSocketTransport`
-    //   // pingInterval: 6000,
-    //   // pingMaxRetries: 5,
-    // }),
+  io.on('connection', socket => {
+    socket.emit('hello', 'world');
   });
-  // gameServer.define('playing', Playing).enableRealtimeListing();
 
-  app.listen(port);
-  console.log(`Listening on port: ${port}`);
+  server.listen(port, () => {
+    console.log(`> Ready on http://localhost:${port}`);
+  });
 });
