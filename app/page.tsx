@@ -1,9 +1,14 @@
+'use client';
+
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
+  const router = useRouter();
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
+    <main>
       <Image
         src="/vercel.svg"
         alt="Vercel Logo"
@@ -14,7 +19,7 @@ export default function Home() {
       />
       <p className="mb-4 text-2xl">歡迎來到 24點</p>
       <div className="flex gap-4">
-        <Button>單人遊玩</Button>
+        <Button onClick={() => router.push('/single-play')}>單人遊玩</Button>
         <Button>多人遊玩</Button>
       </div>
     </main>

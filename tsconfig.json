@@ -13,6 +13,8 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "incremental": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "plugins": [
       {
         "name": "next"
