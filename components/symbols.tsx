@@ -9,45 +9,45 @@ type SymbolsProps = {
 const Symbols = ({ onClick }: SymbolsProps) => {
   return (
     <>
-      <Card className="cursor-pointer border-2 p-3 hover:bg-slate-100">
-        <Image
-          onClick={() => onClick(Symbol.Plus)}
-          src="/plus.svg"
-          alt="plus"
-          width={32}
-          height={32}
-          priority
-        />
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.Plus)}
+      >
+        <Image src="/plus.svg" alt="plus" width={40} height={40} priority />
       </Card>
-      <Card className="cursor-pointer border-2 p-3 hover:bg-slate-100">
-        <Image
-          onClick={() => onClick(Symbol.Minus)}
-          src="/minus.svg"
-          alt="minus"
-          width={32}
-          height={32}
-          priority
-        />
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.Minus)}
+      >
+        <Image src="/minus.svg" alt="minus" width={40} height={40} priority />
       </Card>
-      <Card className="cursor-pointer border-2 p-3 hover:bg-slate-100">
-        <Image
-          onClick={() => onClick(Symbol.Times)}
-          src="/times.svg"
-          alt="times"
-          width={32}
-          height={32}
-          priority
-        />
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.Times)}
+      >
+        <Image src="/times.svg" alt="times" width={40} height={40} priority />
       </Card>
-      <Card className="cursor-pointer border-2 p-3 hover:bg-slate-100">
-        <Image
-          onClick={() => onClick(Symbol.Divide)}
-          src="/divide.svg"
-          alt="divide"
-          width={32}
-          height={32}
-          priority
-        />
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.Divide)}
+      >
+        <Image src="/divide.svg" alt="divide" width={40} height={40} priority />
+      </Card>
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.LeftBracket)}
+      >
+        <div className="flex h-10 w-10 items-center justify-center text-2xl font-medium">
+          {'('}
+        </div>
+      </Card>
+      <Card
+        className="cursor-pointer border-2 p-2 hover:bg-slate-100"
+        onClick={() => onClick(Symbol.RightBracket)}
+      >
+        <div className="flex h-10 w-10 items-center justify-center text-2xl font-medium">
+          {')'}
+        </div>
       </Card>
     </>
   );

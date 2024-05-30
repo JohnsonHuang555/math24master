@@ -3,4 +3,6 @@ export enum Symbol {
   Minus = 'minus',
   Times = 'times',
   Divide = 'divide',
+  LeftBracket = 'left-bracket',
+  RightBracket = 'right-bracket',
 }
