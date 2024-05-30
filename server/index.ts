@@ -2,7 +2,13 @@ import { createServer } from 'http';
 import next from 'next';
 import { Server } from 'socket.io';
 import { SocketEvent } from '../models/SocketEvent';
-import { checkCanJoinRoom, getCurrentRooms, joinRoom, leaveRoom } from './game';
+import {
+  checkCanJoinRoom,
+  getCurrentRooms,
+  joinRoom,
+  leaveRoom,
+  startGame,
+} from './game';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const hostname = 'localhost';
@@ -16,28 +22,37 @@ app.prepare().then(() => {
 
   io.on('connection', socket => {
     const playerId = socket.id;
-    console.log('user connected', playerId);
-    socket.on(SocketEvent.JoinRoom, ({ roomId, maxPlayers }) => {
+    socket.on(SocketEvent.JoinRoom, ({ roomId, maxPlayers, playerName }) => {
       const canJoin = checkCanJoinRoom(roomId, playerId);
       if (canJoin) {
         socket.join(roomId);
-        joinRoom({ roomId, maxPlayers }, playerId);
-        io.sockets
-          .to(roomId)
-          .emit(SocketEvent.JoinRoomMessage, `You've join ${roomId} room`);
-
-        console.log(JSON.stringify(getCurrentRooms()), 'join');
+        const result = joinRoom({ roomId, maxPlayers }, playerId, playerName);
+        if (result) {
+          socket.emit(SocketEvent.JoinRoomSuccess);
+        } else {
+          socket.emit(SocketEvent.ErrorMessage, '加入失敗');
+        }
+        // io.sockets
+        //   .to(roomId)
+        //   .emit(SocketEvent.JoinRoomMessage, `You've join ${roomId} room`);
       } else {
         socket.emit(SocketEvent.ErrorMessage, '房間不存在');
       }
     });
 
-    socket.on(SocketEvent.StartGame, () => {});
+    socket.on(SocketEvent.StartGame, ({ roomId }) => {
+      const result = startGame(roomId);
+      if (result) {
+        socket.emit(SocketEvent.StartGameSuccess, result);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, '開始遊戲失敗');
+      }
+
+      console.log(JSON.stringify(getCurrentRooms()));
+    });
 
     socket.on('disconnect', () => {
       leaveRoom(playerId);
-      console.log(JSON.stringify(getCurrentRooms()), 'leave');
-      console.log('user disconnected', playerId);
     });
   });
 

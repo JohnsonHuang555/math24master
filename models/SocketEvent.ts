@@ -1,7 +1,8 @@
 export enum SocketEvent {
   ErrorMessage = 'error-message',
   JoinRoom = 'join-room',
-  JoinRoomMessage = 'join-room-message',
+  JoinRoomSuccess = 'join-room-success',
   ReadyGame = 'ready-game',
   StartGame = 'start-game',
+  StartGameSuccess = 'start-game-success',
 }

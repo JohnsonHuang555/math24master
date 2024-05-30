@@ -1,4 +1,5 @@
 import { Room } from '../models/Room';
+import { createDeck, draw, shuffleArray } from './utils';
 
 // 所有房間資訊
 let _rooms: Room[] = [];
@@ -12,6 +13,11 @@ export function getCurrentRooms() {
 const _getCurrentRoom = (roomId: string) => {
   const room = _rooms.find(room => room.roomId === roomId);
   return room;
+};
+
+const _getCurrentRoomIndex = (roomId: string) => {
+  const roomIndex = _rooms.findIndex(room => room.roomId === roomId);
+  return roomIndex;
 };
 
 export function checkCanJoinRoom(roomId: string, playerId: string) {
@@ -33,28 +39,56 @@ export function checkCanJoinRoom(roomId: string, playerId: string) {
 export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers'>,
   playerId: string,
+  playerName: string,
 ) {
-  _playerInRoomMap[playerId] = payload.roomId;
+  try {
+    _playerInRoomMap[playerId] = payload.roomId;
 
-  const room = _getCurrentRoom(payload.roomId);
-  if (room) {
-    // 房間已存在
-    _rooms = [
-      {
-        roomId: payload.roomId,
-        maxPlayers: payload.maxPlayers,
-        players: [...(room.players || []), { id: playerId, isMaster: false }],
-      },
-    ];
-  } else {
-    _rooms = [
-      ..._rooms,
-      {
-        roomId: payload.roomId,
-        maxPlayers: payload.maxPlayers,
-        players: [{ id: playerId, isMaster: true }],
-      },
-    ];
+    const room = _getCurrentRoom(payload.roomId);
+    if (room) {
+      // 房間已存在
+      _rooms = [
+        {
+          roomId: payload.roomId,
+          maxPlayers: payload.maxPlayers,
+          deck: [],
+          currentIndex: -1,
+          players: [
+            ...(room.players || []),
+            {
+              id: playerId,
+              isMaster: false,
+              name: playerName,
+              handCard: [],
+              score: 0,
+            },
+          ],
+        },
+      ];
+    } else {
+      _rooms = [
+        ..._rooms,
+        {
+          roomId: payload.roomId,
+          maxPlayers: payload.maxPlayers,
+          deck: [],
+          currentIndex: -1,
+          players: [
+            {
+              id: playerId,
+              isMaster: true,
+              name: playerName,
+              handCard: [],
+              score: 0,
+            },
+          ],
+        },
+      ];
+    }
+
+    return true;
+  } catch (error) {
+    return false;
   }
 }
 
@@ -84,5 +118,63 @@ export function leaveRoom(playerId: string) {
       }
       return room;
     });
+  }
+}
+
+export function startGame(roomId: string) {
+  const room = _getCurrentRoom(roomId);
+  if (!room) return false;
+
+  try {
+    let deck: number[] = [];
+
+    switch (room.maxPlayers) {
+      case 1:
+        deck = createDeck(2);
+        break;
+      case 2:
+        deck = createDeck(4);
+        break;
+      case 3:
+        deck = createDeck(6);
+        break;
+      case 4:
+        deck = createDeck(8);
+        break;
+      default:
+        return false;
+    }
+
+    // 洗牌
+    const shuffledDeck = shuffleArray(deck);
+    const roomIndex = _getCurrentRoomIndex(roomId);
+
+    // [1,2,3,4...]
+    const playerOrders = Array.from(Array(room.players.length).keys()).map(
+      i => i + 1,
+    );
+
+    // 隨機玩家順序
+    const shuffledPlayerOrder = shuffleArray(playerOrders);
+    if (shuffledPlayerOrder.length !== room.players.length) return false;
+
+    shuffledPlayerOrder.forEach((order, index) => {
+      _rooms[roomIndex].players[index].playerOrder = order;
+      _rooms[roomIndex].players[index].score = 0;
+      if (shuffledDeck.length) {
+        // 抽牌並改變牌庫牌數
+        _rooms[roomIndex].players[index].handCard = draw(shuffledDeck, 5);
+      }
+    });
+
+    // 寫入牌庫
+    _rooms[roomIndex].deck = shuffledDeck;
+    // 從玩家1開始
+    _rooms[roomIndex].currentIndex = 1;
+
+    return _rooms[roomIndex];
+  } catch (error) {
+    console.log(error);
+    return false;
   }
 }
