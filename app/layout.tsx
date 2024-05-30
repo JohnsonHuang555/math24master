@@ -1,5 +1,6 @@
 import { Inter as FontSans } from 'next/font/google';
 import type { Metadata } from 'next';
+import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         )}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );
