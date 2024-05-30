@@ -1,5 +1,3 @@
-import { ArraySchema } from '@colyseus/schema';
-import { HandCard } from '@/models/HandCard';
 import GameCard from '../game-card';
 
 type HandCardAreaProps = {
