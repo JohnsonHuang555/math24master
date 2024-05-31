@@ -14,7 +14,7 @@ const ActionArea = ({
   onEndPhase,
 }: ActionAreaProps) => {
   return (
-    <div className="grid basis-1/5 grid-cols-2 gap-2 p-5">
+    <div className="grid basis-1/5 grid-cols-2 gap-3 p-5">
       <Button variant="secondary" className="h-full" onClick={onReselect}>
         重選
       </Button>

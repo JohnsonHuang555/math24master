@@ -51,6 +51,10 @@ app.prepare().then(() => {
       console.log(JSON.stringify(getCurrentRooms()));
     });
 
+    socket.on(SocketEvent.PlayCard, () => {
+      
+    });
+
     socket.on('disconnect', () => {
       leaveRoom(playerId);
     });

@@ -8,10 +8,12 @@ import { SocketEvent } from '@/models/SocketEvent';
 const useSinglePlay = () => {
   const [roomInfo, setRoomInfo] = useState<Room>();
   const { toast } = useToast();
+  const [socket, setSocket] = useState<any>();
 
   useEffect(() => {
     const roomId = generate();
     const socket = io();
+    setSocket(socket);
 
     socket.emit(SocketEvent.JoinRoom, {
       roomId,

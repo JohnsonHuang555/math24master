@@ -2,6 +2,7 @@ import { Inter as FontSans } from 'next/font/google';
 import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
 
 const fontSans = FontSans({
@@ -27,7 +28,7 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-        {children}
+        <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
         <Toaster />
       </body>
     </html>
