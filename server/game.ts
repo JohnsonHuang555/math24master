@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+import { Card, Player } from '../models/Player';
 import { Room } from '../models/Room';
 import { createDeck, draw, shuffleArray } from './utils';
 
@@ -15,9 +17,19 @@ const _getCurrentRoom = (roomId: string) => {
   return room;
 };
 
+const _getCurrentPlayer = (players: Player[], playerId: string) => {
+  const player = players.find(player => player.id === playerId);
+  return player;
+};
+
 const _getCurrentRoomIndex = (roomId: string) => {
   const roomIndex = _rooms.findIndex(room => room.roomId === roomId);
   return roomIndex;
+};
+
+const _getCurrentPlayerIndex = (players: Player[], playerId: string) => {
+  const playerIndex = players.findIndex(player => player.id === playerId);
+  return playerIndex;
 };
 
 export function checkCanJoinRoom(roomId: string, playerId: string) {
@@ -126,27 +138,30 @@ export function startGame(roomId: string) {
   if (!room) return false;
 
   try {
-    let deck: number[] = [];
+    let tempDeck: number[] = [];
 
     switch (room.maxPlayers) {
       case 1:
-        deck = createDeck(2);
+        tempDeck = createDeck(2);
         break;
       case 2:
-        deck = createDeck(4);
+        tempDeck = createDeck(4);
         break;
       case 3:
-        deck = createDeck(6);
+        tempDeck = createDeck(6);
         break;
       case 4:
-        deck = createDeck(8);
+        tempDeck = createDeck(8);
         break;
       default:
         return false;
     }
 
     // 洗牌
-    const shuffledDeck = shuffleArray(deck);
+    const shuffledDeck: Card[] = shuffleArray(tempDeck).map(d => ({
+      id: uuidv4(),
+      value: d,
+    }));
     const roomIndex = _getCurrentRoomIndex(roomId);
 
     // [1,2,3,4...]
@@ -177,4 +192,22 @@ export function startGame(roomId: string) {
     console.log(error);
     return false;
   }
+}
+
+export function sortCard(roomId: string, playerId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
+
+  // 使用 sort 方法將陣列排序
+  const sortedArray = _rooms[roomIndex].players[playerIndex].handCard.sort(
+    (a, b) => a.value - b.value,
+  );
+  _rooms[roomIndex].players[playerIndex].handCard = sortedArray;
+  return _rooms[roomIndex];
 }

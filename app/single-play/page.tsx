@@ -15,17 +15,11 @@ import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
   const router = useRouter();
-  const { roomInfo } = useSinglePlay();
+  const { roomInfo, onSort } = useSinglePlay();
   const currentPlayer = roomInfo?.players[0];
 
-  const {
-    handCards,
-    selectedCards,
-    onSelectCardOrSymbol,
-    onReselect,
-    showCurrentSelect,
-    onSort,
-  } = useGame({ initHandCards: currentPlayer?.handCard });
+  const { selectedCards, onSelectCardOrSymbol, onReselect, showCurrentSelect } =
+    useGame();
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
   useEffect(() => {
@@ -79,7 +73,7 @@ export default function SinglePlayPage() {
           score={currentPlayer?.score}
         />
         <HandCardArea
-          handCards={handCards}
+          handCards={currentPlayer?.handCard || []}
           onSelect={card => onSelectCardOrSymbol(card)}
         />
         <ActionArea

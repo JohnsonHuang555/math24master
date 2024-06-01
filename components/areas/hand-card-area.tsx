@@ -1,8 +1,9 @@
+import { Card } from '@/models/Player';
 import GameCard from '../game-card';
 
 type HandCardAreaProps = {
-  handCards?: number[];
-  onSelect: (card: number) => void;
+  handCards?: Card[];
+  onSelect: (card: Card) => void;
 };
 
 const HandCardArea = ({ handCards = [], onSelect }: HandCardAreaProps) => {
@@ -11,7 +12,7 @@ const HandCardArea = ({ handCards = [], onSelect }: HandCardAreaProps) => {
       {handCards.map((card, index) => (
         <GameCard
           key={`${index}-${card}`}
-          value={card}
+          value={card.value}
           onSelect={() => onSelect(card)}
         />
       ))}

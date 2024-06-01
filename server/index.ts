@@ -7,6 +7,7 @@ import {
   getCurrentRooms,
   joinRoom,
   leaveRoom,
+  sortCard,
   startGame,
 } from './game';
 
@@ -51,8 +52,11 @@ app.prepare().then(() => {
       console.log(JSON.stringify(getCurrentRooms()));
     });
 
-    socket.on(SocketEvent.PlayCard, () => {
-      
+    socket.on(SocketEvent.PlayCard, ({ roomId }) => {});
+
+    socket.on(SocketEvent.SortCard, ({ roomId }) => {
+      const updatedRoom = sortCard(roomId, playerId);
+      socket.emit(SocketEvent.RoomUpdate, updatedRoom);
     });
 
     socket.on('disconnect', () => {

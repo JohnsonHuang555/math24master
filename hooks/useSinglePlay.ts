@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { generate } from 'short-uuid';
 import { io } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/components/ui/use-toast';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
@@ -11,7 +11,7 @@ const useSinglePlay = () => {
   const [socket, setSocket] = useState<any>();
 
   useEffect(() => {
-    const roomId = generate();
+    const roomId = uuidv4();
     const socket = io();
     setSocket(socket);
 
@@ -35,13 +35,25 @@ const useSinglePlay = () => {
       setRoomInfo(roomInfo);
     });
 
+    // 房間更新
+    socket.on(SocketEvent.RoomUpdate, (roomInfo: Room) => {
+      setRoomInfo(roomInfo);
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [toast]);
 
+  const onSort = () => {
+    if (socket) {
+      socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
+    }
+  };
+
   return {
     roomInfo,
+    onSort,
   };
 };
 

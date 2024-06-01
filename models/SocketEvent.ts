@@ -6,5 +6,7 @@ export enum SocketEvent {
   StartGame = 'start-game',
   StartGameSuccess = 'start-game-success',
 
+  RoomUpdate = 'room-update',
+  SortCard = 'sort-card',
   PlayCard = 'play-card',
 }

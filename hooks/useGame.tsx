@@ -1,44 +1,30 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { toast } from '@/components/ui/use-toast';
+import { Card } from '@/models/Player';
 import { Symbol } from '@/models/Symbol';
 
 type SelectedCard = number | Symbol;
 
-type UseGameProps = {
-  initHandCards?: number[];
-};
-
-const useGame = ({ initHandCards }: UseGameProps) => {
+const useGame = () => {
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
-  const [handCards, setHandCards] = useState<number[]>([]);
 
-  useEffect(() => {
-    if (initHandCards) {
-      setHandCards(initHandCards);
-    }
-  }, [initHandCards]);
-
-  const onSelectCardOrSymbol = (val: number | Symbol) => {
-    if (
-      selectedCards.length === 0 &&
-      typeof val !== 'number' &&
-      [Symbol.Plus, Symbol.Times, Symbol.Divide, Symbol.RightBracket].includes(
-        val,
-      )
-    ) {
-      toast({ variant: 'destructive', title: '第一個符號只能用減號或左括號' });
-      return;
-    }
-    setSelectedCards(state => [...state, val]);
+  const onSelectCardOrSymbol = (val: Card | Symbol) => {
+    // if (
+    //   selectedCards.length === 0 &&
+    //   typeof val !== 'number' &&
+    //   [Symbol.Plus, Symbol.Times, Symbol.Divide, Symbol.RightBracket].includes(
+    //     val,
+    //   )
+    // ) {
+    //   toast({ variant: 'destructive', title: '第一個符號只能用減號或左括號' });
+    //   return;
+    // }
+    // setSelectedCards(state => [...state, val]);
   };
 
   const onReselect = () => {
     setSelectedCards([]);
-  };
-
-  const onSort = () => {
-    setHandCards(state => state.sort());
   };
 
   const showCurrentSelect = () => {
@@ -99,11 +85,10 @@ const useGame = ({ initHandCards }: UseGameProps) => {
   };
 
   return {
-    handCards,
+    // handCards,
     selectedCards,
     onSelectCardOrSymbol,
     onReselect,
-    onSort,
     showCurrentSelect,
   };
 };
