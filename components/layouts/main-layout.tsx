@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import AlertDialogModal from '../alert-dialog-modal';
+import AlertDialogModal from '../modals/alert-dialog-modal';
 
 type MainLayoutProps = {
   children: ReactNode;

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Card, Player } from '../models/Player';
+import { NumberCard, Player } from '../models/Player';
 import { Room } from '../models/Room';
 import { createDeck, draw, shuffleArray } from './utils';
 
@@ -158,7 +158,7 @@ export function startGame(roomId: string) {
     }
 
     // 洗牌
-    const shuffledDeck: Card[] = shuffleArray(tempDeck).map(d => ({
+    const shuffledDeck: NumberCard[] = shuffleArray(tempDeck).map(d => ({
       id: uuidv4(),
       value: d,
     }));
