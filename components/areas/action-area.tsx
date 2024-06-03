@@ -1,6 +1,7 @@
 import { Button } from '../ui/button';
 
 type ActionAreaProps = {
+  disabledActions: boolean;
   onSubmit: () => void;
   onReselect: () => void;
   onSort: () => void;
@@ -8,6 +9,7 @@ type ActionAreaProps = {
 };
 
 const ActionArea = ({
+  disabledActions,
   onSubmit,
   onReselect,
   onSort,
@@ -15,16 +17,31 @@ const ActionArea = ({
 }: ActionAreaProps) => {
   return (
     <div className="grid basis-1/5 grid-cols-2 gap-3 p-5">
-      <Button variant="secondary" className="h-full" onClick={onReselect}>
+      <Button
+        disabled={disabledActions}
+        variant="secondary"
+        className="h-full"
+        onClick={onReselect}
+      >
         重選
       </Button>
-      <Button className="h-full" onClick={onSubmit}>
+      <Button disabled={disabledActions} className="h-full" onClick={onSubmit}>
         出牌
       </Button>
-      <Button variant="secondary" className="h-full" onClick={onSort}>
+      <Button
+        disabled={disabledActions}
+        variant="secondary"
+        className="h-full"
+        onClick={onSort}
+      >
         排序
       </Button>
-      <Button variant="destructive" className="h-full" onClick={onEndPhase}>
+      <Button
+        disabled={disabledActions}
+        variant="destructive"
+        className="h-full"
+        onClick={onEndPhase}
+      >
         結束回合
       </Button>
     </div>

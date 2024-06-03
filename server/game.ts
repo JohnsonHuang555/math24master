@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { NumberCard, Player } from '../models/Player';
-import { Room } from '../models/Room';
+import { HAND_CARD_COUNT, MAX_CARD_COUNT, Room } from '../models/Room';
 import { createDeck, draw, shuffleArray } from './utils';
 
 // 所有房間資訊
@@ -178,7 +178,10 @@ export function startGame(roomId: string) {
       _rooms[roomIndex].players[index].score = 0;
       if (shuffledDeck.length) {
         // 抽牌並改變牌庫牌數
-        _rooms[roomIndex].players[index].handCard = draw(shuffledDeck, 5);
+        _rooms[roomIndex].players[index].handCard = draw(
+          shuffledDeck,
+          HAND_CARD_COUNT,
+        );
       }
     });
 
@@ -209,5 +212,57 @@ export function sortCard(roomId: string, playerId: string) {
     (a, b) => a.value - b.value,
   );
   _rooms[roomIndex].players[playerIndex].handCard = sortedArray;
+
   return _rooms[roomIndex];
+}
+
+export function drawCard(roomId: string, playerId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
+
+  const currentHandCardsCount =
+    _rooms[roomIndex].players[playerIndex].handCard.length;
+  if (currentHandCardsCount > MAX_CARD_COUNT) return;
+
+  // 抽到的牌
+  const newCard = _rooms[roomIndex].deck[_rooms[roomIndex].deck.length - 1];
+  _rooms[roomIndex].deck.pop();
+  _rooms[roomIndex].players[playerIndex].handCard.push(newCard);
+
+  return _rooms[roomIndex];
+}
+
+export function discardCard(roomId: string, playerId: string, cardId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
+
+  const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
+    c => c.id !== cardId,
+  );
+  _rooms[roomIndex].players[playerIndex].handCard = newCards;
+
+  return _rooms[roomIndex];
+}
+
+export function playCard(roomId: string, playerId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
 }

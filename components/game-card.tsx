@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+import { fadeVariants } from '@/lib/animation-variants';
 import { Card } from './ui/card';
 
 type GameCardProps = {
@@ -8,19 +10,24 @@ type GameCardProps = {
 
 const GameCard = ({ selectedCardIndex, value, onSelect }: GameCardProps) => {
   return (
-    <div className="relative">
+    <motion.div className="relative" whileHover={{ scale: 1.12 }}>
       <Card
         onClick={onSelect}
-        className="flex aspect-[5/7.19] max-h-full min-h-[120px] cursor-pointer items-center justify-center bg-gray-200 text-4xl transition-all hover:bg-gray-300"
+        className="flex aspect-[5/7.19] max-h-full min-h-[110px] cursor-pointer items-center justify-center bg-gray-200 text-4xl transition-all"
       >
         {value}
       </Card>
       {selectedCardIndex !== -1 && (
-        <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white">
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
+          animate="show"
+          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white"
+        >
           {selectedCardIndex + 1}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

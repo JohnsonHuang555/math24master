@@ -9,4 +9,6 @@ export enum SocketEvent {
   RoomUpdate = 'room-update',
   SortCard = 'sort-card',
   PlayCard = 'play-card',
+  DrawCard = 'draw-card',
+  DiscardCard = 'discard-card',
 }

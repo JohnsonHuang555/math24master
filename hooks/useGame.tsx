@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { toast } from '@/components/ui/use-toast';
 import { NumberCard } from '@/models/Player';
+import { MAX_FORMULAS_NUMBER_COUNT } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
 
 export type SelectedCard = {
@@ -29,7 +30,26 @@ const useGame = () => {
       toast({ variant: 'destructive', title: '第一個符號只能用減號或左括號' });
       return;
     }
+
     if (number) {
+      const currentSelect = selectedCards[selectedCards.length - 1];
+      const currentSelectedNumbers = selectedCards.filter(c => c.number);
+
+      // 如果前一個是數字則不能選
+      if (currentSelect?.number && currentSelect?.number.id !== number.id) {
+        toast({ variant: 'default', title: '數字牌不能連續使用' });
+        return;
+      }
+
+      // 如果前一個是數字則不能選
+      if (currentSelectedNumbers.length === MAX_FORMULAS_NUMBER_COUNT) {
+        toast({
+          variant: 'default',
+          title: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
+        });
+        return;
+      }
+
       setSelectedCards(state => {
         const isExist = state.find(c => c.number?.id === number.id);
         if (isExist) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ActionArea from '@/components/areas/action-area';
@@ -9,20 +9,24 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import Symbols from '@/components/symbols';
+import { toast } from '@/components/ui/use-toast';
 import useGame from '@/hooks/useGame';
 import useSinglePlay from '@/hooks/useSinglePlay';
+import { MAX_CARD_COUNT } from '@/models/Room';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
+  // 需要棄牌
+  const [needDiscard, setNeedDiscard] = useState(false);
+
   const router = useRouter();
-  const { roomInfo, onSort } = useSinglePlay();
+  const { roomInfo, onSort, playCard, drawCard, discardCard } = useSinglePlay();
   const currentPlayer = roomInfo?.players[0];
+  const handCard = currentPlayer?.handCard || [];
 
   const { selectedCards, onSelectCardOrSymbol, onReselect, showCurrentSelect } =
     useGame();
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
-
-  console.log(selectedCards);
 
   useEffect(() => {
     if (isConfirmed) {
@@ -30,6 +34,19 @@ export default function SinglePlayPage() {
       onReset();
     }
   }, [isConfirmed, onReset, router]);
+
+  useEffect(() => {
+    // 如果手牌超過8張須棄牌
+    if (handCard.length > MAX_CARD_COUNT) {
+      setTimeout(() => {
+        toast({
+          title: '請點選 1 張牌棄掉',
+          className: 'bg-amber-300',
+        });
+        setNeedDiscard(true);
+      }, 500);
+    }
+  }, [handCard.length]);
 
   return (
     <MainLayout>
@@ -56,7 +73,7 @@ export default function SinglePlayPage() {
               onClick={() =>
                 onOpen({
                   title: '確定要離開嗎？',
-                  description: '當前進度將會消失',
+                  description: '離開遊戲後，當前進度將會消失，確定要離開嗎？',
                 })
               }
             />
@@ -72,25 +89,31 @@ export default function SinglePlayPage() {
           )}
         </div>
         <div className="text-5xl">= 24</div>
-        <div className="absolute bottom-3 flex gap-4">
+        <div className="absolute bottom-7 flex gap-4">
           <Symbols onClick={symbol => onSelectCardOrSymbol({ symbol })} />
         </div>
       </div>
-      <div className="flex w-full basis-1/5 bg-white">
+      <div className="relative flex w-full basis-1/5 bg-white">
         <PlayerInfoArea
           remainCards={roomInfo?.deck.length}
           score={currentPlayer?.score}
         />
         <HandCardArea
           selectedCards={selectedCards}
-          handCards={currentPlayer?.handCard || []}
+          handCard={handCard}
+          needDiscard={needDiscard}
           onSelect={number => onSelectCardOrSymbol({ number })}
+          onDiscard={id => {
+            setNeedDiscard(false);
+            discardCard(id);
+          }}
         />
         <ActionArea
-          onSubmit={() => {}}
+          disabledActions={needDiscard}
+          onSubmit={() => playCard(selectedCards)}
           onReselect={onReselect}
           onSort={onSort}
-          onEndPhase={() => {}}
+          onEndPhase={drawCard}
         />
       </div>
     </MainLayout>

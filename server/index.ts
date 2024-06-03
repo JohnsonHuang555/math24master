@@ -4,7 +4,8 @@ import { Server } from 'socket.io';
 import { SocketEvent } from '../models/SocketEvent';
 import {
   checkCanJoinRoom,
-  getCurrentRooms,
+  discardCard,
+  drawCard,
   joinRoom,
   leaveRoom,
   sortCard,
@@ -48,15 +49,31 @@ app.prepare().then(() => {
       } else {
         socket.emit(SocketEvent.ErrorMessage, '開始遊戲失敗');
       }
-
-      console.log(JSON.stringify(getCurrentRooms()));
     });
-
-    socket.on(SocketEvent.PlayCard, ({ roomId }) => {});
 
     socket.on(SocketEvent.SortCard, ({ roomId }) => {
       const updatedRoom = sortCard(roomId, playerId);
-      socket.emit(SocketEvent.RoomUpdate, updatedRoom);
+      if (updatedRoom) {
+        socket.emit(SocketEvent.RoomUpdate, updatedRoom);
+      }
+    });
+
+    socket.on(SocketEvent.DrawCard, ({ roomId }) => {
+      const updatedRoom = drawCard(roomId, playerId);
+      if (updatedRoom) {
+        socket.emit(SocketEvent.RoomUpdate, updatedRoom);
+      }
+    });
+
+    socket.on(SocketEvent.DiscardCard, ({ roomId, cardId }) => {
+      const updatedRoom = discardCard(roomId, playerId, cardId);
+      if (updatedRoom) {
+        socket.emit(SocketEvent.RoomUpdate, updatedRoom);
+      }
+    });
+
+    socket.on(SocketEvent.PlayCard, ({ roomId, selectedCards }) => {
+      console.log(selectedCards);
     });
 
     socket.on('disconnect', () => {

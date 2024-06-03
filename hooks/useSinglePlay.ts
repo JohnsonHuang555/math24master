@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/components/ui/use-toast';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
+import { SelectedCard } from './useGame';
 
 const useSinglePlay = () => {
   const [roomInfo, setRoomInfo] = useState<Room>();
@@ -45,15 +46,43 @@ const useSinglePlay = () => {
     };
   }, [toast]);
 
+  // 排序
   const onSort = () => {
     if (socket) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
   };
 
+  // 抽牌
+  const drawCard = () => {
+    if (socket) {
+      socket.emit(SocketEvent.DrawCard, { roomId: roomInfo?.roomId });
+    }
+  };
+
+  // 棄牌
+  const discardCard = (cardId: string) => {
+    if (socket) {
+      socket.emit(SocketEvent.DiscardCard, {
+        roomId: roomInfo?.roomId,
+        cardId,
+      });
+    }
+  };
+
+  // 出牌
+  const playCard = (selectedCards: SelectedCard[]) => {
+    if (socket) {
+      socket.emit(SocketEvent.PlayCard, { roomId: selectedCards });
+    }
+  };
+
   return {
     roomInfo,
     onSort,
+    playCard,
+    drawCard,
+    discardCard,
   };
 };
 
