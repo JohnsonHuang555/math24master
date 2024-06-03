@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { SelectedCard } from '@/hooks/useGame';
 import { fadeVariants } from '@/lib/animation-variants';
 import { NumberCard } from '@/models/Player';
-import { HAND_CARD_COUNT, MAX_CARD_COUNT } from '@/models/Room';
+import { HAND_CARD_COUNT } from '@/models/Room';
 import GameCard from '../game-card';
 
 type HandCardAreaProps = {
@@ -61,10 +61,13 @@ const HandCardArea = ({
               key={card.id}
               className="relative"
               variants={fadeVariants}
-              transition={{ delay: noDrawCardDelay ? 0 : index * 0.2 }}
+              transition={{
+                delay: noDrawCardDelay ? 0 : index * 0.2,
+              }}
               initial="hidden"
               animate="show"
-              exit="hidden"
+              whileHover={{ scale: 1.12 }}
+              whileTap={{ scale: 1 }}
             >
               <GameCard
                 value={card.value}

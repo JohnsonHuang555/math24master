@@ -1,4 +1,6 @@
+import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
+import { SelectedCard } from '../hooks/useGame';
 import { NumberCard, Player } from '../models/Player';
 import { HAND_CARD_COUNT, MAX_CARD_COUNT, Room } from '../models/Room';
 import { createDeck, draw, shuffleArray } from './utils';
@@ -256,7 +258,11 @@ export function discardCard(roomId: string, playerId: string, cardId: string) {
   return _rooms[roomIndex];
 }
 
-export function playCard(roomId: string, playerId: string) {
+export function playCard(
+  roomId: string,
+  playerId: string,
+  selectedCards: SelectedCard[],
+): { isCorrect: boolean; room?: Room } | undefined {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
 
@@ -265,4 +271,52 @@ export function playCard(roomId: string, playerId: string) {
     playerId,
   );
   if (playerIndex === -1) return;
+
+  const expression = selectedCards.map(s => {
+    if (s.number) {
+      return s.number.value;
+    }
+    if (s.symbol) {
+      return s.symbol;
+    }
+  });
+
+  try {
+    const answer = evaluate(expression.join(''));
+
+    if (answer === 24) {
+      // 移除數字牌
+      const numberCards = selectedCards
+        .filter(c => c.number)
+        .map(c => c.number?.id);
+      const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
+        c => !numberCards.includes(c.id),
+      );
+
+      // 補牌 -假設剩餘牌庫不夠補的話就直接抽完剩下的
+      if (_rooms[roomIndex].deck.length < numberCards.length) {
+        _rooms[roomIndex].players[playerIndex].handCard = [
+          ...newCards,
+          ..._rooms[roomIndex].deck,
+        ];
+      } else {
+        _rooms[roomIndex].players[playerIndex].handCard = [
+          ...newCards,
+          ...draw(_rooms[roomIndex].deck, numberCards.length),
+        ];
+      }
+
+      return {
+        isCorrect: true,
+        room: _rooms[roomIndex],
+      };
+    }
+    return {
+      isCorrect: false,
+    };
+  } catch (error) {
+    return {
+      isCorrect: false,
+    };
+  }
 }

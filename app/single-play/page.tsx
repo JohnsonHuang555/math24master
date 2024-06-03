@@ -20,7 +20,15 @@ export default function SinglePlayPage() {
   const [needDiscard, setNeedDiscard] = useState(false);
 
   const router = useRouter();
-  const { roomInfo, onSort, playCard, drawCard, discardCard } = useSinglePlay();
+  const {
+    roomInfo,
+    onSort,
+    playCard,
+    drawCard,
+    discardCard,
+    checkAnswerCorrect,
+    resetAnswer,
+  } = useSinglePlay();
   const currentPlayer = roomInfo?.players[0];
   const handCard = currentPlayer?.handCard || [];
 
@@ -47,6 +55,22 @@ export default function SinglePlayPage() {
       }, 500);
     }
   }, [handCard.length]);
+
+  useEffect(() => {
+    if (checkAnswerCorrect !== null) {
+      toast({
+        duration: 2000,
+        title: checkAnswerCorrect ? '答對了' : '不對唷',
+        className: checkAnswerCorrect
+          ? 'bg-green-500 text-white'
+          : 'bg-red-500 text-white',
+      });
+      resetAnswer();
+      if (checkAnswerCorrect) {
+        onReselect();
+      }
+    }
+  }, [checkAnswerCorrect, onReselect, resetAnswer]);
 
   return (
     <MainLayout>
@@ -109,11 +133,15 @@ export default function SinglePlayPage() {
           }}
         />
         <ActionArea
+          isSinglePlay={true}
           disabledActions={needDiscard}
           onSubmit={() => playCard(selectedCards)}
           onReselect={onReselect}
           onSort={onSort}
-          onEndPhase={drawCard}
+          onEndPhase={() => {
+            onReselect();
+            drawCard();
+          }}
         />
       </div>
     </MainLayout>

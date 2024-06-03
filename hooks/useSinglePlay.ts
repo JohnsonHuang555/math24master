@@ -8,6 +8,9 @@ import { SelectedCard } from './useGame';
 
 const useSinglePlay = () => {
   const [roomInfo, setRoomInfo] = useState<Room>();
+  const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
+    null,
+  );
   const { toast } = useToast();
   const [socket, setSocket] = useState<any>();
 
@@ -41,6 +44,11 @@ const useSinglePlay = () => {
       setRoomInfo(roomInfo);
     });
 
+    // 房間更新
+    socket.on(SocketEvent.PlayCardResponse, (isCorrect: boolean) => {
+      setCheckAnswerCorrect(isCorrect);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -72,9 +80,21 @@ const useSinglePlay = () => {
 
   // 出牌
   const playCard = (selectedCards: SelectedCard[]) => {
-    if (socket) {
-      socket.emit(SocketEvent.PlayCard, { roomId: selectedCards });
+    if (selectedCards.length === 0) {
+      toast({ title: '請組合算式', className: 'bg-amber-300' });
+      return;
     }
+
+    if (socket) {
+      socket.emit(SocketEvent.PlayCard, {
+        roomId: roomInfo?.roomId,
+        selectedCards,
+      });
+    }
+  };
+
+  const resetAnswer = () => {
+    setCheckAnswerCorrect(null);
   };
 
   return {
@@ -83,6 +103,8 @@ const useSinglePlay = () => {
     playCard,
     drawCard,
     discardCard,
+    checkAnswerCorrect,
+    resetAnswer,
   };
 };
 

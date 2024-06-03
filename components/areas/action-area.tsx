@@ -6,6 +6,7 @@ type ActionAreaProps = {
   onReselect: () => void;
   onSort: () => void;
   onEndPhase: () => void;
+  isSinglePlay: boolean;
 };
 
 const ActionArea = ({
@@ -14,6 +15,7 @@ const ActionArea = ({
   onReselect,
   onSort,
   onEndPhase,
+  isSinglePlay,
 }: ActionAreaProps) => {
   return (
     <div className="grid basis-1/5 grid-cols-2 gap-3 p-5">
@@ -42,7 +44,7 @@ const ActionArea = ({
         className="h-full"
         onClick={onEndPhase}
       >
-        結束回合
+        {isSinglePlay ? '抽牌' : '結束回合並抽牌'}
       </Button>
     </div>
   );

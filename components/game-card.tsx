@@ -10,7 +10,7 @@ type GameCardProps = {
 
 const GameCard = ({ selectedCardIndex, value, onSelect }: GameCardProps) => {
   return (
-    <motion.div className="relative" whileHover={{ scale: 1.12 }}>
+    <>
       <Card
         onClick={onSelect}
         className="flex aspect-[5/7.19] max-h-full min-h-[110px] cursor-pointer items-center justify-center bg-gray-200 text-4xl transition-all"
@@ -27,7 +27,7 @@ const GameCard = ({ selectedCardIndex, value, onSelect }: GameCardProps) => {
           {selectedCardIndex + 1}
         </motion.div>
       )}
-    </motion.div>
+    </>
   );
 };
 

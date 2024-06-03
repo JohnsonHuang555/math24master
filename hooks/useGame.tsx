@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
+import { fadeVariants } from '@/lib/animation-variants';
 import { NumberCard } from '@/models/Player';
 import { MAX_FORMULAS_NUMBER_COUNT } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
@@ -37,15 +39,15 @@ const useGame = () => {
 
       // 如果前一個是數字則不能選
       if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        toast({ variant: 'default', title: '數字牌不能連續使用' });
+        toast({ title: '數字牌不能連續使用', className: 'bg-amber-300' });
         return;
       }
 
       // 如果前一個是數字則不能選
       if (currentSelectedNumbers.length === MAX_FORMULAS_NUMBER_COUNT) {
         toast({
-          variant: 'default',
           title: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
+          className: 'bg-amber-300',
         });
         return;
       }
@@ -73,67 +75,100 @@ const useGame = () => {
         switch (card.symbol) {
           case Symbol.Plus:
             return (
-              <Image
+              <motion.span
                 key={`${index}-${card}`}
-                src="/plus.svg"
-                alt="plus"
-                width={52}
-                height={52}
-                priority
-              />
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+              >
+                <Image
+                  src="/plus.svg"
+                  alt="plus"
+                  width={52}
+                  height={52}
+                  priority
+                />
+              </motion.span>
             );
           case Symbol.Minus:
             return (
-              <Image
+              <motion.span
                 key={`${index}-${card}`}
-                src="/minus.svg"
-                alt="minus"
-                width={52}
-                height={52}
-                priority
-              />
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+              >
+                <Image
+                  src="/minus.svg"
+                  alt="minus"
+                  width={52}
+                  height={52}
+                  priority
+                />
+              </motion.span>
             );
           case Symbol.Times:
             return (
-              <Image
+              <motion.span
                 key={`${index}-${card}`}
-                src="/times.svg"
-                alt="times"
-                width={52}
-                height={52}
-                priority
-              />
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+              >
+                <Image
+                  src="/times.svg"
+                  alt="times"
+                  width={52}
+                  height={52}
+                  priority
+                />
+              </motion.span>
             );
           case Symbol.Divide:
             return (
-              <Image
+              <motion.span
                 key={`${index}-${card}`}
-                src="/divide.svg"
-                alt="divide"
-                width={52}
-                height={52}
-                priority
-              />
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+              >
+                <Image
+                  src="/divide.svg"
+                  alt="divide"
+                  width={52}
+                  height={52}
+                  priority
+                />
+              </motion.span>
             );
           case Symbol.LeftBracket:
           case Symbol.RightBracket:
             return (
-              <span key={`${index}-${card}`} className="text-4xl">
+              <motion.span
+                key={`${index}-${card}`}
+                className="text-4xl"
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+              >
                 {card.symbol}
-              </span>
+              </motion.span>
             );
           default:
             return '';
         }
       } else {
         return (
-          <span
+          <motion.span
             key={`${index}-${card}`}
             className="text-4xl"
             style={{ marginTop: '2px' }}
+            variants={fadeVariants}
+            initial="hidden"
+            animate="show"
           >
             {card.number?.value}
-          </span>
+          </motion.span>
         );
       }
     });

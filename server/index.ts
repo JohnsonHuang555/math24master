@@ -8,6 +8,7 @@ import {
   drawCard,
   joinRoom,
   leaveRoom,
+  playCard,
   sortCard,
   startGame,
 } from './game';
@@ -73,7 +74,13 @@ app.prepare().then(() => {
     });
 
     socket.on(SocketEvent.PlayCard, ({ roomId, selectedCards }) => {
-      console.log(selectedCards);
+      const result = playCard(roomId, playerId, selectedCards);
+      if (result) {
+        socket.emit(SocketEvent.PlayCardResponse, result.isCorrect);
+        if (result.room) {
+          socket.emit(SocketEvent.RoomUpdate, result.room);
+        }
+      }
     });
 
     socket.on('disconnect', () => {

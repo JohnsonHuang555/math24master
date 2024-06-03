@@ -17,6 +17,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
@@ -31,6 +32,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
@@ -45,6 +47,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
@@ -59,6 +62,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
@@ -79,6 +83,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
@@ -95,6 +100,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         initial="hidden"
         animate="show"
         whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 1 }}
       >
         <Card
           className="cursor-pointer bg-gray-200 p-2 transition-all"
