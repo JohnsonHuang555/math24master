@@ -20,7 +20,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.Plus)}
         >
           <Image src="/plus.svg" alt="plus" width={40} height={40} priority />
@@ -35,7 +35,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.Minus)}
         >
           <Image src="/minus.svg" alt="minus" width={40} height={40} priority />
@@ -50,7 +50,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.Times)}
         >
           <Image src="/times.svg" alt="times" width={40} height={40} priority />
@@ -65,7 +65,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.Divide)}
         >
           <Image
@@ -86,7 +86,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.LeftBracket)}
         >
           <div className="flex h-10 w-10 items-center justify-center text-2xl font-medium">
@@ -103,7 +103,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
         whileTap={{ scale: 1 }}
       >
         <Card
-          className="cursor-pointer bg-gray-200 p-2 transition-all"
+          className="cursor-pointer bg-slate-200 p-2 transition-all"
           onClick={() => onClick(Symbol.RightBracket)}
         >
           <div className="flex h-10 w-10 items-center justify-center text-2xl font-medium">

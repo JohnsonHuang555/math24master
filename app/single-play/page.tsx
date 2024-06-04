@@ -74,7 +74,7 @@ export default function SinglePlayPage() {
 
   return (
     <MainLayout>
-      <div className="relative flex w-full basis-1/5 bg-white">
+      <div className="relative flex w-full basis-1/5">
         <div className="absolute right-5 top-5 flex gap-4">
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
@@ -105,7 +105,7 @@ export default function SinglePlayPage() {
         </div>
       </div>
       <div className="relative flex flex-1 flex-col items-center gap-8">
-        <div className="mt-12 flex min-h-[150px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed px-6 text-lg">
+        <div className="mt-12 flex min-h-[150px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
           {selectedCards.length ? (
             showCurrentSelect()
           ) : (
@@ -117,7 +117,7 @@ export default function SinglePlayPage() {
           <Symbols onClick={symbol => onSelectCardOrSymbol({ symbol })} />
         </div>
       </div>
-      <div className="relative flex w-full basis-1/5 bg-white">
+      <div className="relative flex w-full basis-1/5">
         <PlayerInfoArea
           remainCards={roomInfo?.deck.length}
           score={currentPlayer?.score}

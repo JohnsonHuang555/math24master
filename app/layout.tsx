@@ -24,10 +24,18 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={cn(
-          'h-screen bg-background font-sans antialiased',
+          'relative h-screen font-sans antialiased',
           fontSans.variable,
         )}
       >
+        <div
+          className="absolute h-full w-full opacity-40"
+          style={{
+            backgroundImage: `url(/b2.jpg)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
         <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
         <Toaster />
       </body>

@@ -13,7 +13,7 @@ const GameCard = ({ selectedCardIndex, value, onSelect }: GameCardProps) => {
     <>
       <Card
         onClick={onSelect}
-        className="flex aspect-[5/7.19] max-h-full min-h-[110px] cursor-pointer items-center justify-center bg-gray-200 text-4xl transition-all"
+        className="flex aspect-[5/7.19] max-h-full min-h-[110px] cursor-pointer items-center justify-center bg-slate-200 text-4xl transition-all"
       >
         {value}
       </Card>

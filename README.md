@@ -34,3 +34,5 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+<a href="https://www.freepik.com/free-vector/colorful-background-with-geometric-shapes_18483442.htm#fromView=search&page=1&position=51&uuid=7115d23b-d196-49c8-b268-43759dce357f">Image by Hello-Pixel on Freepik</a>
