@@ -23,6 +23,8 @@ const useSinglePlay = () => {
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
+  // 出過牌的數量
+  const [playedCard, setPlayedCard] = useState(0);
   // 動畫完成時
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
@@ -359,7 +361,12 @@ const useSinglePlay = () => {
   // 抽牌
   const drawCard = () => {
     if (socket) {
-      socket.emit(SocketEvent.DrawCard, { roomId: roomInfo?.roomId });
+      // 沒出過牌抽 1 張，反之抽出過牌的數量
+      socket.emit(SocketEvent.DrawCard, {
+        roomId: roomInfo?.roomId,
+        count: playedCard === 0 ? 1 : playedCard,
+      });
+      setPlayedCard(0);
     }
   };
 
@@ -381,6 +388,9 @@ const useSinglePlay = () => {
     }
 
     if (socket) {
+      const usedCardCount = selectedCards.filter(c => c.number).length;
+      setPlayedCard(state => state + usedCardCount);
+
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
         selectedCards,
@@ -389,14 +399,14 @@ const useSinglePlay = () => {
   };
 
   // 更新分數並抽牌
-  const updateAndDraw = () => {
+  const updateScore = () => {
     if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
       setSelectedCards([]);
       setFinishedAnimations(0);
 
-      socket.emit(SocketEvent.UpdateAndDraw, {
+      socket.emit(SocketEvent.UpdateScore, {
         roomId: roomInfo?.roomId,
         selectedCards,
       });
@@ -419,7 +429,7 @@ const useSinglePlay = () => {
       finishedAnimations === selectedCardSymbols.length,
     selectedCardSymbols,
     selectedCardNumbers,
-    updateAndDraw,
+    updateScore,
   };
 };
 

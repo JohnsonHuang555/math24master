@@ -36,7 +36,7 @@ export default function SinglePlayPage() {
     isAnimationFinished,
     selectedCardSymbols,
     selectedCardNumbers,
-    updateAndDraw,
+    updateScore,
   } = useSinglePlay();
 
   const currentPlayer = roomInfo?.players[0];
@@ -115,7 +115,7 @@ export default function SinglePlayPage() {
               className="absolute -top-4 flex h-16 flex-col justify-center"
               onAnimationComplete={() => {
                 setTimeout(() => {
-                  updateAndDraw();
+                  updateScore();
                 }, 1500);
               }}
             >

@@ -11,7 +11,7 @@ export enum SocketEvent {
   PlayCard = 'play-card',
   DrawCard = 'draw-card',
   DiscardCard = 'discard-card',
-  UpdateAndDraw = 'update-and-draw',
+  UpdateScore = 'update-score',
 
   // b2e emit
   JoinRoomSuccess = 'join-room-success',

@@ -20,11 +20,6 @@ const _getCurrentRoom = (roomId: string) => {
   return room;
 };
 
-const _getCurrentPlayer = (players: Player[], playerId: string) => {
-  const player = players.find(player => player.id === playerId);
-  return player;
-};
-
 const _getCurrentRoomIndex = (roomId: string) => {
   const roomIndex = _rooms.findIndex(room => room.roomId === roomId);
   return roomIndex;
@@ -63,6 +58,7 @@ export function checkCanJoinRoom(roomId: string, playerId: string) {
   return true;
 }
 
+// 加入房間
 export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers'>,
   playerId: string,
@@ -80,6 +76,7 @@ export function joinRoom(
           maxPlayers: payload.maxPlayers,
           deck: [],
           currentIndex: -1,
+          isLastRound: false,
           players: [
             ...(room.players || []),
             {
@@ -100,6 +97,7 @@ export function joinRoom(
           maxPlayers: payload.maxPlayers,
           deck: [],
           currentIndex: -1,
+          isLastRound: false,
           players: [
             {
               id: playerId,
@@ -119,6 +117,7 @@ export function joinRoom(
   }
 }
 
+// 離開房間
 export function leaveRoom(playerId: string) {
   const roomId = _playerInRoomMap[playerId];
   const room = _getCurrentRoom(roomId);
@@ -148,6 +147,7 @@ export function leaveRoom(playerId: string) {
   }
 }
 
+// 開始遊戲
 export function startGame(roomId: string) {
   const room = _getCurrentRoom(roomId);
   if (!room) return false;
@@ -212,6 +212,7 @@ export function startGame(roomId: string) {
   }
 }
 
+// 排序
 export function sortCard(roomId: string, playerId: string) {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
@@ -231,7 +232,8 @@ export function sortCard(roomId: string, playerId: string) {
   return _rooms[roomIndex];
 }
 
-export function drawCard(roomId: string, playerId: string) {
+// 抽牌 即為結束回合換下一位玩家
+export function drawCard(roomId: string, playerId: string, count: number) {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
 
@@ -243,12 +245,23 @@ export function drawCard(roomId: string, playerId: string) {
 
   const currentHandCardsCount =
     _rooms[roomIndex].players[playerIndex].handCard.length;
+  // 手牌大於最大持牌數不能抽牌
   if (currentHandCardsCount > MAX_CARD_COUNT) return;
 
-  // 抽到的牌
-  const newCard = _rooms[roomIndex].deck[_rooms[roomIndex].deck.length - 1];
-  _rooms[roomIndex].deck.pop();
-  _rooms[roomIndex].players[playerIndex].handCard.push(newCard);
+  // 假設剩餘牌庫不夠補的話就直接抽完剩下的
+  if (_rooms[roomIndex].deck.length < count) {
+    _rooms[roomIndex].players[playerIndex].handCard.push(
+      ..._rooms[roomIndex].deck,
+    );
+    _rooms[roomIndex].deck = [];
+
+    // 當牌庫為零時，標記遊戲為最後一回合
+    _rooms[roomIndex].isLastRound = true;
+  } else {
+    _rooms[roomIndex].players[playerIndex].handCard.push(
+      ...draw(_rooms[roomIndex].deck, count),
+    );
+  }
 
   // 切換下一位玩家
   _nextPlayerTurn(roomIndex);
@@ -256,6 +269,7 @@ export function drawCard(roomId: string, playerId: string) {
   return _rooms[roomIndex];
 }
 
+// 棄牌
 export function discardCard(roomId: string, playerId: string, cardId: string) {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
@@ -274,6 +288,7 @@ export function discardCard(roomId: string, playerId: string, cardId: string) {
   return _rooms[roomIndex];
 }
 
+// 出牌
 export function playCard(
   roomId: string,
   playerId: string,
@@ -327,7 +342,8 @@ export function playCard(
   }
 }
 
-export function updateAndDraw(
+// 更新分數
+export function updateScore(
   roomId: string,
   playerId: string,
   selectedCards: SelectedCard[],
@@ -345,23 +361,6 @@ export function updateAndDraw(
   const numberCards = selectedCards
     .filter(c => c.number)
     .map(c => c.number?.id);
-
-  const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
-    c => !numberCards.includes(c.id),
-  );
-
-  // 補牌 -假設剩餘牌庫不夠補的話就直接抽完剩下的
-  if (_rooms[roomIndex].deck.length < numberCards.length) {
-    _rooms[roomIndex].players[playerIndex].handCard = [
-      ...newCards,
-      ..._rooms[roomIndex].deck,
-    ];
-  } else {
-    _rooms[roomIndex].players[playerIndex].handCard = [
-      ...newCards,
-      ...draw(_rooms[roomIndex].deck, numberCards.length),
-    ];
-  }
 
   // 計算分數
   let score = 0;
@@ -402,9 +401,6 @@ export function updateAndDraw(
 
   // 寫入暫存分數
   _rooms[roomIndex].players[playerIndex].score += score;
-
-  // 切換下一位玩家
-  _nextPlayerTurn(roomIndex);
 
   return _rooms[roomIndex];
 }
