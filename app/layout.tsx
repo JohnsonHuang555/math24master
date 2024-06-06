@@ -29,11 +29,12 @@ export default function RootLayout({
         )}
       >
         <div
-          className="absolute h-full w-full opacity-40"
+          className="absolute h-full w-full opacity-30"
           style={{
             backgroundImage: `url(/b2.jpg)`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            zIndex: '-999',
           }}
         />
         <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>

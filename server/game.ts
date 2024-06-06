@@ -1,8 +1,9 @@
 import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
-import { SelectedCard } from '../hooks/useGame';
+import { SelectedCard } from '../hooks/useSinglePlay';
 import { NumberCard, Player } from '../models/Player';
 import { HAND_CARD_COUNT, MAX_CARD_COUNT, Room } from '../models/Room';
+import { Symbol } from '../models/Symbol';
 import { createDeck, draw, shuffleArray } from './utils';
 
 // 所有房間資訊
@@ -32,6 +33,18 @@ const _getCurrentRoomIndex = (roomId: string) => {
 const _getCurrentPlayerIndex = (players: Player[], playerId: string) => {
   const playerIndex = players.findIndex(player => player.id === playerId);
   return playerIndex;
+};
+
+const _nextPlayerTurn = (roomIndex: number) => {
+  const activePlayer = _rooms[roomIndex].currentIndex;
+  const playerCount = _rooms[roomIndex].players.length;
+  const nextPlayer = activePlayer + 1;
+  if (nextPlayer < playerCount) {
+    _rooms[roomIndex].currentIndex = nextPlayer;
+  } else {
+    // 回到第一個玩家
+    _rooms[roomIndex].currentIndex = 0;
+  }
 };
 
 export function checkCanJoinRoom(roomId: string, playerId: string) {
@@ -237,6 +250,9 @@ export function drawCard(roomId: string, playerId: string) {
   _rooms[roomIndex].deck.pop();
   _rooms[roomIndex].players[playerIndex].handCard.push(newCard);
 
+  // 切換下一位玩家
+  _nextPlayerTurn(roomIndex);
+
   return _rooms[roomIndex];
 }
 
@@ -285,26 +301,16 @@ export function playCard(
     const answer = evaluate(expression.join(''));
 
     if (answer === 24) {
-      // 移除數字牌
+      // 使用的數字牌
       const numberCards = selectedCards
         .filter(c => c.number)
         .map(c => c.number?.id);
+
+      // 移除數字牌
       const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
         c => !numberCards.includes(c.id),
       );
-
-      // 補牌 -假設剩餘牌庫不夠補的話就直接抽完剩下的
-      if (_rooms[roomIndex].deck.length < numberCards.length) {
-        _rooms[roomIndex].players[playerIndex].handCard = [
-          ...newCards,
-          ..._rooms[roomIndex].deck,
-        ];
-      } else {
-        _rooms[roomIndex].players[playerIndex].handCard = [
-          ...newCards,
-          ...draw(_rooms[roomIndex].deck, numberCards.length),
-        ];
-      }
+      _rooms[roomIndex].players[playerIndex].handCard = newCards;
 
       return {
         isCorrect: true,
@@ -319,4 +325,86 @@ export function playCard(
       isCorrect: false,
     };
   }
+}
+
+export function updateAndDraw(
+  roomId: string,
+  playerId: string,
+  selectedCards: SelectedCard[],
+) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
+
+  // 使用的數字牌
+  const numberCards = selectedCards
+    .filter(c => c.number)
+    .map(c => c.number?.id);
+
+  const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
+    c => !numberCards.includes(c.id),
+  );
+
+  // 補牌 -假設剩餘牌庫不夠補的話就直接抽完剩下的
+  if (_rooms[roomIndex].deck.length < numberCards.length) {
+    _rooms[roomIndex].players[playerIndex].handCard = [
+      ...newCards,
+      ..._rooms[roomIndex].deck,
+    ];
+  } else {
+    _rooms[roomIndex].players[playerIndex].handCard = [
+      ...newCards,
+      ...draw(_rooms[roomIndex].deck, numberCards.length),
+    ];
+  }
+
+  // 計算分數
+  let score = 0;
+  // +, - 各加一分
+  const plusAndMinusCount =
+    selectedCards.filter(
+      c => c.symbol && [Symbol.Plus, Symbol.Minus].includes(c.symbol),
+    ).length || 0;
+  score += plusAndMinusCount;
+
+  // *, / 各加兩分
+  const timesCount =
+    selectedCards.filter(c => c.symbol === Symbol.Times).length || 0;
+  const timesDivideCount =
+    selectedCards.filter(c => c.symbol === Symbol.Divide).length || 0;
+  score += timesCount * 2;
+  score += timesDivideCount * 2;
+
+  // 如果有兩個 * 額外加一分
+  if (timesCount >= 2) {
+    score += 1;
+  }
+
+  // 如果有兩個 / 額外加一分
+  if (timesDivideCount >= 2) {
+    score += 2;
+  }
+
+  // 用到四張數字牌 額外加一分
+  if (numberCards.length === 4) {
+    score += 1;
+  }
+
+  // 用到五張數字牌 額外加兩分
+  if (numberCards.length === 5) {
+    score += 2;
+  }
+
+  // 寫入暫存分數
+  _rooms[roomIndex].players[playerIndex].score += score;
+
+  // 切換下一位玩家
+  _nextPlayerTurn(roomIndex);
+
+  return _rooms[roomIndex];
 }

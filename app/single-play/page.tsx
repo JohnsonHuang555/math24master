@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
@@ -10,9 +11,10 @@ import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import Symbols from '@/components/symbols';
 import { toast } from '@/components/ui/use-toast';
-import useGame from '@/hooks/useGame';
 import useSinglePlay from '@/hooks/useSinglePlay';
+import { fadeVariants } from '@/lib/animation-variants';
 import { MAX_CARD_COUNT } from '@/models/Room';
+import { Symbol } from '@/models/Symbol';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
@@ -26,14 +28,20 @@ export default function SinglePlayPage() {
     playCard,
     drawCard,
     discardCard,
+    selectedCards,
+    onSelectCardOrSymbol,
+    onReselect,
+    showCurrentSelect,
     checkAnswerCorrect,
-    resetAnswer,
+    isAnimationFinished,
+    selectedCardSymbols,
+    selectedCardNumbers,
+    updateAndDraw,
   } = useSinglePlay();
+
   const currentPlayer = roomInfo?.players[0];
   const handCard = currentPlayer?.handCard || [];
 
-  const { selectedCards, onSelectCardOrSymbol, onReselect, showCurrentSelect } =
-    useGame();
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
   useEffect(() => {
@@ -55,22 +63,6 @@ export default function SinglePlayPage() {
       }, 500);
     }
   }, [handCard.length]);
-
-  useEffect(() => {
-    if (checkAnswerCorrect !== null) {
-      toast({
-        duration: 2000,
-        title: checkAnswerCorrect ? '答對了' : '不對唷',
-        className: checkAnswerCorrect
-          ? 'bg-green-500 text-white'
-          : 'bg-red-500 text-white',
-      });
-      resetAnswer();
-      if (checkAnswerCorrect) {
-        onReselect();
-      }
-    }
-  }, [checkAnswerCorrect, onReselect, resetAnswer]);
 
   return (
     <MainLayout>
@@ -106,10 +98,54 @@ export default function SinglePlayPage() {
       </div>
       <div className="relative flex flex-1 flex-col items-center gap-8">
         <div className="mt-12 flex min-h-[150px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
-          {selectedCards.length ? (
-            showCurrentSelect()
-          ) : (
-            <div className="text-gray-500">點擊手牌組合出答案為 24 的算式</div>
+          <>
+            {selectedCards.length ? (
+              showCurrentSelect()
+            ) : (
+              <div className="text-gray-500">
+                點擊手牌組合出答案為 24 的算式
+              </div>
+            )}
+          </>
+          {isAnimationFinished && (
+            <motion.div
+              variants={fadeVariants}
+              initial="hide"
+              animate="show"
+              className="absolute -top-4 flex h-16 flex-col justify-center"
+              onAnimationComplete={() => {
+                setTimeout(() => {
+                  updateAndDraw();
+                }, 1500);
+              }}
+            >
+              {selectedCardSymbols.filter(c => c.symbol === Symbol.Times)
+                .length >= 2 && (
+                <div className="text-sm">
+                  符號 2 張乘{' '}
+                  <span className="text-base font-semibold text-emerald-600">
+                    +1
+                  </span>
+                </div>
+              )}
+              {selectedCardSymbols.filter(c => c.symbol === Symbol.Divide)
+                .length >= 2 && (
+                <div className="text-sm">
+                  符號 2 張除{' '}
+                  <span className="text-base font-semibold text-emerald-600">
+                    +2
+                  </span>
+                </div>
+              )}
+              {selectedCardNumbers.length >= 4 && (
+                <div className="text-sm">
+                  數字 {selectedCardNumbers.length} 張{' '}
+                  <span className="text-base font-semibold text-emerald-600">
+                    +{selectedCardNumbers.length === 4 ? 1 : 2}
+                  </span>
+                </div>
+              )}
+            </motion.div>
           )}
         </div>
         <div className="text-5xl">= 24</div>
@@ -134,7 +170,7 @@ export default function SinglePlayPage() {
         />
         <ActionArea
           isSinglePlay={true}
-          disabledActions={needDiscard}
+          disabledActions={needDiscard || checkAnswerCorrect === true}
           onSubmit={() => playCard(selectedCards)}
           onReselect={onReselect}
           onSort={onSort}

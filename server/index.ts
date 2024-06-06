@@ -11,6 +11,7 @@ import {
   playCard,
   sortCard,
   startGame,
+  updateAndDraw,
 } from './game';
 
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -80,6 +81,13 @@ app.prepare().then(() => {
         if (result.room) {
           socket.emit(SocketEvent.RoomUpdate, result.room);
         }
+      }
+    });
+
+    socket.on(SocketEvent.UpdateAndDraw, ({ roomId, selectedCards }) => {
+      const updatedRoom = updateAndDraw(roomId, playerId, selectedCards);
+      if (updatedRoom) {
+        socket.emit(SocketEvent.RoomUpdate, updatedRoom);
       }
     });
 

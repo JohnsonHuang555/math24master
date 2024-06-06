@@ -18,21 +18,21 @@ const ActionArea = ({
   isSinglePlay,
 }: ActionAreaProps) => {
   return (
-    <div className="grid basis-1/5 grid-cols-2 gap-3 p-5">
-      <Button
-        disabled={disabledActions}
-        variant="secondary"
-        className="h-full"
-        onClick={onReselect}
-      >
-        重選
-      </Button>
+    <div className="grid basis-[23%] grid-cols-2 gap-3 p-5">
       <Button disabled={disabledActions} className="h-full" onClick={onSubmit}>
         出牌
       </Button>
       <Button
         disabled={disabledActions}
-        variant="secondary"
+        variant="outline"
+        className="h-full"
+        onClick={onReselect}
+      >
+        重選
+      </Button>
+      <Button
+        disabled={disabledActions}
+        variant="outline"
         className="h-full"
         onClick={onSort}
       >
@@ -40,7 +40,7 @@ const ActionArea = ({
       </Button>
       <Button
         disabled={disabledActions}
-        variant="destructive"
+        variant="outline"
         className="h-full"
         onClick={onEndPhase}
       >
