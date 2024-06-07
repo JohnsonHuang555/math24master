@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon",
     "build": "next build && tsc --project tsconfig.server.json",
-    "start": "cross-env NODE_ENV=production node --experimental-specifier-resolution=node dist/index.js"
+    "start": "cross-env NODE_ENV=production node --experimental-specifier-resolution=node dist/server/index.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.1.3",
