@@ -11,9 +11,7 @@ let _rooms: Room[] = [];
 // 玩家在房間資訊
 const _playerInRoomMap: { [key: string]: string } = {};
 
-export function getCurrentRooms() {
-  return _rooms;
-}
+export const rooms = _rooms;
 
 const _getCurrentRoom = (roomId: string) => {
   const room = _rooms.find(room => room.roomId === roomId);
@@ -76,7 +74,7 @@ export function joinRoom(
           maxPlayers: payload.maxPlayers,
           deck: [],
           currentIndex: -1,
-          isLastRound: false,
+          isGameOver: false,
           players: [
             ...(room.players || []),
             {
@@ -85,6 +83,7 @@ export function joinRoom(
               name: playerName,
               handCard: [],
               score: 0,
+              isLastRoundPlayer: false,
             },
           ],
         },
@@ -97,7 +96,7 @@ export function joinRoom(
           maxPlayers: payload.maxPlayers,
           deck: [],
           currentIndex: -1,
-          isLastRound: false,
+          isGameOver: false,
           players: [
             {
               id: playerId,
@@ -105,6 +104,7 @@ export function joinRoom(
               name: playerName,
               handCard: [],
               score: 0,
+              isLastRoundPlayer: false,
             },
           ],
         },
@@ -248,15 +248,23 @@ export function drawCard(roomId: string, playerId: string, count: number) {
   // 手牌大於最大持牌數不能抽牌
   if (currentHandCardsCount > MAX_CARD_COUNT) return;
 
+  // 輪到最後一位玩家結束回合
+  if (_rooms[roomIndex].players[playerIndex].isLastRoundPlayer) {
+    // 遊戲結束
+    _rooms[roomIndex].isGameOver = true;
+
+    return _rooms[roomIndex];
+  }
+
   // 假設剩餘牌庫不夠補的話就直接抽完剩下的
-  if (_rooms[roomIndex].deck.length < count) {
+  if (_rooms[roomIndex].deck.length <= count) {
     _rooms[roomIndex].players[playerIndex].handCard.push(
       ..._rooms[roomIndex].deck,
     );
     _rooms[roomIndex].deck = [];
 
-    // 當牌庫為零時，標記遊戲為最後一回合
-    _rooms[roomIndex].isLastRound = true;
+    // 標記為最後一位玩家
+    _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
   } else {
     _rooms[roomIndex].players[playerIndex].handCard.push(
       ...draw(_rooms[roomIndex].deck, count),

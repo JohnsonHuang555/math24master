@@ -37,12 +37,16 @@ export default function SinglePlayPage() {
     selectedCardSymbols,
     selectedCardNumbers,
     updateScore,
+    isGameOver,
   } = useSinglePlay();
 
   const currentPlayer = roomInfo?.players[0];
   const handCard = currentPlayer?.handCard || [];
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
+
+  const disabledActions =
+    needDiscard || checkAnswerCorrect === true || !!isGameOver;
 
   useEffect(() => {
     if (isConfirmed) {
@@ -57,12 +61,22 @@ export default function SinglePlayPage() {
       setTimeout(() => {
         toast({
           title: '請點選 1 張牌棄掉',
-          className: 'bg-amber-300',
+          className: 'bg-amber-300 text-white',
         });
         setNeedDiscard(true);
       }, 500);
     }
   }, [handCard.length]);
+
+  useEffect(() => {
+    if (roomInfo?.isGameOver) {
+      toast({
+        duration: 5000,
+        title: '遊戲結束',
+        className: 'bg-green-300 text-white',
+      });
+    }
+  }, [onOpen, roomInfo?.isGameOver]);
 
   return (
     <MainLayout>
@@ -88,7 +102,7 @@ export default function SinglePlayPage() {
               priority
               onClick={() =>
                 onOpen({
-                  title: '確定要離開嗎？',
+                  title: '回到首頁',
                   description: '離開遊戲後，當前進度將會消失，確定要離開嗎？',
                 })
               }
@@ -155,6 +169,7 @@ export default function SinglePlayPage() {
       </div>
       <div className="relative flex w-full basis-1/5">
         <PlayerInfoArea
+          isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}
           score={currentPlayer?.score}
         />
@@ -170,7 +185,7 @@ export default function SinglePlayPage() {
         />
         <ActionArea
           isSinglePlay={true}
-          disabledActions={needDiscard || checkAnswerCorrect === true}
+          disabledActions={disabledActions}
           onSubmit={() => playCard(selectedCards)}
           onReselect={onReselect}
           onSort={onSort}

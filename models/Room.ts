@@ -13,6 +13,5 @@ export type Room = {
   currentIndex: number; // 當前輪到的玩家
   deck: NumberCard[]; // 牌庫
   players: Player[]; // 玩家資訊
-  isLastRound: boolean; // 是否為最後一回合
-  // round: number; 
+  isGameOver: boolean; // 是否遊戲結束
 };

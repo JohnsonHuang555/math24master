@@ -31,6 +31,16 @@ const useSinglePlay = () => {
   const [roomInfo, setRoomInfo] = useState<Room>();
   const [socket, setSocket] = useState<any>();
 
+  const isLastRound = useMemo(
+    () => roomInfo?.deck.length === 0,
+    [roomInfo?.deck.length],
+  );
+
+  const isGameOver = useMemo(
+    () => !!roomInfo?.isGameOver,
+    [roomInfo?.isGameOver],
+  );
+
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
     return selectedCards.filter(
@@ -102,6 +112,15 @@ const useSinglePlay = () => {
     }
   }, [checkAnswerCorrect]);
 
+  useEffect(() => {
+    if (isLastRound) {
+      toast({
+        title: '最後一回合囉',
+        className: 'bg-amber-300 text-white',
+      });
+    }
+  }, [isLastRound]);
+
   const onSelectCardOrSymbol = ({
     number,
     symbol,
@@ -109,6 +128,7 @@ const useSinglePlay = () => {
     number?: NumberCard;
     symbol?: Symbol;
   }) => {
+    if (isGameOver) return;
     if (
       selectedCards.length === 0 &&
       symbol &&
@@ -137,7 +157,11 @@ const useSinglePlay = () => {
       }
 
       // 如果前一個是數字則不能選
-      if (currentSelectedNumbers.length === MAX_FORMULAS_NUMBER_COUNT) {
+      if (
+        currentSelect?.number &&
+        currentSelectedNumbers.length === MAX_FORMULAS_NUMBER_COUNT &&
+        currentSelect?.number.id !== number.id
+      ) {
         toast({
           title: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
           className: 'bg-amber-300',
@@ -158,7 +182,9 @@ const useSinglePlay = () => {
     }
   };
 
+  // 重選
   const onReselect = () => {
+    if (isGameOver) return;
     setSelectedCards([]);
   };
 
@@ -353,6 +379,8 @@ const useSinglePlay = () => {
 
   // 排序
   const onSort = () => {
+    if (isGameOver) return;
+
     if (socket) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
@@ -360,6 +388,8 @@ const useSinglePlay = () => {
 
   // 抽牌
   const drawCard = () => {
+    if (isGameOver) return;
+
     if (socket) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
@@ -372,6 +402,8 @@ const useSinglePlay = () => {
 
   // 棄牌
   const discardCard = (cardId: string) => {
+    if (isGameOver) return;
+
     if (socket) {
       socket.emit(SocketEvent.DiscardCard, {
         roomId: roomInfo?.roomId,
@@ -382,6 +414,8 @@ const useSinglePlay = () => {
 
   // 出牌
   const playCard = (selectedCards: SelectedCard[]) => {
+    if (isGameOver) return;
+
     if (selectedCards.length === 0) {
       toast({ title: '請組合算式', className: 'bg-amber-300 text-white' });
       return;
@@ -400,6 +434,8 @@ const useSinglePlay = () => {
 
   // 更新分數並抽牌
   const updateScore = () => {
+    if (isGameOver) return;
+
     if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
@@ -430,6 +466,7 @@ const useSinglePlay = () => {
     selectedCardSymbols,
     selectedCardNumbers,
     updateScore,
+    isGameOver,
   };
 };
 
