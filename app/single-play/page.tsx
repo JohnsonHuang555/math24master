@@ -18,6 +18,8 @@ import { Symbol } from '@/models/Symbol';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
+  const [bestScore, setBestScore] = useState<number>();
+
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
 
@@ -69,19 +71,43 @@ export default function SinglePlayPage() {
   }, [handCard.length]);
 
   useEffect(() => {
-    if (roomInfo?.isGameOver) {
+    if (roomInfo?.isGameOver && currentPlayer?.score) {
+      if (bestScore && bestScore < currentPlayer?.score) {
+        setBestScore(currentPlayer.score);
+        localStorage.setItem('bestScore', String(currentPlayer?.score));
+      }
       toast({
         duration: 5000,
-        title: '遊戲結束',
+        title: `遊戲結束，總分為 ${currentPlayer?.score}`,
         className: 'bg-green-300 text-white',
       });
     }
-  }, [onOpen, roomInfo?.isGameOver]);
+  }, [bestScore, currentPlayer?.score, roomInfo?.isGameOver]);
+
+  useEffect(() => {
+    const score = localStorage.getItem('bestScore');
+    if (score) {
+      setBestScore(Number(score));
+    }
+  }, []);
 
   return (
     <MainLayout>
       <div className="relative flex w-full basis-1/5">
         <div className="absolute right-5 top-5 flex gap-4">
+          {/* 再來一局 */}
+          {isGameOver && (
+            <HoverTip content="再來一局">
+              <Image
+                src="/replay.svg"
+                alt="replay"
+                width={30}
+                height={30}
+                priority
+                onClick={() => location.reload()}
+              />
+            </HoverTip>
+          )}
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <Image
@@ -103,7 +129,9 @@ export default function SinglePlayPage() {
               onClick={() =>
                 onOpen({
                   title: '回到首頁',
-                  description: '離開遊戲後，當前進度將會消失，確定要離開嗎？',
+                  description: isGameOver
+                    ? '離開遊戲回到首頁'
+                    : '離開遊戲後，當前進度將會消失，確定要離開嗎？',
                 })
               }
             />
@@ -169,6 +197,7 @@ export default function SinglePlayPage() {
       </div>
       <div className="relative flex w-full basis-1/5">
         <PlayerInfoArea
+          bestScore={bestScore}
           isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}
           score={currentPlayer?.score}

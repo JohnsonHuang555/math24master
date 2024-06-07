@@ -3,12 +3,14 @@ import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import HoverTip from '../hover-tip';
 
 type PlayerInfoAreaProps = {
+  bestScore?: number;
   isLastRoundPlayer?: boolean;
   remainCards?: number;
   score?: number;
 };
 
 const PlayerInfoArea = ({
+  bestScore,
   isLastRoundPlayer = false,
   remainCards,
   score = 0,
@@ -34,9 +36,12 @@ const PlayerInfoArea = ({
           </HoverTip>
         )}
       </div>
-      <div className="mb-1 flex">
-        <div className="mr-2 text-xl">得分: </div>
-        <motion.div className="mb-1 text-xl">{rounded}</motion.div>
+      {bestScore && (
+        <div className="mt-2 text-sm text-red-500">最佳分數: {bestScore}</div>
+      )}
+      <div className="flex">
+        <div className="mr-2 text-lg">當前分數: </div>
+        <motion.div className="text-xl">{rounded}</motion.div>
       </div>
       <div className="text-xl">You</div>
     </div>
