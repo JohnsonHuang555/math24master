@@ -12,6 +12,8 @@ export enum SocketEvent {
   DrawCard = 'draw-card',
   DiscardCard = 'discard-card',
   UpdateScore = 'update-score',
+  SelectCard = 'select-card',
+  ReselectCard = 'reselect-card',
 
   // b2e emit
   JoinRoomSuccess = 'join-room-success',

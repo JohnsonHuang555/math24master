@@ -1,4 +1,5 @@
 import { NumberCard, Player } from './Player';
+import { SelectedCard } from './SelectedCard';
 
 // 起始手牌數
 export const HAND_CARD_COUNT = 5;
@@ -14,4 +15,5 @@ export type Room = {
   deck: NumberCard[]; // 牌庫
   players: Player[]; // 玩家資訊
   isGameOver: boolean; // 是否遊戲結束
+  selectedCards: SelectedCard[];
 };

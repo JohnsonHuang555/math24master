@@ -9,6 +9,8 @@ import {
   joinRoom,
   leaveRoom,
   playCard,
+  reselectCard,
+  selectCard,
   sortCard,
   startGame,
   updateScore,
@@ -74,8 +76,24 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on(SocketEvent.PlayCard, ({ roomId, selectedCards }) => {
-      const result = playCard(roomId, playerId, selectedCards);
+    socket.on(SocketEvent.SelectCard, ({ roomId, number, symbol }) => {
+      const result = selectCard(roomId, number, symbol);
+      if (result?.isError) {
+        socket.emit(SocketEvent.ErrorMessage, result.msg);
+      } else {
+        socket.emit(SocketEvent.RoomUpdate, result?.room);
+      }
+    });
+
+    socket.on(SocketEvent.ReselectCard, ({ roomId }) => {
+      const updatedRoom = reselectCard(roomId);
+      if (updatedRoom) {
+        socket.emit(SocketEvent.RoomUpdate, updatedRoom);
+      }
+    });
+
+    socket.on(SocketEvent.PlayCard, ({ roomId }) => {
+      const result = playCard(roomId, playerId);
       if (result) {
         socket.emit(SocketEvent.PlayCardResponse, result.isCorrect);
         if (result.room) {
@@ -84,8 +102,8 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on(SocketEvent.UpdateScore, ({ roomId, selectedCards }) => {
-      const updatedRoom = updateScore(roomId, playerId, selectedCards);
+    socket.on(SocketEvent.UpdateScore, ({ roomId }) => {
+      const updatedRoom = updateScore(roomId, playerId);
       if (updatedRoom) {
         socket.emit(SocketEvent.RoomUpdate, updatedRoom);
       }

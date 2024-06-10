@@ -1,24 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from '@/components/ui/use-toast';
 import { fadeVariants } from '@/lib/animation-variants';
 import { NumberCard } from '@/models/Player';
 import { Room } from '@/models/Room';
-import { MAX_FORMULAS_NUMBER_COUNT } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
-export type SelectedCard = {
-  number?: NumberCard;
-  symbol?: Symbol;
-};
-
 const useSinglePlay = () => {
-  // 選的牌
-  const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
@@ -43,19 +35,19 @@ const useSinglePlay = () => {
 
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
-    return selectedCards.filter(
+    return roomInfo?.selectedCards.filter(
       c =>
         c.symbol &&
         [Symbol.Plus, Symbol.Minus, Symbol.Times, Symbol.Divide].includes(
           c.symbol,
         ),
     );
-  }, [selectedCards]);
+  }, [roomInfo?.selectedCards]);
 
   // 已選的數字牌
   const selectedCardNumbers = useMemo(() => {
-    return selectedCards.filter(c => c.number);
-  }, [selectedCards]);
+    return roomInfo?.selectedCards.filter(c => c.number);
+  }, [roomInfo?.selectedCards]);
 
   useEffect(() => {
     const roomId = uuidv4();
@@ -74,7 +66,7 @@ const useSinglePlay = () => {
     });
 
     socket.on(SocketEvent.ErrorMessage, message => {
-      toast({ title: message, className: 'bg-red-500' });
+      toast.error(message);
     });
 
     // 遊戲開始回傳
@@ -99,25 +91,17 @@ const useSinglePlay = () => {
 
   useEffect(() => {
     if (checkAnswerCorrect !== null) {
-      toast({
-        duration: 2000,
-        title: checkAnswerCorrect ? '答對了' : '不對唷',
-        style: {
-          backgroundColor: checkAnswerCorrect
-            ? 'rgb(34 197 94)'
-            : 'rgb(239 68 68)',
-        },
-        className: 'text-white',
-      });
+      if (checkAnswerCorrect) {
+        toast.success('答對了');
+      } else {
+        toast.error('不對唷');
+      }
     }
   }, [checkAnswerCorrect]);
 
   useEffect(() => {
     if (isLastRound) {
-      toast({
-        title: '最後一回合囉',
-        className: 'bg-amber-300 text-white',
-      });
+      toast.warning('最後一回合囉');
     }
   }, [isLastRound]);
 
@@ -129,67 +113,29 @@ const useSinglePlay = () => {
     symbol?: Symbol;
   }) => {
     if (isGameOver) return;
-    if (
-      selectedCards.length === 0 &&
-      symbol &&
-      [Symbol.Plus, Symbol.Times, Symbol.Divide, Symbol.RightBracket].includes(
+
+    if (socket) {
+      socket.emit(SocketEvent.SelectCard, {
+        roomId: roomInfo?.roomId,
+        number,
         symbol,
-      )
-    ) {
-      toast({
-        title: '第一個符號只能用減號或左括號',
-        className: 'bg-red-500 text-white',
       });
-      return;
-    }
-
-    if (number) {
-      const currentSelect = selectedCards[selectedCards.length - 1];
-      const currentSelectedNumbers = selectedCards.filter(c => c.number);
-
-      // 如果前一個是數字則不能選
-      if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        toast({
-          title: '數字牌不能連續使用',
-          className: 'bg-amber-300 text-white',
-        });
-        return;
-      }
-
-      // 如果前一個是數字則不能選
-      if (
-        currentSelect?.number &&
-        currentSelectedNumbers.length === MAX_FORMULAS_NUMBER_COUNT &&
-        currentSelect?.number.id !== number.id
-      ) {
-        toast({
-          title: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
-          className: 'bg-amber-300',
-        });
-        return;
-      }
-
-      setSelectedCards(state => {
-        const isExist = state.find(c => c.number?.id === number.id);
-        if (isExist) {
-          return state.filter(c => c.number?.id !== number.id);
-        }
-        return [...state, { number }];
-      });
-    }
-    if (symbol) {
-      setSelectedCards(state => [...state, { symbol }]);
     }
   };
 
   // 重選
   const onReselect = () => {
     if (isGameOver) return;
-    setSelectedCards([]);
+
+    if (socket) {
+      socket.emit(SocketEvent.ReselectCard, {
+        roomId: roomInfo?.roomId,
+      });
+    }
   };
 
   const showCurrentSelect = () => {
-    return selectedCards.map((card, index) => {
+    return roomInfo?.selectedCards.map((card, index) => {
       if (card.symbol) {
         switch (card.symbol) {
           case Symbol.Plus:
@@ -413,21 +359,21 @@ const useSinglePlay = () => {
   };
 
   // 出牌
-  const playCard = (selectedCards: SelectedCard[]) => {
+  const playCard = () => {
     if (isGameOver) return;
 
-    if (selectedCards.length === 0) {
-      toast({ title: '請組合算式', className: 'bg-amber-300 text-white' });
+    if (roomInfo?.selectedCards.length === 0) {
+      toast.warning('請組合算式');
       return;
     }
 
     if (socket) {
-      const usedCardCount = selectedCards.filter(c => c.number).length;
+      const usedCardCount =
+        roomInfo?.selectedCards.filter(c => c.number).length || 0;
       setPlayedCard(state => state + usedCardCount);
 
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
-        selectedCards,
       });
     }
   };
@@ -439,12 +385,10 @@ const useSinglePlay = () => {
     if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
-      setSelectedCards([]);
       setFinishedAnimations(0);
 
       socket.emit(SocketEvent.UpdateScore, {
         roomId: roomInfo?.roomId,
-        selectedCards,
       });
     }
   };
@@ -455,16 +399,15 @@ const useSinglePlay = () => {
     playCard,
     drawCard,
     discardCard,
-    selectedCards,
     onSelectCardOrSymbol,
     onReselect,
     showCurrentSelect,
     checkAnswerCorrect,
     isAnimationFinished:
       checkAnswerCorrect === true &&
-      finishedAnimations === selectedCardSymbols.length,
-    selectedCardSymbols,
-    selectedCardNumbers,
+      finishedAnimations === selectedCardSymbols?.length,
+    selectedCardSymbols: selectedCardSymbols || [],
+    selectedCardNumbers: selectedCardNumbers || [],
     updateScore,
     isGameOver,
   };

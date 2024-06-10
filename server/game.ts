@@ -1,8 +1,12 @@
 import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
-import { SelectedCard } from '../hooks/useSinglePlay';
 import { NumberCard, Player } from '../models/Player';
-import { HAND_CARD_COUNT, MAX_CARD_COUNT, Room } from '../models/Room';
+import {
+  HAND_CARD_COUNT,
+  MAX_CARD_COUNT,
+  MAX_FORMULAS_NUMBER_COUNT,
+  Room,
+} from '../models/Room';
 import { Symbol } from '../models/Symbol';
 import { createDeck, draw, shuffleArray } from './utils';
 
@@ -75,6 +79,7 @@ export function joinRoom(
           deck: [],
           currentIndex: -1,
           isGameOver: false,
+          selectedCards: [],
           players: [
             ...(room.players || []),
             {
@@ -97,6 +102,7 @@ export function joinRoom(
           deck: [],
           currentIndex: -1,
           isGameOver: false,
+          selectedCards: [],
           players: [
             {
               id: playerId,
@@ -300,7 +306,6 @@ export function discardCard(roomId: string, playerId: string, cardId: string) {
 export function playCard(
   roomId: string,
   playerId: string,
-  selectedCards: SelectedCard[],
 ): { isCorrect: boolean; room?: Room } | undefined {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
@@ -310,6 +315,8 @@ export function playCard(
     playerId,
   );
   if (playerIndex === -1) return;
+
+  const selectedCards = _rooms[roomIndex].selectedCards;
 
   const expression = selectedCards.map(s => {
     if (s.number) {
@@ -351,11 +358,7 @@ export function playCard(
 }
 
 // 更新分數
-export function updateScore(
-  roomId: string,
-  playerId: string,
-  selectedCards: SelectedCard[],
-) {
+export function updateScore(roomId: string, playerId: string) {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
 
@@ -364,6 +367,8 @@ export function updateScore(
     playerId,
   );
   if (playerIndex === -1) return;
+
+  const selectedCards = _rooms[roomIndex].selectedCards;
 
   // 使用的數字牌
   const numberCards = selectedCards
@@ -409,6 +414,79 @@ export function updateScore(
 
   // 寫入暫存分數
   _rooms[roomIndex].players[playerIndex].score += score;
+  _rooms[roomIndex].selectedCards = [];
+
+  return _rooms[roomIndex];
+}
+
+export function selectCard(roomId: string, number: NumberCard, symbol: Symbol) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const selectedCards = _rooms[roomIndex].selectedCards;
+
+  if (
+    selectedCards.length === 0 &&
+    symbol &&
+    [Symbol.Plus, Symbol.Times, Symbol.Divide, Symbol.RightBracket].includes(
+      symbol,
+    )
+  ) {
+    return {
+      isError: true,
+      msg: '第一個符號只能用減號或左括號',
+    };
+  }
+
+  if (number) {
+    console.log(number);
+    const currentSelect = selectedCards[selectedCards.length - 1];
+    const currentSelectedNumbers = selectedCards.filter(c => c.number);
+
+    // 如果前一個是數字則不能選
+    if (currentSelect?.number && currentSelect?.number.id !== number.id) {
+      return {
+        isError: true,
+        msg: '數字牌不能連續使用',
+      };
+    }
+
+    // 如果前一個是數字則不能選
+    if (
+      currentSelect?.number &&
+      currentSelectedNumbers?.length === MAX_FORMULAS_NUMBER_COUNT &&
+      currentSelect?.number.id !== number.id
+    ) {
+      return {
+        isError: true,
+        msg: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
+      };
+    }
+
+    const isExistIndex = selectedCards.findIndex(
+      s => s.number?.id === number.id,
+    );
+    if (isExistIndex !== -1) {
+      _rooms[roomIndex].selectedCards.splice(isExistIndex, 1);
+    } else {
+      _rooms[roomIndex].selectedCards.push({ number });
+    }
+  }
+  if (symbol) {
+    _rooms[roomIndex].selectedCards.push({ symbol });
+  }
+
+  return {
+    isError: false,
+    room: _rooms[roomIndex],
+  };
+}
+
+export function reselectCard(roomId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  _rooms[roomIndex].selectedCards = [];
 
   return _rooms[roomIndex];
 }

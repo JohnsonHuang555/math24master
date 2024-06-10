@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -10,7 +11,6 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import Symbols from '@/components/symbols';
-import { toast } from '@/components/ui/use-toast';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { fadeVariants } from '@/lib/animation-variants';
 import { MAX_CARD_COUNT } from '@/models/Room';
@@ -30,7 +30,6 @@ export default function SinglePlayPage() {
     playCard,
     drawCard,
     discardCard,
-    selectedCards,
     onSelectCardOrSymbol,
     onReselect,
     showCurrentSelect,
@@ -61,10 +60,7 @@ export default function SinglePlayPage() {
     // 如果手牌超過8張須棄牌
     if (handCard.length > MAX_CARD_COUNT) {
       setTimeout(() => {
-        toast({
-          title: '請點選 1 張牌棄掉',
-          className: 'bg-amber-300 text-white',
-        });
+        toast.error('請點選 1 張牌棄掉');
         setNeedDiscard(true);
       }, 500);
     }
@@ -76,10 +72,8 @@ export default function SinglePlayPage() {
         setBestScore(currentPlayer.score);
         localStorage.setItem('bestScore', String(currentPlayer?.score));
       }
-      toast({
-        duration: 5000,
-        title: `遊戲結束，總分為 ${currentPlayer?.score}`,
-        className: 'bg-green-300 text-white',
+      toast.success(`遊戲結束，總分為 ${currentPlayer?.score}`, {
+        autoClose: 5000,
       });
     }
   }, [bestScore, currentPlayer?.score, roomInfo?.isGameOver]);
@@ -141,7 +135,7 @@ export default function SinglePlayPage() {
       <div className="relative flex flex-1 flex-col items-center gap-8">
         <div className="mt-12 flex min-h-[150px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
           <>
-            {selectedCards.length ? (
+            {roomInfo?.selectedCards.length ? (
               showCurrentSelect()
             ) : (
               <div className="text-gray-500">
@@ -203,7 +197,7 @@ export default function SinglePlayPage() {
           score={currentPlayer?.score}
         />
         <HandCardArea
-          selectedCards={selectedCards}
+          selectedCards={roomInfo?.selectedCards || []}
           handCard={handCard}
           needDiscard={needDiscard}
           onSelect={number => onSelectCardOrSymbol({ number })}
@@ -215,7 +209,7 @@ export default function SinglePlayPage() {
         <ActionArea
           isSinglePlay={true}
           disabledActions={disabledActions}
-          onSubmit={() => playCard(selectedCards)}
+          onSubmit={playCard}
           onReselect={onReselect}
           onSort={onSort}
           onEndPhase={() => {

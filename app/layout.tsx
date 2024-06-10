@@ -1,6 +1,7 @@
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Inter as FontSans } from 'next/font/google';
 import type { Metadata } from 'next';
-import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
@@ -38,7 +39,18 @@ export default function RootLayout({
           }}
         />
         <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
-        <Toaster />
+        <ToastContainer
+          position="top-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
       </body>
     </html>
   );

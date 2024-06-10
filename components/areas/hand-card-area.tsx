@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { SelectedCard } from '@/hooks/useSinglePlay';
 import { fadeVariants } from '@/lib/animation-variants';
 import { NumberCard } from '@/models/Player';
 import { HAND_CARD_COUNT } from '@/models/Room';
+import { SelectedCard } from '@/models/SelectedCard';
 import GameCard from '../game-card';
 
 type HandCardAreaProps = {
