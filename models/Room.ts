@@ -10,6 +10,8 @@ export const MAX_FORMULAS_NUMBER_COUNT = 5;
 
 export type Room = {
   roomId: string;
+  roomName?: string;
+  password?: string; // 房間密碼
   maxPlayers: number; // 最大玩家數
   currentIndex: number; // 當前輪到的玩家
   deck: NumberCard[]; // 牌庫

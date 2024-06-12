@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { fadeVariants } from '@/lib/animation-variants';
+import { GameMode } from '@/models/GameMode';
 import { NumberCard } from '@/models/Player';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
@@ -58,6 +59,7 @@ const useSinglePlay = () => {
       roomId,
       maxPlayers: 1,
       playerName: 'single',
+      mode: GameMode.Single,
     });
 
     socket.on(SocketEvent.JoinRoomSuccess, () => {

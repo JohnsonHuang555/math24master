@@ -6,6 +6,7 @@ import {
   checkCanJoinRoom,
   discardCard,
   drawCard,
+  getCurrentRooms,
   joinRoom,
   leaveRoom,
   playCard,
@@ -28,23 +29,30 @@ app.prepare().then(() => {
 
   io.on('connection', socket => {
     const playerId = socket.id;
-    socket.on(SocketEvent.JoinRoom, ({ roomId, maxPlayers, playerName }) => {
-      const canJoin = checkCanJoinRoom(roomId, playerId);
-      if (canJoin) {
-        socket.join(roomId);
-        const result = joinRoom({ roomId, maxPlayers }, playerId, playerName);
-        if (result) {
-          socket.emit(SocketEvent.JoinRoomSuccess);
+    socket.on(
+      SocketEvent.JoinRoom,
+      ({ roomId, maxPlayers, playerName, roomName, password, mode }) => {
+        const canJoin = checkCanJoinRoom(roomId, playerId, mode);
+        if (canJoin) {
+          socket.join(roomId);
+          const isSuccess = joinRoom(
+            { roomId, maxPlayers, roomName, password },
+            playerId,
+            playerName,
+          );
+          if (isSuccess) {
+            socket.emit(SocketEvent.JoinRoomSuccess);
+          } else {
+            socket.emit(SocketEvent.ErrorMessage, '加入失敗');
+          }
+          // io.sockets
+          //   .to(roomId)
+          //   .emit(SocketEvent.JoinRoomMessage, `You've join ${roomId} room`);
         } else {
-          socket.emit(SocketEvent.ErrorMessage, '加入失敗');
+          socket.emit(SocketEvent.ErrorMessage, '房間不存在');
         }
-        // io.sockets
-        //   .to(roomId)
-        //   .emit(SocketEvent.JoinRoomMessage, `You've join ${roomId} room`);
-      } else {
-        socket.emit(SocketEvent.ErrorMessage, '房間不存在');
-      }
-    });
+      },
+    );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
       const result = startGame(roomId);
@@ -107,6 +115,11 @@ app.prepare().then(() => {
       if (updatedRoom) {
         socket.emit(SocketEvent.RoomUpdate, updatedRoom);
       }
+    });
+
+    socket.on(SocketEvent.SearchRooms, (roomName: string) => {
+      const allRooms = getCurrentRooms(roomName);
+      socket.emit(SocketEvent.GetRoomsResponse, allRooms);
     });
 
     socket.on('disconnect', () => {

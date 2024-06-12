@@ -1,24 +1,42 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MainLayout from '@/components/layouts/main-layout';
+import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { Card } from '@/components/ui/card';
 import { fadeVariants } from '@/lib/animation-variants';
 
+const date = new Date();
+
 export default function Home() {
+  const [hasPlayerName, setHasPlayerName] = useState(false);
+  const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const router = useRouter();
   const intro =
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維'.split(
       '',
     );
 
-  const date = new Date();
+  useEffect(() => {
+    const playerName = localStorage.getItem('playerName');
+    setHasPlayerName(!!playerName);
+  }, []);
 
   return (
     <MainLayout>
+      <PlayerNameModal
+        isOpen={isOpenNameModal}
+        onOpenChange={v => setIsOpenNameModal(v)}
+        onConfirm={v => {
+          if (!v) return;
+          localStorage.setItem('playerName', v);
+          router.push('/multiple-play');
+        }}
+      />
       <div className="flex h-full w-full flex-col items-center justify-center">
         <motion.div variants={fadeVariants} initial="hidden" animate="show">
           <Image
@@ -85,7 +103,13 @@ export default function Home() {
           >
             <motion.div whileHover={{ scale: 1.12 }} whileTap={{ scale: 1 }}>
               <Card
-                // onClick={() => router.push('/single-play')}
+                onClick={() => {
+                  if (!hasPlayerName) {
+                    setIsOpenNameModal(true);
+                  } else {
+                    router.push('/multiple-play');
+                  }
+                }}
                 className="flex cursor-pointer items-center justify-center border-2 p-6"
               >
                 <Image

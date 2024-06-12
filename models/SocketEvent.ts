@@ -5,8 +5,10 @@ export enum SocketEvent {
   ReadyGame = 'ready-game',
   StartGame = 'start-game',
   RoomUpdate = 'room-update',
+  GetRooms = 'get-rooms',
+  SearchRooms = 'search-rooms',
 
-  // event
+  // game event
   SortCard = 'sort-card',
   PlayCard = 'play-card',
   DrawCard = 'draw-card',
@@ -19,4 +21,5 @@ export enum SocketEvent {
   JoinRoomSuccess = 'join-room-success',
   StartGameSuccess = 'start-game-success',
   PlayCardResponse = 'play-card-response',
+  GetRoomsResponse = 'get-rooms-response',
 }

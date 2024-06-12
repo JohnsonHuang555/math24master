@@ -1,5 +1,6 @@
 import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
+import { GameMode } from '../models/GameMode';
 import { NumberCard, Player } from '../models/Player';
 import {
   HAND_CARD_COUNT,
@@ -15,7 +16,14 @@ let _rooms: Room[] = [];
 // 玩家在房間資訊
 const _playerInRoomMap: { [key: string]: string } = {};
 
-export const rooms = _rooms;
+// 取得當前房間 需濾掉單人遊戲
+export function getCurrentRooms(roomName: string) {
+  // 依房名篩選
+  if (roomName) {
+    return _rooms.filter(r => r?.roomName === roomName);
+  }
+  return _rooms.filter(r => r.maxPlayers > 1);
+}
 
 const _getCurrentRoom = (roomId: string) => {
   const room = _rooms.find(room => room.roomId === roomId);
@@ -44,7 +52,11 @@ const _nextPlayerTurn = (roomIndex: number) => {
   }
 };
 
-export function checkCanJoinRoom(roomId: string, playerId: string) {
+export function checkCanJoinRoom(
+  roomId: string,
+  playerId: string,
+  mode: GameMode,
+) {
   const room = _getCurrentRoom(roomId);
   if (room) {
     // 人數已滿
@@ -57,64 +69,59 @@ export function checkCanJoinRoom(roomId: string, playerId: string) {
     return true;
   }
 
-  return true;
+  if (mode === GameMode.Single) {
+    return true;
+  }
+
+  if (mode === GameMode.Multiple) {
+    return false;
+  }
+
+  console.log('error');
+  return false;
 }
 
 // 加入房間
 export function joinRoom(
-  payload: Pick<Room, 'roomId' | 'maxPlayers'>,
+  payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'>,
   playerId: string,
   playerName: string,
 ) {
   try {
     _playerInRoomMap[playerId] = payload.roomId;
+    const roomIndex = _getCurrentRoomIndex(payload.roomId);
 
-    const room = _getCurrentRoom(payload.roomId);
-    if (room) {
+    if (roomIndex !== -1) {
       // 房間已存在
-      _rooms = [
-        {
-          roomId: payload.roomId,
-          maxPlayers: payload.maxPlayers,
-          deck: [],
-          currentIndex: -1,
-          isGameOver: false,
-          selectedCards: [],
-          players: [
-            ...(room.players || []),
-            {
-              id: playerId,
-              isMaster: false,
-              name: playerName,
-              handCard: [],
-              score: 0,
-              isLastRoundPlayer: false,
-            },
-          ],
-        },
-      ];
+      _rooms[roomIndex].players.push({
+        id: playerId,
+        isMaster: false,
+        name: playerName,
+        handCard: [],
+        score: 0,
+        isLastRoundPlayer: false,
+      });
     } else {
-      _rooms = [
-        ..._rooms,
-        {
-          roomId: payload.roomId,
-          maxPlayers: payload.maxPlayers,
-          deck: [],
-          currentIndex: -1,
-          isGameOver: false,
-          selectedCards: [],
-          players: [
-            {
-              id: playerId,
-              isMaster: true,
-              name: playerName,
-              handCard: [],
-              score: 0,
-              isLastRoundPlayer: false,
-            },
-          ],
-        },
-      ];
+      _rooms.push({
+        roomId: payload.roomId,
+        maxPlayers: payload.maxPlayers,
+        deck: [],
+        currentIndex: -1,
+        isGameOver: false,
+        selectedCards: [],
+        roomName: payload.roomName,
+        password: payload.password,
+        players: [
+          {
+            id: playerId,
+            isMaster: true,
+            name: playerName,
+            handCard: [],
+            score: 0,
+            isLastRoundPlayer: false,
+          },
+        ],
+      });
     }
 
     return true;
@@ -439,7 +446,6 @@ export function selectCard(roomId: string, number: NumberCard, symbol: Symbol) {
   }
 
   if (number) {
-    console.log(number);
     const currentSelect = selectedCards[selectedCards.length - 1];
     const currentSelectedNumbers = selectedCards.filter(c => c.number);
 
