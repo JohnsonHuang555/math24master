@@ -6,6 +6,7 @@ import {
   checkCanJoinRoom,
   discardCard,
   drawCard,
+  getCurrentRoom,
   getCurrentRooms,
   joinRoom,
   leaveRoom,
@@ -32,7 +33,7 @@ app.prepare().then(() => {
     socket.on(
       SocketEvent.JoinRoom,
       ({ roomId, maxPlayers, playerName, roomName, password, mode }) => {
-        const canJoin = checkCanJoinRoom(roomId, playerId, mode);
+        const canJoin = checkCanJoinRoom(roomId, playerId, mode, roomName);
         if (canJoin) {
           socket.join(roomId);
           const isSuccess = joinRoom(
@@ -119,10 +120,17 @@ app.prepare().then(() => {
 
     socket.on(SocketEvent.SearchRooms, (roomName: string) => {
       const allRooms = getCurrentRooms(roomName);
+      console.log(allRooms);
       socket.emit(SocketEvent.GetRoomsResponse, allRooms);
     });
 
+    socket.on(SocketEvent.GetRoomById, (roomId: string) => {
+      const room = getCurrentRoom(roomId);
+      socket.emit(SocketEvent.GetRoomByIdResponse, room);
+    });
+
     socket.on('disconnect', () => {
+      console.log('leave');
       leaveRoom(playerId);
     });
   });

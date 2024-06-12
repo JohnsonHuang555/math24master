@@ -25,7 +25,7 @@ export function getCurrentRooms(roomName: string) {
   return _rooms.filter(r => r.maxPlayers > 1);
 }
 
-const _getCurrentRoom = (roomId: string) => {
+export const getCurrentRoom = (roomId: string) => {
   const room = _rooms.find(room => room.roomId === roomId);
   return room;
 };
@@ -56,8 +56,9 @@ export function checkCanJoinRoom(
   roomId: string,
   playerId: string,
   mode: GameMode,
+  roomName: string,
 ) {
-  const room = _getCurrentRoom(roomId);
+  const room = getCurrentRoom(roomId);
   if (room) {
     // 人數已滿
     if (room.maxPlayers === room.players.length) return false;
@@ -74,10 +75,12 @@ export function checkCanJoinRoom(
   }
 
   if (mode === GameMode.Multiple) {
-    return false;
+    if (roomName) {
+      return true;
+    }
+    return true;
   }
 
-  console.log('error');
   return false;
 }
 
@@ -133,7 +136,7 @@ export function joinRoom(
 // 離開房間
 export function leaveRoom(playerId: string) {
   const roomId = _playerInRoomMap[playerId];
-  const room = _getCurrentRoom(roomId);
+  const room = getCurrentRoom(roomId);
   // 找不到房間
   if (!room || !roomId) return;
 
@@ -162,7 +165,7 @@ export function leaveRoom(playerId: string) {
 
 // 開始遊戲
 export function startGame(roomId: string) {
-  const room = _getCurrentRoom(roomId);
+  const room = getCurrentRoom(roomId);
   if (!room) return false;
 
   try {

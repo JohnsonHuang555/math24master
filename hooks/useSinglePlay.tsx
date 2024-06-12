@@ -11,6 +11,8 @@ import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
+const socket = io();
+
 const useSinglePlay = () => {
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
@@ -22,7 +24,6 @@ const useSinglePlay = () => {
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
   const [roomInfo, setRoomInfo] = useState<Room>();
-  const [socket, setSocket] = useState<any>();
 
   const isLastRound = useMemo(
     () => roomInfo?.deck.length === 0,
@@ -52,8 +53,6 @@ const useSinglePlay = () => {
 
   useEffect(() => {
     const roomId = uuidv4();
-    const socket = io();
-    setSocket(socket);
 
     socket.emit(SocketEvent.JoinRoom, {
       roomId,

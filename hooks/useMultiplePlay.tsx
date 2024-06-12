@@ -5,14 +5,12 @@ import { GameMode } from '@/models/GameMode';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 
+const socket = io();
+
 const useMultiplePlay = () => {
-  const [socket, setSocket] = useState<any>();
   const [rooms, setRooms] = useState<Room[]>([]);
 
   useEffect(() => {
-    const socket = io();
-    setSocket(socket);
-
     socket.emit(SocketEvent.SearchRooms, '');
 
     socket.on(SocketEvent.ErrorMessage, message => {
@@ -23,10 +21,6 @@ const useMultiplePlay = () => {
       console.log(r);
       setRooms(r || []);
     });
-
-    return () => {
-      socket.disconnect();
-    };
   }, []);
 
   const searchRooms = (roomName: string) => {
@@ -54,7 +48,7 @@ const useMultiplePlay = () => {
     }
   };
 
-  return { rooms, searchRooms, joinRoom };
+  return { rooms, searchRooms, joinRoom, socket };
 };
 
 export default useMultiplePlay;

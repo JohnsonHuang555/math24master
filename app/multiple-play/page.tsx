@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import useMultiplePlay from '@/hooks/useMultiplePlay';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
+const RELOAD_ROOMS_TIMER = 10000;
+
 export default function MultiplePlayPage() {
   const router = useRouter();
   const { rooms, searchRooms, joinRoom } = useMultiplePlay();
@@ -40,15 +42,24 @@ export default function MultiplePlayPage() {
     }
   }, [isConfirmed, onReset, router, selectedRoomId]);
 
+  // 每 {RELOAD_ROOMS_TIMER} 秒刷新一次
+  useEffect(() => {
+    const interval = setInterval(() => {
+      searchRooms('');
+    }, RELOAD_ROOMS_TIMER);
+
+    return () => clearInterval(interval);
+  }, [searchRooms]);
+
   return (
     <MainLayout>
       <PlayerNameModal
         isOpen={isOpenNameModal}
-        onOpenChange={v => setIsOpenNameModal(v)}
-        onConfirm={v => {
-          if (!v) return;
-          localStorage.setItem('playerName', v);
-          setPlayerName(playerName);
+        onOpenChange={value => setIsOpenNameModal(value)}
+        onConfirm={value => {
+          if (!value) return;
+          localStorage.setItem('playerName', value);
+          setPlayerName(value);
           setIsOpenNameModal(false);
         }}
         closeDisabled={true}
