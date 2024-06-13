@@ -1,6 +1,7 @@
 import { createServer } from 'http';
 import next from 'next';
 import { Server } from 'socket.io';
+import { Message } from '../models/Message';
 import { SocketEvent } from '../models/SocketEvent';
 import {
   checkCanJoinRoom,
@@ -8,6 +9,7 @@ import {
   drawCard,
   getCurrentRoom,
   getCurrentRooms,
+  getPlayerName,
   joinRoom,
   leaveRoom,
   playCard,
@@ -30,25 +32,23 @@ app.prepare().then(() => {
 
   io.on('connection', socket => {
     const playerId = socket.id;
+    console.log(playerId);
     socket.on(
       SocketEvent.JoinRoom,
       ({ roomId, maxPlayers, playerName, roomName, password, mode }) => {
-        const canJoin = checkCanJoinRoom(roomId, playerId, mode, roomName);
+        const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
-          const isSuccess = joinRoom(
+          const { isSuccess, room } = joinRoom(
             { roomId, maxPlayers, roomName, password },
             playerId,
             playerName,
           );
           if (isSuccess) {
-            socket.emit(SocketEvent.JoinRoomSuccess);
+            socket.emit(SocketEvent.JoinRoomSuccess, room?.roomId);
           } else {
             socket.emit(SocketEvent.ErrorMessage, '加入失敗');
           }
-          // io.sockets
-          //   .to(roomId)
-          //   .emit(SocketEvent.JoinRoomMessage, `You've join ${roomId} room`);
         } else {
           socket.emit(SocketEvent.ErrorMessage, '房間不存在');
         }
@@ -120,13 +120,22 @@ app.prepare().then(() => {
 
     socket.on(SocketEvent.SearchRooms, (roomName: string) => {
       const allRooms = getCurrentRooms(roomName);
-      console.log(allRooms);
       socket.emit(SocketEvent.GetRoomsResponse, allRooms);
     });
 
     socket.on(SocketEvent.GetRoomById, (roomId: string) => {
       const room = getCurrentRoom(roomId);
       socket.emit(SocketEvent.GetRoomByIdResponse, room);
+    });
+
+    socket.on(SocketEvent.SendMessage, ({ roomId, message }) => {
+      const playerName = getPlayerName(roomId, playerId);
+      if (playerName) {
+        io.sockets.to(roomId).emit(SocketEvent.GetMessage, {
+          name: playerName,
+          message,
+        } as Message);
+      }
     });
 
     socket.on('disconnect', () => {

@@ -1,23 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import HoverTip from '@/components/hover-tip';
+import ChatArea from '@/components/areas/chat-area';
+import PlayersArea from '@/components/areas/players-area';
+import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import useMultiplePlay from '@/hooks/useMultiplePlay';
+import { Message } from '@/models/Message';
+import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function RoomPage() {
+  const router = useRouter();
   const { roomId } = useParams<{ roomId: string }>();
-  const { socket } = useMultiplePlay();
   const [playerName, setPlayerName] = useState<string>();
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
+  const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const { socket, joinRoom } = useMultiplePlay();
 
   useEffect(() => {
     const playerName = localStorage.getItem('playerName') || '';
@@ -26,13 +31,38 @@ export default function RoomPage() {
     } else {
       setPlayerName(playerName);
     }
-  }, []);
 
-  useEffect(() => {
-    return () => {
+    joinRoom(playerName, roomId);
+
+    const handleBeforeUnload = (event: any) => {
+      // Perform actions before the component unloads
+      event.preventDefault();
+      event.returnValue = '';
       socket.disconnect();
     };
-  }, [socket]);
+
+    socket.on(SocketEvent.GetMessage, (message: Message) => {
+      setMessages(state => [...state, message]);
+    });
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [socket, joinRoom, roomId]);
+
+  useEffect(() => {
+    if (isConfirmed) {
+      router.push('/multiple-play');
+      onReset();
+    }
+  }, [isConfirmed, onReset, router]);
+
+  const sendMessage = (message: string) => {
+    if (socket) {
+      socket.emit(SocketEvent.SendMessage, { roomId, message });
+    }
+  };
 
   return (
     <MainLayout>
@@ -49,92 +79,19 @@ export default function RoomPage() {
       />
       <div className="flex h-full flex-col items-center justify-center">
         <div className="flex h-2/3 w-2/3 gap-4 bg-transparent">
-          <Card className="flex h-full flex-1 flex-col gap-3 p-6">
-            {/* Players */}
-            <div className="flex justify-between">
-              <div className="flex flex-col">
-                <div className="text-lg">Johnson</div>
-                <div className="text-sm">分數: 100</div>
-              </div>
-              <Image
-                src="/crown.svg"
-                alt="crown"
-                width={30}
-                height={30}
-                priority
-              />
-            </div>
-            <hr />
-            <div className="flex justify-between">
-              <div className="flex flex-col">
-                <div className="text-lg">Johnson</div>
-                <div className="text-sm">分數: 100</div>
-              </div>
-              <Image
-                src="/ready.svg"
-                alt="ready"
-                width={32}
-                height={32}
-                priority
-              />
-            </div>
-            <hr />
-            <Button className="mt-auto">準備遊戲</Button>
-          </Card>
-          <div className="flex flex-[2] flex-col gap-4">
-            <Card className="grow p-6">
-              <div className="flex gap-3">
-                <div className="flex grow items-center gap-2">
-                  <Image
-                    src="/lock.svg"
-                    alt="lock"
-                    width={18}
-                    height={18}
-                    priority
-                  />
-                  <div className="mt-1">房間名稱: Hello</div>
-                </div>
-                <HoverTip content="編輯房間">
-                  <Image
-                    src="/edit.svg"
-                    alt="edit"
-                    width={26}
-                    height={26}
-                    priority
-                  />
-                </HoverTip>
-                <HoverTip content="遊戲規則">
-                  <Image
-                    src="/document.svg"
-                    alt="document"
-                    width={20}
-                    height={20}
-                    priority
-                  />
-                </HoverTip>
-                <HoverTip content="離開房間">
-                  <Image
-                    src="/leave.svg"
-                    alt="leave"
-                    width={24}
-                    height={24}
-                    priority
-                  />
-                </HoverTip>
-              </div>
-            </Card>
-            <Card className="flex min-h-[220px] flex-col p-6">
-              <div className="grow">
-                <div className="text-sm">Johnson: 123</div>
-                <div className="text-sm">Johnson: 123</div>
-                <div className="text-sm">Johnson: 123</div>
-                <div className="text-sm">Johnson: 123</div>
-              </div>
-              <div className="flex gap-2">
-                <Input />
-                <Button variant="secondary">送出</Button>
-              </div>
-            </Card>
+          <PlayersArea players={[]} onReady={() => {}} onStart={() => {}} />
+          <div className="flex flex-[3] flex-col gap-4">
+            <RoomInfoArea
+              roomName="123"
+              password="2222"
+              onLeaveRoom={() => {
+                onOpen({
+                  title: '離開房間',
+                  description: '離開遊戲後，當前進度將會消失，確定要離開嗎？',
+                });
+              }}
+            />
+            <ChatArea messages={messages} onSend={sendMessage} />
           </div>
         </div>
       </div>

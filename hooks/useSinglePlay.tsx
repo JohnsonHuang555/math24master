@@ -157,7 +157,7 @@ const useSinglePlay = () => {
                 />
                 {checkAnswerCorrect && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.1 }}
+                    initial={{ opacity: 0, top: 1, scale: 0.1 }}
                     animate={{
                       opacity: 1,
                       y: -25,
@@ -165,7 +165,7 @@ const useSinglePlay = () => {
                       scale: 1.15,
                       transition: { delay: index * 0.3 },
                     }}
-                    className="absolute top-0"
+                    className="absolute"
                     onAnimationComplete={() =>
                       setFinishedAnimations(state => state + 1)
                     }
@@ -195,7 +195,7 @@ const useSinglePlay = () => {
                 />
                 {checkAnswerCorrect && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.1 }}
+                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
                     animate={{
                       opacity: 1,
                       y: -25,
@@ -203,7 +203,7 @@ const useSinglePlay = () => {
                       scale: 1.15,
                       transition: { delay: index * 0.3 },
                     }}
-                    className="absolute top-0"
+                    className="absolute"
                     onAnimationComplete={() =>
                       setFinishedAnimations(state => state + 1)
                     }
@@ -233,7 +233,7 @@ const useSinglePlay = () => {
                 />
                 {checkAnswerCorrect && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.1 }}
+                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
                     animate={{
                       opacity: 1,
                       y: -25,
@@ -241,7 +241,7 @@ const useSinglePlay = () => {
                       scale: 1.15,
                       transition: { delay: index * 0.3 },
                     }}
-                    className="absolute top-0"
+                    className="absolute"
                     onAnimationComplete={() =>
                       setFinishedAnimations(state => state + 1)
                     }
@@ -271,7 +271,7 @@ const useSinglePlay = () => {
                 />
                 {checkAnswerCorrect && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.1 }}
+                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
                     animate={{
                       opacity: 1,
                       y: -25,
@@ -279,7 +279,7 @@ const useSinglePlay = () => {
                       scale: 1.15,
                       transition: { delay: index * 0.3 },
                     }}
-                    className="absolute top-0"
+                    className="absolute"
                     onAnimationComplete={() =>
                       setFinishedAnimations(state => state + 1)
                     }

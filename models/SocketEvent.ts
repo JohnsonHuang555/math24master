@@ -7,6 +7,7 @@ export enum SocketEvent {
   RoomUpdate = 'room-update',
   GetRoomById = 'get-room-by-id',
   SearchRooms = 'search-rooms',
+  SendMessage = 'send-message',
 
   // game event
   SortCard = 'sort-card',
@@ -23,4 +24,5 @@ export enum SocketEvent {
   PlayCardResponse = 'play-card-response',
   GetRoomsResponse = 'get-rooms-response',
   GetRoomByIdResponse = 'get-room-by-id-response',
+  GetMessage = 'get-message',
 }

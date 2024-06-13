@@ -52,32 +52,44 @@ const _nextPlayerTurn = (roomIndex: number) => {
   }
 };
 
+export function getPlayerName(roomId: string, playerId: string) {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return;
+
+  const playerIndex = _getCurrentPlayerIndex(
+    _rooms[roomIndex].players,
+    playerId,
+  );
+  if (playerIndex === -1) return;
+
+  return _rooms[roomIndex].players[playerIndex].name;
+}
+
 export function checkCanJoinRoom(
   roomId: string,
   playerId: string,
   mode: GameMode,
-  roomName: string,
 ) {
-  const room = getCurrentRoom(roomId);
-  if (room) {
-    // 人數已滿
-    if (room.maxPlayers === room.players.length) return false;
-
-    const player = room.players.find(player => player.id === playerId);
-    // 玩家已存在
-    if (player) return false;
-
-    return true;
-  }
-
   if (mode === GameMode.Single) {
     return true;
   }
 
   if (mode === GameMode.Multiple) {
-    if (roomName) {
+    const room = getCurrentRoom(roomId);
+
+    if (room) {
+      // 人數已滿
+      if (room.maxPlayers === room.players.length) return false;
+
+      const player = room.players.find(
+        player => player.id === playerId && !player.isMaster,
+      );
+      // 玩家不是房主且已存在
+      if (player) return false;
+
       return true;
     }
+
     return true;
   }
 
@@ -89,12 +101,25 @@ export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'>,
   playerId: string,
   playerName: string,
-) {
+): { room?: Room; isSuccess: boolean } {
   try {
     _playerInRoomMap[playerId] = payload.roomId;
     const roomIndex = _getCurrentRoomIndex(payload.roomId);
 
     if (roomIndex !== -1) {
+      if (_rooms[roomIndex].players.length) {
+        const playerIndex = _getCurrentPlayerIndex(
+          _rooms[roomIndex].players,
+          playerId,
+        );
+        if (_rooms[roomIndex].players[playerIndex]?.isMaster) {
+          return {
+            isSuccess: true,
+            room: _rooms[roomIndex],
+          };
+        }
+      }
+
       // 房間已存在
       _rooms[roomIndex].players.push({
         id: playerId,
@@ -103,9 +128,15 @@ export function joinRoom(
         handCard: [],
         score: 0,
         isLastRoundPlayer: false,
+        isReady: false,
       });
+
+      return {
+        isSuccess: true,
+        room: _rooms[roomIndex],
+      };
     } else {
-      _rooms.push({
+      const newRoom = {
         roomId: payload.roomId,
         maxPlayers: payload.maxPlayers,
         deck: [],
@@ -122,14 +153,19 @@ export function joinRoom(
             handCard: [],
             score: 0,
             isLastRoundPlayer: false,
+            isReady: true,
           },
         ],
-      });
-    }
+      };
+      _rooms.push(newRoom);
 
-    return true;
+      return {
+        isSuccess: true,
+        room: newRoom,
+      };
+    }
   } catch (error) {
-    return false;
+    return { isSuccess: false };
   }
 }
 

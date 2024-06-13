@@ -1,5 +1,4 @@
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Inter as FontSans } from 'next/font/google';
 import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';

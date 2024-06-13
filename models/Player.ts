@@ -11,4 +11,5 @@ export type Player = {
   playerOrder?: number; // 玩家順序
   isMaster: boolean; // 房主
   isLastRoundPlayer: boolean; // 是否為最後一回合最後一位玩家
+  isReady: boolean;
 };
