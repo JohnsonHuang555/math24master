@@ -43,6 +43,7 @@ app.prepare().then(() => {
             { roomId, maxPlayers, roomName, password },
             playerId,
             playerName,
+            mode,
           );
 
           if (room) {

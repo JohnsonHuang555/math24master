@@ -66,7 +66,7 @@ const HandCardArea = ({
               }}
               initial="hidden"
               animate="show"
-              whileHover={{ scale: 1.12 }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 1 }}
             >
               <GameCard

@@ -73,7 +73,7 @@ export default function Home() {
         </p>
         <div className="flex gap-8">
           <motion.div variants={fadeVariants} initial="hidden" animate="show">
-            <motion.div whileHover={{ scale: 1.12 }} whileTap={{ scale: 1 }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
               <Card
                 onClick={() => router.push('/single-play')}
                 className="flex cursor-pointer items-center justify-center border-2 p-6"
@@ -101,7 +101,7 @@ export default function Home() {
               transition: { delay: 0.5 },
             }}
           >
-            <motion.div whileHover={{ scale: 1.12 }} whileTap={{ scale: 1 }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
               <Card
                 onClick={() => {
                   if (!hasPlayerName) {

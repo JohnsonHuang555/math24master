@@ -85,9 +85,11 @@ export default function RoomPage() {
             <RoomInfoArea
               roomName={roomInfo?.roomName}
               password={roomInfo?.password}
+              maxPlayers={roomInfo?.maxPlayers}
               onLeaveRoom={() => {
                 window.location.href = '/multiple-play';
               }}
+              onMaxPlayersChange={() => {}}
             />
             <ChatArea messages={messages} onSend={sendMessage} />
           </div>

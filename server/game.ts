@@ -1,5 +1,6 @@
 import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateNumbersScore } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
 import { NumberCard, Player } from '../models/Player';
 import {
@@ -81,7 +82,6 @@ export function checkCanJoinRoom(
 
   if (mode === GameMode.Multiple) {
     const room = getCurrentRoom(roomId);
-    console.log(room, '???????');
 
     if (room) {
       // 人數已滿
@@ -107,12 +107,11 @@ export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'>,
   playerId: string,
   playerName: string,
+  mode: GameMode,
 ): Response {
   try {
     _playerInRoomMap[playerId] = payload.roomId;
     const roomIndex = _getCurrentRoomIndex(payload.roomId);
-
-    console.log(roomIndex, 'index');
 
     if (roomIndex !== -1) {
       if (_rooms[roomIndex].players.length) {
@@ -143,7 +142,7 @@ export function joinRoom(
       };
     } else {
       // 沒有房間名稱，表示房間已經被刪除剛好有玩家加入時
-      if (!payload.roomName) {
+      if (mode === GameMode.Multiple && !payload.roomName) {
         return {
           msg: '房間不存在',
         };
@@ -503,14 +502,10 @@ export function updateScore(roomId: string, playerId: string): Response {
     score += 2;
   }
 
-  // 用到四張數字牌 額外加一分
-  if (numberCards.length === 4) {
-    score += 1;
-  }
-
-  // 用到五張數字牌 額外加兩分
-  if (numberCards.length === 5) {
-    score += 2;
+  // 使用到的數字牌數量額外加分
+  const bonusNumberCardsScore = calculateNumbersScore(numberCards.length);
+  if (bonusNumberCardsScore) {
+    score += bonusNumberCardsScore;
   }
 
   // 寫入暫存分數
