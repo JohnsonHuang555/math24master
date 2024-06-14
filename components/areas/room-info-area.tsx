@@ -45,6 +45,7 @@ const RoomInfoArea = ({
           />
         </HoverTip>
       </div>
+      <div>12345</div>
     </Card>
   );
 };

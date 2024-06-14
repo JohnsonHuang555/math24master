@@ -20,6 +20,7 @@ export enum SocketEvent {
 
   // b2e emit
   JoinRoomSuccess = 'join-room-success',
+  GetPlayerId = 'get-player-id',
   StartGameSuccess = 'start-game-success',
   PlayCardResponse = 'play-card-response',
   GetRoomsResponse = 'get-rooms-response',

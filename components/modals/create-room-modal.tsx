@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -21,14 +20,10 @@ import {
 } from '@/components/ui/select';
 
 type CreateRoomModalProps = {
+  roomId: string;
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
-  onConfirm: (
-    roomId: string,
-    roomName: string,
-    maxPlayers: number,
-    password: string,
-  ) => void;
+  onConfirm: (roomName: string, maxPlayers: number, password: string) => void;
 };
 
 const CreateRoomModal = ({
@@ -112,8 +107,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              const roomId = uuidv4();
-              onConfirm(roomId, roomName, Number(maxPlayers), password);
+              onConfirm(roomName, Number(maxPlayers), password);
             }}
           >
             確定

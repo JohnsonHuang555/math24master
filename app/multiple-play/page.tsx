@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
 import MainLayout from '@/components/layouts/main-layout';
 import CreateRoomModal from '@/components/modals/create-room-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
@@ -16,7 +17,9 @@ import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
-const RELOAD_ROOMS_TIMER = 10000;
+const RELOAD_ROOMS_TIMER = 1000;
+
+const roomId = uuidv4();
 
 export default function MultiplePlayPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -41,20 +44,20 @@ export default function MultiplePlayPage() {
   }, []);
 
   useEffect(() => {
-    if (socket) {
-      socket.on(SocketEvent.GetRoomsResponse, (r: Room[]) => {
-        setRooms(r || []);
-      });
+    searchRooms('');
 
-      socket.on(SocketEvent.JoinRoomSuccess, (roomId: string) => {
-        if (roomId) {
-          router.push(`/multiple-play/${roomId}`);
-        } else {
-          toast.error('建立失敗');
-        }
-      });
-    }
-  }, [router, socket]);
+    socket.on(SocketEvent.GetRoomsResponse, (r: Room[]) => {
+      setRooms(r || []);
+    });
+
+    socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
+      if (room.roomId) {
+        router.push(`/multiple-play/${room.roomId}`);
+      } else {
+        toast.error('建立失敗');
+      }
+    });
+  }, [router, socket, searchRooms]);
 
   useEffect(() => {
     if (isConfirmed) {
@@ -86,13 +89,10 @@ export default function MultiplePlayPage() {
         closeDisabled={true}
       />
       <CreateRoomModal
+        roomId={roomId}
         isOpen={isOpenCreateRoomModal}
         onOpenChange={v => setIsOpenCreateRoomModal(v)}
-        onConfirm={(roomId, roomName, maxPlayers, password) => {
-          if (!playerName) {
-            console.error('沒有暱稱');
-            return;
-          }
+        onConfirm={(roomName, maxPlayers, password) => {
           joinRoom(playerName, roomId, roomName, maxPlayers, password);
         }}
       />
@@ -115,9 +115,14 @@ export default function MultiplePlayPage() {
                 priority
               />
             </div>
-            <Button onClick={() => setIsOpenCreateRoomModal(true)}>
-              建立房間
-            </Button>
+            <div className="flex gap-4">
+              <Button variant="secondary" onClick={() => router.push('/')}>
+                回首頁
+              </Button>
+              <Button onClick={() => setIsOpenCreateRoomModal(true)}>
+                建立房間
+              </Button>
+            </div>
           </div>
           {rooms.length > 0 ? (
             <div className="-ml-2 -mt-2 h-[calc(100%-60px)] overflow-y-auto pl-2 pt-2">
@@ -172,7 +177,7 @@ export default function MultiplePlayPage() {
               </div>
             </div>
           ) : (
-            <div className="mt-6 flex flex-col items-center">
+            <div className="mt-14 flex flex-col items-center">
               <Image
                 src="/no-room.svg"
                 alt="no-room"
