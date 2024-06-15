@@ -7,6 +7,8 @@ import {
   checkCanJoinRoom,
   discardCard,
   drawCard,
+  editMaxPlayers,
+  editRoomName,
   getCurrentRoom,
   getCurrentRooms,
   getPlayerName,
@@ -14,6 +16,7 @@ import {
   leaveRoom,
   playCard,
   readyGame,
+  removePlayer,
   reselectCard,
   selectCard,
   sortCard,
@@ -162,9 +165,39 @@ app.prepare().then(() => {
       }
     });
 
+    // 多人模式才有
+    socket.on(SocketEvent.EditRoomName, ({ roomId, roomName }) => {
+      const { room, msg } = editRoomName(roomId, roomName);
+      if (room) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, msg);
+      }
+    });
+
+    socket.on(SocketEvent.EditMaxPlayers, ({ roomId, maxPlayers }) => {
+      const { room, msg } = editMaxPlayers(roomId, maxPlayers);
+      if (room) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, msg);
+      }
+    });
+
+    socket.on(SocketEvent.RemovePlayer, ({ roomId, playerId }) => {
+      const { room, msg } = removePlayer(roomId, playerId);
+      if (room) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+        io.sockets.to(roomId).emit(SocketEvent.RemovePlayerResponse, playerId);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, msg);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log('leave');
       const result = leaveRoom(playerId);
+      console.log(getCurrentRooms(''));
       if (result?.room) {
         const roomId = result.room?.roomId as string;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, result.room);

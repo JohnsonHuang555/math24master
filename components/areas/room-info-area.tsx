@@ -12,19 +12,23 @@ import {
 import { Label } from '../ui/label';
 
 type RoomInfoAreaProps = {
+  isMaster?: boolean;
   roomName?: string;
   password?: string;
   maxPlayers?: number;
   onLeaveRoom: () => void;
   onMaxPlayersChange: (max: number) => void;
+  onEditRoomName: () => void;
 };
 
 const RoomInfoArea = ({
-  roomName = '',
+  isMaster,
+  roomName,
   password,
   maxPlayers,
   onLeaveRoom,
   onMaxPlayersChange,
+  onEditRoomName,
 }: RoomInfoAreaProps) => {
   return (
     <Card className="grow p-4">
@@ -34,9 +38,18 @@ const RoomInfoArea = ({
             <Image src="/lock.svg" alt="lock" width={18} height={18} priority />
           )}
           <div className="mr-1 mt-[2px]">房間名稱: {roomName}</div>
-          <HoverTip content="編輯名稱">
-            <Image src="/edit.svg" alt="edit" width={20} height={20} priority />
-          </HoverTip>
+          {isMaster && (
+            <HoverTip content="編輯名稱">
+              <Image
+                onClick={onEditRoomName}
+                src="/edit.svg"
+                alt="edit"
+                width={20}
+                height={20}
+                priority
+              />
+            </HoverTip>
+          )}
         </div>
         <HoverTip content="遊戲規則">
           <Image
@@ -64,7 +77,8 @@ const RoomInfoArea = ({
             玩家人數
           </Label>
           <Select
-            defaultValue={String(maxPlayers)}
+            disabled={!isMaster}
+            value={String(maxPlayers)}
             onValueChange={v => onMaxPlayersChange(Number(v))}
           >
             <SelectTrigger className="mt-1 h-8">
@@ -84,6 +98,7 @@ const RoomInfoArea = ({
             回合秒數
           </Label>
           <Select
+            disabled={!isMaster}
             defaultValue="30"
             onValueChange={v => onMaxPlayersChange(Number(v))}
           >

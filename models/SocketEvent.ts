@@ -8,6 +8,10 @@ export enum SocketEvent {
   GetRoomById = 'get-room-by-id',
   SearchRooms = 'search-rooms',
   SendMessage = 'send-message',
+  RemovePlayer = 'remove-player',
+  // only multiple mode
+  EditRoomName = 'edit-room-name',
+  EditMaxPlayers = 'edit-max-players',
 
   // game event
   SortCard = 'sort-card',
@@ -26,4 +30,5 @@ export enum SocketEvent {
   GetRoomsResponse = 'get-rooms-response',
   GetRoomByIdResponse = 'get-room-by-id-response',
   GetMessage = 'get-message',
+  RemovePlayerResponse = 'remove-play-response',
 }

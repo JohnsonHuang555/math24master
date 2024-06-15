@@ -1,18 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { useParams, useRouter } from 'next/navigation';
 import ChatArea from '@/components/areas/chat-area';
 import PlayersArea from '@/components/areas/players-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
+import EditRoomNameModal from '@/components/modals/edit-room-name-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
+import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
 import useMultiplePlay from '@/hooks/useMultiplePlay';
 import { SocketEvent } from '@/models/SocketEvent';
 
 export default function RoomPage() {
+  const router = useRouter();
+
   const { roomId } = useParams<{ roomId: string }>();
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
+  const [isOpenEditRoomNameModal, setIsOpenEditRoomNameModal] = useState(false);
+  const [isOpenRemovePlayerModal, setIsOpenRemovePlayerModal] = useState(false);
+
+  const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
 
   const {
     socket,
@@ -22,6 +31,9 @@ export default function RoomPage() {
     onReadyGame,
     onStartGame,
     messages,
+    editRoomName,
+    editMaxPlayers,
+    removePlayer,
   } = useMultiplePlay();
 
   const currentPlayer = roomInfo?.players.find(p => p.id === playerId);
@@ -51,6 +63,16 @@ export default function RoomPage() {
     };
   }, [socket, joinRoom, roomId]);
 
+  useEffect(() => {
+    socket.on(SocketEvent.RemovePlayerResponse, (removedPlayerId: string) => {
+      if (removedPlayerId === playerId) {
+        toast.info('你已被踢出房間');
+        router.push('/multiple-play');
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]);
+
   const sendMessage = (message: string) => {
     if (socket) {
       socket.emit(SocketEvent.SendMessage, { roomId, message });
@@ -73,6 +95,26 @@ export default function RoomPage() {
         }}
         closeDisabled={true}
       />
+      <EditRoomNameModal
+        roomName={roomInfo.roomName}
+        onSubmit={roomName => {
+          editRoomName(roomId, roomName);
+          setIsOpenEditRoomNameModal(false);
+        }}
+        isOpen={isOpenEditRoomNameModal}
+        onOpenChange={value => setIsOpenEditRoomNameModal(value)}
+      />
+      <RemoveRoomPlayerModal
+        isOpen={isOpenRemovePlayerModal}
+        onOpenChange={value => setIsOpenRemovePlayerModal(value)}
+        onSubmit={() => {
+          if (removingPlayerId) {
+            removePlayer(roomId, removingPlayerId);
+            setIsOpenRemovePlayerModal(false);
+            setRemovingPlayerId('');
+          }
+        }}
+      />
       <div className="flex h-full flex-col items-center justify-center">
         <div className="flex h-2/3 w-2/3 gap-4 bg-transparent">
           <PlayersArea
@@ -80,16 +122,24 @@ export default function RoomPage() {
             currentPlayer={currentPlayer}
             onReady={() => onReadyGame(roomId)}
             onStart={() => onStartGame(roomId)}
+            onRemovePlayer={playerId => {
+              setRemovingPlayerId(playerId);
+              setIsOpenRemovePlayerModal(true);
+            }}
           />
           <div className="flex flex-[3] flex-col gap-4">
             <RoomInfoArea
+              isMaster={currentPlayer?.isMaster}
               roomName={roomInfo?.roomName}
               password={roomInfo?.password}
               maxPlayers={roomInfo?.maxPlayers}
               onLeaveRoom={() => {
                 window.location.href = '/multiple-play';
               }}
-              onMaxPlayersChange={() => {}}
+              onMaxPlayersChange={maxPlayers =>
+                editMaxPlayers(roomId, maxPlayers)
+              }
+              onEditRoomName={() => setIsOpenEditRoomNameModal(true)}
             />
             <ChatArea messages={messages} onSend={sendMessage} />
           </div>

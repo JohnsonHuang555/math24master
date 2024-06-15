@@ -209,6 +209,10 @@ export function leaveRoom(playerId: string): Response | undefined {
     });
 
     const newRoom = _rooms.find(room => room.roomId === roomId);
+
+    // 移除 mapping 表
+    delete _playerInRoomMap[playerId];
+
     return { room: newRoom };
   }
 }
@@ -582,6 +586,46 @@ export function reselectCard(roomId: string): Response {
   if (roomIndex === -1) return { msg: '房間不存在' };
 
   _rooms[roomIndex].selectedCards = [];
+
+  return {
+    room: _rooms[roomIndex],
+  };
+}
+
+export function editRoomName(roomId: string, newRoomName: string): Response {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return { msg: '房間不存在' };
+
+  _rooms[roomIndex].roomName = newRoomName;
+
+  return {
+    room: _rooms[roomIndex],
+  };
+}
+
+export function editMaxPlayers(roomId: string, maxPlayers: number): Response {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return { msg: '房間不存在' };
+
+  _rooms[roomIndex].maxPlayers = maxPlayers;
+
+  return {
+    room: _rooms[roomIndex],
+  };
+}
+
+export function removePlayer(roomId: string, playerId: string): Response {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return { msg: '房間不存在' };
+
+  const playerIndex = _rooms[roomIndex].players.findIndex(
+    p => p.id === playerId,
+  );
+
+  _rooms[roomIndex].players.splice(playerIndex, 1);
+
+  // 移除 mapping 表
+  delete _playerInRoomMap[playerId];
 
   return {
     room: _rooms[roomIndex],

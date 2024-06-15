@@ -78,6 +78,24 @@ const useMultiplePlay = () => {
     }
   }, []);
 
+  const editRoomName = useCallback((roomId: string, roomName: string) => {
+    if (socket.connected) {
+      socket.emit(SocketEvent.EditRoomName, { roomId, roomName });
+    }
+  }, []);
+
+  const editMaxPlayers = useCallback((roomId: string, maxPlayers: number) => {
+    if (socket.connected) {
+      socket.emit(SocketEvent.EditMaxPlayers, { roomId, maxPlayers });
+    }
+  }, []);
+
+  const removePlayer = useCallback((roomId: string, playerId: string) => {
+    if (socket.connected) {
+      socket.emit(SocketEvent.RemovePlayer, { roomId, playerId });
+    }
+  }, []);
+
   return {
     searchRooms,
     joinRoom,
@@ -87,6 +105,9 @@ const useMultiplePlay = () => {
     onReadyGame,
     onStartGame,
     messages,
+    editRoomName,
+    editMaxPlayers,
+    removePlayer,
   };
 };
 

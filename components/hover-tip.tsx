@@ -7,17 +7,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 type HoverTipProps = {
   children: ReactNode;
   content: ReactNode;
+  notPointer?: boolean;
 };
 
-const HoverTip = ({ children, content }: HoverTipProps) => {
+const HoverTip = ({ children, content, notPointer }: HoverTipProps) => {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>{children}</TooltipTrigger>
+        <TooltipTrigger className={cn(notPointer && 'cursor-auto')}>
+          {children}
+        </TooltipTrigger>
         <TooltipContent>{content}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
