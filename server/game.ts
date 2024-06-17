@@ -2,6 +2,7 @@ import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateNumbersScore } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
+import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
 import {
   HAND_CARD_COUNT,
@@ -157,6 +158,7 @@ export function joinRoom(
         selectedCards: [],
         roomName: payload.roomName,
         password: payload.password,
+        status: GameStatus.Idle,
         players: [
           {
             id: playerId,
@@ -277,6 +279,8 @@ export function startGame(roomId: string): Response {
     _rooms[roomIndex].deck = shuffledDeck;
     // 從玩家1開始
     _rooms[roomIndex].currentIndex = 1;
+    // 開始遊戲狀態
+    _rooms[roomIndex].status = GameStatus.Playing;
 
     return {
       room: _rooms[roomIndex],

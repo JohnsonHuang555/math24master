@@ -61,10 +61,10 @@ export default function MultiplePlayPage() {
 
   useEffect(() => {
     if (isConfirmed) {
-      router.push(`/multiple-play/${selectedRoomId}`);
+      window.location.href = `/multiple-play/${selectedRoomId}`;
       onReset();
     }
-  }, [isConfirmed, onReset, router, selectedRoomId]);
+  }, [isConfirmed, onReset, selectedRoomId]);
 
   // 每 {RELOAD_ROOMS_TIMER} 秒刷新一次
   useEffect(() => {

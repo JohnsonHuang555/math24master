@@ -77,7 +77,7 @@ const useSinglePlay = () => {
       setRoomInfo(roomInfo);
     });
 
-    // 房間更新
+    // 檢查答案
     socket.on(SocketEvent.PlayCardResponse, (isCorrect: boolean) => {
       setCheckAnswerCorrect(isCorrect);
     });

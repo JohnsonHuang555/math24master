@@ -93,7 +93,7 @@ const RoomInfoArea = ({
             </SelectContent>
           </Select>
         </div>
-        <div>
+        {/* <div>
           <Label className="text-xs" htmlFor="remain-seconds">
             回合秒數
           </Label>
@@ -116,7 +116,7 @@ const RoomInfoArea = ({
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
+        </div> */}
       </div>
     </Card>
   );

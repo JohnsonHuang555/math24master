@@ -1,3 +1,4 @@
+import { GameStatus } from './GameStatus';
 import { NumberCard, Player } from './Player';
 import { SelectedCard } from './SelectedCard';
 
@@ -18,4 +19,5 @@ export type Room = {
   players: Player[]; // 玩家資訊
   isGameOver: boolean; // 是否遊戲結束
   selectedCards: SelectedCard[];
+  status: GameStatus;
 };

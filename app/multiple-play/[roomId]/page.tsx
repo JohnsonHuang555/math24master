@@ -5,12 +5,14 @@ import { toast } from 'react-toastify';
 import { useParams, useRouter } from 'next/navigation';
 import ChatArea from '@/components/areas/chat-area';
 import PlayersArea from '@/components/areas/players-area';
+import MultiplePlayingArea from '@/components/areas/playing/multiple-playing-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
 import EditRoomNameModal from '@/components/modals/edit-room-name-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
 import useMultiplePlay from '@/hooks/useMultiplePlay';
+import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
 
 export default function RoomPage() {
@@ -34,6 +36,19 @@ export default function RoomPage() {
     editRoomName,
     editMaxPlayers,
     removePlayer,
+    isGameOver,
+    checkAnswerCorrect,
+    isAnimationFinished,
+    onFinishedAnimations,
+    updateScore,
+    selectedCardSymbols,
+    selectedCardNumbers,
+    onSelectCardOrSymbol,
+    discardCard,
+    playCard,
+    onReselect,
+    onSort,
+    drawCard,
   } = useMultiplePlay();
 
   const currentPlayer = roomInfo?.players.find(p => p.id === playerId);
@@ -80,7 +95,33 @@ export default function RoomPage() {
   };
 
   if (!roomInfo) {
-    return null;
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-xl">連線中，如時常過久請重新整理頁面</div>
+      </div>
+    );
+  }
+
+  if (roomInfo.status === GameStatus.Playing) {
+    return (
+      <MultiplePlayingArea
+        isGameOver={isGameOver}
+        roomInfo={roomInfo}
+        checkAnswerCorrect={checkAnswerCorrect}
+        isAnimationFinished={isAnimationFinished}
+        onFinishedAnimations={onFinishedAnimations}
+        updateScore={updateScore}
+        selectedCardSymbols={selectedCardSymbols}
+        selectedCardNumbers={selectedCardNumbers}
+        onSelectCardOrSymbol={onSelectCardOrSymbol}
+        discardCard={discardCard}
+        playCard={playCard}
+        onReselect={onReselect}
+        onSort={onSort}
+        drawCard={drawCard}
+        currentPlayer={currentPlayer}
+      />
+    );
   }
 
   return (
