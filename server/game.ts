@@ -48,14 +48,14 @@ const _getCurrentPlayerIndex = (players: Player[], playerId: string) => {
 };
 
 const _nextPlayerTurn = (roomIndex: number) => {
-  const activePlayer = _rooms[roomIndex].currentIndex;
+  const activePlayer = _rooms[roomIndex].currentOrder;
   const playerCount = _rooms[roomIndex].players.length;
   const nextPlayer = activePlayer + 1;
   if (nextPlayer < playerCount) {
-    _rooms[roomIndex].currentIndex = nextPlayer;
+    _rooms[roomIndex].currentOrder = nextPlayer;
   } else {
     // 回到第一個玩家
-    _rooms[roomIndex].currentIndex = 0;
+    _rooms[roomIndex].currentOrder = 1;
   }
 };
 
@@ -153,7 +153,7 @@ export function joinRoom(
         roomId: payload.roomId,
         maxPlayers: payload.maxPlayers,
         deck: [],
-        currentIndex: -1,
+        currentOrder: -1,
         isGameOver: false,
         selectedCards: [],
         roomName: payload.roomName,
@@ -278,7 +278,7 @@ export function startGame(roomId: string): Response {
     // 寫入牌庫
     _rooms[roomIndex].deck = shuffledDeck;
     // 從玩家1開始
-    _rooms[roomIndex].currentIndex = 1;
+    _rooms[roomIndex].currentOrder = 1;
     // 開始遊戲狀態
     _rooms[roomIndex].status = GameStatus.Playing;
 

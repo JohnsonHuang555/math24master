@@ -14,7 +14,7 @@ export type Room = {
   roomName?: string;
   password?: string; // 房間密碼
   maxPlayers: number; // 最大玩家數
-  currentIndex: number; // 當前輪到的玩家
+  currentOrder: number; // 當前輪到的玩家
   deck: NumberCard[]; // 牌庫
   players: Player[]; // 玩家資訊
   isGameOver: boolean; // 是否遊戲結束

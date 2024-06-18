@@ -11,7 +11,6 @@ import { NumberCard, Player } from '@/models/Player';
 import { MAX_CARD_COUNT, Room } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
-import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 type MultiplePlayingAreaProps = {
   isGameOver: boolean;
@@ -56,19 +55,12 @@ const MultiplePlayingArea = ({
 }: MultiplePlayingAreaProps) => {
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
-  const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
   const handCard = currentPlayer?.handCard || [];
 
   const disabledActions =
     needDiscard || checkAnswerCorrect === true || !!isGameOver;
 
   console.log(currentPlayer);
-  useEffect(() => {
-    if (isConfirmed) {
-      window.location.href = '/multiple-play';
-      onReset();
-    }
-  }, [isConfirmed, onReset]);
 
   useEffect(() => {
     // 如果手牌超過8張須棄牌
@@ -102,14 +94,7 @@ const MultiplePlayingArea = ({
               width={28}
               height={28}
               priority
-              onClick={() =>
-                onOpen({
-                  title: '回到首頁',
-                  description: isGameOver
-                    ? '離開遊戲回到首頁'
-                    : '離開遊戲後，當前進度將會消失，確定要離開嗎？',
-                })
-              }
+              onClick={() => (window.location.href = '/multiple-play')}
             />
           </HoverTip>
         </div>

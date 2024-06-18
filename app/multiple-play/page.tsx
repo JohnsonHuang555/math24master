@@ -12,10 +12,10 @@ import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import useMultiplePlay from '@/hooks/useMultiplePlay';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
+import { useMultiplePlay } from '@/providers/multiple-play-provider';
 
 const RELOAD_ROOMS_TIMER = 1000;
 
@@ -60,6 +60,7 @@ export default function MultiplePlayPage() {
   }, [router, socket, searchRooms]);
 
   useEffect(() => {
+    // 加入房間
     if (isConfirmed) {
       window.location.href = `/multiple-play/${selectedRoomId}`;
       onReset();

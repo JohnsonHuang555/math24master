@@ -11,9 +11,9 @@ import MainLayout from '@/components/layouts/main-layout';
 import EditRoomNameModal from '@/components/modals/edit-room-name-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
-import useMultiplePlay from '@/hooks/useMultiplePlay';
 import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
+import { useMultiplePlay } from '@/providers/multiple-play-provider';
 
 export default function RoomPage() {
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function RoomPage() {
   if (!roomInfo) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-xl">連線中，如時常過久請重新整理頁面</div>
+        <div className="text-xl">連線中，如果時長過久請重新整理頁面</div>
       </div>
     );
   }
@@ -139,7 +139,7 @@ export default function RoomPage() {
       <EditRoomNameModal
         roomName={roomInfo.roomName}
         onSubmit={roomName => {
-          editRoomName(roomId, roomName);
+          editRoomName(roomName);
           setIsOpenEditRoomNameModal(false);
         }}
         isOpen={isOpenEditRoomNameModal}
@@ -150,7 +150,7 @@ export default function RoomPage() {
         onOpenChange={value => setIsOpenRemovePlayerModal(value)}
         onSubmit={() => {
           if (removingPlayerId) {
-            removePlayer(roomId, removingPlayerId);
+            removePlayer(removingPlayerId);
             setIsOpenRemovePlayerModal(false);
             setRemovingPlayerId('');
           }
@@ -161,8 +161,8 @@ export default function RoomPage() {
           <PlayersArea
             players={roomInfo?.players}
             currentPlayer={currentPlayer}
-            onReady={() => onReadyGame(roomId)}
-            onStart={() => onStartGame(roomId)}
+            onReady={onReadyGame}
+            onStart={onStartGame}
             onRemovePlayer={playerId => {
               setRemovingPlayerId(playerId);
               setIsOpenRemovePlayerModal(true);
@@ -177,9 +177,7 @@ export default function RoomPage() {
               onLeaveRoom={() => {
                 window.location.href = '/multiple-play';
               }}
-              onMaxPlayersChange={maxPlayers =>
-                editMaxPlayers(roomId, maxPlayers)
-              }
+              onMaxPlayersChange={editMaxPlayers}
               onEditRoomName={() => setIsOpenEditRoomNameModal(true)}
             />
             <ChatArea messages={messages} onSend={sendMessage} />

@@ -214,7 +214,6 @@ const useSinglePlay = () => {
     discardCard,
     onSelectCardOrSymbol,
     onReselect,
-    // showCurrentSelect,
     checkAnswerCorrect,
     isAnimationFinished:
       checkAnswerCorrect === true &&
