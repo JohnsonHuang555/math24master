@@ -31,4 +31,5 @@ export enum SocketEvent {
   GetRoomByIdResponse = 'get-room-by-id-response',
   GetMessage = 'get-message',
   RemovePlayerResponse = 'remove-play-response',
+  PlayerLeaveRoom = 'player-leave-room', // 玩家在遊戲中離開房間
 }

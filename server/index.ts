@@ -197,10 +197,12 @@ app.prepare().then(() => {
     socket.on('disconnect', () => {
       console.log('leave');
       const result = leaveRoom(playerId);
-      console.log(getCurrentRooms(''));
       if (result?.room) {
         const roomId = result.room?.roomId as string;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, result.room);
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.PlayerLeaveRoom, result.playerName);
       }
     });
   });

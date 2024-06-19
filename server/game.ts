@@ -51,7 +51,7 @@ const _nextPlayerTurn = (roomIndex: number) => {
   const activePlayer = _rooms[roomIndex].currentOrder;
   const playerCount = _rooms[roomIndex].players.length;
   const nextPlayer = activePlayer + 1;
-  if (nextPlayer < playerCount) {
+  if (nextPlayer <= playerCount) {
     _rooms[roomIndex].currentOrder = nextPlayer;
   } else {
     // 回到第一個玩家
@@ -183,7 +183,9 @@ export function joinRoom(
 }
 
 // 離開房間
-export function leaveRoom(playerId: string): Response | undefined {
+export function leaveRoom(
+  playerId: string,
+): (Response & { playerName: string }) | undefined {
   const roomId = _playerInRoomMap[playerId];
   const room = getCurrentRoom(roomId);
   // 房間不存在
@@ -193,9 +195,14 @@ export function leaveRoom(playerId: string): Response | undefined {
   if (room.players.length === 1) {
     _rooms = _rooms.filter(room => room.roomId !== roomId);
   } else {
+    // 離開的玩家名稱
+    const leftPlayerName = room.players.find(
+      player => player.id === playerId,
+    )?.name;
     const newPlayers = room.players.filter(player => player.id !== playerId);
     const hasMaster = newPlayers.find(player => player.isMaster);
 
+    // 如果房主已離開房間，則第一位玩家為房主
     if (!hasMaster) {
       newPlayers[0].isMaster = true;
     }
@@ -205,6 +212,7 @@ export function leaveRoom(playerId: string): Response | undefined {
         return {
           ...room,
           players: newPlayers,
+          status: GameStatus.Idle, // 切換為等待狀態
         };
       }
       return room;
@@ -215,7 +223,7 @@ export function leaveRoom(playerId: string): Response | undefined {
     // 移除 mapping 表
     delete _playerInRoomMap[playerId];
 
-    return { room: newRoom };
+    return { room: newRoom, playerName: leftPlayerName || 'player?' };
   }
 }
 
@@ -362,6 +370,7 @@ export function drawCard(
   if (_rooms[roomIndex].players[playerIndex].isLastRoundPlayer) {
     // 遊戲結束
     _rooms[roomIndex].isGameOver = true;
+    _rooms[roomIndex].status = GameStatus.Idle;
 
     return {
       room: _rooms[roomIndex],

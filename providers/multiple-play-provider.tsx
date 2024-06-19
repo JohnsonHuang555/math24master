@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
 import { GameMode } from '@/models/GameMode';
 import { Message } from '@/models/Message';
-import { NumberCard } from '@/models/Player';
+import { NumberCard, Player } from '@/models/Player';
 import { Room } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
@@ -42,7 +42,6 @@ type MultiplePlayContextData = {
   editRoomName: (roomName: string) => void;
   editMaxPlayers: (maxPlayers: number) => void;
   removePlayer: (playerId: string) => void;
-  isGameOver: boolean;
   checkAnswerCorrect: boolean | null;
   isAnimationFinished: boolean;
   selectedCardSymbols: SelectedCard[];
@@ -61,6 +60,8 @@ type MultiplePlayContextData = {
   onReselect: () => void;
   onSort: () => void;
   drawCard: () => void;
+  currentPlayer?: Player;
+  isYourTurn: boolean;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -90,11 +91,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   // 出過牌的數量
   const [playedCard, setPlayedCard] = useState(0);
 
-  const isGameOver = useMemo(
-    () => !!roomInfo?.isGameOver,
-    [roomInfo?.isGameOver],
-  );
-
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
     return roomInfo?.selectedCards.filter(
@@ -111,8 +107,15 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     return roomInfo?.selectedCards.filter(c => c.number);
   }, [roomInfo?.selectedCards]);
 
+  // 當前玩家
+  const currentPlayer = useMemo(
+    () => roomInfo?.players.find(p => p.id === playerId),
+    [playerId, roomInfo?.players],
+  );
+
+  const isYourTurn = currentPlayer?.playerOrder === roomInfo?.currentOrder;
+
   useEffect(() => {
-    console.log('init');
     socket.emit(SocketEvent.SearchRooms, '');
 
     socket.on(SocketEvent.ErrorMessage, message => {
@@ -144,6 +147,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     // 檢查答案
     socket.on(SocketEvent.PlayCardResponse, (isCorrect: boolean) => {
       setCheckAnswerCorrect(isCorrect);
+    });
+
+    socket.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
+      toast.info(`${playerName} 已離開房間`);
     });
   }, []);
 
@@ -225,7 +232,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 更新分數並抽牌
   const updateScore = useCallback(() => {
-    if (isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket.connected) {
       // 重置狀態
@@ -236,7 +243,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [isGameOver, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
 
   const onFinishedAnimations = () => {
     setFinishedAnimations(state => state + 1);
@@ -244,7 +251,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const onSelectCardOrSymbol = useCallback(
     ({ number, symbol }: { number?: NumberCard; symbol?: Symbol }) => {
-      if (isGameOver) return;
+      if (roomInfo?.isGameOver || !isYourTurn) return;
 
       if (socket.connected) {
         socket.emit(SocketEvent.SelectCard, {
@@ -254,13 +261,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         });
       }
     },
-    [isGameOver, roomInfo?.roomId],
+    [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId],
   );
 
   // 棄牌
   const discardCard = useCallback(
     (cardId: string) => {
-      if (isGameOver) return;
+      if (roomInfo?.isGameOver || !isYourTurn) return;
 
       if (socket.connected) {
         socket.emit(SocketEvent.DiscardCard, {
@@ -269,12 +276,12 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         });
       }
     },
-    [isGameOver, roomInfo?.roomId],
+    [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId],
   );
 
   // 出牌
   const playCard = useCallback(() => {
-    if (isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (roomInfo?.selectedCards.length === 0) {
       toast.warning('請組合算式');
@@ -290,31 +297,36 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [isGameOver, roomInfo?.roomId, roomInfo?.selectedCards]);
+  }, [
+    roomInfo?.isGameOver,
+    isYourTurn,
+    roomInfo?.roomId,
+    roomInfo?.selectedCards,
+  ]);
 
   // 重選
   const onReselect = useCallback(() => {
-    if (isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket.connected) {
       socket.emit(SocketEvent.ReselectCard, {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [isGameOver, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
 
   // 排序
   const onSort = useCallback(() => {
-    if (isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket.connected) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
-  }, [isGameOver, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
 
   // 抽牌
   const drawCard = useCallback(() => {
-    if (isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket.connected) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
@@ -324,7 +336,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       });
       setPlayedCard(0);
     }
-  }, [isGameOver, playedCard, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, isYourTurn, playedCard, roomInfo?.roomId]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
@@ -339,7 +351,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       editRoomName,
       editMaxPlayers,
       removePlayer,
-      isGameOver,
       checkAnswerCorrect,
       isAnimationFinished:
         checkAnswerCorrect === true &&
@@ -354,6 +365,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onReselect,
       onSort,
       drawCard,
+      currentPlayer,
+      isYourTurn,
     };
   }, [
     checkAnswerCorrect,
@@ -362,7 +375,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     editMaxPlayers,
     editRoomName,
     finishedAnimations,
-    isGameOver,
     joinRoom,
     messages,
     onReadyGame,
@@ -378,6 +390,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     selectedCardNumbers,
     selectedCardSymbols,
     updateScore,
+    currentPlayer,
+    isYourTurn,
   ]);
 
   return (

@@ -36,22 +36,8 @@ export default function RoomPage() {
     editRoomName,
     editMaxPlayers,
     removePlayer,
-    isGameOver,
-    checkAnswerCorrect,
-    isAnimationFinished,
-    onFinishedAnimations,
-    updateScore,
-    selectedCardSymbols,
-    selectedCardNumbers,
-    onSelectCardOrSymbol,
-    discardCard,
-    playCard,
-    onReselect,
-    onSort,
-    drawCard,
+    currentPlayer,
   } = useMultiplePlay();
-
-  const currentPlayer = roomInfo?.players.find(p => p.id === playerId);
 
   useEffect(() => {
     const playerName = localStorage.getItem('playerName') || '';
@@ -79,14 +65,16 @@ export default function RoomPage() {
   }, [socket, joinRoom, roomId]);
 
   useEffect(() => {
-    socket.on(SocketEvent.RemovePlayerResponse, (removedPlayerId: string) => {
-      if (removedPlayerId === playerId) {
-        toast.info('你已被踢出房間');
-        router.push('/multiple-play');
-      }
-    });
+    if (playerId) {
+      socket.on(SocketEvent.RemovePlayerResponse, (removedPlayerId: string) => {
+        if (removedPlayerId === playerId) {
+          toast.info('你已被踢出房間');
+          router.push('/multiple-play');
+        }
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket]);
+  }, [socket, playerId]);
 
   const sendMessage = (message: string) => {
     if (socket) {
@@ -103,25 +91,7 @@ export default function RoomPage() {
   }
 
   if (roomInfo.status === GameStatus.Playing) {
-    return (
-      <MultiplePlayingArea
-        isGameOver={isGameOver}
-        roomInfo={roomInfo}
-        checkAnswerCorrect={checkAnswerCorrect}
-        isAnimationFinished={isAnimationFinished}
-        onFinishedAnimations={onFinishedAnimations}
-        updateScore={updateScore}
-        selectedCardSymbols={selectedCardSymbols}
-        selectedCardNumbers={selectedCardNumbers}
-        onSelectCardOrSymbol={onSelectCardOrSymbol}
-        discardCard={discardCard}
-        playCard={playCard}
-        onReselect={onReselect}
-        onSort={onSort}
-        drawCard={drawCard}
-        currentPlayer={currentPlayer}
-      />
-    );
+    return <MultiplePlayingArea />;
   }
 
   return (
