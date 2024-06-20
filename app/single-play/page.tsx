@@ -10,12 +10,14 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import MainPlayArea from '@/components/areas/playing/main-play-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
+import { RuleModal } from '@/components/modals/rule-modal';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
   const [bestScore, setBestScore] = useState<number>();
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
@@ -84,8 +86,9 @@ export default function SinglePlayPage() {
 
   return (
     <MainLayout>
+      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <div className="relative flex w-full basis-1/5">
-        <div className="absolute right-5 top-5 flex gap-4">
+        <div className="absolute right-5 top-5 flex gap-5">
           {/* 再來一局 */}
           {isGameOver && (
             <HoverTip content="再來一局">
@@ -95,7 +98,7 @@ export default function SinglePlayPage() {
                 width={30}
                 height={30}
                 priority
-                onClick={() => location.reload()}
+                onClick={() => window.location.reload()}
               />
             </HoverTip>
           )}
@@ -107,6 +110,7 @@ export default function SinglePlayPage() {
               width={24}
               height={24}
               priority
+              onClick={() => setIsOpenRuleModal(true)}
             />
           </HoverTip>
           {/* 返回首頁 */}

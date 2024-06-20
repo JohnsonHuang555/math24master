@@ -128,21 +128,30 @@ export default function Home() {
           </motion.div>
         </div>
         <div className="fixed bottom-6 flex items-center">
-          <span className="mr-4 text-sm text-gray-500">
-            {date.getFullYear()} Created by Johnson
-          </span>
+          <div className="mr-3 flex gap-1 text-sm text-gray-500">
+            <span>{date.getFullYear()}</span>{' '}
+            <Image
+              src="/smile-circle.svg"
+              alt="smile-circle"
+              width={14}
+              height={14}
+              priority
+            />
+            <span>Created by Johnson</span>
+          </div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
           >
             <Image
               src="/github.svg"
-              alt="github Logo"
-              width={18}
-              height={18}
+              alt="github"
+              width={16}
+              height={16}
               priority
             />
           </Link>
+          <div className="ml-2 text-sm text-gray-500">beta 0.0.1</div>
         </div>
       </div>
     </MainLayout>

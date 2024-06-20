@@ -22,6 +22,7 @@ export default function RoomPage() {
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenEditRoomNameModal, setIsOpenEditRoomNameModal] = useState(false);
   const [isOpenRemovePlayerModal, setIsOpenRemovePlayerModal] = useState(false);
+  const [playerName, setPlayerName] = useState<string>('');
 
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
 
@@ -40,13 +41,15 @@ export default function RoomPage() {
   } = useMultiplePlay();
 
   useEffect(() => {
-    const playerName = localStorage.getItem('playerName') || '';
-    if (!playerName) {
+    const localStoragePlayerName = localStorage.getItem('playerName') || '';
+    if (!localStoragePlayerName) {
       setIsOpenNameModal(true);
+      return;
     }
+    setPlayerName(localStoragePlayerName);
+  }, []);
 
-    joinRoom(playerName, roomId);
-
+  useEffect(() => {
     const handleBeforeUnload = (event: any) => {
       event.preventDefault();
       event.returnValue = '';
@@ -55,14 +58,18 @@ export default function RoomPage() {
     const handleUnload = () => {
       socket.disconnect();
     };
+    if (playerName) {
+      joinRoom(playerName, roomId);
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('unload', handleUnload);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('unload', handleUnload);
+    }
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('unload', handleUnload);
     };
-  }, [socket, joinRoom, roomId]);
+  }, [joinRoom, playerName, roomId, socket]);
 
   useEffect(() => {
     if (playerId) {
@@ -85,6 +92,17 @@ export default function RoomPage() {
   if (!roomInfo) {
     return (
       <div className="flex h-full items-center justify-center">
+        <PlayerNameModal
+          isOpen={isOpenNameModal}
+          onOpenChange={value => setIsOpenNameModal(value)}
+          onConfirm={value => {
+            if (!value) return;
+            localStorage.setItem('playerName', value);
+            setPlayerName(value);
+            setIsOpenNameModal(false);
+          }}
+          closeDisabled={true}
+        />
         <div className="text-xl">連線中，如果時長過久請重新整理頁面</div>
       </div>
     );
@@ -102,6 +120,7 @@ export default function RoomPage() {
         onConfirm={value => {
           if (!value) return;
           localStorage.setItem('playerName', value);
+          setPlayerName(value);
           setIsOpenNameModal(false);
         }}
         closeDisabled={true}

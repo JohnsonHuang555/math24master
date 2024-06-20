@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Image from 'next/image';
 import HoverTip from '@/components/hover-tip';
 import { Card } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RuleModal } from '../modals/rule-modal';
 import { Label } from '../ui/label';
 
 type RoomInfoAreaProps = {
@@ -30,9 +32,13 @@ const RoomInfoArea = ({
   onMaxPlayersChange,
   onEditRoomName,
 }: RoomInfoAreaProps) => {
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+
   return (
     <Card className="grow p-4">
-      <div className="mb-4 flex gap-3">
+      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+
+      <div className="mb-4 flex gap-4">
         <div className="flex grow items-center gap-2">
           {password && (
             <Image src="/lock.svg" alt="lock" width={18} height={18} priority />
@@ -53,6 +59,7 @@ const RoomInfoArea = ({
         </div>
         <HoverTip content="遊戲規則">
           <Image
+            onClick={() => setIsOpenRuleModal(true)}
             src="/document.svg"
             alt="document"
             width={20}

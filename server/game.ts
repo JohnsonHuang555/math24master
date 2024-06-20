@@ -6,8 +6,7 @@ import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
 import {
   HAND_CARD_COUNT,
-  MAX_CARD_COUNT,
-  MAX_FORMULAS_NUMBER_COUNT,
+  MAX_CARD_COUNT, // MAX_FORMULAS_NUMBER_COUNT,
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
@@ -565,16 +564,16 @@ export function selectCard(
       };
     }
 
-    // 如果前一個是數字則不能選
-    if (
-      currentSelect?.number &&
-      currentSelectedNumbers?.length === MAX_FORMULAS_NUMBER_COUNT &&
-      currentSelect?.number.id !== number.id
-    ) {
-      return {
-        msg: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
-      };
-    }
+    // 數字牌最多幾張
+    // if (
+    //   currentSelect?.number &&
+    //   currentSelectedNumbers?.length === MAX_FORMULAS_NUMBER_COUNT &&
+    //   currentSelect?.number.id !== number.id
+    // ) {
+    //   return {
+    //     msg: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
+    //   };
+    // }
 
     const isExistIndex = selectedCards.findIndex(
       s => s.number?.id === number.id,

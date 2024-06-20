@@ -7,6 +7,7 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import MainPlayArea from '@/components/areas/playing/main-play-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
+import { RuleModal } from '@/components/modals/rule-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 
@@ -35,6 +36,8 @@ const MultiplePlayingArea = () => {
 
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+
   const handCard = currentPlayer?.handCard || [];
 
   const disabledActions =
@@ -61,7 +64,9 @@ const MultiplePlayingArea = () => {
 
   return (
     <MainLayout>
+      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <div className="relative flex w-full basis-1/5 items-center justify-center">
+        {/* 對手玩家 */}
         {otherPlayers?.map(player => (
           <div
             key={player.id}
@@ -85,7 +90,7 @@ const MultiplePlayingArea = () => {
                   </HoverTip>
                 )}
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-5">
                 <HoverTip content="持牌數" notPointer>
                   <div className="flex items-center">
                     <Image
@@ -98,14 +103,12 @@ const MultiplePlayingArea = () => {
                     <div className="ml-2 text-xl">{player.handCard.length}</div>
                   </div>
                 </HoverTip>
-                <div className="flex items-center justify-center">
-                  <div className="text-xl">分數: {player.score}</div>
-                </div>
+                <div className="text-xl">分數: {player.score}</div>
               </div>
             </div>
           </div>
         ))}
-        <div className="absolute right-5 top-5 flex gap-4">
+        <div className="absolute right-5 top-5 flex gap-5">
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <Image
@@ -114,6 +117,7 @@ const MultiplePlayingArea = () => {
               width={24}
               height={24}
               priority
+              onClick={() => setIsOpenRuleModal(true)}
             />
           </HoverTip>
           {/* 返回首頁 */}

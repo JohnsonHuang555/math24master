@@ -56,7 +56,7 @@ app.prepare().then(() => {
             socket.emit(SocketEvent.ErrorMessage, msg);
           }
         } else {
-          socket.emit(SocketEvent.ErrorMessage, '房間不存在');
+          socket.emit(SocketEvent.ErrorMessage, '房間人數已滿或不存在');
         }
       },
     );

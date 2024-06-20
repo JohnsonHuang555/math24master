@@ -6,9 +6,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
+import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import CreateRoomModal from '@/components/modals/create-room-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,9 +28,11 @@ export default function MultiplePlayPage() {
 
   const router = useRouter();
   const { searchRooms, joinRoom, socket } = useMultiplePlay();
+  const [searchedRoomName, setSearchedRoomName] = useState('');
   const [playerName, setPlayerName] = useState<string>('');
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>();
 
@@ -70,42 +74,60 @@ export default function MultiplePlayPage() {
   // 每 {RELOAD_ROOMS_TIMER} 秒刷新一次
   useEffect(() => {
     const interval = setInterval(() => {
-      searchRooms('');
+      searchRooms(searchedRoomName);
     }, RELOAD_ROOMS_TIMER);
 
     return () => clearInterval(interval);
-  }, [searchRooms]);
+  }, [searchRooms, searchedRoomName]);
 
   return (
     <MainLayout>
+      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <PlayerNameModal
         isOpen={isOpenNameModal}
-        onOpenChange={value => setIsOpenNameModal(value)}
+        onOpenChange={setIsOpenNameModal}
         onConfirm={value => {
           if (!value) return;
           localStorage.setItem('playerName', value);
           setPlayerName(value);
           setIsOpenNameModal(false);
         }}
-        closeDisabled={true}
+        closeDisabled={!playerName}
+        defaultValue={playerName}
       />
       <CreateRoomModal
         roomId={roomId}
         isOpen={isOpenCreateRoomModal}
-        onOpenChange={v => setIsOpenCreateRoomModal(v)}
+        onOpenChange={setIsOpenCreateRoomModal}
         onConfirm={(roomName, maxPlayers, password) => {
           joinRoom(playerName, roomId, roomName, maxPlayers, password);
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">
         <div className="h-2/3 w-2/3">
-          <h1 className="mb-4 text-xl font-semibold">房間列表</h1>
+          <div className="mb-4 flex justify-between">
+            <h1 className="text-xl font-semibold">房間列表</h1>
+            <div className="flex items-center">
+              <div className="text-lg">Hi, {playerName}</div>
+              <HoverTip content="編輯名稱">
+                <Image
+                  src="/edit.svg"
+                  alt="edit"
+                  className="ml-3"
+                  width={20}
+                  height={20}
+                  priority
+                  onClick={() => setIsOpenNameModal(true)}
+                />
+              </HoverTip>
+            </div>
+          </div>
           <div className="mb-8 flex justify-between">
             <div className="relative">
               <Input
                 placeholder="房間名稱"
                 className="min-w-[250px] pl-8"
-                onChange={e => searchRooms(e.target.value)}
+                onChange={e => setSearchedRoomName(e.target.value)}
               />
               <Image
                 src="/search.svg"
@@ -120,7 +142,21 @@ export default function MultiplePlayPage() {
               <Button variant="secondary" onClick={() => router.push('/')}>
                 回首頁
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsOpenRuleModal(true)}
+              >
+                遊戲規則
+              </Button>
               <Button onClick={() => setIsOpenCreateRoomModal(true)}>
+                <Image
+                  src="/add-room.svg"
+                  alt="add-room"
+                  className="mr-1"
+                  width={20}
+                  height={20}
+                  priority
+                />
                 建立房間
               </Button>
             </div>
@@ -137,6 +173,10 @@ export default function MultiplePlayPage() {
                     <Card
                       className="cursor-pointer"
                       onClick={() => {
+                        if (room.players.length === room.maxPlayers) {
+                          toast.info('房間人數已滿');
+                          return;
+                        }
                         setSelectedRoomId(room.roomId);
                         onOpen({
                           title: '加入房間',
@@ -151,13 +191,15 @@ export default function MultiplePlayPage() {
                       </CardHeader>
                       <CardContent className="flex justify-between">
                         <div className="flex items-center justify-center">
-                          <Image
-                            src="/lock.svg"
-                            alt="lock"
-                            width={20}
-                            height={20}
-                            priority
-                          />
+                          {room.password && (
+                            <Image
+                              src="/lock.svg"
+                              alt="lock"
+                              width={20}
+                              height={20}
+                              priority
+                            />
+                          )}
                         </div>
                         <div className="flex items-center justify-center gap-2">
                           <Image

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 type PlayerNameModalProps = {
+  defaultValue?: string;
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirm: (playerName: string) => void;
@@ -18,6 +19,7 @@ type PlayerNameModalProps = {
 };
 
 export function PlayerNameModal({
+  defaultValue,
   isOpen,
   onOpenChange,
   onConfirm,
@@ -46,6 +48,7 @@ export function PlayerNameModal({
             id="player-name"
             placeholder="請輸入玩家暱稱"
             className="col-span-3"
+            defaultValue={defaultValue}
             onChange={e => setPlayerName(e.target.value)}
           />
         </div>
