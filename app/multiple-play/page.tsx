@@ -14,6 +14,14 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
@@ -29,12 +37,13 @@ export default function MultiplePlayPage() {
   const router = useRouter();
   const { searchRooms, joinRoom, socket } = useMultiplePlay();
   const [searchedRoomName, setSearchedRoomName] = useState('');
+  const [searchedShowEmpty, setSearchedShowEmpty] = useState('all');
   const [playerName, setPlayerName] = useState<string>('');
+  const [selectedRoomId, setSelectedRoomId] = useState<string>();
+
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-
-  const [selectedRoomId, setSelectedRoomId] = useState<string>();
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
@@ -48,7 +57,7 @@ export default function MultiplePlayPage() {
   }, []);
 
   useEffect(() => {
-    searchRooms('');
+    searchRooms();
 
     socket.on(SocketEvent.GetRoomsResponse, (r: Room[]) => {
       setRooms(r || []);
@@ -74,11 +83,14 @@ export default function MultiplePlayPage() {
   // 每 {RELOAD_ROOMS_TIMER} 秒刷新一次
   useEffect(() => {
     const interval = setInterval(() => {
-      searchRooms(searchedRoomName);
+      searchRooms({
+        roomName: searchedRoomName,
+        showEmpty: searchedShowEmpty !== 'all',
+      });
     }, RELOAD_ROOMS_TIMER);
 
     return () => clearInterval(interval);
-  }, [searchRooms, searchedRoomName]);
+  }, [searchRooms, searchedRoomName, searchedShowEmpty]);
 
   return (
     <MainLayout>
@@ -123,20 +135,36 @@ export default function MultiplePlayPage() {
             </div>
           </div>
           <div className="mb-8 flex justify-between">
-            <div className="relative">
-              <Input
-                placeholder="房間名稱"
-                className="min-w-[250px] pl-8"
-                onChange={e => setSearchedRoomName(e.target.value)}
-              />
-              <Image
-                src="/search.svg"
-                alt="search"
-                className="absolute top-[50%] ml-2 -translate-y-1/2"
-                width={20}
-                height={20}
-                priority
-              />
+            <div className="flex gap-4">
+              <div className="relative">
+                <Input
+                  placeholder="房間名稱"
+                  className="min-w-[150px] pl-8"
+                  onChange={e => setSearchedRoomName(e.target.value)}
+                />
+                <Image
+                  src="/search.svg"
+                  alt="search"
+                  className="absolute top-[50%] ml-2 -translate-y-1/2"
+                  width={20}
+                  height={20}
+                  priority
+                />
+              </div>
+              <Select
+                value={searchedShowEmpty}
+                onValueChange={setSearchedShowEmpty}
+              >
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部房間</SelectItem>
+                    <SelectItem value="only-empty">人數未滿</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-4">
               <Button variant="secondary" onClick={() => router.push('/')}>

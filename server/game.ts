@@ -23,12 +23,19 @@ let _rooms: Room[] = [];
 const _playerInRoomMap: { [key: string]: string } = {};
 
 // 取得當前房間 需濾掉單人遊戲
-export function getCurrentRooms(roomName: string) {
+export function getCurrentRooms(payload?: {
+  roomName: string;
+  showEmpty: boolean;
+}) {
+  let tempRooms = _rooms;
   // 依房名篩選
-  if (roomName) {
-    return _rooms.filter(r => r?.roomName === roomName);
+  if (payload?.roomName) {
+    tempRooms = _rooms.filter(r => r?.roomName === payload?.roomName);
   }
-  return _rooms.filter(r => r.maxPlayers > 1);
+  if (payload?.showEmpty) {
+    tempRooms = _rooms.filter(r => r?.maxPlayers > r.players.length);
+  }
+  return tempRooms.filter(r => r.maxPlayers > 1);
 }
 
 export const getCurrentRoom = (roomId: string) => {
@@ -108,21 +115,32 @@ export function joinRoom(
   playerId: string,
   playerName: string,
   mode: GameMode,
-): Response {
+): Response & { needPassword?: boolean } {
   try {
     _playerInRoomMap[playerId] = payload.roomId;
     const roomIndex = _getCurrentRoomIndex(payload.roomId);
 
     if (roomIndex !== -1) {
-      if (_rooms[roomIndex].players.length) {
-        const playerIndex = _getCurrentPlayerIndex(
-          _rooms[roomIndex].players,
-          playerId,
-        );
-        if (_rooms[roomIndex].players[playerIndex]?.isMaster) {
+      const playerIndex = _getCurrentPlayerIndex(
+        _rooms[roomIndex].players,
+        playerId,
+      );
+      const isMaster = _rooms[roomIndex].players[playerIndex]?.isMaster;
+      if (isMaster) {
+        return {
+          room: _rooms[roomIndex],
+        };
+      }
+
+      // 當房間有設密碼且不是房主需要回傳密碼輸入事件
+      if (_rooms[roomIndex].password && !isMaster) {
+        if (!payload.password) {
           return {
-            room: _rooms[roomIndex],
+            needPassword: true,
           };
+        }
+        if (_rooms[roomIndex].password !== payload.password) {
+          return { msg: '密碼錯誤' };
         }
       }
 
@@ -146,6 +164,13 @@ export function joinRoom(
         return {
           msg: '房間不存在',
         };
+      }
+      // 建立房間時已經有相同成稱的房間需擋掉
+      if (mode === GameMode.Multiple && payload.roomName) {
+        const existRoomName = _rooms.find(
+          room => room.roomName === payload.roomName,
+        );
+        if (existRoomName) return { msg: '房間名稱已存在' };
       }
       // 創建新房間
       const newRoom = {
@@ -177,7 +202,7 @@ export function joinRoom(
       };
     }
   } catch (e) {
-    return { msg: '發生錯誤' };
+    return { msg: '發生錯誤，請稍後再試 (join room)' };
   }
 }
 
@@ -268,7 +293,7 @@ export function startGame(roomId: string): Response {
     // 隨機玩家順序
     const shuffledPlayerOrder = shuffleArray(playerOrders);
     if (shuffledPlayerOrder.length !== room.players.length)
-      return { msg: '發生錯誤' };
+      return { msg: '發生錯誤，請稍後再試 (shuffle)' };
 
     shuffledPlayerOrder.forEach((order, index) => {
       _rooms[roomIndex].players[index].playerOrder = order;
@@ -555,7 +580,7 @@ export function selectCard(
 
   if (number) {
     const currentSelect = selectedCards[selectedCards.length - 1];
-    const currentSelectedNumbers = selectedCards.filter(c => c.number);
+    // const currentSelectedNumbers = selectedCards.filter(c => c.number);
 
     // 如果前一個是數字則不能選
     if (currentSelect?.number && currentSelect?.number.id !== number.id) {
@@ -604,11 +629,16 @@ export function reselectCard(roomId: string): Response {
   };
 }
 
-export function editRoomName(roomId: string, newRoomName: string): Response {
+export function editRoom(
+  roomId: string,
+  newRoomName: string,
+  newPassword: string,
+): Response {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return { msg: '房間不存在' };
 
   _rooms[roomIndex].roomName = newRoomName;
+  _rooms[roomIndex].password = newPassword;
 
   return {
     room: _rooms[roomIndex],

@@ -12,6 +12,7 @@ export enum SocketEvent {
   // only multiple mode
   EditRoomName = 'edit-room-name',
   EditMaxPlayers = 'edit-max-players',
+  CheckRoomPassword = 'check-room-password',
 
   // game event
   SortCard = 'sort-card',
@@ -32,4 +33,5 @@ export enum SocketEvent {
   GetMessage = 'get-message',
   RemovePlayerResponse = 'remove-play-response',
   PlayerLeaveRoom = 'player-leave-room', // 玩家在遊戲中離開房間
+  NeedRoomPassword = 'need-room-password',
 }

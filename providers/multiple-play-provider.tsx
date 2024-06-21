@@ -25,7 +25,7 @@ const socket = io();
  */
 // 定義 Context 中 value 的型別
 type MultiplePlayContextData = {
-  searchRooms: (roomName: string) => void;
+  searchRooms: (payload?: { roomName: string; showEmpty: boolean }) => void;
   joinRoom: (
     playerName: string,
     roomId: string,
@@ -39,7 +39,7 @@ type MultiplePlayContextData = {
   onReadyGame: () => void;
   onStartGame: () => void;
   messages: Message[];
-  editRoomName: (roomName: string) => void;
+  editRoom: (roomName: string, password?: string) => void;
   editMaxPlayers: (maxPlayers: number) => void;
   removePlayer: (playerId: string) => void;
   checkAnswerCorrect: boolean | null;
@@ -62,6 +62,7 @@ type MultiplePlayContextData = {
   drawCard: () => void;
   currentPlayer?: Player;
   isYourTurn: boolean;
+  // checkRoomPassword: (roomId: string, password: string) => void;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -116,7 +117,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const isYourTurn = currentPlayer?.playerOrder === roomInfo?.currentOrder;
 
   useEffect(() => {
-    socket.emit(SocketEvent.SearchRooms, '');
+    socket.emit(SocketEvent.SearchRooms);
 
     socket.on(SocketEvent.ErrorMessage, message => {
       toast.error(message);
@@ -154,11 +155,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     });
   }, []);
 
-  const searchRooms = useCallback((roomName: string) => {
-    if (socket.connected) {
-      socket.emit(SocketEvent.SearchRooms, roomName);
-    }
-  }, []);
+  const searchRooms = useCallback(
+    (payload?: { roomName: string; showEmpty: boolean }) => {
+      if (socket.connected) {
+        socket.emit(SocketEvent.SearchRooms, payload);
+      }
+    },
+    [],
+  );
 
   const joinRoom = useCallback(
     (
@@ -194,12 +198,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
   }, [roomInfo?.roomId]);
 
-  const editRoomName = useCallback(
-    (roomName: string) => {
+  const editRoom = useCallback(
+    (roomName: string, password?: string) => {
       if (socket.connected) {
         socket.emit(SocketEvent.EditRoomName, {
           roomId: roomInfo?.roomId,
           roomName,
+          password,
         });
       }
     },
@@ -348,7 +353,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onReadyGame,
       onStartGame,
       messages,
-      editRoomName,
+      editRoom,
       editMaxPlayers,
       removePlayer,
       checkAnswerCorrect,
@@ -367,13 +372,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       drawCard,
       currentPlayer,
       isYourTurn,
+      // checkRoomPassword,
     };
   }, [
     checkAnswerCorrect,
     discardCard,
     drawCard,
     editMaxPlayers,
-    editRoomName,
+    editRoom,
     finishedAnimations,
     joinRoom,
     messages,

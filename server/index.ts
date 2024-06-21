@@ -8,7 +8,7 @@ import {
   discardCard,
   drawCard,
   editMaxPlayers,
-  editRoomName,
+  editRoom,
   getCurrentRoom,
   getCurrentRooms,
   getPlayerName,
@@ -42,7 +42,7 @@ app.prepare().then(() => {
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
-          const { room, msg } = joinRoom(
+          const { room, msg, needPassword } = joinRoom(
             { roomId, maxPlayers, roomName, password },
             playerId,
             playerName,
@@ -52,6 +52,8 @@ app.prepare().then(() => {
           if (room) {
             io.sockets.to(roomId).emit(SocketEvent.JoinRoomSuccess, room);
             socket.emit(SocketEvent.GetPlayerId, playerId);
+          } else if (needPassword) {
+            socket.emit(SocketEvent.NeedRoomPassword);
           } else {
             socket.emit(SocketEvent.ErrorMessage, msg);
           }
@@ -145,10 +147,13 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on(SocketEvent.SearchRooms, (roomName: string) => {
-      const allRooms = getCurrentRooms(roomName);
-      socket.emit(SocketEvent.GetRoomsResponse, allRooms);
-    });
+    socket.on(
+      SocketEvent.SearchRooms,
+      (payload?: { roomName: string; showEmpty: boolean }) => {
+        const allRooms = getCurrentRooms(payload);
+        socket.emit(SocketEvent.GetRoomsResponse, allRooms);
+      },
+    );
 
     socket.on(SocketEvent.GetRoomById, (roomId: string) => {
       const room = getCurrentRoom(roomId);
@@ -166,8 +171,8 @@ app.prepare().then(() => {
     });
 
     // 多人模式才有
-    socket.on(SocketEvent.EditRoomName, ({ roomId, roomName }) => {
-      const { room, msg } = editRoomName(roomId, roomName);
+    socket.on(SocketEvent.EditRoomName, ({ roomId, roomName, password }) => {
+      const { room, msg } = editRoom(roomId, roomName, password);
       if (room) {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
       } else {
@@ -195,7 +200,6 @@ app.prepare().then(() => {
     });
 
     socket.on('disconnect', () => {
-      console.log('leave');
       const result = leaveRoom(playerId);
       if (result?.room) {
         const roomId = result.room?.roomId as string;

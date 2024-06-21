@@ -8,7 +8,8 @@ import PlayersArea from '@/components/areas/players-area';
 import MultiplePlayingArea from '@/components/areas/playing/multiple-playing-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
-import EditRoomNameModal from '@/components/modals/edit-room-name-modal';
+import EditRoomModal from '@/components/modals/edit-room-modal';
+import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
 import { GameStatus } from '@/models/GameStatus';
@@ -20,8 +21,11 @@ export default function RoomPage() {
 
   const { roomId } = useParams<{ roomId: string }>();
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
-  const [isOpenEditRoomNameModal, setIsOpenEditRoomNameModal] = useState(false);
+  const [isOpenEditRoomModal, setIsOpenEditRoomModal] = useState(false);
   const [isOpenRemovePlayerModal, setIsOpenRemovePlayerModal] = useState(false);
+  const [isOpenEnterRoomPasswordModal, setIsOpenEnterRoomPasswordModal] =
+    useState(false);
+
   const [playerName, setPlayerName] = useState<string>('');
 
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
@@ -34,7 +38,7 @@ export default function RoomPage() {
     onReadyGame,
     onStartGame,
     messages,
-    editRoomName,
+    editRoom,
     editMaxPlayers,
     removePlayer,
     currentPlayer,
@@ -83,6 +87,12 @@ export default function RoomPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, playerId]);
 
+  useEffect(() => {
+    socket.on(SocketEvent.NeedRoomPassword, () => {
+      setIsOpenEnterRoomPasswordModal(true);
+    });
+  }, [socket, joinRoom]);
+
   const sendMessage = (message: string) => {
     if (socket) {
       socket.emit(SocketEvent.SendMessage, { roomId, message });
@@ -100,6 +110,18 @@ export default function RoomPage() {
             localStorage.setItem('playerName', value);
             setPlayerName(value);
             setIsOpenNameModal(false);
+          }}
+          closeDisabled={true}
+        />
+        <EnterRoomPasswordModal
+          isOpen={isOpenEnterRoomPasswordModal}
+          onOpenChange={setIsOpenEnterRoomPasswordModal}
+          onSubmit={password => {
+            if (!roomId) {
+              toast.error('發生錯誤，請稍後再試');
+              return;
+            }
+            joinRoom(playerName, roomId, undefined, undefined, password);
           }}
           closeDisabled={true}
         />
@@ -125,14 +147,15 @@ export default function RoomPage() {
         }}
         closeDisabled={true}
       />
-      <EditRoomNameModal
-        roomName={roomInfo.roomName}
-        onSubmit={roomName => {
-          editRoomName(roomName);
-          setIsOpenEditRoomNameModal(false);
+      <EditRoomModal
+        roomName={roomInfo.roomName || ''}
+        password={roomInfo.password}
+        onSubmit={(roomName, password) => {
+          editRoom(roomName, password);
+          setIsOpenEditRoomModal(false);
         }}
-        isOpen={isOpenEditRoomNameModal}
-        onOpenChange={value => setIsOpenEditRoomNameModal(value)}
+        isOpen={isOpenEditRoomModal}
+        onOpenChange={value => setIsOpenEditRoomModal(value)}
       />
       <RemoveRoomPlayerModal
         isOpen={isOpenRemovePlayerModal}
@@ -167,7 +190,7 @@ export default function RoomPage() {
                 window.location.href = '/multiple-play';
               }}
               onMaxPlayersChange={editMaxPlayers}
-              onEditRoomName={() => setIsOpenEditRoomNameModal(true)}
+              onEditRoomName={() => setIsOpenEditRoomModal(true)}
             />
             <ChatArea messages={messages} onSend={sendMessage} />
           </div>

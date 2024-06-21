@@ -74,39 +74,39 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
             <ol className="list-decimal pl-5">
               <li className="mb-1">
                 算式中有 <span className="font-semibold">加減</span> 符號各加 1
-                分
+                分。
               </li>
               <li className="mb-1">
                 算式中有 <span className="font-semibold">乘除</span> 符號各加 2
-                分
+                分。
               </li>
               <li className="mb-1">
                 算式中有 2 張 <span className="font-semibold">乘</span>{' '}
-                符號額外加 1 分
+                符號額外加 1 分。
               </li>
               <li className="mb-1">
                 算式中有 2 張 <span className="font-semibold">除</span>{' '}
-                符號額外加 2 分
+                符號額外加 2 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">4</span> 張額外加
-                1 分
+                1 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">5</span> 張額外加
-                2 分
+                2 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">6</span> 張額外加
-                3 分
+                3 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">7</span> 張額外加
-                4 分
+                4 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">8</span> 張額外加
-                5 分
+                5 分。
               </li>
             </ol>
           </TabsContent>
