@@ -12,7 +12,8 @@ const fontSans = FontSans({
 
 export const metadata: Metadata = {
   title: '24 點',
-  description: '24 點',
+  description:
+    '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維',
 };
 
 export default function RootLayout({

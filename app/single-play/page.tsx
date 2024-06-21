@@ -67,9 +67,9 @@ export default function SinglePlayPage() {
 
   useEffect(() => {
     if (roomInfo?.isGameOver && currentPlayer?.score) {
-      if (bestScore && bestScore < currentPlayer?.score) {
-        setBestScore(currentPlayer.score);
+      if (!bestScore || bestScore < currentPlayer?.score) {
         localStorage.setItem('bestScore', String(currentPlayer?.score));
+        setBestScore(currentPlayer.score);
       }
       toast.success(`遊戲結束，總分為 ${currentPlayer?.score}`, {
         autoClose: 5000,

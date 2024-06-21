@@ -112,7 +112,7 @@ const useSinglePlay = () => {
   }) => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.SelectCard, {
         roomId: roomInfo?.roomId,
         number,
@@ -125,7 +125,7 @@ const useSinglePlay = () => {
   const onReselect = () => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
         roomId: roomInfo?.roomId,
       });
@@ -136,7 +136,7 @@ const useSinglePlay = () => {
   const onSort = () => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
   };
@@ -145,7 +145,7 @@ const useSinglePlay = () => {
   const drawCard = () => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,
@@ -159,7 +159,7 @@ const useSinglePlay = () => {
   const discardCard = (cardId: string) => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.DiscardCard, {
         roomId: roomInfo?.roomId,
         cardId,
@@ -176,7 +176,7 @@ const useSinglePlay = () => {
       return;
     }
 
-    if (socket.connected) {
+    if (socket) {
       const usedCardCount =
         roomInfo?.selectedCards.filter(c => c.number).length || 0;
       setPlayedCard(state => state + usedCardCount);
@@ -191,7 +191,7 @@ const useSinglePlay = () => {
   const updateScore = () => {
     if (isGameOver) return;
 
-    if (socket.connected) {
+    if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
       setFinishedAnimations(0);

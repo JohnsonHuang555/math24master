@@ -24,6 +24,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
           <TabsList>
             <TabsTrigger value="basic">規則說明</TabsTrigger>
             <TabsTrigger value="calculate">計分方式</TabsTrigger>
+            <TabsTrigger value="example">計分範例</TabsTrigger>
           </TabsList>
           <TabsContent value="basic" className="mt-2">
             <ol className="list-decimal pl-5">
@@ -34,7 +35,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 張牌，多的需棄掉。
               </li>
               <li className="mb-1">
-                牌的種類為數字 1~10，牌總數為 n(玩家數) x 20 張。
+                牌的種類為數字 1~10，牌總數為 n(玩家數) × 20 張。
                 <br />
                 ex. 2 個玩家 1 ~ 10 每個數字各 4 張牌，共 40 張。
               </li>
@@ -49,7 +50,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               <li className="mb-1">
                 在同一個回合中可以多次出牌。
                 <br />
-                ex. 出兩組分別為 3 x 8 = 24，6 x 4 = 24。
+                ex. 出兩組分別為 3 × 8 = 24，6 × 4 = 24。
               </li>
               <li className="mb-1">
                 結束回合時，在
@@ -107,6 +108,34 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">8</span> 張額外加
                 5 分。
+              </li>
+            </ol>
+          </TabsContent>
+          <TabsContent value="example" className="mt-2">
+            <ol className="list-decimal pl-5">
+              <li className="mb-1">
+                10 + 10 + 4 = 24 得分為{' '}
+                <span className="font-semibold text-red-600">2</span>。
+                <br />
+                解釋: 2 個加號得 <span className="font-semibold">2</span> 分。
+              </li>
+              <li className="mb-1">
+                (2 + 4 ÷ 10) × 10 = 24 得分為{' '}
+                <span className="font-semibold text-red-600">6</span>。
+                <br />
+                解釋: 1 個加號得 <span className="font-semibold">1</span> 分，1
+                個乘號得 <span className="font-semibold">2</span> 分，1 個除號得
+                2 分，用到 4 個數字牌額外加{' '}
+                <span className="font-semibold">1</span> 分。
+              </li>
+              <li className="mb-1">
+                (1 × 6) + (6 × 2) + 3 + 3 = 24 得分為{' '}
+                <span className="font-semibold text-red-600">6</span>。
+                <br />
+                解釋: 2 個加號得 <span className="font-semibold">2</span> 分，2
+                個乘號得 <span className="font-semibold">4</span> 分，2
+                個乘號額外加 <span className="font-semibold">1</span> 分，用到 6
+                個數字牌額外加 <span className="font-semibold">3</span> 分。
               </li>
             </ol>
           </TabsContent>

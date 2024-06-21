@@ -124,6 +124,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     });
 
     socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
+      console.log('dddddd');
       setRoomInfo(room);
     });
 
@@ -157,7 +158,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const searchRooms = useCallback(
     (payload?: { roomName: string; showEmpty: boolean }) => {
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.SearchRooms, payload);
       }
     },
@@ -172,7 +173,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       maxPlayers?: number,
       password?: string,
     ) => {
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.JoinRoom, {
           playerName,
           roomId,
@@ -187,20 +188,20 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   );
 
   const onReadyGame = useCallback(() => {
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.ReadyGame, { roomId: roomInfo?.roomId });
     }
   }, [roomInfo?.roomId]);
 
   const onStartGame = useCallback(() => {
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.StartGame, { roomId: roomInfo?.roomId });
     }
   }, [roomInfo?.roomId]);
 
   const editRoom = useCallback(
     (roomName: string, password?: string) => {
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.EditRoomName, {
           roomId: roomInfo?.roomId,
           roomName,
@@ -213,7 +214,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const editMaxPlayers = useCallback(
     (maxPlayers: number) => {
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.EditMaxPlayers, {
           roomId: roomInfo?.roomId,
           maxPlayers,
@@ -225,7 +226,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const removePlayer = useCallback(
     (playerId: string) => {
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.RemovePlayer, {
           roomId: roomInfo?.roomId,
           playerId,
@@ -239,7 +240,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const updateScore = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (socket.connected) {
+    if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
       setFinishedAnimations(0);
@@ -258,7 +259,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     ({ number, symbol }: { number?: NumberCard; symbol?: Symbol }) => {
       if (roomInfo?.isGameOver || !isYourTurn) return;
 
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.SelectCard, {
           roomId: roomInfo?.roomId,
           number,
@@ -274,7 +275,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     (cardId: string) => {
       if (roomInfo?.isGameOver || !isYourTurn) return;
 
-      if (socket.connected) {
+      if (socket) {
         socket.emit(SocketEvent.DiscardCard, {
           roomId: roomInfo?.roomId,
           cardId,
@@ -293,7 +294,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       return;
     }
 
-    if (socket.connected) {
+    if (socket) {
       const usedCardCount =
         roomInfo?.selectedCards.filter(c => c.number).length || 0;
       setPlayedCard(state => state + usedCardCount);
@@ -313,7 +314,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const onReselect = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
         roomId: roomInfo?.roomId,
       });
@@ -324,7 +325,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const onSort = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (socket.connected) {
+    if (socket) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
   }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
@@ -333,7 +334,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const drawCard = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (socket.connected) {
+    if (socket) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,

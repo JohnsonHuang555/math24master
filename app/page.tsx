@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MainLayout from '@/components/layouts/main-layout';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { fadeVariants } from '@/lib/animation-variants';
 
@@ -15,6 +17,8 @@ const date = new Date();
 export default function Home() {
   const [hasPlayerName, setHasPlayerName] = useState(false);
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+
   const router = useRouter();
   const intro =
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維'.split(
@@ -37,6 +41,7 @@ export default function Home() {
           router.push('/multiple-play');
         }}
       />
+      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <div className="flex h-full w-full flex-col items-center justify-center">
         <motion.div variants={fadeVariants} initial="hidden" animate="show">
           <Image
@@ -56,7 +61,7 @@ export default function Home() {
         >
           運用你的智慧，成為 24 點大師
         </motion.h1>
-        <p className="mb-16 flex w-2/5 flex-wrap items-center justify-center text-lg">
+        <p className="mb-6 flex w-2/5 flex-wrap items-center justify-center text-lg">
           {intro.map((el, i) => (
             <motion.span
               initial={{ opacity: 0 }}
@@ -71,6 +76,21 @@ export default function Home() {
             </motion.span>
           ))}
         </p>
+        <Button
+          className="mb-10"
+          variant="secondary"
+          onClick={() => setIsOpenRuleModal(true)}
+        >
+          <Image
+            src="/document.svg"
+            alt="document"
+            width={16}
+            height={16}
+            priority
+            className="mr-2"
+          />
+          觀看遊戲規則
+        </Button>
         <div className="flex gap-8">
           <motion.div variants={fadeVariants} initial="hidden" animate="show">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
@@ -127,31 +147,36 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </div>
-        <div className="fixed bottom-6 flex items-center">
-          <div className="mr-3 flex gap-1 text-sm text-gray-500">
-            <span>{date.getFullYear()}</span>{' '}
-            <Image
-              src="/smile-circle.svg"
-              alt="smile-circle"
-              width={14}
-              height={14}
-              priority
-            />
-            <span>Created by Johnson</span>
+        <div className="fixed bottom-6 items-center">
+          <div className="flex">
+            <div className="mr-2 flex gap-1 text-sm text-gray-500">
+              <span>{date.getFullYear()}</span>{' '}
+              <Image
+                src="/smile-circle.svg"
+                alt="smile-circle"
+                width={14}
+                height={14}
+                priority
+              />
+              <span>Created by Johnson.</span>
+            </div>
+            <div className="mr-2 text-sm text-gray-500">beta.0.0.3</div>
+            <Link
+              href="https://github.com/JohnsonHuang555/24_points"
+              target="_blank"
+            >
+              <Image
+                src="/github.svg"
+                alt="github"
+                width={16}
+                height={16}
+                priority
+              />
+            </Link>
           </div>
-          <Link
-            href="https://github.com/JohnsonHuang555/24_points"
-            target="_blank"
-          >
-            <Image
-              src="/github.svg"
-              alt="github"
-              width={16}
-              height={16}
-              priority
-            />
-          </Link>
-          <div className="ml-2 text-sm text-gray-500">beta 0.0.1</div>
+          <div className="mt-1 text-center text-xs text-gray-500">
+            此網站在電腦與平板支援度最佳
+          </div>
         </div>
       </div>
     </MainLayout>
