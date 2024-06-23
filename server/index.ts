@@ -95,9 +95,12 @@ app.prepare().then(() => {
     });
 
     socket.on(SocketEvent.DrawCard, ({ roomId, count }) => {
-      const { room, msg } = drawCard(roomId, playerId, count);
+      const { room, msg, winner } = drawCard(roomId, playerId, count);
       if (room) {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+        if (winner) {
+          io.sockets.to(roomId).emit(SocketEvent.GameOver, winner);
+        }
       } else {
         socket.emit(SocketEvent.ErrorMessage, msg);
       }
@@ -138,7 +141,7 @@ app.prepare().then(() => {
       }
       if (room) {
         // 答對
-        socket.emit(SocketEvent.PlayCardResponse, true);
+        io.sockets.to(roomId).emit(SocketEvent.PlayCardResponse, true);
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
       } else {
         // 答錯

@@ -236,6 +236,7 @@ export function leaveRoom(
           ...room,
           players: newPlayers,
           status: GameStatus.Idle, // 切換為等待狀態
+          isGameOver: false,
         };
       }
       return room;
@@ -312,6 +313,7 @@ export function startGame(roomId: string): Response {
     _rooms[roomIndex].currentOrder = 1;
     // 開始遊戲狀態
     _rooms[roomIndex].status = GameStatus.Playing;
+    _rooms[roomIndex].isGameOver = false;
 
     return {
       room: _rooms[roomIndex],
@@ -373,7 +375,7 @@ export function drawCard(
   roomId: string,
   playerId: string,
   count: number,
-): Response {
+): Response & { winner?: string } {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return { msg: '房間不存在' };
 
@@ -395,7 +397,13 @@ export function drawCard(
     _rooms[roomIndex].isGameOver = true;
     _rooms[roomIndex].status = GameStatus.Idle;
 
+    const playersScoreRank = _rooms[roomIndex].players.sort(
+      (a, b) => a.score - b.score,
+    );
+    const winner = playersScoreRank[playersScoreRank.length - 1];
+
     return {
+      winner: winner.name,
       room: _rooms[roomIndex],
     };
   }

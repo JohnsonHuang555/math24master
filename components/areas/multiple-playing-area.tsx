@@ -4,15 +4,23 @@ import Image from 'next/image';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
-import MainPlayArea from '@/components/areas/playing/main-play-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { HintModal } from '@/components/modals/hint-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
+import MainPlayArea from './main-play-area';
 
-const MultiplePlayingArea = () => {
+type MultiplePlayingAreaProps = {
+  showCloseGamePlayingBtn: boolean;
+  onCloseScreen: () => void;
+};
+
+const MultiplePlayingArea = ({
+  showCloseGamePlayingBtn,
+  onCloseScreen,
+}: MultiplePlayingAreaProps) => {
   const {
     roomInfo,
     checkAnswerCorrect,
@@ -146,6 +154,19 @@ const MultiplePlayingArea = () => {
               onClick={() => (window.location.href = '/multiple-play')}
             />
           </HoverTip>
+          {/* 返回首頁 */}
+          {showCloseGamePlayingBtn && (
+            <HoverTip content="回到房間">
+              <Image
+                src="/close.svg"
+                alt="close"
+                width={24}
+                height={24}
+                priority
+                onClick={onCloseScreen}
+              />
+            </HoverTip>
+          )}
         </div>
       </div>
       <div className="relative flex flex-1 flex-col items-center gap-8">

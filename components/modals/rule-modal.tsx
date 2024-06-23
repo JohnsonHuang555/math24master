@@ -29,16 +29,17 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
           <TabsContent value="basic" className="mt-2">
             <ol className="list-decimal pl-5">
               <li className="mb-1">
-                起手 <span className="font-semibold text-red-600">5</span>{' '}
-                張手牌，最多{' '}
+                每位玩家 <span className="font-semibold text-red-600">5</span>{' '}
+                張手牌
+                {/* ，最多
                 <span className="font-semibold text-red-600">8</span>{' '}
-                張牌，多的需棄掉。
+                張牌，多的需棄掉。 */}
               </li>
-              <li className="mb-1">
+              {/* <li className="mb-1">
                 牌的種類為數字 1~10，牌總數為 n(玩家數) × 20 張。
                 <br />
                 ex. 2 個玩家 1 ~ 10 每個數字各 4 張牌，共 40 張。
-              </li>
+              </li> */}
               <li className="mb-1">
                 每回合輪到你的時候可以選擇出牌或結束回合並抽牌，單人模式則直接抽牌。
               </li>
@@ -52,18 +53,15 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 <br />
                 ex. 出兩組分別為 3 × 8 = 24，6 × 4 = 24。
               </li>
-              <li className="mb-1">
+              {/* <li className="mb-1">
                 結束回合時，在
                 <span className="font-semibold text-red-600">已經</span>
                 出過牌的情況下，可從牌庫抽相對應的出牌張數。
                 <br />
                 ex. 出 2 張補 2 張
-              </li>
+              </li> */}
               <li className="mb-1">
-                結束回合時，在
-                <span className="font-semibold text-red-600">未</span>
-                出過牌的情況下，可從牌庫抽 1 張牌，如果手牌已經有 8
-                張牌，則需棄掉 1 張。
+                結束回合時，從牌庫抽 1 張牌並棄掉 1 張，維持 5 張手牌。
               </li>
               <li className="mb-1">
                 當牌庫抽完為最後一輪，最後一位玩家回合結束時即遊戲結束。
@@ -97,7 +95,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 算式中有數字牌 <span className="font-semibold">5</span> 張額外加
                 2 分。
               </li>
-              <li className="mb-1">
+              {/* <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">6</span> 張額外加
                 3 分。
               </li>
@@ -108,7 +106,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">8</span> 張額外加
                 5 分。
-              </li>
+              </li> */}
             </ol>
           </TabsContent>
           <TabsContent value="example" className="mt-2">
@@ -129,13 +127,13 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 <span className="font-semibold">1</span> 分。
               </li>
               <li className="mb-1">
-                (1 × 6) + (6 × 2) + 3 + 3 = 24 得分為{' '}
-                <span className="font-semibold text-red-600">6</span>。
+                (1 × 6) + (6 × 2) + 6 = 24 得分為{' '}
+                <span className="font-semibold text-red-600">9</span>。
                 <br />
                 解釋: 2 個加號得 <span className="font-semibold">2</span> 分，2
                 個乘號得 <span className="font-semibold">4</span> 分，2
-                個乘號額外加 <span className="font-semibold">1</span> 分，用到 6
-                個數字牌額外加 <span className="font-semibold">3</span> 分。
+                個乘號額外加 <span className="font-semibold">1</span> 分，用到 5
+                個數字牌額外加 <span className="font-semibold">2</span> 分。
               </li>
             </ol>
           </TabsContent>

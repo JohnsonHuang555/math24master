@@ -232,7 +232,7 @@ const MainPlayArea = ({
             variants={fadeVariants}
             initial="hide"
             animate="show"
-            className="absolute -top-4 flex h-16 flex-col justify-center"
+            className="absolute -top-3 flex h-16 flex-col justify-center"
             onAnimationComplete={() => {
               setTimeout(() => {
                 onUpdateScore();

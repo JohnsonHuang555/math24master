@@ -5,8 +5,8 @@ import { toast } from 'react-toastify';
 import { useParams, useRouter } from 'next/navigation';
 import type { Metadata } from 'next';
 import ChatArea from '@/components/areas/chat-area';
+import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
 import PlayersArea from '@/components/areas/players-area';
-import MultiplePlayingArea from '@/components/areas/playing/multiple-playing-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
 import EditRoomModal from '@/components/modals/edit-room-modal';
@@ -40,8 +40,9 @@ export default function RoomPage() {
     useState(false);
 
   const [playerName, setPlayerName] = useState<string>('');
-
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
+  const [showCloseGamePlayingBtn, setShowCloseGamePlayingBtn] = useState(true);
+  const [showGamePlayingScreen, setShowGamePlayingScreen] = useState(false);
 
   const {
     socket,
@@ -106,6 +107,16 @@ export default function RoomPage() {
     });
   }, [socket, joinRoom]);
 
+  useEffect(() => {
+    // 監聽遊戲是否結束要顯示關閉遊玩視窗按鈕
+    if (roomInfo?.status === GameStatus.Idle) {
+      setShowCloseGamePlayingBtn(true);
+    } else if (roomInfo?.status === GameStatus.Playing) {
+      setShowGamePlayingScreen(true);
+      setShowCloseGamePlayingBtn(false);
+    }
+  }, [roomInfo?.status]);
+
   const sendMessage = (message: string) => {
     if (socket) {
       socket.emit(SocketEvent.SendMessage, { roomId, message });
@@ -143,8 +154,16 @@ export default function RoomPage() {
     );
   }
 
-  if (roomInfo.status === GameStatus.Playing) {
-    return <MultiplePlayingArea />;
+  if (showGamePlayingScreen) {
+    return (
+      <MultiplePlayingArea
+        showCloseGamePlayingBtn={showCloseGamePlayingBtn}
+        onCloseScreen={() => {
+          setShowGamePlayingScreen(false);
+          setShowCloseGamePlayingBtn(false);
+        }}
+      />
+    );
   }
 
   return (
