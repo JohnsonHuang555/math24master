@@ -47,7 +47,7 @@ export default function Home() {
           <Image
             src="/logo.svg"
             alt="Logo"
-            className="mb-[80px]"
+            className="mb-[50px]"
             width={300}
             height={100}
             priority
@@ -61,14 +61,14 @@ export default function Home() {
         >
           運用你的智慧，成為 24 點大師
         </motion.h1>
-        <p className="mb-6 flex w-2/5 flex-wrap items-center justify-center text-lg">
+        <p className="mb-8 flex w-2/5 flex-wrap items-center justify-center text-lg">
           {intro.map((el, i) => (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{
                 duration: 0.2,
-                delay: i / 60,
+                delay: i / 30,
               }}
               key={i}
             >
@@ -76,23 +76,41 @@ export default function Home() {
             </motion.span>
           ))}
         </p>
-        <Button
-          className="mb-10"
-          variant="secondary"
-          onClick={() => setIsOpenRuleModal(true)}
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
+          animate={{
+            opacity: 1,
+            scale: 1,
+            transition: { delay: 0.5 },
+          }}
         >
-          <Image
-            src="/document.svg"
-            alt="document"
-            width={16}
-            height={16}
-            priority
-            className="mr-2"
-          />
-          觀看遊戲規則
-        </Button>
+          <Button
+            className="mb-10"
+            variant="secondary"
+            onClick={() => setIsOpenRuleModal(true)}
+          >
+            <Image
+              src="/document.svg"
+              alt="document"
+              width={16}
+              height={16}
+              priority
+              className="mr-2"
+            />
+            觀看遊戲規則
+          </Button>
+        </motion.div>
         <div className="flex gap-8">
-          <motion.div variants={fadeVariants} initial="hidden" animate="show">
+          <motion.div
+            variants={fadeVariants}
+            initial="hidden"
+            animate={{
+              opacity: 1,
+              scale: 1,
+              transition: { delay: 0.8 },
+            }}
+          >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
               <Card
                 onClick={() => router.push('/single-play')}
@@ -118,7 +136,7 @@ export default function Home() {
             animate={{
               opacity: 1,
               scale: 1,
-              transition: { delay: 0.5 },
+              transition: { delay: 1.2 },
             }}
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
@@ -147,20 +165,23 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </div>
-        <div className="fixed bottom-6 items-center">
-          <div className="flex">
-            <div className="mr-2 flex gap-1 text-sm text-gray-500">
-              <span>{date.getFullYear()}</span>{' '}
+        <div className="fixed bottom-4 items-center">
+          <div className="mb-1 text-center text-xs text-gray-500">
+            此網站在電腦與平板支援度最佳，維護時間: 每週一 23:00-23:59 (GMT+8)
+          </div>
+          <div className="flex justify-center">
+            <div className="mr-2 flex gap-1 text-xs text-gray-500">
+              <span>Created by Johnson Huang</span>
               <Image
                 src="/smile-circle.svg"
                 alt="smile-circle"
-                width={14}
-                height={14}
+                width={12}
+                height={12}
                 priority
               />
-              <span>Created by Johnson.</span>
+              <span>{date.getFullYear()}.</span>
             </div>
-            <div className="mr-2 text-sm text-gray-500">beta.0.0.3</div>
+            <div className="mr-2 text-xs text-gray-500">beta.0.0.3</div>
             <Link
               href="https://github.com/JohnsonHuang555/24_points"
               target="_blank"
@@ -168,14 +189,11 @@ export default function Home() {
               <Image
                 src="/github.svg"
                 alt="github"
-                width={16}
-                height={16}
+                width={14}
+                height={14}
                 priority
               />
             </Link>
-          </div>
-          <div className="mt-1 text-center text-xs text-gray-500">
-            此網站在電腦與平板支援度最佳
           </div>
         </div>
       </div>

@@ -16,7 +16,8 @@ const useSinglePlay = () => {
     null,
   );
   // 出過牌的數量
-  const [playedCard, setPlayedCard] = useState(0);
+  const [playedCard, setPlayedCards] = useState(0);
+
   // 動畫完成時
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
@@ -92,6 +93,7 @@ const useSinglePlay = () => {
       if (checkAnswerCorrect) {
         toast.success('答對了');
       } else {
+        setPlayedCards(0);
         toast.error('不對唷');
       }
     }
@@ -151,7 +153,7 @@ const useSinglePlay = () => {
         roomId: roomInfo?.roomId,
         count: playedCard === 0 ? 1 : playedCard,
       });
-      setPlayedCard(0);
+      setPlayedCards(0);
     }
   };
 
@@ -179,7 +181,7 @@ const useSinglePlay = () => {
     if (socket) {
       const usedCardCount =
         roomInfo?.selectedCards.filter(c => c.number).length || 0;
-      setPlayedCard(state => state + usedCardCount);
+      setPlayedCards(state => state + usedCardCount);
 
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
@@ -206,6 +208,16 @@ const useSinglePlay = () => {
     setFinishedAnimations(state => state + 1);
   };
 
+  const onBack = () => {
+    if (isGameOver) return;
+
+    if (socket && roomInfo?.selectedCards.length) {
+      socket.emit(SocketEvent.BackCard, {
+        roomId: roomInfo?.roomId,
+      });
+    }
+  };
+
   return {
     roomInfo,
     onSort,
@@ -223,6 +235,7 @@ const useSinglePlay = () => {
     updateScore,
     isGameOver,
     onFinishedAnimations,
+    onBack,
   };
 };
 

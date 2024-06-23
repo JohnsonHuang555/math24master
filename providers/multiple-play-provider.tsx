@@ -11,6 +11,7 @@ import React, {
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
 import { GameMode } from '@/models/GameMode';
+import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
 import { Room } from '@/models/Room';
@@ -62,7 +63,7 @@ type MultiplePlayContextData = {
   drawCard: () => void;
   currentPlayer?: Player;
   isYourTurn: boolean;
-  // checkRoomPassword: (roomId: string, password: string) => void;
+  onBack: () => void;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -90,7 +91,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   );
 
   // 出過牌的數量
-  const [playedCard, setPlayedCard] = useState(0);
+  const [playedCard, setPlayedCards] = useState(0);
 
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
@@ -114,6 +115,12 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     [playerId, roomInfo?.players],
   );
 
+  const isLastRound = useMemo(
+    () =>
+      roomInfo?.status === GameStatus.Playing && roomInfo?.deck.length === 0,
+    [roomInfo?.deck.length, roomInfo?.status],
+  );
+
   const isYourTurn = currentPlayer?.playerOrder === roomInfo?.currentOrder;
 
   useEffect(() => {
@@ -124,7 +131,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     });
 
     socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
-      console.log('dddddd');
       setRoomInfo(room);
     });
 
@@ -155,6 +161,23 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       toast.info(`${playerName} 已離開房間`);
     });
   }, []);
+
+  useEffect(() => {
+    if (checkAnswerCorrect !== null) {
+      if (checkAnswerCorrect) {
+        toast.success('答對了');
+      } else {
+        setPlayedCards(0);
+        toast.error('不對唷');
+      }
+    }
+  }, [checkAnswerCorrect]);
+
+  useEffect(() => {
+    if (isLastRound) {
+      toast.warning('最後一回合囉');
+    }
+  }, [isLastRound]);
 
   const searchRooms = useCallback(
     (payload?: { roomName: string; showEmpty: boolean }) => {
@@ -297,7 +320,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (socket) {
       const usedCardCount =
         roomInfo?.selectedCards.filter(c => c.number).length || 0;
-      setPlayedCard(state => state + usedCardCount);
+      setPlayedCards(state => state + usedCardCount);
 
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
@@ -340,9 +363,19 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
         count: playedCard === 0 ? 1 : playedCard,
       });
-      setPlayedCard(0);
+      setPlayedCards(0);
     }
   }, [roomInfo?.isGameOver, isYourTurn, playedCard, roomInfo?.roomId]);
+
+  const onBack = useCallback(() => {
+    if (roomInfo?.isGameOver) return;
+
+    if (socket && roomInfo?.selectedCards.length) {
+      socket.emit(SocketEvent.BackCard, {
+        roomId: roomInfo?.roomId,
+      });
+    }
+  }, [roomInfo?.isGameOver, roomInfo?.roomId, roomInfo?.selectedCards.length]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
@@ -373,7 +406,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       drawCard,
       currentPlayer,
       isYourTurn,
-      // checkRoomPassword,
+      onBack,
     };
   }, [
     checkAnswerCorrect,
@@ -399,6 +432,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     updateScore,
     currentPlayer,
     isYourTurn,
+    onBack,
   ]);
 
   return (

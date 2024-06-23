@@ -22,7 +22,7 @@ const GameCard = ({ selectedCardIndex, value, onSelect }: GameCardProps) => {
           variants={fadeVariants}
           initial="hidden"
           animate="show"
-          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white"
+          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white"
         >
           {selectedCardIndex + 1}
         </motion.div>

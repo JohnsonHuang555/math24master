@@ -155,7 +155,7 @@ export default function MultiplePlayPage() {
                 value={searchedShowEmpty}
                 onValueChange={setSearchedShowEmpty}
               >
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="min-w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

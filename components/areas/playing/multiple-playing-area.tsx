@@ -7,6 +7,7 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import MainPlayArea from '@/components/areas/playing/main-play-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
+import { HintModal } from '@/components/modals/hint-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -28,6 +29,7 @@ const MultiplePlayingArea = () => {
     drawCard,
     currentPlayer,
     isYourTurn,
+    onBack,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(
@@ -37,6 +39,7 @@ const MultiplePlayingArea = () => {
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const [isOpenHintModal, setIsOpenHintModal] = useState(false);
 
   const handCard = currentPlayer?.handCard || [];
 
@@ -65,6 +68,7 @@ const MultiplePlayingArea = () => {
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      <HintModal isOpen={isOpenHintModal} onOpenChange={setIsOpenHintModal} />
       <div className="relative flex w-full basis-1/5 items-center justify-center">
         {/* 對手玩家 */}
         {otherPlayers?.map(player => (
@@ -72,9 +76,9 @@ const MultiplePlayingArea = () => {
             key={player.id}
             className="flex flex-1 flex-col items-center justify-center"
           >
-            <div>
+            <div className="mb-2">
               <div className="mb-2 flex items-center">
-                <div className="mr-4 text-2xl font-semibold">{player.name}</div>
+                <div className="mr-4 text-3xl font-semibold">{player.name}</div>
                 {player.playerOrder === roomInfo?.currentOrder && (
                   <HoverTip content="該玩家的回合" notPointer>
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-sm text-white">
@@ -84,7 +88,7 @@ const MultiplePlayingArea = () => {
                 )}
                 {player.isLastRoundPlayer && (
                   <HoverTip content="最後輪到的玩家" notPointer>
-                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-sm text-white">
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-sm text-white">
                       L
                     </span>
                   </HoverTip>
@@ -103,12 +107,23 @@ const MultiplePlayingArea = () => {
                     <div className="ml-2 text-xl">{player.handCard.length}</div>
                   </div>
                 </HoverTip>
-                <div className="text-xl">分數: {player.score}</div>
+                <div className="mt-1 text-xl">得分: {player.score}</div>
               </div>
             </div>
           </div>
         ))}
         <div className="absolute right-5 top-5 flex gap-5">
+          {/* 小提示 */}
+          <HoverTip content="提示">
+            <Image
+              src="/question.svg"
+              alt="question"
+              width={24}
+              height={24}
+              priority
+              onClick={() => setIsOpenHintModal(true)}
+            />
+          </HoverTip>
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <Image
@@ -171,6 +186,7 @@ const MultiplePlayingArea = () => {
             onReselect();
             drawCard();
           }}
+          onBack={onBack}
         />
       </div>
     </MainLayout>

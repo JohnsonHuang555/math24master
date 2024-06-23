@@ -1,6 +1,5 @@
-import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
-import { calculateNumbersScore } from '../lib/utils';
+import { calculateAnswer, calculateNumbersScore } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
@@ -462,17 +461,8 @@ export function playCard(roomId: string, playerId: string): Response {
 
   const selectedCards = _rooms[roomIndex].selectedCards;
 
-  const expression = selectedCards.map(s => {
-    if (s.number) {
-      return s.number.value;
-    }
-    if (s.symbol) {
-      return s.symbol;
-    }
-  });
-
   try {
-    const answer = evaluate(expression.join(''));
+    const answer = calculateAnswer(selectedCards);
 
     if (answer === 24) {
       // 使用的數字牌
@@ -493,9 +483,20 @@ export function playCard(roomId: string, playerId: string): Response {
     return {};
   } catch (error: any) {
     return {
-      msg: error,
+      msg: error.message,
     };
   }
+}
+
+export function backCard(roomId: string): Response {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return { msg: '房間不存在' };
+
+  _rooms[roomIndex].selectedCards.pop();
+
+  return {
+    room: _rooms[roomIndex],
+  };
 }
 
 // 更新分數

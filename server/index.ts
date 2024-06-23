@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { Message } from '../models/Message';
 import { SocketEvent } from '../models/SocketEvent';
 import {
+  backCard,
   checkCanJoinRoom,
   discardCard,
   drawCard,
@@ -32,7 +33,10 @@ const handler = app.getRequestHandler();
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, {
+    pingInterval: 24 * 60 * 60 * 1000,
+    pingTimeout: 3 * 24 * 60 * 60 * 1000,
+  });
 
   io.on('connection', socket => {
     const playerId = socket.id;
@@ -127,7 +131,11 @@ app.prepare().then(() => {
     });
 
     socket.on(SocketEvent.PlayCard, ({ roomId }) => {
-      const { room } = playCard(roomId, playerId);
+      const { room, msg } = playCard(roomId, playerId);
+      if (msg) {
+        socket.emit(SocketEvent.ErrorMessage, msg);
+        return;
+      }
       if (room) {
         // 答對
         socket.emit(SocketEvent.PlayCardResponse, true);
@@ -135,6 +143,15 @@ app.prepare().then(() => {
       } else {
         // 答錯
         socket.emit(SocketEvent.PlayCardResponse, false);
+      }
+    });
+
+    socket.on(SocketEvent.BackCard, ({ roomId }) => {
+      const { room, msg } = backCard(roomId);
+      if (room) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, msg);
       }
     });
 

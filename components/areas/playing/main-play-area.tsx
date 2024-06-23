@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Symbols from '@/components/symbols';
 import { fadeVariants } from '@/lib/animation-variants';
-import { calculateNumbersScore } from '@/lib/utils';
+import { calculateAnswer, calculateNumbersScore } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 
@@ -208,9 +208,18 @@ const MainPlayArea = ({
     });
   };
 
+  const getCurrentAnswer = () => {
+    try {
+      const answer = calculateAnswer(selectedCards);
+      return answer;
+    } catch (error) {
+      return '?';
+    }
+  };
+
   return (
     <>
-      <div className="mt-12 flex min-h-[150px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
+      <div className="mt-12 flex min-h-[130px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
         <>
           {selectedCards.length ? (
             getCurrentSelect()
@@ -259,7 +268,9 @@ const MainPlayArea = ({
           </motion.div>
         )}
       </div>
-      <div className="text-4xl">= 24</div>
+      <div className="text-4xl">
+        = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
+      </div>
       <div className="absolute bottom-7 flex gap-4">
         <Symbols onClick={onSelectSymbol} />
       </div>
