@@ -38,6 +38,7 @@ const MultiplePlayingArea = ({
     currentPlayer,
     isYourTurn,
     onBack,
+    isLastRound,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(
@@ -208,6 +209,7 @@ const MultiplePlayingArea = ({
             drawCard();
           }}
           onBack={onBack}
+          isLastRound={isLastRound}
         />
       </div>
     </MainLayout>

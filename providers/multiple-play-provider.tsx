@@ -64,6 +64,7 @@ type MultiplePlayContextData = {
   currentPlayer?: Player;
   isYourTurn: boolean;
   onBack: () => void;
+  isLastRound: boolean;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -127,6 +128,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.emit(SocketEvent.SearchRooms);
 
     socket.on(SocketEvent.ErrorMessage, message => {
+      setPlayedCards(0);
       toast.error(message);
     });
 
@@ -411,6 +413,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       currentPlayer,
       isYourTurn,
       onBack,
+      isLastRound,
     };
   }, [
     checkAnswerCorrect,
@@ -437,6 +440,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     currentPlayer,
     isYourTurn,
     onBack,
+    isLastRound,
   ]);
 
   return (

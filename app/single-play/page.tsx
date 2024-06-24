@@ -40,6 +40,7 @@ export default function SinglePlayPage() {
     isGameOver,
     onFinishedAnimations,
     onBack,
+    isLastRound,
   } = useSinglePlay();
 
   const currentPlayer = roomInfo?.players[0];
@@ -68,16 +69,16 @@ export default function SinglePlayPage() {
   }, [handCard.length]);
 
   useEffect(() => {
-    if (roomInfo?.isGameOver && currentPlayer?.score) {
-      if (!bestScore || bestScore < currentPlayer?.score) {
-        localStorage.setItem('bestScore', String(currentPlayer?.score));
-        setBestScore(currentPlayer.score);
+    if (roomInfo?.isGameOver) {
+      const currentScore = roomInfo?.players[0].score;
+      if (!bestScore || bestScore < currentScore) {
+        localStorage.setItem('bestScore', String(currentScore));
       }
-      toast.success(`遊戲結束，總分為 ${currentPlayer?.score}`, {
+      toast.success(`遊戲結束，總分為 ${currentScore}`, {
         autoClose: 5000,
       });
     }
-  }, [bestScore, currentPlayer?.score, roomInfo?.isGameOver]);
+  }, [bestScore, roomInfo]);
 
   useEffect(() => {
     const score = localStorage.getItem('bestScore');
@@ -187,6 +188,8 @@ export default function SinglePlayPage() {
             drawCard();
           }}
           onBack={onBack}
+          selectedCards={roomInfo?.selectedCards || []}
+          isLastRound={isLastRound}
         />
       </div>
     </>

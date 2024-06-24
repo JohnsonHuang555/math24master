@@ -65,6 +65,7 @@ const useSinglePlay = () => {
     });
 
     socket.on(SocketEvent.ErrorMessage, message => {
+      setPlayedCards(0);
       toast.error(message);
     });
 
@@ -236,6 +237,7 @@ const useSinglePlay = () => {
     isGameOver,
     onFinishedAnimations,
     onBack,
+    isLastRound,
   };
 };
 

@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import { calculateAnswer } from '@/lib/utils';
+import { SelectedCard } from '@/models/SelectedCard';
 import { Button } from '../ui/button';
 
 type ActionAreaProps = {
@@ -9,6 +11,8 @@ type ActionAreaProps = {
   onEndPhase: () => void;
   onBack: () => void;
   isSinglePlay: boolean;
+  selectedCards?: SelectedCard[];
+  isLastRound: boolean;
 };
 
 const ActionArea = ({
@@ -19,9 +23,23 @@ const ActionArea = ({
   onBack,
   onEndPhase,
   isSinglePlay,
+  selectedCards = [],
+  isLastRound,
 }: ActionAreaProps) => {
+  const getCurrentAnswer = () => {
+    try {
+      const answer = calculateAnswer(selectedCards);
+      return answer;
+    } catch (error) {
+      return '?';
+    }
+  };
+
   return (
     <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5">
+      <div className="absolute -top-[72px] right-[20px] text-2xl lg:hidden">
+        = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
+      </div>
       <Button
         disabled={disabledActions}
         className="absolute -top-8 left-[20px] h-10 w-[calc(100%-40px)]"
@@ -51,7 +69,7 @@ const ActionArea = ({
           priority
           className="mr-2"
         />
-        {isSinglePlay ? '抽牌' : '結束回合'}
+        {isLastRound ? '結算分數' : isSinglePlay ? '抽牌' : '結束回合'}
       </Button>
       <Button
         disabled={disabledActions}

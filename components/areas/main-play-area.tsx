@@ -219,7 +219,7 @@ const MainPlayArea = ({
 
   return (
     <>
-      <div className="mt-12 flex min-h-[130px] min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg">
+      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg sm:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
         <>
           {selectedCards.length ? (
             getCurrentSelect()
@@ -268,10 +268,10 @@ const MainPlayArea = ({
           </motion.div>
         )}
       </div>
-      <div className="text-4xl">
+      <div className="text-4xl sm:hidden lg:block">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
-      <div className="absolute bottom-7 flex gap-4">
+      <div className="absolute flex gap-4 sm:-bottom-2 lg:bottom-2">
         <Symbols onClick={onSelectSymbol} />
       </div>
     </>
