@@ -154,7 +154,7 @@ export default function RoomPage() {
     );
   }
 
-  if (showGamePlayingScreen) {
+  if (roomInfo?.status === GameStatus.Playing && showGamePlayingScreen) {
     return (
       <MultiplePlayingArea
         showCloseGamePlayingBtn={showCloseGamePlayingBtn}
