@@ -59,7 +59,7 @@ export default function Home() {
         >
           運用你的智慧，成為 24 點大師
         </motion.h1>
-        <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-sm:w-4/5 md:w-2/5">
+        <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-md:w-4/5 md:w-2/5">
           {intro.map((el, i) => (
             <motion.span
               initial={{ opacity: 0 }}

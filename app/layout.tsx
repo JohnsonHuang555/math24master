@@ -12,11 +12,25 @@ const fontSans = FontSans({
 
 export const metadata: Metadata = {
   title: {
-    default: '24 點',
-    template: '24 點 | %s',
+    default: '24點大師',
+    template: '24點大師 | %s',
   },
   description:
-    '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維',
+    '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
+  openGraph: {
+    title: '24點大師',
+    description:
+      '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
+    images: [
+      {
+        url: '/logo.svg',
+        width: 400,
+        height: 300,
+      },
+    ],
+    locale: 'zh',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -28,12 +42,12 @@ export default function RootLayout({
     <html lang="zh">
       <body
         className={cn(
-          'relative h-screen font-sans antialiased',
+          'relative h-dvh font-sans antialiased',
           fontSans.variable,
         )}
       >
         <div
-          className="m:bg-center absolute h-full w-full bg-cover opacity-30 max-sm:bg-right"
+          className="m:bg-center absolute h-full w-full bg-cover opacity-30 max-md:bg-right"
           style={{
             backgroundImage: `url(/b2.jpg)`,
             zIndex: '-999',

@@ -26,6 +26,16 @@ const EnterRoomPasswordModal = ({
 }: EnterRoomPasswordModalProps) => {
   const [password, setPassword] = useState('');
 
+  const onKeyDown = (e: any) => {
+    if (!password) {
+      toast.warning('請輸入房間密碼');
+      return;
+    }
+    if (e.keyCode === 13) {
+      onSubmit(password);
+    }
+  };
+
   return (
     <Dialog
       open={isOpen}
@@ -49,6 +59,7 @@ const EnterRoomPasswordModal = ({
               placeholder="請輸入房間密碼"
               className="col-span-3"
               onChange={e => setPassword(e.target.value)}
+              onKeyDown={onKeyDown}
             />
           </div>
         </div>

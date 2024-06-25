@@ -38,7 +38,7 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
+                className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/plus.svg" alt="plus" priority fill />
                 {checkAnswerCorrect && (
@@ -55,7 +55,7 @@ const MainPlayArea = ({
                     onAnimationComplete={onFinishedAnimations}
                   >
                     <div
-                      className="font-semibold max-sm:text-sm"
+                      className="font-semibold max-md:text-sm"
                       style={{ color: 'rgb(5 150 105)' }}
                     >
                       +1
@@ -71,7 +71,7 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
+                className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/minus.svg" alt="minus" fill priority />
                 {checkAnswerCorrect && (
@@ -88,7 +88,7 @@ const MainPlayArea = ({
                     onAnimationComplete={onFinishedAnimations}
                   >
                     <div
-                      className="font-semibold max-sm:text-sm"
+                      className="font-semibold max-md:text-sm"
                       style={{ color: 'rgb(5 150 105)' }}
                     >
                       +1
@@ -104,7 +104,7 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
+                className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/times.svg" alt="times" priority fill />
                 {checkAnswerCorrect && (
@@ -121,7 +121,7 @@ const MainPlayArea = ({
                     onAnimationComplete={onFinishedAnimations}
                   >
                     <div
-                      className="font-semibold max-sm:text-sm"
+                      className="font-semibold max-md:text-sm"
                       style={{ color: 'rgb(5 150 105)' }}
                     >
                       +2
@@ -137,7 +137,7 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
+                className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/divide.svg" alt="divide" fill priority />
                 {checkAnswerCorrect && (
@@ -154,7 +154,7 @@ const MainPlayArea = ({
                     onAnimationComplete={onFinishedAnimations}
                   >
                     <div
-                      className="font-semibold max-sm:text-sm"
+                      className="font-semibold max-md:text-sm"
                       style={{ color: 'rgb(5 150 105)' }}
                     >
                       +2
@@ -168,7 +168,7 @@ const MainPlayArea = ({
             return (
               <motion.span
                 key={`${index}-${card}`}
-                className="text-4xl max-sm:text-xl md:text-3xl"
+                className="text-4xl max-md:text-xl md:text-3xl"
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
@@ -183,7 +183,7 @@ const MainPlayArea = ({
         return (
           <motion.span
             key={`${index}-${card}`}
-            className="text-4xl max-sm:text-xl md:text-3xl"
+            className="text-4xl max-md:text-xl md:text-3xl"
             style={{ marginTop: '2px' }}
             variants={fadeVariants}
             initial="hidden"
@@ -207,7 +207,7 @@ const MainPlayArea = ({
 
   return (
     <>
-      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-sm:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
+      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-md:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
         <>
           {selectedCards.length ? (
             getCurrentSelect()
@@ -256,10 +256,10 @@ const MainPlayArea = ({
           </motion.div>
         )}
       </div>
-      <div className="text-4xl max-sm:block max-sm:text-3xl md:hidden lg:block">
+      <div className="text-4xl max-md:block max-md:text-3xl md:hidden lg:block">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
-      <div className="absolute flex gap-4 max-sm:-bottom-3 md:-bottom-2 lg:bottom-2">
+      <div className="absolute flex gap-4 max-md:-bottom-3 md:-bottom-2 lg:bottom-2">
         <Symbols onClick={onSelectSymbol} />
       </div>
     </>

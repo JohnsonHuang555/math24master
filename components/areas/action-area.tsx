@@ -37,8 +37,8 @@ const ActionArea = ({
   };
 
   return (
-    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-sm:absolute max-sm:-top-[170px] max-sm:right-0 max-sm:w-2/3">
-      <div className="absolute -top-[72px] right-[20px] text-2xl max-sm:hidden lg:hidden">
+    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-md:absolute max-md:-top-[170px] max-md:right-0 max-md:w-2/3">
+      <div className="absolute -top-[72px] right-[20px] text-2xl max-md:hidden lg:hidden">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
       <Button
@@ -88,12 +88,7 @@ const ActionArea = ({
         />
         重選
       </Button>
-      <Button
-        disabled={disabledActions}
-        variant="outline"
-        className="h-full"
-        onClick={onSort}
-      >
+      <Button variant="outline" className="h-full" onClick={onSort}>
         <Image
           src="/sort.svg"
           alt="sort"

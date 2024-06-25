@@ -20,6 +20,7 @@ import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
 const socket = io();
+let playedCards = 0; // 已出過牌的數量
 
 /**
  * 1. 建立 Context
@@ -91,9 +92,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     null,
   );
 
-  // 出過牌的數量
-  const [playedCard, setPlayedCards] = useState(0);
-
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
     return roomInfo?.selectedCards.filter(
@@ -128,7 +126,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.emit(SocketEvent.SearchRooms);
 
     socket.on(SocketEvent.ErrorMessage, message => {
-      setPlayedCards(0);
       toast.error(message);
     });
 
@@ -171,12 +168,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   useEffect(() => {
     if (checkAnswerCorrect !== null) {
       if (checkAnswerCorrect) {
+        playedCards = roomInfo?.selectedCards.filter(c => c.number).length || 0;
         toast.success('答案正確');
       } else {
-        setPlayedCards(0);
         toast.error('答案不等於 24');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkAnswerCorrect]);
 
   useEffect(() => {
@@ -324,10 +322,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
 
     if (socket) {
-      const usedCardCount =
-        roomInfo?.selectedCards.filter(c => c.number).length || 0;
-      setPlayedCards(state => state + usedCardCount);
-
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
       });
@@ -352,14 +346,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 排序
   const onSort = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn) return;
+    if (roomInfo?.isGameOver) return;
 
     if (socket) {
       socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
     }
-  }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, roomInfo?.roomId]);
 
-  // 抽牌
+  // 結束回合並抽牌
   const drawCard = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
@@ -367,11 +361,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,
-        count: playedCard === 0 ? 1 : playedCard,
+        count: playedCards === 0 ? 1 : playedCards,
       });
-      setPlayedCards(0);
+      playedCards = 0;
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, playedCard]);
+  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn]);
 
   const onBack = useCallback(() => {
     if (roomInfo?.isGameOver) return;

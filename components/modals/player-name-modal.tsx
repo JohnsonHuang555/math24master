@@ -27,6 +27,12 @@ export function PlayerNameModal({
 }: PlayerNameModalProps) {
   const [playerName, setPlayerName] = useState('');
 
+  const onKeyDown = (e: any) => {
+    if (e.keyCode === 13) {
+      onConfirm(playerName);
+    }
+  };
+
   return (
     <Dialog
       open={isOpen}
@@ -50,6 +56,7 @@ export function PlayerNameModal({
             className="col-span-3"
             defaultValue={defaultValue}
             onChange={e => setPlayerName(e.target.value)}
+            onKeyDown={onKeyDown}
           />
         </div>
         <DialogFooter>

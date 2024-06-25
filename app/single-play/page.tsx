@@ -162,6 +162,7 @@ export default function SinglePlayPage() {
       </div>
       <div className="relative flex w-full basis-1/5">
         <PlayerInfoArea
+          isSinglePlay={true}
           bestScore={bestScore}
           isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}

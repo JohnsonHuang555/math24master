@@ -9,14 +9,13 @@ import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
 const socket = io();
+let playedCards = 0; // 已出過牌的數量
 
 const useSinglePlay = () => {
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
-  // 出過牌的數量
-  const [playedCard, setPlayedCards] = useState(0);
 
   // 動畫完成時
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
@@ -65,7 +64,6 @@ const useSinglePlay = () => {
     });
 
     socket.on(SocketEvent.ErrorMessage, message => {
-      setPlayedCards(0);
       toast.error(message);
     });
 
@@ -92,12 +90,13 @@ const useSinglePlay = () => {
   useEffect(() => {
     if (checkAnswerCorrect !== null) {
       if (checkAnswerCorrect) {
+        playedCards = roomInfo?.selectedCards.filter(c => c.number).length || 0;
         toast.success('答案正確');
       } else {
-        setPlayedCards(0);
         toast.error('答案不等於 24');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkAnswerCorrect]);
 
   useEffect(() => {
@@ -152,9 +151,9 @@ const useSinglePlay = () => {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,
-        count: playedCard === 0 ? 1 : playedCard,
+        count: playedCards === 0 ? 1 : playedCards,
       });
-      setPlayedCards(0);
+      playedCards = 0;
     }
   };
 
@@ -180,10 +179,6 @@ const useSinglePlay = () => {
     }
 
     if (socket) {
-      const usedCardCount =
-        roomInfo?.selectedCards.filter(c => c.number).length || 0;
-      setPlayedCards(state => state + usedCardCount);
-
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
       });

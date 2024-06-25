@@ -87,7 +87,7 @@ const MultiplePlayingArea = ({
           >
             <>
               <div className="mb-2 flex items-center">
-                <div className="mr-4 text-3xl font-semibold max-sm:text-xl md:text-2xl">
+                <div className="mr-4 text-3xl font-semibold max-md:text-xl md:text-2xl">
                   {player.name}
                 </div>
                 {player.playerOrder === roomInfo?.currentOrder && (
@@ -108,7 +108,7 @@ const MultiplePlayingArea = ({
               <div className="flex gap-5">
                 <HoverTip content="持牌數" notPointer>
                   <div className="flex items-center">
-                    <div className="relative sm:h-6 sm:w-6 lg:h-7 lg:w-7">
+                    <div className="relative max-lg:h-6 max-lg:w-6 lg:h-7 lg:w-7">
                       <Image
                         src="/player-card.svg"
                         alt="player-card"
@@ -116,12 +116,12 @@ const MultiplePlayingArea = ({
                         priority
                       />
                     </div>
-                    <div className="ml-2 text-xl max-sm:text-lg md:text-lg">
+                    <div className="ml-2 text-xl max-md:text-lg md:text-lg">
                       {player.handCard.length}
                     </div>
                   </div>
                 </HoverTip>
-                <div className="text-xl max-sm:text-lg md:text-lg">
+                <div className="text-xl max-md:text-lg md:text-lg">
                   得分: {player.score}
                 </div>
               </div>
