@@ -201,7 +201,7 @@ export default function RoomPage() {
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="flex h-2/3 w-2/3 gap-4 bg-transparent">
+        <div className="flex h-2/3 w-2/3 gap-4 bg-transparent max-sm:h-full max-sm:w-full max-sm:flex-col max-sm:p-4 md:h-5/6 md:w-5/6">
           <PlayersArea
             players={roomInfo?.players}
             currentPlayer={currentPlayer}

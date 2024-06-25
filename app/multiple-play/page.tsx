@@ -116,7 +116,7 @@ export default function MultiplePlayPage() {
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="h-2/3 w-2/3">
+        <div className="h-2/3 w-2/3 max-sm:h-full max-sm:w-full max-sm:p-4 md:h-5/6 md:w-5/6">
           <div className="mb-4 flex justify-between">
             <h1 className="text-xl font-semibold">房間列表</h1>
             <div className="flex items-center">
@@ -134,12 +134,12 @@ export default function MultiplePlayPage() {
               </HoverTip>
             </div>
           </div>
-          <div className="mb-8 flex justify-between">
-            <div className="flex gap-4">
-              <div className="relative">
+          <div className="mb-8 flex justify-between max-sm:mb-3">
+            <div className="flex gap-4 max-sm:w-full max-sm:gap-2">
+              <div className="relative w-[150px] max-sm:w-1/2">
                 <Input
                   placeholder="房間名稱"
-                  className="min-w-[150px] pl-8"
+                  className="pl-8"
                   onChange={e => setSearchedRoomName(e.target.value)}
                 />
                 <Image
@@ -155,7 +155,7 @@ export default function MultiplePlayPage() {
                 value={searchedShowEmpty}
                 onValueChange={setSearchedShowEmpty}
               >
-                <SelectTrigger className="min-w-[120px]">
+                <SelectTrigger className="w-[120px] max-sm:w-1/2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,7 +166,7 @@ export default function MultiplePlayPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 max-sm:hidden">
               <Button variant="secondary" onClick={() => router.push('/')}>
                 回首頁
               </Button>
@@ -188,6 +188,31 @@ export default function MultiplePlayPage() {
                 建立房間
               </Button>
             </div>
+          </div>
+          {/* mobile only */}
+          <div className="max-sm:flex max-sm:justify-between md:hidden">
+            <div className="flex gap-4 ">
+              <Button variant="secondary" onClick={() => router.push('/')}>
+                回首頁
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsOpenRuleModal(true)}
+              >
+                遊戲規則
+              </Button>
+            </div>
+            <Button onClick={() => setIsOpenCreateRoomModal(true)}>
+              <Image
+                src="/add-room.svg"
+                alt="add-room"
+                className="mr-1"
+                width={20}
+                height={20}
+                priority
+              />
+              建立房間
+            </Button>
           </div>
           {rooms.length > 0 ? (
             <div className="-ml-2 -mt-2 h-[calc(100%-60px)] overflow-y-auto pl-2 pt-2">

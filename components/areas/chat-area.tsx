@@ -37,7 +37,7 @@ const ChatArea = ({ messages, onSend }: ChatAreaProps) => {
   };
 
   return (
-    <Card className="flex min-h-[220px] flex-col p-4">
+    <Card className="flex min-h-[220px] flex-col p-4 md:min-h-[150px]">
       <div className="mb-2 h-[172px] overflow-y-auto" ref={messageRef}>
         {messages.map((msgObj, index) => (
           <div key={index} className="text-sm">

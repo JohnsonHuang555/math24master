@@ -38,15 +38,9 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative"
+                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
               >
-                <Image
-                  src="/plus.svg"
-                  alt="plus"
-                  width={52}
-                  height={52}
-                  priority
-                />
+                <Image src="/plus.svg" alt="plus" priority fill />
                 {checkAnswerCorrect && (
                   <motion.div
                     initial={{ opacity: 0, top: 1, scale: 0.1 }}
@@ -60,7 +54,10 @@ const MainPlayArea = ({
                     className="absolute"
                     onAnimationComplete={onFinishedAnimations}
                   >
-                    <div style={{ color: 'rgb(5 150 105)', fontWeight: '600' }}>
+                    <div
+                      className="font-semibold max-sm:text-sm"
+                      style={{ color: 'rgb(5 150 105)' }}
+                    >
                       +1
                     </div>
                   </motion.div>
@@ -74,15 +71,9 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative"
+                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
               >
-                <Image
-                  src="/minus.svg"
-                  alt="minus"
-                  width={52}
-                  height={52}
-                  priority
-                />
+                <Image src="/minus.svg" alt="minus" fill priority />
                 {checkAnswerCorrect && (
                   <motion.div
                     initial={{ opacity: 0, top: 0, scale: 0.1 }}
@@ -96,7 +87,10 @@ const MainPlayArea = ({
                     className="absolute"
                     onAnimationComplete={onFinishedAnimations}
                   >
-                    <div style={{ color: 'rgb(5 150 105)', fontWeight: '600' }}>
+                    <div
+                      className="font-semibold max-sm:text-sm"
+                      style={{ color: 'rgb(5 150 105)' }}
+                    >
                       +1
                     </div>
                   </motion.div>
@@ -110,15 +104,9 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative"
+                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
               >
-                <Image
-                  src="/times.svg"
-                  alt="times"
-                  width={52}
-                  height={52}
-                  priority
-                />
+                <Image src="/times.svg" alt="times" priority fill />
                 {checkAnswerCorrect && (
                   <motion.div
                     initial={{ opacity: 0, top: 0, scale: 0.1 }}
@@ -132,7 +120,10 @@ const MainPlayArea = ({
                     className="absolute"
                     onAnimationComplete={onFinishedAnimations}
                   >
-                    <div style={{ color: 'rgb(5 150 105)', fontWeight: '600' }}>
+                    <div
+                      className="font-semibold max-sm:text-sm"
+                      style={{ color: 'rgb(5 150 105)' }}
+                    >
                       +2
                     </div>
                   </motion.div>
@@ -146,15 +137,9 @@ const MainPlayArea = ({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                className="relative"
+                className="relative max-sm:h-8 max-sm:w-8 md:h-10 md:w-10"
               >
-                <Image
-                  src="/divide.svg"
-                  alt="divide"
-                  width={52}
-                  height={52}
-                  priority
-                />
+                <Image src="/divide.svg" alt="divide" fill priority />
                 {checkAnswerCorrect && (
                   <motion.div
                     initial={{ opacity: 0, top: 0, scale: 0.1 }}
@@ -168,7 +153,10 @@ const MainPlayArea = ({
                     className="absolute"
                     onAnimationComplete={onFinishedAnimations}
                   >
-                    <div style={{ color: 'rgb(5 150 105)', fontWeight: '600' }}>
+                    <div
+                      className="font-semibold max-sm:text-sm"
+                      style={{ color: 'rgb(5 150 105)' }}
+                    >
                       +2
                     </div>
                   </motion.div>
@@ -180,7 +168,7 @@ const MainPlayArea = ({
             return (
               <motion.span
                 key={`${index}-${card}`}
-                className="text-4xl"
+                className="text-4xl max-sm:text-xl md:text-3xl"
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
@@ -195,7 +183,7 @@ const MainPlayArea = ({
         return (
           <motion.span
             key={`${index}-${card}`}
-            className="text-4xl"
+            className="text-4xl max-sm:text-xl md:text-3xl"
             style={{ marginTop: '2px' }}
             variants={fadeVariants}
             initial="hidden"
@@ -219,7 +207,7 @@ const MainPlayArea = ({
 
   return (
     <>
-      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg sm:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
+      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-sm:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
         <>
           {selectedCards.length ? (
             getCurrentSelect()
@@ -268,10 +256,10 @@ const MainPlayArea = ({
           </motion.div>
         )}
       </div>
-      <div className="text-4xl sm:hidden lg:block">
+      <div className="text-4xl max-sm:block max-sm:text-3xl md:hidden lg:block">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
-      <div className="absolute flex gap-4 sm:-bottom-2 lg:bottom-2">
+      <div className="absolute flex gap-4 max-sm:-bottom-3 md:-bottom-2 lg:bottom-2">
         <Symbols onClick={onSelectSymbol} />
       </div>
     </>

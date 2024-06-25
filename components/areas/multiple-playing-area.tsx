@@ -85,9 +85,11 @@ const MultiplePlayingArea = ({
             key={player.id}
             className="flex flex-1 flex-col items-center justify-center"
           >
-            <div className="mb-2">
+            <>
               <div className="mb-2 flex items-center">
-                <div className="mr-4 text-3xl font-semibold">{player.name}</div>
+                <div className="mr-4 text-3xl font-semibold max-sm:text-xl md:text-2xl">
+                  {player.name}
+                </div>
                 {player.playerOrder === roomInfo?.currentOrder && (
                   <HoverTip content="該玩家的回合" notPointer>
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-sm text-white">
@@ -106,19 +108,24 @@ const MultiplePlayingArea = ({
               <div className="flex gap-5">
                 <HoverTip content="持牌數" notPointer>
                   <div className="flex items-center">
-                    <Image
-                      src="/player-card.svg"
-                      alt="player-card"
-                      width={30}
-                      height={30}
-                      priority
-                    />
-                    <div className="ml-2 text-xl">{player.handCard.length}</div>
+                    <div className="relative sm:h-6 sm:w-6 lg:h-7 lg:w-7">
+                      <Image
+                        src="/player-card.svg"
+                        alt="player-card"
+                        fill
+                        priority
+                      />
+                    </div>
+                    <div className="ml-2 text-xl max-sm:text-lg md:text-lg">
+                      {player.handCard.length}
+                    </div>
                   </div>
                 </HoverTip>
-                <div className="mt-1 text-xl">得分: {player.score}</div>
+                <div className="text-xl max-sm:text-lg md:text-lg">
+                  得分: {player.score}
+                </div>
               </div>
-            </div>
+            </>
           </div>
         ))}
         <div className="absolute right-5 top-5 flex gap-5">

@@ -25,7 +25,7 @@ const PlayerInfoArea = ({
   }, [count, score]);
 
   return (
-    <div className="flex basis-[23%] flex-col justify-center p-5">
+    <div className="flex basis-[23%] flex-col justify-center p-5 max-sm:absolute max-sm:-top-[180px]">
       <div className="grow">
         <span className="mr-4">牌庫剩餘: {remainCards || 0} 張</span>
         {isLastRoundPlayer && (

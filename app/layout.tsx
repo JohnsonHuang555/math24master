@@ -33,11 +33,9 @@ export default function RootLayout({
         )}
       >
         <div
-          className="absolute h-full w-full opacity-30"
+          className="m:bg-center absolute h-full w-full bg-cover opacity-30 max-sm:bg-right"
           style={{
             backgroundImage: `url(/b2.jpg)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
             zIndex: '-999',
           }}
         />

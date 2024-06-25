@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MainLayout from '@/components/layouts/main-layout';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
@@ -19,7 +18,6 @@ export default function Home() {
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
-  const router = useRouter();
   const intro =
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維'.split(
       '',
@@ -38,7 +36,7 @@ export default function Home() {
         onConfirm={v => {
           if (!v) return;
           localStorage.setItem('playerName', v);
-          router.push('/multiple-play');
+          window.location.href = '/multiple-play';
         }}
       />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
@@ -61,7 +59,7 @@ export default function Home() {
         >
           運用你的智慧，成為 24 點大師
         </motion.h1>
-        <p className="mb-8 flex w-2/5 flex-wrap items-center justify-center text-lg">
+        <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-sm:w-4/5 md:w-2/5">
           {intro.map((el, i) => (
             <motion.span
               initial={{ opacity: 0 }}
@@ -113,7 +111,7 @@ export default function Home() {
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
               <Card
-                onClick={() => router.push('/single-play')}
+                onClick={() => (window.location.href = '/single-play')}
                 className="flex cursor-pointer items-center justify-center border-2 p-6"
               >
                 <Image
@@ -145,7 +143,7 @@ export default function Home() {
                   if (!hasPlayerName) {
                     setIsOpenNameModal(true);
                   } else {
-                    router.push('/multiple-play');
+                    window.location.href = '/multiple-play';
                   }
                 }}
                 className="flex cursor-pointer items-center justify-center border-2 p-6"
@@ -167,7 +165,7 @@ export default function Home() {
         </div>
         <div className="fixed bottom-4 items-center">
           <div className="mb-1 text-center text-xs text-gray-500">
-            此網站在電腦與平板支援度最佳，維護時間: 每週一 23:00-23:59 (GMT+8)
+            此網站在電腦與平板支援度最佳，維護時間: 每週一 23:00-23:59
           </div>
           <div className="flex justify-center">
             <div className="mr-2 flex gap-1 text-xs text-gray-500">
@@ -181,7 +179,7 @@ export default function Home() {
               />
               <span>{date.getFullYear()}.</span>
             </div>
-            <div className="mr-2 text-xs text-gray-500">beta.0.0.3</div>
+            <div className="mr-2 text-xs text-gray-500">beta.0.0.6</div>
             <Link
               href="https://github.com/JohnsonHuang555/24_points"
               target="_blank"

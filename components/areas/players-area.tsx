@@ -54,13 +54,10 @@ const PlayersArea = ({
     <Card className="flex h-full flex-1 flex-col gap-3 p-4">
       {/* Players */}
       {players.map(player => (
-        <Fragment key={player.id}>
+        <div key={player.id}>
           <div className="flex justify-between">
             <div className="flex">
-              <div className="mr-4 flex flex-col">
-                <div className="text-lg">{player.name}</div>
-                <div className="text-xs">分數: {player.score}</div>
-              </div>
+              <div className="mr-4 text-xl">{player.name}</div>
               {!player.isMaster && currentPlayer?.isMaster && (
                 <HoverTip content="踢除玩家">
                   <Image
@@ -88,8 +85,8 @@ const PlayersArea = ({
               getMember(player.isReady)
             )}
           </div>
-          <hr />
-        </Fragment>
+          <hr className="mt-2" />
+        </div>
       ))}
       {currentPlayer?.isMaster ? (
         <Button

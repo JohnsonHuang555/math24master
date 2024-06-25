@@ -26,6 +26,7 @@ const ActionArea = ({
   selectedCards = [],
   isLastRound,
 }: ActionAreaProps) => {
+  // mobile only
   const getCurrentAnswer = () => {
     try {
       const answer = calculateAnswer(selectedCards);
@@ -36,8 +37,8 @@ const ActionArea = ({
   };
 
   return (
-    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5">
-      <div className="absolute -top-[72px] right-[20px] text-2xl lg:hidden">
+    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-sm:absolute max-sm:-top-[170px] max-sm:right-0 max-sm:w-2/3">
+      <div className="absolute -top-[72px] right-[20px] text-2xl max-sm:hidden lg:hidden">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
       <Button
