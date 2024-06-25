@@ -14,7 +14,7 @@ import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
-import { Room } from '@/models/Room';
+import { Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -42,7 +42,9 @@ type MultiplePlayContextData = {
   onStartGame: () => void;
   messages: Message[];
   editRoom: (roomName: string, password?: string) => void;
-  editMaxPlayers: (maxPlayers: number) => void;
+  editRoomSettings: (
+    settings: Partial<RoomSettings> & { maxPlayers?: number },
+  ) => void;
   removePlayer: (playerId: string) => void;
   checkAnswerCorrect: boolean | null;
   isAnimationFinished: boolean;
@@ -168,7 +170,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   useEffect(() => {
     if (checkAnswerCorrect !== null) {
       if (checkAnswerCorrect) {
-        playedCards = roomInfo?.selectedCards.filter(c => c.number).length || 0;
+        if (isYourTurn) {
+          playedCards =
+            roomInfo?.selectedCards.filter(c => c.number).length || 0;
+        }
         toast.success('答案正確');
       } else {
         toast.error('答案不等於 24');
@@ -239,12 +244,16 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     [roomInfo?.roomId],
   );
 
-  const editMaxPlayers = useCallback(
-    (maxPlayers: number) => {
+  const editRoomSettings = useCallback(
+    ({
+      maxPlayers,
+      deckType,
+    }: Partial<RoomSettings> & { maxPlayers?: number }) => {
       if (socket) {
-        socket.emit(SocketEvent.EditMaxPlayers, {
+        socket.emit(SocketEvent.EditRoomSettings, {
           roomId: roomInfo?.roomId,
           maxPlayers,
+          deckType,
         });
       }
     },
@@ -388,7 +397,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onStartGame,
       messages,
       editRoom,
-      editMaxPlayers,
+      editRoomSettings,
       removePlayer,
       checkAnswerCorrect,
       isAnimationFinished:
@@ -413,7 +422,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     checkAnswerCorrect,
     discardCard,
     drawCard,
-    editMaxPlayers,
+    editRoomSettings,
     editRoom,
     finishedAnimations,
     joinRoom,

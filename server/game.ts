@@ -4,12 +4,18 @@ import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
 import {
+  DeckType,
   HAND_CARD_COUNT,
   MAX_CARD_COUNT, // MAX_FORMULAS_NUMBER_COUNT,
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
-import { createDeck, draw, shuffleArray } from './utils';
+import {
+  createDeckByRandomMode,
+  createDeckByStandardMode,
+  draw,
+  shuffleArray,
+} from './utils';
 
 type Response = {
   msg?: string;
@@ -172,7 +178,7 @@ export function joinRoom(
         if (existRoomName) return { msg: '房間名稱已存在' };
       }
       // 創建新房間
-      const newRoom = {
+      const newRoom: Room = {
         roomId: payload.roomId,
         maxPlayers: payload.maxPlayers,
         deck: [],
@@ -182,6 +188,9 @@ export function joinRoom(
         roomName: payload.roomName,
         password: payload.password,
         status: GameStatus.Idle,
+        settings: {
+          deckType: DeckType.Standard,
+        },
         players: [
           {
             id: playerId,
@@ -259,18 +268,18 @@ export function startGame(roomId: string): Response {
   try {
     let tempDeck: number[] = [];
 
-    switch (room.maxPlayers) {
+    switch (room.players.length) {
       case 1:
-        tempDeck = createDeck(2);
+        tempDeck = createDeckByRandomMode(40, 10);
         break;
       case 2:
-        tempDeck = createDeck(4);
+        tempDeck = createDeckByRandomMode(40, 10);
         break;
       case 3:
-        tempDeck = createDeck(6);
+        tempDeck = createDeckByStandardMode(6);
         break;
       case 4:
-        tempDeck = createDeck(8);
+        tempDeck = createDeckByStandardMode(8);
         break;
       default:
         return {
@@ -654,11 +663,21 @@ export function editRoom(
   };
 }
 
-export function editMaxPlayers(roomId: string, maxPlayers: number): Response {
+export function editRoomSettings(
+  roomId: string,
+  maxPlayers: number,
+  deckType: DeckType,
+): Response {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return { msg: '房間不存在' };
 
-  _rooms[roomIndex].maxPlayers = maxPlayers;
+  if (maxPlayers) {
+    _rooms[roomIndex].maxPlayers = maxPlayers;
+  }
+
+  if (deckType) {
+    _rooms[roomIndex].settings.deckType = deckType;
+  }
 
   return {
     room: _rooms[roomIndex],

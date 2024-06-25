@@ -11,7 +11,7 @@ export enum SocketEvent {
   RemovePlayer = 'remove-player',
   // only multiple mode
   EditRoomName = 'edit-room-name',
-  EditMaxPlayers = 'edit-max-players',
+  EditRoomSettings = 'edit-room-settings',
   CheckRoomPassword = 'check-room-password',
 
   // game event

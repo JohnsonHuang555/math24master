@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DeckType, RoomSettings } from '@/models/Room';
 import { RuleModal } from '../modals/rule-modal';
 import { Label } from '../ui/label';
 
@@ -18,9 +19,12 @@ type RoomInfoAreaProps = {
   roomName?: string;
   password?: string;
   maxPlayers?: number;
+  roomSettings?: RoomSettings;
   onLeaveRoom: () => void;
-  onMaxPlayersChange: (max: number) => void;
   onEditRoomName: () => void;
+  onRoomSettingsChange: (
+    settings: Partial<RoomSettings> & { maxPlayers?: number },
+  ) => void;
 };
 
 const RoomInfoArea = ({
@@ -28,9 +32,10 @@ const RoomInfoArea = ({
   roomName,
   password,
   maxPlayers,
+  roomSettings,
   onLeaveRoom,
-  onMaxPlayersChange,
   onEditRoomName,
+  onRoomSettingsChange,
 }: RoomInfoAreaProps) => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
@@ -86,7 +91,7 @@ const RoomInfoArea = ({
           <Select
             disabled={!isMaster}
             value={String(maxPlayers)}
-            onValueChange={v => onMaxPlayersChange(Number(v))}
+            onValueChange={v => onRoomSettingsChange({ maxPlayers: Number(v) })}
           >
             <SelectTrigger className="mt-1 h-8">
               <SelectValue id="max-players" />
@@ -96,6 +101,28 @@ const RoomInfoArea = ({
                 <SelectItem value="2">2</SelectItem>
                 <SelectItem value="3">3</SelectItem>
                 <SelectItem value="4">4</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs" htmlFor="remain-seconds">
+            牌庫類型
+          </Label>
+          <Select
+            disabled={!isMaster}
+            value={roomSettings?.deckType}
+            onValueChange={v =>
+              onRoomSettingsChange({ deckType: v as DeckType })
+            }
+          >
+            <SelectTrigger className="mt-1 h-8">
+              <SelectValue id="remain-seconds" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value={DeckType.Standard}>標準</SelectItem>
+                <SelectItem value={DeckType.Random}>全部隨機</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

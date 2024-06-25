@@ -9,6 +9,15 @@ export const MAX_CARD_COUNT = 5;
 // 算式中最多數字牌數
 export const MAX_FORMULAS_NUMBER_COUNT = 5;
 
+export enum DeckType {
+  Standard = 'standard',
+  Random = 'random',
+}
+
+export type RoomSettings = {
+  deckType: DeckType;
+};
+
 export type Room = {
   roomId: string;
   roomName?: string;
@@ -20,4 +29,5 @@ export type Room = {
   isGameOver: boolean; // 是否遊戲結束
   selectedCards: SelectedCard[];
   status: GameStatus;
+  settings: RoomSettings;
 };

@@ -34,7 +34,7 @@ const PlayerInfoArea = ({
         </span>
         {isLastRoundPlayer && (
           <HoverTip content="最後輪到的玩家">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white max-sm:h-4 max-sm:w-4 max-sm:text-sm">
               L
             </span>
           </HoverTip>

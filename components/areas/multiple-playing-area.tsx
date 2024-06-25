@@ -52,11 +52,13 @@ const MultiplePlayingArea = ({
 
   const handCard = currentPlayer?.handCard || [];
 
-  const disabledActions =
-    needDiscard ||
-    checkAnswerCorrect === true ||
-    !!roomInfo?.isGameOver ||
-    !isYourTurn;
+  // const disabledActions =
+  //   needDiscard ||
+  //   checkAnswerCorrect === true ||
+  //   !!roomInfo?.isGameOver ||
+  //   !isYourTurn;
+
+  const disabledActions = needDiscard || !!roomInfo?.isGameOver;
 
   useEffect(() => {
     // 如果手牌超過8張須棄牌

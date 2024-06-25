@@ -8,8 +8,8 @@ import {
   checkCanJoinRoom,
   discardCard,
   drawCard,
-  editMaxPlayers,
   editRoom,
+  editRoomSettings,
   getCurrentRoom,
   getCurrentRooms,
   getPlayerName,
@@ -200,14 +200,17 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on(SocketEvent.EditMaxPlayers, ({ roomId, maxPlayers }) => {
-      const { room, msg } = editMaxPlayers(roomId, maxPlayers);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
-      } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
-      }
-    });
+    socket.on(
+      SocketEvent.EditRoomSettings,
+      ({ roomId, maxPlayers, deckType }) => {
+        const { room, msg } = editRoomSettings(roomId, maxPlayers, deckType);
+        if (room) {
+          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+        } else {
+          socket.emit(SocketEvent.ErrorMessage, msg);
+        }
+      },
+    );
 
     socket.on(SocketEvent.RemovePlayer, ({ roomId, playerId }) => {
       const { room, msg } = removePlayer(roomId, playerId);

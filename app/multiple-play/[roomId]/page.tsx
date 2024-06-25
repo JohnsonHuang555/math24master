@@ -53,7 +53,7 @@ export default function RoomPage() {
     onStartGame,
     messages,
     editRoom,
-    editMaxPlayers,
+    editRoomSettings,
     removePlayer,
     currentPlayer,
   } = useMultiplePlay();
@@ -218,10 +218,11 @@ export default function RoomPage() {
               roomName={roomInfo?.roomName}
               password={roomInfo?.password}
               maxPlayers={roomInfo?.maxPlayers}
+              roomSettings={roomInfo?.settings}
               onLeaveRoom={() => {
                 window.location.href = '/multiple-play';
               }}
-              onMaxPlayersChange={editMaxPlayers}
+              onRoomSettingsChange={editRoomSettings}
               onEditRoomName={() => setIsOpenEditRoomModal(true)}
             />
             <ChatArea messages={messages} onSend={sendMessage} />
