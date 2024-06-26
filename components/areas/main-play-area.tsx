@@ -183,8 +183,7 @@ const MainPlayArea = ({
         return (
           <motion.span
             key={`${index}-${card}`}
-            className="text-4xl max-md:text-xl md:text-3xl"
-            style={{ marginTop: '2px' }}
+            className="mb-[2px] text-4xl max-md:text-2xl md:text-3xl"
             variants={fadeVariants}
             initial="hidden"
             animate="show"
@@ -207,7 +206,7 @@ const MainPlayArea = ({
 
   return (
     <>
-      <div className="flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-md:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
+      <div className="relative flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-md:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
         <>
           {selectedCards.length ? (
             getCurrentSelect()
@@ -220,9 +219,10 @@ const MainPlayArea = ({
             variants={fadeVariants}
             initial="hide"
             animate="show"
-            className="absolute -top-3 flex h-16 flex-col justify-center"
+            className="absolute -top-[75px] flex h-16 flex-col justify-center max-md:-bottom-[125px] max-md:top-auto"
             onAnimationComplete={() => {
               setTimeout(() => {
+                console.log('update score');
                 onUpdateScore();
               }, 1500);
             }}

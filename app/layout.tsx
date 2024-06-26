@@ -1,13 +1,15 @@
 import { ToastContainer } from 'react-toastify';
-import { Inter as FontSans } from 'next/font/google';
+import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
 
-const fontSans = FontSans({
+const fontNotoSans = Noto_Sans_TC({
   subsets: ['latin'],
-  variable: '--font-sans',
+  display: 'swap',
+  variable: '--font-noto-sans',
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -17,20 +19,21 @@ export const metadata: Metadata = {
   },
   description:
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
-  openGraph: {
-    title: '24點大師',
-    description:
-      '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
-    images: [
-      {
-        url: '/logo.svg',
-        width: 400,
-        height: 300,
-      },
-    ],
-    locale: 'zh',
-    type: 'website',
-  },
+  keywords: ['24點', 'math24', '24點大師'],
+  // openGraph: {
+  //   title: '24點大師',
+  //   description:
+  //     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
+  //   images: [
+  //     {
+  //       url: '/logo.svg',
+  //       width: 400,
+  //       height: 300,
+  //     },
+  //   ],
+  //   locale: 'zh',
+  //   type: 'website',
+  // },
 };
 
 export default function RootLayout({
@@ -42,8 +45,8 @@ export default function RootLayout({
     <html lang="zh">
       <body
         className={cn(
-          'relative h-dvh font-sans antialiased',
-          fontSans.variable,
+          'relative h-dvh font-noto antialiased',
+          fontNotoSans.variable,
         )}
       >
         <div

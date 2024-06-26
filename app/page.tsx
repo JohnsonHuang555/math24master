@@ -179,7 +179,7 @@ export default function Home() {
               />
               <span>{date.getFullYear()}.</span>
             </div>
-            <div className="mr-2 text-xs text-gray-500">beta.0.0.6</div>
+            <div className="mr-2 text-xs text-gray-500">beta.0.0.7</div>
             <Link
               href="https://github.com/JohnsonHuang555/24_points"
               target="_blank"

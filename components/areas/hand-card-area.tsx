@@ -47,8 +47,8 @@ const HandCardArea = ({
   return (
     <>
       {needDiscard && (
-        <div className="absolute left-1/2 -translate-x-2/4 text-sm text-red-600 max-sm:bottom-5 sm:bottom-2 md:bottom-1 lg:-top-1">
-          請點選 1 張牌棄掉
+        <div className="absolute left-1/2 -translate-x-2/4 text-sm text-red-600 max-sm:bottom-1 sm:bottom-2 md:bottom-1 lg:-top-1">
+          請點選 1 張牌丟棄
         </div>
       )}
       <div

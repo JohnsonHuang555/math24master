@@ -37,7 +37,7 @@ const ActionArea = ({
   };
 
   return (
-    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-md:absolute max-md:-top-[170px] max-md:right-0 max-md:w-2/3">
+    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-md:absolute max-md:-top-[170px] max-md:right-0 max-md:w-[55%]">
       <div className="absolute -top-[72px] right-[20px] text-2xl max-md:hidden lg:hidden">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
@@ -86,7 +86,7 @@ const ActionArea = ({
           priority
           className="mr-1"
         />
-        重選
+        清除
       </Button>
       <Button variant="outline" className="h-full" onClick={onSort}>
         <Image

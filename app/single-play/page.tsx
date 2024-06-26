@@ -27,9 +27,9 @@ export default function SinglePlayPage() {
   const {
     roomInfo,
     onSort,
-    playCard,
-    drawCard,
-    discardCard,
+    onPlayCard,
+    onDrawCard,
+    onDiscardCard,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,
@@ -148,7 +148,7 @@ export default function SinglePlayPage() {
           </HoverTip>
         </div>
       </div>
-      <div className="relative flex flex-1 flex-col items-center gap-8">
+      <div className="relative flex flex-1 flex-col items-center gap-8 max-sm:gap-2">
         <MainPlayArea
           checkAnswerCorrect={checkAnswerCorrect}
           selectedCards={roomInfo?.selectedCards}
@@ -175,18 +175,18 @@ export default function SinglePlayPage() {
           onSelect={number => onSelectCardOrSymbol({ number })}
           onDiscard={id => {
             setNeedDiscard(false);
-            discardCard(id);
+            onDiscardCard(id);
           }}
         />
         <ActionArea
           isSinglePlay={true}
           disabledActions={disabledActions}
-          onSubmit={playCard}
+          onSubmit={onPlayCard}
           onReselect={onReselect}
           onSort={onSort}
           onEndPhase={() => {
             onReselect();
-            drawCard();
+            onDrawCard();
           }}
           onBack={onBack}
           selectedCards={roomInfo?.selectedCards || []}

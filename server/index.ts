@@ -99,7 +99,10 @@ app.prepare().then(() => {
       if (room) {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
         if (winner) {
-          io.sockets.to(roomId).emit(SocketEvent.GameOver, winner);
+          io.sockets.to(roomId).emit(SocketEvent.GameOver, {
+            name: winner.name,
+            score: winner.score,
+          });
         }
       } else {
         socket.emit(SocketEvent.ErrorMessage, msg);

@@ -61,7 +61,8 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 ex. 出 2 張補 2 張
               </li> */}
               <li className="mb-1">
-                結束回合時，從牌庫抽 1 張牌並棄掉 1 張，維持 5 張手牌。
+                結束回合時，從牌庫抽 1 張牌並丟棄 1 張，維持{' '}
+                <span className="font-semibold text-red-600">5</span> 張手牌。
               </li>
               <li className="mb-1">
                 當牌庫抽完為最後一輪，最後一位玩家回合結束時即遊戲結束。

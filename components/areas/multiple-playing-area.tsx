@@ -30,11 +30,11 @@ const MultiplePlayingArea = ({
     selectedCardSymbols,
     selectedCardNumbers,
     onSelectCardOrSymbol,
-    discardCard,
-    playCard,
+    onDiscardCard,
+    onPlayCard,
     onReselect,
     onSort,
-    drawCard,
+    onDrawCard,
     currentPlayer,
     isYourTurn,
     onBack,
@@ -64,7 +64,7 @@ const MultiplePlayingArea = ({
     // 如果手牌超過8張須棄牌
     if (handCard.length > MAX_CARD_COUNT) {
       setTimeout(() => {
-        toast.error('請點選 1 張牌棄掉');
+        toast.error('請點選 1 張牌丟棄');
         setNeedDiscard(true);
       }, 500);
     }
@@ -89,25 +89,25 @@ const MultiplePlayingArea = ({
           >
             <>
               <div className="mb-2 flex items-center">
-                <div className="mr-4 text-3xl font-semibold max-md:text-xl md:text-2xl">
+                <div className="mr-4 text-3xl font-semibold max-md:text-xl max-sm:mr-2 md:text-2xl">
                   {player.name}
                 </div>
                 {player.playerOrder === roomInfo?.currentOrder && (
                   <HoverTip content="該玩家的回合" notPointer>
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-sm text-white">
-                      C
+                    <span className="flex h-5 w-9 items-center justify-center rounded-full bg-primary text-sm text-white max-sm:text-xs">
+                      換他
                     </span>
                   </HoverTip>
                 )}
                 {player.isLastRoundPlayer && (
                   <HoverTip content="最後輪到的玩家" notPointer>
-                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-sm text-white">
-                      L
+                    <span className="ml-2 flex h-5 w-9 items-center justify-center rounded-full bg-red-600 text-sm text-white max-sm:text-xs">
+                      最後
                     </span>
                   </HoverTip>
                 )}
               </div>
-              <div className="flex gap-5">
+              <div className="flex gap-5 max-sm:gap-2">
                 <HoverTip content="持牌數" notPointer>
                   <div className="flex items-center">
                     <div className="relative max-lg:h-6 max-lg:w-6 lg:h-7 lg:w-7">
@@ -133,53 +133,58 @@ const MultiplePlayingArea = ({
         <div className="absolute right-5 top-5 flex gap-5">
           {/* 小提示 */}
           <HoverTip content="提示">
-            <Image
-              src="/question.svg"
-              alt="question"
-              width={24}
-              height={24}
-              priority
-              onClick={() => setIsOpenHintModal(true)}
-            />
+            <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
+              <Image
+                src="/question.svg"
+                alt="question"
+                fill
+                priority
+                onClick={() => setIsOpenHintModal(true)}
+              />
+            </div>
           </HoverTip>
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
-            <Image
-              src="/document.svg"
-              alt="document"
-              width={24}
-              height={24}
-              priority
-              onClick={() => setIsOpenRuleModal(true)}
-            />
+            <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
+              <Image
+                src="/document.svg"
+                alt="document"
+                fill
+                priority
+                onClick={() => setIsOpenRuleModal(true)}
+              />
+            </div>
           </HoverTip>
           {/* 返回首頁 */}
           <HoverTip content="離開房間">
-            <Image
-              src="/leave.svg"
-              alt="leave"
-              width={28}
-              height={28}
-              priority
-              onClick={() => (window.location.href = '/multiple-play')}
-            />
+            <div className="relative h-7 w-7 max-sm:h-6 max-sm:w-6">
+              <Image
+                src="/leave.svg"
+                alt="leave"
+                fill
+                priority
+                onClick={() => (window.location.href = '/multiple-play')}
+              />
+            </div>
           </HoverTip>
           {/* 返回首頁 */}
           {showCloseGamePlayingBtn && (
             <HoverTip content="回到房間">
-              <Image
-                src="/close.svg"
-                alt="close"
-                width={24}
-                height={24}
-                priority
-                onClick={onCloseScreen}
-              />
+              <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
+                <Image
+                  src="/close.svg"
+                  alt="close"
+                  width={24}
+                  height={24}
+                  priority
+                  onClick={onCloseScreen}
+                />
+              </div>
             </HoverTip>
           )}
         </div>
       </div>
-      <div className="relative flex flex-1 flex-col items-center gap-8">
+      <div className="relative flex flex-1 flex-col items-center gap-8 max-sm:gap-2">
         <MainPlayArea
           checkAnswerCorrect={checkAnswerCorrect}
           selectedCards={roomInfo?.selectedCards}
@@ -196,6 +201,7 @@ const MultiplePlayingArea = ({
           isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}
           score={currentPlayer?.score}
+          isYourTurn={isYourTurn}
         />
         <HandCardArea
           selectedCards={roomInfo?.selectedCards || []}
@@ -204,18 +210,18 @@ const MultiplePlayingArea = ({
           onSelect={number => onSelectCardOrSymbol({ number })}
           onDiscard={id => {
             setNeedDiscard(false);
-            discardCard(id);
+            onDiscardCard(id);
           }}
         />
         <ActionArea
           isSinglePlay={false}
           disabledActions={disabledActions}
-          onSubmit={playCard}
+          onSubmit={onPlayCard}
           onReselect={onReselect}
           onSort={onSort}
           onEndPhase={() => {
             onReselect();
-            drawCard();
+            onDrawCard();
           }}
           onBack={onBack}
           isLastRound={isLastRound}

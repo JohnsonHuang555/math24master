@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import HoverTip from '../hover-tip';
 
@@ -8,6 +9,7 @@ type PlayerInfoAreaProps = {
   remainCards?: number;
   score?: number;
   isSinglePlay?: boolean;
+  isYourTurn?: boolean;
 };
 
 const PlayerInfoArea = ({
@@ -16,6 +18,7 @@ const PlayerInfoArea = ({
   remainCards,
   score = 0,
   isSinglePlay,
+  isYourTurn,
 }: PlayerInfoAreaProps) => {
   const count = useMotionValue(score);
   const rounded = useTransform(count, Math.round);
@@ -28,14 +31,28 @@ const PlayerInfoArea = ({
 
   return (
     <div className="flex basis-[23%] flex-col justify-center p-5 max-md:absolute max-md:-top-[180px]">
+      {isYourTurn && (
+        <div className="flex items-center">
+          <Image
+            src="/triangle-right.svg"
+            alt="triangle-right"
+            width={16}
+            height={16}
+            priority
+          />
+          <div className="mb-[1px] ml-1 text-base text-red-600 max-md:text-sm">
+            你的回合
+          </div>
+        </div>
+      )}
       <div className="grow">
-        <span className="mr-4 max-md:text-sm">
+        <span className="mr-4 max-md:mr-2 max-md:text-sm">
           牌庫剩餘: {remainCards || 0} 張
         </span>
         {isLastRoundPlayer && (
           <HoverTip content="最後輪到的玩家">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white max-sm:h-4 max-sm:w-4 max-sm:text-sm">
-              L
+            <span className="flex h-5 w-9 items-center justify-center rounded-full bg-red-600 text-white max-sm:h-4 max-sm:w-8 max-sm:text-xs">
+              終回
             </span>
           </HoverTip>
         )}

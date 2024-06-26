@@ -26,6 +26,7 @@ export function HintModal({ isOpen, onOpenChange }: HintModalProps) {
             <br />
             ex. 1 × (2 + 3)
           </li>
+          <li className="mb-1">左右括號不計分</li>
         </ol>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>關閉</Button>

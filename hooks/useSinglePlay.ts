@@ -82,6 +82,10 @@ const useSinglePlay = () => {
       setCheckAnswerCorrect(isCorrect);
     });
 
+    socket.on('disconnect', () => {
+      toast.error('連線已中斷，請重新整理頁面');
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -144,7 +148,7 @@ const useSinglePlay = () => {
   };
 
   // 抽牌
-  const drawCard = () => {
+  const onDrawCard = () => {
     if (isGameOver) return;
 
     if (socket) {
@@ -158,7 +162,7 @@ const useSinglePlay = () => {
   };
 
   // 棄牌
-  const discardCard = (cardId: string) => {
+  const onDiscardCard = (cardId: string) => {
     if (isGameOver) return;
 
     if (socket) {
@@ -170,7 +174,7 @@ const useSinglePlay = () => {
   };
 
   // 出牌
-  const playCard = () => {
+  const onPlayCard = () => {
     if (isGameOver) return;
 
     if (roomInfo?.selectedCards.length === 0) {
@@ -217,9 +221,9 @@ const useSinglePlay = () => {
   return {
     roomInfo,
     onSort,
-    playCard,
-    drawCard,
-    discardCard,
+    onPlayCard,
+    onDrawCard,
+    onDiscardCard,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,

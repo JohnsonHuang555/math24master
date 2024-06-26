@@ -273,13 +273,25 @@ export function startGame(roomId: string): Response {
         tempDeck = createDeckByRandomMode(40, 10);
         break;
       case 2:
-        tempDeck = createDeckByRandomMode(40, 10);
+        if (room.settings.deckType === DeckType.Random) {
+          tempDeck = createDeckByRandomMode(60, 10);
+        } else {
+          tempDeck = createDeckByStandardMode(2);
+        }
         break;
       case 3:
-        tempDeck = createDeckByStandardMode(6);
+        if (room.settings.deckType === DeckType.Random) {
+          tempDeck = createDeckByRandomMode(70, 10);
+        } else {
+          tempDeck = createDeckByStandardMode(6);
+        }
         break;
       case 4:
-        tempDeck = createDeckByStandardMode(8);
+        if (room.settings.deckType === DeckType.Random) {
+          tempDeck = createDeckByRandomMode(80, 10);
+        } else {
+          tempDeck = createDeckByStandardMode(8);
+        }
         break;
       default:
         return {
@@ -384,7 +396,7 @@ export function drawCard(
   roomId: string,
   playerId: string,
   count: number,
-): Response & { winner?: string } {
+): Response & { winner?: Player } {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return { msg: '房間不存在' };
 
@@ -405,6 +417,11 @@ export function drawCard(
     // 遊戲結束
     _rooms[roomIndex].isGameOver = true;
     _rooms[roomIndex].status = GameStatus.Idle;
+    _rooms[roomIndex].players.forEach((_, i) => {
+      if (!_rooms[roomIndex].players[i].isMaster) {
+        _rooms[roomIndex].players[i].isReady = false;
+      }
+    });
 
     const playersScoreRank = _rooms[roomIndex].players.sort(
       (a, b) => a.score - b.score,
@@ -412,7 +429,7 @@ export function drawCard(
     const winner = playersScoreRank[playersScoreRank.length - 1];
 
     return {
-      winner: winner.name,
+      winner: winner,
       room: _rooms[roomIndex],
     };
   }
@@ -424,8 +441,12 @@ export function drawCard(
     );
     _rooms[roomIndex].deck = [];
 
-    // 標記為最後一位玩家
-    _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
+    const hasLastTag = _rooms[roomIndex].players.find(p => p.isLastRoundPlayer);
+
+    if (!hasLastTag) {
+      // 標記為最後一位玩家
+      _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
+    }
   } else {
     _rooms[roomIndex].players[playerIndex].handCard.push(
       ...draw(_rooms[roomIndex].deck, count),
