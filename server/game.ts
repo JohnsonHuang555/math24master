@@ -276,14 +276,14 @@ export function startGame(roomId: string): Response {
         if (room.settings.deckType === DeckType.Random) {
           tempDeck = createDeckByRandomMode(60, 10);
         } else {
-          tempDeck = createDeckByStandardMode(2);
+          tempDeck = createDeckByStandardMode(6);
         }
         break;
       case 3:
         if (room.settings.deckType === DeckType.Random) {
           tempDeck = createDeckByRandomMode(70, 10);
         } else {
-          tempDeck = createDeckByStandardMode(6);
+          tempDeck = createDeckByStandardMode(7);
         }
         break;
       case 4:
@@ -319,6 +319,7 @@ export function startGame(roomId: string): Response {
     shuffledPlayerOrder.forEach((order, index) => {
       _rooms[roomIndex].players[index].playerOrder = order;
       _rooms[roomIndex].players[index].score = 0;
+      _rooms[roomIndex].players[index].isLastRoundPlayer = false;
       if (shuffledDeck.length) {
         // 抽牌並改變牌庫牌數
         _rooms[roomIndex].players[index].handCard = draw(
@@ -335,6 +336,7 @@ export function startGame(roomId: string): Response {
     // 開始遊戲狀態
     _rooms[roomIndex].status = GameStatus.Playing;
     _rooms[roomIndex].isGameOver = false;
+    _rooms[roomIndex].selectedCards = [];
 
     return {
       room: _rooms[roomIndex],
@@ -628,17 +630,6 @@ export function selectCard(
       };
     }
 
-    // 數字牌最多幾張
-    // if (
-    //   currentSelect?.number &&
-    //   currentSelectedNumbers?.length === MAX_FORMULAS_NUMBER_COUNT &&
-    //   currentSelect?.number.id !== number.id
-    // ) {
-    //   return {
-    //     msg: `數字牌最多 ${MAX_FORMULAS_NUMBER_COUNT} 張`,
-    //   };
-    // }
-
     const isExistIndex = selectedCards.findIndex(
       s => s.number?.id === number.id,
     );
@@ -649,6 +640,11 @@ export function selectCard(
     }
   }
   if (symbol) {
+    const isLastCardNumber = selectedCards[selectedCards.length - 1].number;
+
+    if (symbol === Symbol.LeftBracket && isLastCardNumber) {
+      _rooms[roomIndex].selectedCards.push({ symbol: Symbol.Times });
+    }
     _rooms[roomIndex].selectedCards.push({ symbol });
   }
 

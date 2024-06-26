@@ -176,7 +176,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (checkAnswerCorrect !== null) {
       if (checkAnswerCorrect) {
         if (isYourTurn) {
-          playedCards =
+          playedCards +=
             roomInfo?.selectedCards.filter(c => c.number).length || 0;
         }
         toast.success('答案正確');
@@ -349,14 +349,15 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 重選
   const onReselect = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn) return;
+    if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
+      return;
 
     if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
+  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
 
   // 排序
   const onSort = useCallback(() => {
@@ -369,7 +370,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 結束回合並抽牌
   const onDrawCard = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn) return;
+    if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
+      return;
     // toast.info('其他玩家回合');
 
     if (socket) {
@@ -380,17 +382,24 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       });
       playedCards = 0;
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn]);
+  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
 
   const onBack = useCallback(() => {
-    if (roomInfo?.isGameOver) return;
+    if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
+      return;
 
     if (socket && roomInfo?.selectedCards.length) {
       socket.emit(SocketEvent.BackCard, {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, roomInfo?.selectedCards.length]);
+  }, [
+    checkAnswerCorrect,
+    isYourTurn,
+    roomInfo?.isGameOver,
+    roomInfo?.roomId,
+    roomInfo?.selectedCards.length,
+  ]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {

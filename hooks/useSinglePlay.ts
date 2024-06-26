@@ -129,7 +129,7 @@ const useSinglePlay = () => {
 
   // 重選
   const onReselect = () => {
-    if (isGameOver) return;
+    if (isGameOver || checkAnswerCorrect !== null) return;
 
     if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
@@ -149,7 +149,7 @@ const useSinglePlay = () => {
 
   // 抽牌
   const onDrawCard = () => {
-    if (isGameOver) return;
+    if (isGameOver || checkAnswerCorrect !== null) return;
 
     if (socket) {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
@@ -209,7 +209,7 @@ const useSinglePlay = () => {
   };
 
   const onBack = () => {
-    if (isGameOver) return;
+    if (isGameOver || checkAnswerCorrect !== null) return;
 
     if (socket && roomInfo?.selectedCards.length) {
       socket.emit(SocketEvent.BackCard, {
