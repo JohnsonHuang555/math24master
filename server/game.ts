@@ -621,7 +621,6 @@ export function selectCard(
 
   if (number) {
     const currentSelect = selectedCards[selectedCards.length - 1];
-    // const currentSelectedNumbers = selectedCards.filter(c => c.number);
 
     // 如果前一個是數字則不能選
     if (currentSelect?.number && currentSelect?.number.id !== number.id) {
@@ -640,7 +639,7 @@ export function selectCard(
     }
   }
   if (symbol) {
-    const isLastCardNumber = selectedCards[selectedCards.length - 1].number;
+    const isLastCardNumber = selectedCards[selectedCards.length - 1]?.number;
 
     if (symbol === Symbol.LeftBracket && isLastCardNumber) {
       _rooms[roomIndex].selectedCards.push({ symbol: Symbol.Times });

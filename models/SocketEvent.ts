@@ -13,6 +13,7 @@ export enum SocketEvent {
   EditRoomName = 'edit-room-name',
   EditRoomSettings = 'edit-room-settings',
   CheckRoomPassword = 'check-room-password',
+  ResetState = 'reset-state',
 
   // game event
   SortCard = 'sort-card',
@@ -36,4 +37,5 @@ export enum SocketEvent {
   PlayerLeaveRoom = 'player-leave-room', // 玩家在遊戲中離開房間
   NeedRoomPassword = 'need-room-password',
   GameOver = 'game-over',
+  ResetStateResponse = 'reset-state-response',
 }

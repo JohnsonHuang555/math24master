@@ -152,6 +152,10 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on(SocketEvent.ResetState, ({ roomId }) => {
+      io.sockets.to(roomId).emit(SocketEvent.ResetStateResponse);
+    });
+
     socket.on(SocketEvent.BackCard, ({ roomId }) => {
       const { room, msg } = backCard(roomId);
       if (room) {

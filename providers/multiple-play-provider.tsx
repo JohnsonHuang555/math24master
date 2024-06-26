@@ -158,6 +158,12 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       setCheckAnswerCorrect(isCorrect);
     });
 
+    // 重置狀態
+    socket.on(SocketEvent.ResetStateResponse, () => {
+      setCheckAnswerCorrect(null);
+      setFinishedAnimations(0);
+    });
+
     socket.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
       toast.info(`${playerName} 已離開房間`);
     });
@@ -282,11 +288,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket) {
-      // 重置狀態
-      setCheckAnswerCorrect(null);
-      setFinishedAnimations(0);
-
       socket.emit(SocketEvent.UpdateScore, {
+        roomId: roomInfo?.roomId,
+      });
+      // 重置狀態
+      socket.emit(SocketEvent.ResetState, {
         roomId: roomInfo?.roomId,
       });
     }
