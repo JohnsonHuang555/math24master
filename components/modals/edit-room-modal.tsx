@@ -44,7 +44,7 @@ const EditRoomModal = ({
             </Label>
             <Input
               id="room-name"
-              value={roomName}
+              defaultValue={roomName}
               className="col-span-3"
               onChange={e => setEditedRoomName(e.target.value)}
             />
@@ -74,7 +74,7 @@ const EditRoomModal = ({
               id="room-password"
               placeholder="請輸入房間密碼"
               className="col-span-3"
-              value={editedPassword}
+              defaultValue={editedPassword}
               onChange={e => {
                 setEditedPassword(e.target.value);
               }}

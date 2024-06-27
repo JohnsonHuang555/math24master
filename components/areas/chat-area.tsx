@@ -37,7 +37,7 @@ const ChatArea = ({ messages, onSend }: ChatAreaProps) => {
   };
 
   return (
-    <Card className="flex min-h-[220px] flex-col p-4 md:min-h-[150px]">
+    <Card className="flex min-h-[220px] flex-col p-4 max-md:max-h-[120px] md:min-h-[150px]">
       <div className="mb-2 h-[172px] overflow-y-auto" ref={messageRef}>
         {messages.map((msgObj, index) => (
           <div key={index} className="text-sm">
@@ -50,6 +50,7 @@ const ChatArea = ({ messages, onSend }: ChatAreaProps) => {
           onKeyDown={onKeyDown}
           value={message}
           onChange={e => setMessage(e.target.value)}
+          placeholder="說點什麼..."
         />
         <Button variant="secondary" onClick={handleSend}>
           送出

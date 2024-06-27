@@ -51,13 +51,13 @@ const PlayersArea = ({
   };
 
   return (
-    <Card className="flex h-full flex-1 flex-col gap-3 p-4">
+    <Card className="flex h-full flex-1 flex-col gap-3 p-4 max-sm:min-h-[270px]">
       {/* Players */}
       {players.map(player => (
         <div key={player.id}>
           <div className="flex justify-between">
             <div className="flex">
-              <div className="mr-4 text-xl">{player.name}</div>
+              <div className="mr-4 text-xl max-sm:text-lg">{player.name}</div>
               {!player.isMaster && currentPlayer?.isMaster && (
                 <HoverTip content="踢除玩家">
                   <Image

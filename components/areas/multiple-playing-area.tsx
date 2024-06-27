@@ -6,21 +6,22 @@ import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
-import { HintModal } from '@/components/modals/hint-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
 
 type MultiplePlayingAreaProps = {
-  showCloseGamePlayingBtn: boolean;
-  onCloseScreen: () => void;
+  // showCloseGamePlayingBtn: boolean;
+  // onCloseScreen: () => void;
 };
 
-const MultiplePlayingArea = ({
-  showCloseGamePlayingBtn,
-  onCloseScreen,
-}: MultiplePlayingAreaProps) => {
+const MultiplePlayingArea = (
+  {
+    // showCloseGamePlayingBtn,
+    // onCloseScreen,
+  }: MultiplePlayingAreaProps,
+) => {
   const {
     roomInfo,
     checkAnswerCorrect,
@@ -48,7 +49,6 @@ const MultiplePlayingArea = ({
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-  const [isOpenHintModal, setIsOpenHintModal] = useState(false);
 
   const handCard = currentPlayer?.handCard || [];
 
@@ -58,7 +58,7 @@ const MultiplePlayingArea = ({
   //   !!roomInfo?.isGameOver ||
   //   !isYourTurn;
 
-  const disabledActions = needDiscard || !!roomInfo?.isGameOver;
+  const disabledActions = needDiscard || !!roomInfo?.isGameOver || !isYourTurn;
 
   useEffect(() => {
     // 如果手牌超過8張須棄牌
@@ -79,7 +79,6 @@ const MultiplePlayingArea = ({
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <HintModal isOpen={isOpenHintModal} onOpenChange={setIsOpenHintModal} />
       <div className="relative flex w-full basis-1/5 items-center justify-center">
         {/* 對手玩家 */}
         {otherPlayers?.map(player => (
@@ -131,18 +130,6 @@ const MultiplePlayingArea = ({
           </div>
         ))}
         <div className="absolute right-5 top-5 flex gap-5">
-          {/* 小提示 */}
-          <HoverTip content="提示">
-            <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
-              <Image
-                src="/question.svg"
-                alt="question"
-                fill
-                priority
-                onClick={() => setIsOpenHintModal(true)}
-              />
-            </div>
-          </HoverTip>
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
@@ -168,7 +155,7 @@ const MultiplePlayingArea = ({
             </div>
           </HoverTip>
           {/* 返回首頁 */}
-          {showCloseGamePlayingBtn && (
+          {/* {showCloseGamePlayingBtn && (
             <HoverTip content="回到房間">
               <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
                 <Image
@@ -177,11 +164,11 @@ const MultiplePlayingArea = ({
                   width={24}
                   height={24}
                   priority
-                  onClick={onCloseScreen}
+                  onClick={() => onCloseScreen()}
                 />
               </div>
             </HoverTip>
-          )}
+          )} */}
         </div>
       </div>
       <div className="relative flex flex-1 flex-col items-center gap-8 max-sm:gap-2">

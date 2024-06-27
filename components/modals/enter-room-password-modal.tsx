@@ -27,11 +27,11 @@ const EnterRoomPasswordModal = ({
   const [password, setPassword] = useState('');
 
   const onKeyDown = (e: any) => {
-    if (!password) {
-      toast.warning('請輸入房間密碼');
-      return;
-    }
     if (e.keyCode === 13) {
+      if (!password) {
+        toast.warning('請輸入房間密碼');
+        return;
+      }
       onSubmit(password);
     }
   };

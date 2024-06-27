@@ -168,6 +168,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       toast.info(`${playerName} 已離開房間`);
     });
 
+    console.log('????');
+
     socket.on(
       SocketEvent.GameOver,
       ({ name, score }: { name: string; score: number }) => {
@@ -177,8 +179,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   }, []);
 
   useEffect(() => {
-    console.log(checkAnswerCorrect, 'checkAnswerCorrect');
-    console.log(playedCards, 'playedCards');
     if (checkAnswerCorrect !== null) {
       if (checkAnswerCorrect) {
         if (isYourTurn) {
@@ -302,6 +302,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     setFinishedAnimations(state => state + 1);
   };
 
+  // 選擇牌
   const onSelectCardOrSymbol = useCallback(
     ({ number, symbol }: { number?: NumberCard; symbol?: Symbol }) => {
       if (roomInfo?.isGameOver || !isYourTurn) return;
@@ -390,6 +391,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
   }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
 
+  // 退回鍵
   const onBack = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
       return;

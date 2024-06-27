@@ -13,6 +13,7 @@ import EditRoomModal from '@/components/modals/edit-room-modal';
 import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
+import { Button } from '@/components/ui/button';
 import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -41,8 +42,7 @@ export default function RoomPage() {
 
   const [playerName, setPlayerName] = useState<string>('');
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
-  const [showCloseGamePlayingBtn, setShowCloseGamePlayingBtn] = useState(true);
-  const [showGamePlayingScreen, setShowGamePlayingScreen] = useState(false);
+  // const [showCloseGamePlayingBtn, setShowCloseGamePlayingBtn] = useState(true);
 
   const {
     socket,
@@ -107,15 +107,15 @@ export default function RoomPage() {
     });
   }, [socket, joinRoom]);
 
-  useEffect(() => {
-    // 監聽遊戲是否結束要顯示關閉遊玩視窗按鈕
-    if (roomInfo?.status === GameStatus.Idle) {
-      setShowCloseGamePlayingBtn(true);
-    } else if (roomInfo?.status === GameStatus.Playing) {
-      setShowGamePlayingScreen(true);
-      setShowCloseGamePlayingBtn(false);
-    }
-  }, [roomInfo?.status]);
+  // useEffect(() => {
+  //   // 監聽遊戲是否結束要顯示關閉遊玩視窗按鈕
+  //   if (roomInfo?.status === GameStatus.Idle) {
+  //     setShowCloseGamePlayingBtn(true);
+  //   } else if (roomInfo?.status === GameStatus.Playing) {
+  //     setShowGamePlayingScreen(true);
+  //     setShowCloseGamePlayingBtn(false);
+  //   }
+  // }, [roomInfo?.status]);
 
   const sendMessage = (message: string) => {
     if (socket) {
@@ -125,7 +125,7 @@ export default function RoomPage() {
 
   if (!roomInfo) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full flex-col items-center justify-center">
         <PlayerNameModal
           isOpen={isOpenNameModal}
           onOpenChange={value => setIsOpenNameModal(value)}
@@ -149,19 +149,35 @@ export default function RoomPage() {
           }}
           closeDisabled={true}
         />
-        <div className="text-xl">連線中，如果時長過久請重新整理頁面</div>
+        <div className="mb-4 text-xl max-sm:text-lg">
+          連線中，如果時長過久請重新整理頁面
+        </div>
+        <div className="flex gap-4">
+          <Button
+            variant="secondary"
+            onClick={() => (window.location.href = '/')}
+          >
+            回首頁
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => (window.location.href = '/multiple-play')}
+          >
+            回房間頁
+          </Button>
+        </div>
       </div>
     );
   }
 
-  if (roomInfo?.status === GameStatus.Playing && showGamePlayingScreen) {
+  if (roomInfo.status === GameStatus.Playing) {
     return (
       <MultiplePlayingArea
-        showCloseGamePlayingBtn={showCloseGamePlayingBtn}
-        onCloseScreen={() => {
-          setShowGamePlayingScreen(false);
-          setShowCloseGamePlayingBtn(false);
-        }}
+      // showCloseGamePlayingBtn={showCloseGamePlayingBtn}
+      // onCloseScreen={() => {
+      //   setShowGamePlayingScreen(false);
+      //   setShowCloseGamePlayingBtn(false);
+      // }}
       />
     );
   }
@@ -215,10 +231,11 @@ export default function RoomPage() {
           <div className="flex flex-[3] flex-col gap-4">
             <RoomInfoArea
               isMaster={currentPlayer?.isMaster}
-              roomName={roomInfo?.roomName}
-              password={roomInfo?.password}
-              maxPlayers={roomInfo?.maxPlayers}
-              roomSettings={roomInfo?.settings}
+              roomName={roomInfo.roomName}
+              password={roomInfo.password}
+              maxPlayers={roomInfo.maxPlayers}
+              roomSettings={roomInfo.settings}
+              playersCount={roomInfo.players.length}
               onLeaveRoom={() => {
                 window.location.href = '/multiple-play';
               }}

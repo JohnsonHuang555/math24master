@@ -18,8 +18,9 @@ type RoomInfoAreaProps = {
   isMaster?: boolean;
   roomName?: string;
   password?: string;
-  maxPlayers?: number;
-  roomSettings?: RoomSettings;
+  maxPlayers: number;
+  roomSettings: RoomSettings;
+  playersCount: number;
   onLeaveRoom: () => void;
   onEditRoomName: () => void;
   onRoomSettingsChange: (
@@ -33,6 +34,7 @@ const RoomInfoArea = ({
   password,
   maxPlayers,
   roomSettings,
+  playersCount = 2,
   onLeaveRoom,
   onEditRoomName,
   onRoomSettingsChange,
@@ -83,7 +85,7 @@ const RoomInfoArea = ({
           />
         </HoverTip>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-2">
         <div>
           <Label className="text-xs" htmlFor="max-players">
             玩家人數
@@ -121,8 +123,12 @@ const RoomInfoArea = ({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value={DeckType.Standard}>標準</SelectItem>
-                <SelectItem value={DeckType.Random}>全部隨機</SelectItem>
+                <SelectItem value={DeckType.Standard}>
+                  標準 (1-10 各 {playersCount * 3} 張)
+                </SelectItem>
+                <SelectItem value={DeckType.Random}>
+                  全部隨機 (所有數字牌隨機產生)
+                </SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

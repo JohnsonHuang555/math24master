@@ -9,7 +9,6 @@ import HandCardArea from '@/components/areas/hand-card-area';
 import MainPlayArea from '@/components/areas/main-play-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
-import { HintModal } from '@/components/modals/hint-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { MAX_CARD_COUNT } from '@/models/Room';
@@ -18,7 +17,6 @@ import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 export default function SinglePlayPage() {
   const [bestScore, setBestScore] = useState<number>();
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-  const [isOpenHintModal, setIsOpenHintModal] = useState(false);
 
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
@@ -90,7 +88,6 @@ export default function SinglePlayPage() {
   return (
     <>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <HintModal isOpen={isOpenHintModal} onOpenChange={setIsOpenHintModal} />
       <div className="relative flex w-full basis-1/5">
         <div className="absolute right-5 top-5 flex gap-5">
           {/* 再來一局 */}
@@ -106,17 +103,6 @@ export default function SinglePlayPage() {
               />
             </HoverTip>
           )}
-          {/* 小提示 */}
-          <HoverTip content="提示">
-            <Image
-              src="/question.svg"
-              alt="question"
-              width={24}
-              height={24}
-              priority
-              onClick={() => setIsOpenHintModal(true)}
-            />
-          </HoverTip>
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <Image

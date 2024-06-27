@@ -157,7 +157,7 @@ const MainPlayArea = ({
                       className="font-semibold max-md:text-sm"
                       style={{ color: 'rgb(5 150 105)' }}
                     >
-                      +2
+                      +3
                     </div>
                   </motion.div>
                 )}
@@ -241,7 +241,7 @@ const MainPlayArea = ({
               <div className="text-sm">
                 符號 2 張除{' '}
                 <span className="text-base font-semibold text-emerald-600">
-                  +2
+                  +1
                 </span>
               </div>
             )}

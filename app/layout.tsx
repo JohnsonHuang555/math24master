@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh">
+    <html lang="zh-Hant">
       <body
         className={cn(
           'relative h-dvh font-noto antialiased',

@@ -31,35 +31,15 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               <li className="mb-1">
                 每位玩家 <span className="font-semibold text-red-600">5</span>{' '}
                 張手牌
-                {/* ，最多
-                <span className="font-semibold text-red-600">8</span>{' '}
-                張牌，多的需棄掉。 */}
               </li>
-              {/* <li className="mb-1">
-                牌的種類為數字 1~10，牌總數為 n(玩家數) × 20 張。
-                <br />
-                ex. 2 個玩家 1 ~ 10 每個數字各 4 張牌，共 40 張。
-              </li> */}
               <li className="mb-1">
                 每回合輪到你的時候可以選擇出牌或結束回合並抽牌，單人模式則直接抽牌。
               </li>
-              {/* <li className="mb-1">
-                算式最多為 5 個數字，符號不限數量。
-                <br />
-                ex. (- 5 - 5) x (- 2) + 2 + 2 = 24)。
-              </li> */}
               <li className="mb-1">
                 在同一個回合中可以多次出牌。
                 <br />
                 ex. 出兩組分別為 3 × 8 = 24，6 × 4 = 24。
               </li>
-              {/* <li className="mb-1">
-                結束回合時，在
-                <span className="font-semibold text-red-600">已經</span>
-                出過牌的情況下，可從牌庫抽相對應的出牌張數。
-                <br />
-                ex. 出 2 張補 2 張
-              </li> */}
               <li className="mb-1">
                 結束回合時，從牌庫抽 1 張牌並丟棄 1 張，維持{' '}
                 <span className="font-semibold text-red-600">5</span> 張手牌。
@@ -77,7 +57,11 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 分。
               </li>
               <li className="mb-1">
-                算式中有 <span className="font-semibold">乘除</span> 符號各加 2
+                算式中有 <span className="font-semibold">乘</span> 符號各加 2
+                分。
+              </li>
+              <li className="mb-1">
+                算式中有 <span className="font-semibold">除</span> 符號各加 3
                 分。
               </li>
               <li className="mb-1">
@@ -86,7 +70,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               </li>
               <li className="mb-1">
                 算式中有 2 張 <span className="font-semibold">除</span>{' '}
-                符號額外加 2 分。
+                符號額外加 1 分。
               </li>
               <li className="mb-1">
                 算式中有數字牌 <span className="font-semibold">4</span> 張額外加
@@ -96,18 +80,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 算式中有數字牌 <span className="font-semibold">5</span> 張額外加
                 2 分。
               </li>
-              {/* <li className="mb-1">
-                算式中有數字牌 <span className="font-semibold">6</span> 張額外加
-                3 分。
-              </li>
-              <li className="mb-1">
-                算式中有數字牌 <span className="font-semibold">7</span> 張額外加
-                4 分。
-              </li>
-              <li className="mb-1">
-                算式中有數字牌 <span className="font-semibold">8</span> 張額外加
-                5 分。
-              </li> */}
+              <li>左右括號不計分</li>
             </ol>
           </TabsContent>
           <TabsContent value="example" className="mt-2">
@@ -139,7 +112,6 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
             </ol>
           </TabsContent>
         </Tabs>
-
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>關閉</Button>
         </DialogFooter>
