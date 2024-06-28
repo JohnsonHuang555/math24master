@@ -16,6 +16,7 @@ export enum DeckType {
 
 export type RoomSettings = {
   deckType: DeckType;
+  remainSeconds: number | null;
 };
 
 export type Room = {
@@ -30,4 +31,5 @@ export type Room = {
   selectedCards: SelectedCard[];
   status: GameStatus;
   settings: RoomSettings;
+  countdownTime?: number; // 回合倒數計時
 };

@@ -38,4 +38,5 @@ export enum SocketEvent {
   NeedRoomPassword = 'need-room-password',
   GameOver = 'game-over',
   ResetStateResponse = 'reset-state-response',
+  CountdownTimeResponse = 'countdown-time-response',
 }

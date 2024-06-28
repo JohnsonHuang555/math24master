@@ -190,6 +190,7 @@ export function joinRoom(
         status: GameStatus.Idle,
         settings: {
           deckType: DeckType.Standard,
+          remainSeconds: 60,
         },
         players: [
           {
@@ -710,8 +711,9 @@ export function editRoom(
 
 export function editRoomSettings(
   roomId: string,
-  maxPlayers: number,
-  deckType: DeckType,
+  maxPlayers?: number,
+  deckType?: DeckType,
+  remainSeconds?: number | null,
 ): Response {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
@@ -723,6 +725,10 @@ export function editRoomSettings(
 
     if (deckType) {
       _rooms[roomIndex].settings.deckType = deckType;
+    }
+
+    if (remainSeconds !== undefined) {
+      _rooms[roomIndex].settings.remainSeconds = remainSeconds;
     }
 
     return {

@@ -222,7 +222,6 @@ const MainPlayArea = ({
             className="absolute -top-[75px] flex h-16 flex-col justify-center max-md:-bottom-[125px] max-md:top-auto"
             onAnimationComplete={() => {
               setTimeout(() => {
-                console.log('update score');
                 onUpdateScore();
               }, 1500);
             }}

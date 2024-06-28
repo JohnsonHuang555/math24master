@@ -44,7 +44,6 @@ const RoomInfoArea = ({
   return (
     <Card className="grow p-4">
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-
       <div className="mb-4 flex gap-4">
         <div className="flex grow items-center gap-2">
           {password && (
@@ -133,30 +132,41 @@ const RoomInfoArea = ({
             </SelectContent>
           </Select>
         </div>
-        {/* <div>
+        <div>
           <Label className="text-xs" htmlFor="remain-seconds">
-            回合秒數
+            每回合秒數
           </Label>
           <Select
             disabled={!isMaster}
-            defaultValue="30"
-            onValueChange={v => onMaxPlayersChange(Number(v))}
+            value={
+              roomSettings.remainSeconds === null
+                ? 'infinity'
+                : String(roomSettings.remainSeconds)
+            }
+            onValueChange={v => {
+              onRoomSettingsChange({
+                remainSeconds: v === '' ? null : Number(v),
+              });
+            }}
           >
             <SelectTrigger className="mt-1 h-8">
               <SelectValue id="remain-seconds" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="infinity">無限時</SelectItem>
                 <SelectItem value="30">30</SelectItem>
-                <SelectItem value="40">40</SelectItem>
-                <SelectItem value="50">50</SelectItem>
                 <SelectItem value="60">60</SelectItem>
+                <SelectItem value="90">90</SelectItem>
+                <SelectItem value="120">120</SelectItem>
+                <SelectItem value="150">150</SelectItem>
+                <SelectItem value="180">180</SelectItem>
+                <SelectItem value="240">240</SelectItem>
+                <SelectItem value="300">300</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div> */}
+        </div>
       </div>
     </Card>
   );

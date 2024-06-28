@@ -68,6 +68,7 @@ type MultiplePlayContextData = {
   isYourTurn: boolean;
   onBack: () => void;
   isLastRound: boolean;
+  countdown?: number;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -85,6 +86,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const [roomInfo, setRoomInfo] = useState<Room>();
   const [playerId, setPlayerId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [remainRoundTime, setRemainRoundTime] = useState<{
+    countdown: number;
+    needDrawPlayerId: string;
+  }>();
 
   // 動畫完成時
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
@@ -168,7 +173,12 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       toast.info(`${playerName} 已離開房間`);
     });
 
-    console.log('????');
+    socket.on(
+      SocketEvent.CountdownTimeResponse,
+      (res: { countdown: number; needDrawPlayerId: string }) => {
+        setRemainRoundTime(res);
+      },
+    );
 
     socket.on(
       SocketEvent.GameOver,
@@ -259,12 +269,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     ({
       maxPlayers,
       deckType,
+      remainSeconds,
     }: Partial<RoomSettings> & { maxPlayers?: number }) => {
       if (socket) {
         socket.emit(SocketEvent.EditRoomSettings, {
           roomId: roomInfo?.roomId,
           maxPlayers,
           deckType,
+          remainSeconds,
         });
       }
     },
@@ -409,6 +421,16 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     roomInfo?.selectedCards.length,
   ]);
 
+  useEffect(() => {
+    if (
+      remainRoundTime?.countdown === 0 &&
+      remainRoundTime.needDrawPlayerId === playerId
+    ) {
+      onDrawCard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onDrawCard, playerId, remainRoundTime?.countdown]);
+
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
       searchRooms,
@@ -440,33 +462,35 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       isYourTurn,
       onBack,
       isLastRound,
+      countdown: remainRoundTime?.countdown,
     };
   }, [
-    checkAnswerCorrect,
-    onDiscardCard,
-    onDrawCard,
-    editRoomSettings,
-    editRoom,
-    finishedAnimations,
-    joinRoom,
-    messages,
-    onReadyGame,
-    onReselect,
-    onSelectCardOrSymbol,
-    onSort,
-    onStartGame,
-    onPlayCard,
-    playerId,
-    removePlayer,
-    roomInfo,
     searchRooms,
-    selectedCardNumbers,
+    joinRoom,
+    roomInfo,
+    playerId,
+    onReadyGame,
+    onStartGame,
+    messages,
+    editRoom,
+    editRoomSettings,
+    removePlayer,
+    checkAnswerCorrect,
+    finishedAnimations,
     selectedCardSymbols,
+    selectedCardNumbers,
     updateScore,
+    onSelectCardOrSymbol,
+    onDiscardCard,
+    onPlayCard,
+    onReselect,
+    onSort,
+    onDrawCard,
     currentPlayer,
     isYourTurn,
     onBack,
     isLastRound,
+    remainRoundTime?.countdown,
   ]);
 
   return (

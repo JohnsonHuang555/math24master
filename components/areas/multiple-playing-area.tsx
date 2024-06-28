@@ -40,6 +40,7 @@ const MultiplePlayingArea = (
     isYourTurn,
     onBack,
     isLastRound,
+    countdown,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(
@@ -129,6 +130,17 @@ const MultiplePlayingArea = (
             </>
           </div>
         ))}
+        {countdown && (
+          <div className="absolute left-5 top-5 flex items-center gap-2">
+            {/* 剩餘時間 */}
+            <HoverTip content="回合剩餘時間">
+              <div className="relative h-7 w-7 max-sm:h-6 max-sm:w-6">
+                <Image src="/timer.svg" alt="timer" fill priority />
+              </div>
+            </HoverTip>
+            <div className="text-lg">{countdown}</div>
+          </div>
+        )}
         <div className="absolute right-5 top-5 flex gap-5">
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">

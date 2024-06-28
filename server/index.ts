@@ -31,6 +31,10 @@ const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
+const timerMap: {
+  [key: string]: { timer: NodeJS.Timeout | null; countdownTime: number };
+} = {};
+
 app.prepare().then(() => {
   const httpServer = createServer(handler);
   const io = new Server(httpServer, {
@@ -71,6 +75,33 @@ app.prepare().then(() => {
       const { room, msg } = startGame(roomId);
       if (room) {
         io.sockets.to(roomId).emit(SocketEvent.StartGameSuccess, room);
+        if (room.settings.remainSeconds !== null) {
+          timerMap[roomId] = {
+            countdownTime: room.settings.remainSeconds,
+            timer: null,
+          };
+          const needDrawPlayerId = room.players.find(
+            p => p.playerOrder === room.currentOrder,
+          )?.id;
+          io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
+            countdown: timerMap[roomId].countdownTime,
+            needDrawPlayerId,
+          });
+          timerMap[roomId].timer = setInterval(() => {
+            timerMap[roomId].countdownTime -= 1;
+            if (timerMap[roomId].countdownTime >= 0) {
+              io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
+                countdown: timerMap[roomId].countdownTime,
+                needDrawPlayerId,
+              });
+            }
+          }, 1000);
+        } else {
+          // 計時器清空
+          io.sockets
+            .to(roomId)
+            .emit(SocketEvent.CountdownTimeResponse, undefined);
+        }
       } else {
         socket.emit(SocketEvent.ErrorMessage, msg);
       }
@@ -98,6 +129,32 @@ app.prepare().then(() => {
       const { room, msg, winner } = drawCard(roomId, playerId, count);
       if (room) {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
+        // 有計時器需要停止並建立新的
+        if (timerMap[roomId] && timerMap[roomId].timer !== null) {
+          const needDrawPlayerId = room.players.find(
+            p => p.playerOrder === room.currentOrder,
+          )?.id;
+          // 重置時間
+          timerMap[roomId].countdownTime = room.settings
+            .remainSeconds as number;
+          // 清除計時器
+          clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+          io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
+            countdown: timerMap[roomId].countdownTime,
+            needDrawPlayerId,
+          });
+
+          // 寫入新的計時器
+          timerMap[roomId].timer = setInterval(() => {
+            timerMap[roomId].countdownTime -= 1;
+            if (timerMap[roomId].countdownTime >= 0) {
+              io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
+                countdown: timerMap[roomId].countdownTime,
+                needDrawPlayerId,
+              });
+            }
+          }, 1000);
+        }
         if (winner) {
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
@@ -209,8 +266,13 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.EditRoomSettings,
-      ({ roomId, maxPlayers, deckType }) => {
-        const { room, msg } = editRoomSettings(roomId, maxPlayers, deckType);
+      ({ roomId, maxPlayers, deckType, remainSeconds }) => {
+        const { room, msg } = editRoomSettings(
+          roomId,
+          maxPlayers,
+          deckType,
+          remainSeconds,
+        );
         if (room) {
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, room);
         } else {
@@ -237,6 +299,12 @@ app.prepare().then(() => {
         io.sockets
           .to(roomId)
           .emit(SocketEvent.PlayerLeaveRoom, result.playerName);
+
+        // 清除計時器
+        if (timerMap[roomId] && timerMap[roomId]?.timer !== null) {
+          clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+          delete timerMap[roomId];
+        }
       }
     });
   });
