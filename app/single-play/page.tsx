@@ -24,19 +24,18 @@ export default function SinglePlayPage() {
   const router = useRouter();
   const {
     roomInfo,
-    onSort,
     onPlayCard,
     onDrawCard,
     onDiscardCard,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,
-    isAnimationFinished,
+    isSymbolScoreAnimationFinished,
     selectedCardSymbols,
     selectedCardNumbers,
-    updateScore,
+    onUpdateScore,
     isGameOver,
-    onFinishedAnimations,
+    onFinishedSymbolScoreAnimation,
     onBack,
     isLastRound,
   } = useSinglePlay();
@@ -57,7 +56,6 @@ export default function SinglePlayPage() {
   }, [isConfirmed, onReset, router]);
 
   useEffect(() => {
-    // 如果手牌超過8張須棄牌
     if (handCard.length > MAX_CARD_COUNT) {
       setTimeout(() => {
         toast.error('請點選 1 張牌棄掉');
@@ -72,7 +70,7 @@ export default function SinglePlayPage() {
       if (!bestScore || bestScore < currentScore) {
         localStorage.setItem('bestScore', String(currentScore));
       }
-      toast.success(`遊戲結束，總分為 ${currentScore}`, {
+      toast.success(`遊戲結束，總分為 ${currentScore} 分`, {
         autoClose: 5000,
       });
     }
@@ -138,9 +136,9 @@ export default function SinglePlayPage() {
         <MainPlayArea
           checkAnswerCorrect={checkAnswerCorrect}
           selectedCards={roomInfo?.selectedCards}
-          isAnimationFinished={isAnimationFinished}
-          onFinishedAnimations={onFinishedAnimations}
-          onUpdateScore={updateScore}
+          isSymbolScoreAnimationFinished={isSymbolScoreAnimationFinished}
+          onFinishedSymbolScoreAnimation={onFinishedSymbolScoreAnimation}
+          onUpdateScore={onUpdateScore}
           selectedCardSymbols={selectedCardSymbols}
           selectedCardNumbers={selectedCardNumbers}
           onSelectSymbol={symbol => onSelectCardOrSymbol({ symbol })}
@@ -165,11 +163,9 @@ export default function SinglePlayPage() {
           }}
         />
         <ActionArea
-          isSinglePlay={true}
           disabledActions={disabledActions}
           onSubmit={onPlayCard}
           onReselect={onReselect}
-          onSort={onSort}
           onEndPhase={() => {
             onReselect();
             onDrawCard();

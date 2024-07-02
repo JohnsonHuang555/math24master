@@ -165,7 +165,7 @@ export default function Home() {
         </div>
         <div className="fixed bottom-4 items-center">
           <div className="mb-1 text-center text-xs text-gray-500">
-            此網站在電腦與平板支援度最佳，維護時間: 每週一 23:00-23:59
+            此網站在電腦與平板支援度最佳，最後更新日 2024/07/02
           </div>
           <div className="flex justify-center">
             <div className="mr-2 flex gap-1 text-xs text-gray-500">
@@ -179,7 +179,7 @@ export default function Home() {
               />
               <span>{date.getFullYear()}.</span>
             </div>
-            <div className="mr-2 text-xs text-gray-500">beta.0.0.7</div>
+            <div className="mr-2 text-xs text-gray-500">v1.1.0</div>
             <Link
               href="https://github.com/JohnsonHuang555/24_points"
               target="_blank"

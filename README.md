@@ -2,14 +2,14 @@ Math24 Master
 ===
 ![Static Badge](https://img.shields.io/badge/math24-master-orange)&nbsp;
 ![Static Badge](https://img.shields.io/badge/node-v18.18.2-blue)&nbsp;
-![Static Badge](https://img.shields.io/badge/beta-v0.0.7-blue)&nbsp;
+![Static Badge](https://img.shields.io/badge/current-v1.1.0-blue)&nbsp;
 ![Static Badge](https://img.shields.io/badge/let\'s-play-g)
 
 🎉 Welcome to the Math24 Master! This is a challenging and fun puzzle game that tests your mathematical skills and strategic thinking.
 
 ## 🚀&nbsp; Game Rules
 1. Each player has 5 cards in hand.
-2. During your turn, you can choose to play cards or end your turn and draw a card. In single-player mode, you simply draw a card.
+2. During your turn, you can choose to play cards or draw a card. In multiplayer mode, drawing a card ends your turn and passes it to the next player. In single-player mode, you simply draw a card.
 3. You can play multiple sets of cards in a single turn.
 For example, you can play two sets: 3 × 8 = 24 and 6 × 4 = 24.
 4. At the end of your turn, draw 1 card from the deck and discard 1 card to maintain 5 cards in your hand.

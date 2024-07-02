@@ -7,10 +7,8 @@ type ActionAreaProps = {
   disabledActions: boolean;
   onSubmit: () => void;
   onReselect: () => void;
-  onSort: () => void;
   onEndPhase: () => void;
   onBack: () => void;
-  isSinglePlay: boolean;
   selectedCards?: SelectedCard[];
   isLastRound: boolean;
 };
@@ -19,10 +17,8 @@ const ActionArea = ({
   disabledActions,
   onSubmit,
   onReselect,
-  onSort,
   onBack,
   onEndPhase,
-  isSinglePlay,
   selectedCards = [],
   isLastRound,
 }: ActionAreaProps) => {
@@ -41,11 +37,7 @@ const ActionArea = ({
       <div className="absolute -top-[72px] right-[20px] text-2xl max-md:hidden lg:hidden">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>
-      <Button
-        disabled={disabledActions}
-        className="absolute -top-8 left-[20px] h-10 w-[calc(100%-40px)]"
-        onClick={onSubmit}
-      >
+      <Button disabled={disabledActions} className="h-full" onClick={onSubmit}>
         <Image
           src="/card-play.svg"
           alt="card-play"
@@ -57,7 +49,7 @@ const ActionArea = ({
         出牌
       </Button>
       <Button
-        variant="outline"
+        variant={isLastRound ? 'destructive' : 'success'}
         disabled={disabledActions}
         className="h-full"
         onClick={onEndPhase}
@@ -70,7 +62,7 @@ const ActionArea = ({
           priority
           className="mr-2"
         />
-        {isLastRound ? '結算分數' : isSinglePlay ? '抽牌' : '結束回合'}
+        {isLastRound ? '結算' : '抽牌'}
       </Button>
       <Button
         disabled={disabledActions}
@@ -87,17 +79,6 @@ const ActionArea = ({
           className="mr-1"
         />
         清除
-      </Button>
-      <Button variant="outline" className="h-full" onClick={onSort}>
-        <Image
-          src="/sort.svg"
-          alt="sort"
-          width={28}
-          height={28}
-          priority
-          className="mr-1"
-        />
-        排序
       </Button>
       <Button
         disabled={disabledActions}

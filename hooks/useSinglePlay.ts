@@ -9,14 +9,12 @@ import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
 const socket = io();
-let playedCards = 0; // 已出過牌的數量
 
 const useSinglePlay = () => {
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
-
   // 動畫完成時
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
@@ -67,41 +65,39 @@ const useSinglePlay = () => {
       toast.error(message);
     });
 
-    // 遊戲開始回傳
-    socket.on(SocketEvent.StartGameSuccess, (roomInfo: Room) => {
-      setRoomInfo(roomInfo);
-    });
-
     // 房間更新
-    socket.on(SocketEvent.RoomUpdate, (roomInfo: Room) => {
-      setRoomInfo(roomInfo);
-    });
+    socket.on(
+      SocketEvent.RoomUpdate,
+      ({
+        room,
+        extra,
+      }: {
+        room: Room;
+        extra?: { event: SocketEvent; data: any };
+      }) => {
+        setRoomInfo(room);
+        // 重置狀態
+        if (extra?.event === SocketEvent.UpdateScore) {
+        }
+        if (extra?.event === SocketEvent.PlayCardResponse) {
+          if (extra.data) {
+            toast.success('答案正確');
+          } else {
+            toast.error('答案不等於 24');
+          }
+          setCheckAnswerCorrect(extra.data as boolean);
+        }
+      },
+    );
 
-    // 檢查答案
-    socket.on(SocketEvent.PlayCardResponse, (isCorrect: boolean) => {
-      setCheckAnswerCorrect(isCorrect);
-    });
-
-    socket.on('disconnect', () => {
-      toast.error('連線已中斷，請重新整理頁面');
-    });
+    // socket.on('disconnect', () => {
+    //   toast.error('連線已中斷，請重新整理頁面');
+    // });
 
     return () => {
       socket.disconnect();
     };
   }, []);
-
-  useEffect(() => {
-    if (checkAnswerCorrect !== null) {
-      if (checkAnswerCorrect) {
-        playedCards = roomInfo?.selectedCards.filter(c => c.number).length || 0;
-        toast.success('答案正確');
-      } else {
-        toast.error('答案不等於 24');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkAnswerCorrect]);
 
   useEffect(() => {
     if (isLastRound) {
@@ -138,15 +134,6 @@ const useSinglePlay = () => {
     }
   };
 
-  // 排序
-  const onSort = () => {
-    if (isGameOver) return;
-
-    if (socket) {
-      socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
-    }
-  };
-
   // 抽牌
   const onDrawCard = () => {
     if (isGameOver || checkAnswerCorrect !== null) return;
@@ -155,9 +142,7 @@ const useSinglePlay = () => {
       // 沒出過牌抽 1 張，反之抽出過牌的數量
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,
-        count: playedCards === 0 ? 1 : playedCards,
       });
-      playedCards = 0;
     }
   };
 
@@ -190,7 +175,7 @@ const useSinglePlay = () => {
   };
 
   // 更新分數並抽牌
-  const updateScore = () => {
+  const onUpdateScore = () => {
     if (isGameOver) return;
 
     if (socket) {
@@ -204,10 +189,6 @@ const useSinglePlay = () => {
     }
   };
 
-  const onFinishedAnimations = () => {
-    setFinishedAnimations(state => state + 1);
-  };
-
   const onBack = () => {
     if (isGameOver || checkAnswerCorrect !== null) return;
 
@@ -218,23 +199,26 @@ const useSinglePlay = () => {
     }
   };
 
+  const onFinishedSymbolScoreAnimation = () => {
+    setFinishedAnimations(state => state + 1);
+  };
+
   return {
     roomInfo,
-    onSort,
     onPlayCard,
     onDrawCard,
     onDiscardCard,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,
-    isAnimationFinished:
+    isSymbolScoreAnimationFinished:
       checkAnswerCorrect === true &&
       finishedAnimations === selectedCardSymbols?.length,
     selectedCardSymbols: selectedCardSymbols || [],
     selectedCardNumbers: selectedCardNumbers || [],
-    updateScore,
+    onUpdateScore,
     isGameOver,
-    onFinishedAnimations,
+    onFinishedSymbolScoreAnimation,
     onBack,
     isLastRound,
   };
