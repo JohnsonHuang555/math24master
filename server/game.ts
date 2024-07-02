@@ -652,15 +652,24 @@ export function selectCard(
         };
       }
 
+      if (lastCard.symbol === Symbol.Plus && symbol === Symbol.Plus) {
+        return {
+          msg: '加號不能連續用',
+        };
+      }
+
       // if (lastCard.symbol === Symbol.Minus && symbol === Symbol.LeftBracket) {
       //   return {
       //     msg: '減號後面無法使用左括號',
       //   };
       // }
 
-      if (lastCard.symbol === Symbol.LeftBracket && symbol === Symbol.Minus) {
+      if (
+        lastCard.symbol === Symbol.LeftBracket &&
+        [Symbol.Plus, Symbol.Minus].includes(symbol)
+      ) {
         return {
-          msg: '左括號後面無法使用減號',
+          msg: '左括號後面無法使用減號或加號',
         };
       }
 

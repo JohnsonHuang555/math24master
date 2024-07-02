@@ -10,11 +10,9 @@ Math24 Master
 ## 🚀&nbsp; Game Rules
 1. Each player has 5 cards in hand.
 2. During your turn, you can choose to play cards or draw a card. In multiplayer mode, drawing a card ends your turn and passes it to the next player. In single-player mode, you simply draw a card.
-3. You can play multiple sets of cards in a single turn.
-For example, you can play two sets: 3 × 8 = 24 and 6 × 4 = 24.
-4. At the end of your turn, draw 1 card from the deck and discard 1 card to maintain 5 cards in your hand.
-5. When the deck is exhausted, the current round becomes the final round. The game ends when the last player's turn is completed.
-6. The player with the highest score at the end of the game wins.
+3. At the end of your turn, draw 1 card from the deck and discard 1 card to maintain 5 cards in your hand.
+4. When the deck is exhausted, the current round becomes the final round. The game ends when the last player's turn is completed.
+5. The player with the highest score at the end of the game wins.
 
 ## 💯&nbsp; Score Calculations Way
 1. Each addition or subtraction symbol in the equation scores **1** point.

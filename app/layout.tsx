@@ -20,20 +20,20 @@ export const metadata: Metadata = {
   description:
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
   keywords: ['24點', 'math24', '24點大師'],
-  // openGraph: {
-  //   title: '24點大師',
-  //   description:
-  //     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
-  //   images: [
-  //     {
-  //       url: '/logo.svg',
-  //       width: 400,
-  //       height: 300,
-  //     },
-  //   ],
-  //   locale: 'zh',
-  //   type: 'website',
-  // },
+  openGraph: {
+    title: '24點大師',
+    description:
+      '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
+    images: [
+      {
+        url: 'https://www.math24master.com/logo.svg',
+        width: 400,
+        height: 300,
+      },
+    ],
+    locale: 'zh',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
