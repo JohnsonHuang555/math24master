@@ -9,8 +9,8 @@ import { Symbol } from '@/models/Symbol';
 type MainPlayAreaProps = {
   checkAnswerCorrect: boolean | null;
   selectedCards?: SelectedCard[];
-  isAnimationFinished: boolean;
-  onFinishedAnimations: () => void;
+  isSymbolScoreAnimationFinished: boolean;
+  onFinishedSymbolScoreAnimation: () => void;
   onUpdateScore: () => void;
   selectedCardSymbols?: SelectedCard[];
   selectedCardNumbers?: SelectedCard[];
@@ -20,8 +20,8 @@ type MainPlayAreaProps = {
 const MainPlayArea = ({
   checkAnswerCorrect,
   selectedCards = [],
-  isAnimationFinished = false,
-  onFinishedAnimations,
+  isSymbolScoreAnimationFinished = false,
+  onFinishedSymbolScoreAnimation,
   onUpdateScore,
   selectedCardSymbols = [],
   selectedCardNumbers = [],
@@ -52,7 +52,7 @@ const MainPlayArea = ({
                       transition: { delay: index * 0.3 },
                     }}
                     className="absolute"
-                    onAnimationComplete={onFinishedAnimations}
+                    onAnimationComplete={onFinishedSymbolScoreAnimation}
                   >
                     <div
                       className="font-semibold max-md:text-sm"
@@ -85,7 +85,7 @@ const MainPlayArea = ({
                       transition: { delay: index * 0.3 },
                     }}
                     className="absolute"
-                    onAnimationComplete={onFinishedAnimations}
+                    onAnimationComplete={onFinishedSymbolScoreAnimation}
                   >
                     <div
                       className="font-semibold max-md:text-sm"
@@ -118,7 +118,7 @@ const MainPlayArea = ({
                       transition: { delay: index * 0.3 },
                     }}
                     className="absolute"
-                    onAnimationComplete={onFinishedAnimations}
+                    onAnimationComplete={onFinishedSymbolScoreAnimation}
                   >
                     <div
                       className="font-semibold max-md:text-sm"
@@ -151,7 +151,7 @@ const MainPlayArea = ({
                       transition: { delay: index * 0.3 },
                     }}
                     className="absolute"
-                    onAnimationComplete={onFinishedAnimations}
+                    onAnimationComplete={onFinishedSymbolScoreAnimation}
                   >
                     <div
                       className="font-semibold max-md:text-sm"
@@ -214,7 +214,7 @@ const MainPlayArea = ({
             <div className="text-gray-500">點擊手牌組合出答案為 24 的算式</div>
           )}
         </>
-        {isAnimationFinished && (
+        {isSymbolScoreAnimationFinished && (
           <motion.div
             variants={fadeVariants}
             initial="hide"

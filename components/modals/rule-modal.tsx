@@ -33,12 +33,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 張手牌
               </li>
               <li className="mb-1">
-                每回合輪到你的時候可以選擇出牌或結束回合並抽牌，單人模式則直接抽牌。
-              </li>
-              <li className="mb-1">
-                在同一個回合中可以多次出牌。
-                <br />
-                ex. 出兩組分別為 3 × 8 = 24，6 × 4 = 24。
+                每回合輪到你的時候可以選擇出牌或抽牌，多人模式時抽牌即換下一位玩家，單人模式則直接抽牌。
               </li>
               <li className="mb-1">
                 結束回合時，從牌庫抽 1 張牌並丟棄 1 張，維持{' '}

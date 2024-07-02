@@ -5,7 +5,6 @@ export enum SocketEvent {
   ReadyGame = 'ready-game',
   StartGame = 'start-game',
   RoomUpdate = 'room-update',
-  GetRoomById = 'get-room-by-id',
   SearchRooms = 'search-rooms',
   SendMessage = 'send-message',
   RemovePlayer = 'remove-player',
@@ -13,10 +12,8 @@ export enum SocketEvent {
   EditRoomName = 'edit-room-name',
   EditRoomSettings = 'edit-room-settings',
   CheckRoomPassword = 'check-room-password',
-  ResetState = 'reset-state',
 
   // game event
-  SortCard = 'sort-card',
   PlayCard = 'play-card',
   DrawCard = 'draw-card',
   DiscardCard = 'discard-card',
@@ -28,15 +25,12 @@ export enum SocketEvent {
   // b2e emit
   JoinRoomSuccess = 'join-room-success',
   GetPlayerId = 'get-player-id',
-  StartGameSuccess = 'start-game-success',
   PlayCardResponse = 'play-card-response',
   GetRoomsResponse = 'get-rooms-response',
-  GetRoomByIdResponse = 'get-room-by-id-response',
   GetMessage = 'get-message',
   RemovePlayerResponse = 'remove-play-response',
   PlayerLeaveRoom = 'player-leave-room', // 玩家在遊戲中離開房間
   NeedRoomPassword = 'need-room-password',
   GameOver = 'game-over',
-  ResetStateResponse = 'reset-state-response',
   CountdownTimeResponse = 'countdown-time-response',
 }

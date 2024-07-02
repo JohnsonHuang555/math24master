@@ -42,7 +42,6 @@ export default function RoomPage() {
 
   const [playerName, setPlayerName] = useState<string>('');
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
-  // const [showCloseGamePlayingBtn, setShowCloseGamePlayingBtn] = useState(true);
 
   const {
     socket,
@@ -56,6 +55,7 @@ export default function RoomPage() {
     editRoomSettings,
     removePlayer,
     currentPlayer,
+    sendMessage,
   } = useMultiplePlay();
 
   useEffect(() => {
@@ -107,22 +107,6 @@ export default function RoomPage() {
     });
   }, [socket, joinRoom]);
 
-  // useEffect(() => {
-  //   // 監聽遊戲是否結束要顯示關閉遊玩視窗按鈕
-  //   if (roomInfo?.status === GameStatus.Idle) {
-  //     setShowCloseGamePlayingBtn(true);
-  //   } else if (roomInfo?.status === GameStatus.Playing) {
-  //     setShowGamePlayingScreen(true);
-  //     setShowCloseGamePlayingBtn(false);
-  //   }
-  // }, [roomInfo?.status]);
-
-  const sendMessage = (message: string) => {
-    if (socket) {
-      socket.emit(SocketEvent.SendMessage, { roomId, message });
-    }
-  };
-
   if (!roomInfo) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
@@ -171,15 +155,7 @@ export default function RoomPage() {
   }
 
   if (roomInfo.status === GameStatus.Playing) {
-    return (
-      <MultiplePlayingArea
-      // showCloseGamePlayingBtn={showCloseGamePlayingBtn}
-      // onCloseScreen={() => {
-      //   setShowGamePlayingScreen(false);
-      //   setShowCloseGamePlayingBtn(false);
-      // }}
-      />
-    );
+    return <MultiplePlayingArea />;
   }
 
   return (

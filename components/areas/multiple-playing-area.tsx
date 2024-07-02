@@ -11,30 +11,19 @@ import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
 
-type MultiplePlayingAreaProps = {
-  // showCloseGamePlayingBtn: boolean;
-  // onCloseScreen: () => void;
-};
-
-const MultiplePlayingArea = (
-  {
-    // showCloseGamePlayingBtn,
-    // onCloseScreen,
-  }: MultiplePlayingAreaProps,
-) => {
+const MultiplePlayingArea = () => {
   const {
     roomInfo,
     checkAnswerCorrect,
-    isAnimationFinished,
-    onFinishedAnimations,
-    updateScore,
+    isSymbolScoreAnimationFinished,
+    onFinishedSymbolScoreAnimation,
+    onUpdateScore,
     selectedCardSymbols,
     selectedCardNumbers,
     onSelectCardOrSymbol,
     onDiscardCard,
     onPlayCard,
     onReselect,
-    onSort,
     onDrawCard,
     currentPlayer,
     isYourTurn,
@@ -53,13 +42,11 @@ const MultiplePlayingArea = (
 
   const handCard = currentPlayer?.handCard || [];
 
-  // const disabledActions =
-  //   needDiscard ||
-  //   checkAnswerCorrect === true ||
-  //   !!roomInfo?.isGameOver ||
-  //   !isYourTurn;
-
-  const disabledActions = needDiscard || !!roomInfo?.isGameOver || !isYourTurn;
+  const disabledActions =
+    needDiscard ||
+    !!roomInfo?.isGameOver ||
+    checkAnswerCorrect === true ||
+    !isYourTurn;
 
   useEffect(() => {
     // 如果手牌超過8張須棄牌
@@ -166,30 +153,15 @@ const MultiplePlayingArea = (
               />
             </div>
           </HoverTip>
-          {/* 返回首頁 */}
-          {/* {showCloseGamePlayingBtn && (
-            <HoverTip content="回到房間">
-              <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
-                <Image
-                  src="/close.svg"
-                  alt="close"
-                  width={24}
-                  height={24}
-                  priority
-                  onClick={() => onCloseScreen()}
-                />
-              </div>
-            </HoverTip>
-          )} */}
         </div>
       </div>
       <div className="relative flex flex-1 flex-col items-center gap-8 max-sm:gap-2">
         <MainPlayArea
           checkAnswerCorrect={checkAnswerCorrect}
           selectedCards={roomInfo?.selectedCards}
-          isAnimationFinished={isAnimationFinished}
-          onFinishedAnimations={onFinishedAnimations}
-          onUpdateScore={updateScore}
+          isSymbolScoreAnimationFinished={isSymbolScoreAnimationFinished}
+          onFinishedSymbolScoreAnimation={onFinishedSymbolScoreAnimation}
+          onUpdateScore={onUpdateScore}
           selectedCardSymbols={selectedCardSymbols}
           selectedCardNumbers={selectedCardNumbers}
           onSelectSymbol={symbol => onSelectCardOrSymbol({ symbol })}
@@ -213,11 +185,9 @@ const MultiplePlayingArea = (
           }}
         />
         <ActionArea
-          isSinglePlay={false}
           disabledActions={disabledActions}
           onSubmit={onPlayCard}
           onReselect={onReselect}
-          onSort={onSort}
           onEndPhase={() => {
             onReselect();
             onDrawCard();

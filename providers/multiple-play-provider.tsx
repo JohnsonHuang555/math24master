@@ -20,7 +20,6 @@ import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
 const socket = io();
-let playedCards = 0; // 已出過牌的數量
 
 /**
  * 1. 建立 Context
@@ -47,11 +46,11 @@ type MultiplePlayContextData = {
   ) => void;
   removePlayer: (playerId: string) => void;
   checkAnswerCorrect: boolean | null;
-  isAnimationFinished: boolean;
+  isSymbolScoreAnimationFinished: boolean;
   selectedCardSymbols: SelectedCard[];
   selectedCardNumbers: SelectedCard[];
-  onFinishedAnimations: () => void;
-  updateScore: () => void;
+  onFinishedSymbolScoreAnimation: () => void;
+  onUpdateScore: () => void;
   onSelectCardOrSymbol: ({
     number,
     symbol,
@@ -62,13 +61,13 @@ type MultiplePlayContextData = {
   onDiscardCard: (cardId: string) => void;
   onPlayCard: () => void;
   onReselect: () => void;
-  onSort: () => void;
   onDrawCard: () => void;
   currentPlayer?: Player;
   isYourTurn: boolean;
   onBack: () => void;
   isLastRound: boolean;
   countdown?: number;
+  sendMessage: (message: string) => void;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -83,6 +82,13 @@ type MultiplePlayProviderProps = {
   children: React.ReactNode;
 };
 export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
+  // 答案是否正確
+  const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
+    null,
+  );
+  // 動畫完成時
+  const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
+
   const [roomInfo, setRoomInfo] = useState<Room>();
   const [playerId, setPlayerId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -90,14 +96,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     countdown: number;
     needDrawPlayerId: string;
   }>();
-
-  // 動畫完成時
-  const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
-
-  // 答案是否正確
-  const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
-    null,
-  );
 
   // 已選的符號牌
   const selectedCardSymbols = useMemo(() => {
@@ -129,8 +127,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const isYourTurn = currentPlayer?.playerOrder === roomInfo?.currentOrder;
 
+  const resetState = useCallback(() => {
+    setCheckAnswerCorrect(null);
+    setFinishedAnimations(0);
+  }, []);
+
   useEffect(() => {
     socket.emit(SocketEvent.SearchRooms);
+    console.log('????');
 
     socket.on(SocketEvent.ErrorMessage, message => {
       toast.error(message);
@@ -148,26 +152,30 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       setPlayerId(playerId);
     });
 
-    // 遊戲開始回傳
-    socket.on(SocketEvent.StartGameSuccess, (roomInfo: Room) => {
-      setRoomInfo(roomInfo);
-    });
-
-    // 房間更新
-    socket.on(SocketEvent.RoomUpdate, (roomInfo: Room) => {
-      setRoomInfo(roomInfo);
-    });
-
-    // 檢查答案
-    socket.on(SocketEvent.PlayCardResponse, (isCorrect: boolean) => {
-      setCheckAnswerCorrect(isCorrect);
-    });
-
-    // 重置狀態
-    socket.on(SocketEvent.ResetStateResponse, () => {
-      setCheckAnswerCorrect(null);
-      setFinishedAnimations(0);
-    });
+    socket.on(
+      SocketEvent.RoomUpdate,
+      ({
+        room,
+        extra,
+      }: {
+        room: Room;
+        extra?: { event: SocketEvent; data: any };
+      }) => {
+        setRoomInfo(room);
+        // 重置狀態
+        if (extra?.event === SocketEvent.UpdateScore) {
+          resetState();
+        }
+        if (extra?.event === SocketEvent.PlayCardResponse) {
+          if (extra.data) {
+            toast.success('答案正確');
+          } else {
+            toast.error('答案不等於 24');
+          }
+          setCheckAnswerCorrect(extra.data as boolean);
+        }
+      },
+    );
 
     socket.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
       toast.info(`${playerName} 已離開房間`);
@@ -186,22 +194,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         toast.success(`恭喜 ${name} 獲得 ${score} 分，贏得勝利！`);
       },
     );
-  }, []);
-
-  useEffect(() => {
-    if (checkAnswerCorrect !== null) {
-      if (checkAnswerCorrect) {
-        if (isYourTurn) {
-          playedCards +=
-            roomInfo?.selectedCards.filter(c => c.number).length || 0;
-        }
-        toast.success('答案正確');
-      } else {
-        toast.error('答案不等於 24');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkAnswerCorrect]);
+  }, [resetState]);
 
   useEffect(() => {
     if (isLastRound) {
@@ -296,23 +289,15 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   );
 
   // 更新分數
-  const updateScore = useCallback(() => {
+  const onUpdateScore = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket) {
       socket.emit(SocketEvent.UpdateScore, {
         roomId: roomInfo?.roomId,
       });
-      // 重置狀態
-      socket.emit(SocketEvent.ResetState, {
-        roomId: roomInfo?.roomId,
-      });
     }
   }, [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId]);
-
-  const onFinishedAnimations = () => {
-    setFinishedAnimations(state => state + 1);
-  };
 
   // 選擇牌
   const onSelectCardOrSymbol = useCallback(
@@ -378,30 +363,18 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
   }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
 
-  // 排序
-  const onSort = useCallback(() => {
-    if (roomInfo?.isGameOver) return;
-
-    if (socket) {
-      socket.emit(SocketEvent.SortCard, { roomId: roomInfo?.roomId });
-    }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId]);
-
   // 結束回合並抽牌
   const onDrawCard = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
       return;
-    // toast.info('其他玩家回合');
 
     if (socket) {
-      // 沒出過牌抽 1 張，反之抽出過牌的數量
+      // 沒出過牌抽 1 張
       socket.emit(SocketEvent.DrawCard, {
         roomId: roomInfo?.roomId,
-        count: playedCards === 0 ? 1 : playedCards,
       });
-      playedCards = 0;
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
+  }, [checkAnswerCorrect, isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId]);
 
   // 退回鍵
   const onBack = useCallback(() => {
@@ -421,6 +394,18 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     roomInfo?.selectedCards.length,
   ]);
 
+  const sendMessage = useCallback(
+    (message: string) => {
+      if (socket) {
+        socket.emit(SocketEvent.SendMessage, {
+          roomId: roomInfo?.roomId,
+          message,
+        });
+      }
+    },
+    [roomInfo?.roomId],
+  );
+
   useEffect(() => {
     if (
       remainRoundTime?.countdown === 0 &&
@@ -430,6 +415,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDrawCard, playerId, remainRoundTime?.countdown]);
+
+  const onFinishedSymbolScoreAnimation = () => {
+    setFinishedAnimations(state => state + 1);
+  };
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
@@ -445,52 +434,52 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       editRoomSettings,
       removePlayer,
       checkAnswerCorrect,
-      isAnimationFinished:
+      isSymbolScoreAnimationFinished:
         checkAnswerCorrect === true &&
         finishedAnimations === selectedCardSymbols?.length,
       selectedCardSymbols: selectedCardSymbols || [],
       selectedCardNumbers: selectedCardNumbers || [],
-      onFinishedAnimations,
-      updateScore,
+      onFinishedSymbolScoreAnimation,
+      onUpdateScore,
       onSelectCardOrSymbol,
       onDiscardCard,
       onPlayCard,
       onReselect,
-      onSort,
       onDrawCard,
       currentPlayer,
       isYourTurn,
       onBack,
       isLastRound,
       countdown: remainRoundTime?.countdown,
+      sendMessage,
     };
   }, [
-    searchRooms,
-    joinRoom,
-    roomInfo,
-    playerId,
-    onReadyGame,
-    onStartGame,
-    messages,
+    checkAnswerCorrect,
+    currentPlayer,
     editRoom,
     editRoomSettings,
-    removePlayer,
-    checkAnswerCorrect,
     finishedAnimations,
-    selectedCardSymbols,
-    selectedCardNumbers,
-    updateScore,
-    onSelectCardOrSymbol,
-    onDiscardCard,
-    onPlayCard,
-    onReselect,
-    onSort,
-    onDrawCard,
-    currentPlayer,
-    isYourTurn,
-    onBack,
     isLastRound,
+    isYourTurn,
+    joinRoom,
+    messages,
+    onBack,
+    onDiscardCard,
+    onDrawCard,
+    onPlayCard,
+    onReadyGame,
+    onReselect,
+    onSelectCardOrSymbol,
+    onStartGame,
+    playerId,
     remainRoundTime?.countdown,
+    removePlayer,
+    roomInfo,
+    searchRooms,
+    selectedCardNumbers,
+    selectedCardSymbols,
+    sendMessage,
+    onUpdateScore,
   ]);
 
   return (
