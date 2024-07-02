@@ -18,18 +18,6 @@ import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 
-export function generateMetadata({
-  params,
-}: {
-  params: { roomId: string };
-}): Metadata {
-  return {
-    alternates: {
-      canonical: `https://math24master.com/${params.roomId}`,
-    },
-  };
-}
-
 export default function RoomPage() {
   const router = useRouter();
 
