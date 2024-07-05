@@ -293,7 +293,7 @@ export function startGame(roomId: string): Response {
 
     switch (room.players.length) {
       case 1:
-        tempDeck = createDeckByRandomMode(10, 10);
+        tempDeck = createDeckByRandomMode(40, 10);
         break;
       case 2:
         if (room.settings.deckType === DeckType.Random) {
