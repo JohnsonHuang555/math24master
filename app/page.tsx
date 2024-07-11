@@ -57,7 +57,7 @@ export default function Home() {
           animate={{ opacity: 1, scale: 1, transition: { delay: 0.2 } }}
           className="mb-6 text-xl font-semibold"
         >
-          運用你的智慧，成為 24 點大師
+          運用你的智慧，成為 24點大師
         </motion.h1>
         <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-md:w-4/5 md:w-2/5">
           {intro.map((el, i) => (
@@ -165,7 +165,7 @@ export default function Home() {
         </div>
         <div className="fixed bottom-4 items-center">
           <div className="mb-1 text-center text-xs text-gray-500">
-            此網站在電腦與平板支援度最佳，最後更新日 2024/07/02
+            此網站在電腦與平板支援度最佳，最後更新日 2024/07/11
           </div>
           <div className="flex justify-center">
             <div className="mr-2 flex gap-1 text-xs text-gray-500">
@@ -179,7 +179,7 @@ export default function Home() {
               />
               <span>{date.getFullYear()}.</span>
             </div>
-            <div className="mr-2 text-xs text-gray-500">v1.1.0</div>
+            <div className="mr-2 text-xs text-gray-500">v1.1.1</div>
             <Link
               href="https://github.com/JohnsonHuang555/24_points"
               target="_blank"

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useParams, useRouter } from 'next/navigation';
-import type { Metadata } from 'next';
 import ChatArea from '@/components/areas/chat-area';
 import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
 import PlayersArea from '@/components/areas/players-area';
