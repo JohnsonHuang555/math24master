@@ -1,6 +1,6 @@
 import { ToastContainer } from 'react-toastify';
 import { Noto_Sans_TC } from 'next/font/google';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
@@ -12,27 +12,32 @@ const fontNotoSans = Noto_Sans_TC({
   preload: true,
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ffffff',
+};
+
 export const metadata: Metadata = {
-  title: {
-    default: '24點',
-    template: '24點 | %s',
-  },
-  description:
-    '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
-  keywords: ['24點', 'math24', '24點大師', '數學24點'],
+  metadataBase: new URL('https://math24master.com'),
   openGraph: {
-    title: '24點',
-    description:
-      '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
-    images: [
-      {
-        url: 'https://www.math24master.com/logo.svg',
-        width: 400,
-        height: 300,
-      },
-    ],
-    locale: 'zh',
+    siteName: '24點',
     type: 'website',
+    locale: 'zh',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+    'max-video-preview': -1,
+    googleBot: 'index, follow',
+  },
+  applicationName: '24點',
+  appleWebApp: {
+    title: '24點',
+    statusBarStyle: 'default',
+    capable: true,
   },
 };
 
