@@ -75,7 +75,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 算式中有數字牌 <span className="font-semibold">5</span> 張額外加
                 2 分。
               </li>
-              <li>左右括號不計分</li>
+              <li>左右括號不計分。</li>
             </ol>
           </TabsContent>
           <TabsContent value="example" className="mt-2">
