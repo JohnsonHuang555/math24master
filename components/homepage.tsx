@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import MainLayout from '@/components/layouts/main-layout';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
@@ -17,11 +16,6 @@ const Homepage = () => {
   const [hasPlayerName, setHasPlayerName] = useState(false);
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-
-  const intro =
-    '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維'.split(
-      '',
-    );
 
   useEffect(() => {
     const playerName = localStorage.getItem('playerName');
@@ -63,21 +57,14 @@ const Homepage = () => {
         >
           運用你的智慧，成為24點大師
         </motion.h1>
-        <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-md:w-4/5 md:w-2/5">
-          {intro.map((el, i) => (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.2,
-                delay: i / 30,
-              }}
-              key={i}
-            >
-              {el}
-            </motion.span>
-          ))}
-        </p>
+        <motion.p
+          variants={fadeVariants}
+          initial="hidden"
+          animate={{ opacity: 1, scale: 1, transition: { delay: 0.2 } }}
+          className="mx-4 mb-8 max-w-[800px] text-center text-lg"
+        >
+          歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維
+        </motion.p>
         <motion.div
           variants={fadeVariants}
           initial="hidden"
@@ -94,7 +81,7 @@ const Homepage = () => {
           >
             <Image
               src="/document.svg"
-              alt="document"
+              alt="math24 rules"
               width={16}
               height={16}
               priority
@@ -168,23 +155,10 @@ const Homepage = () => {
           </motion.div>
         </div>
       </section>
-      <footer className="fixed bottom-4 left-1/2 -translate-x-1/2">
-        <div className="mb-1 text-center text-xs text-gray-500">
-          此網站在電腦與平板支援度最佳
-        </div>
-        <div className="flex justify-center">
-          <div className="mr-2 flex gap-1 text-xs text-gray-500">
-            <span>Created by Johnson Huang</span>
-            <Image
-              src="/smile-circle.svg"
-              alt="smile-circle"
-              width={12}
-              height={12}
-              priority
-            />
-            <span>{date.getFullYear()}.</span>
-          </div>
-          <div className="mr-2 text-xs text-gray-500">v1.1.3</div>
+      <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
+        <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
+          <div>此網站在電腦與平板支援度最佳</div>
+          <div className="mx-2 text-xs text-gray-500">v1.1.4</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
@@ -197,6 +171,17 @@ const Homepage = () => {
               priority
             />
           </Link>
+        </div>
+        <div className="flex justify-center gap-1 text-xs text-gray-500">
+          <span>#24點大師, #24點, Created by Johnson Huang</span>
+          <Image
+            src="/smile-circle.svg"
+            alt="smile-circle"
+            width={12}
+            height={12}
+            priority
+          />
+          <span>{date.getFullYear()}</span>
         </div>
       </footer>
     </>
