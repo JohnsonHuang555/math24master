@@ -29,7 +29,7 @@ const Homepage = () => {
   }, []);
 
   return (
-    <MainLayout>
+    <>
       <PlayerNameModal
         isOpen={isOpenNameModal}
         onOpenChange={v => setIsOpenNameModal(v)}
@@ -40,12 +40,16 @@ const Homepage = () => {
         }}
       />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <div className="flex h-full w-full flex-col items-center justify-center">
-        <motion.div variants={fadeVariants} initial="hidden" animate="show">
+      <section className="flex h-full w-full flex-col items-center justify-center">
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
+          animate="show"
+          className="mb-[50px]"
+        >
           <Image
-            src="/logo.svg"
+            src="/logo.webp"
             alt="Logo"
-            className="mb-[50px]"
             width={300}
             height={100}
             priority
@@ -57,7 +61,7 @@ const Homepage = () => {
           animate={{ opacity: 1, scale: 1, transition: { delay: 0.2 } }}
           className="mb-6 text-xl font-semibold"
         >
-          運用你的智慧，成為 24點大師
+          運用你的智慧，成為24點大師
         </motion.h1>
         <p className="mb-8 flex flex-wrap items-center justify-center text-lg max-md:w-4/5 md:w-2/5">
           {intro.map((el, i) => (
@@ -163,39 +167,39 @@ const Homepage = () => {
             </motion.div>
           </motion.div>
         </div>
-        <div className="fixed bottom-4 items-center">
-          <div className="mb-1 text-center text-xs text-gray-500">
-            此網站在電腦與平板支援度最佳，最後更新日 2024/07/14
-          </div>
-          <div className="flex justify-center">
-            <div className="mr-2 flex gap-1 text-xs text-gray-500">
-              <span>Created by Johnson Huang</span>
-              <Image
-                src="/smile-circle.svg"
-                alt="smile-circle"
-                width={12}
-                height={12}
-                priority
-              />
-              <span>{date.getFullYear()}.</span>
-            </div>
-            <div className="mr-2 text-xs text-gray-500">v1.1.2</div>
-            <Link
-              href="https://github.com/JohnsonHuang555/24_points"
-              target="_blank"
-            >
-              <Image
-                src="/github.svg"
-                alt="github"
-                width={14}
-                height={14}
-                priority
-              />
-            </Link>
-          </div>
+      </section>
+      <footer className="fixed bottom-4 left-1/2 -translate-x-1/2">
+        <div className="mb-1 text-center text-xs text-gray-500">
+          此網站在電腦與平板支援度最佳
         </div>
-      </div>
-    </MainLayout>
+        <div className="flex justify-center">
+          <div className="mr-2 flex gap-1 text-xs text-gray-500">
+            <span>Created by Johnson Huang</span>
+            <Image
+              src="/smile-circle.svg"
+              alt="smile-circle"
+              width={12}
+              height={12}
+              priority
+            />
+            <span>{date.getFullYear()}.</span>
+          </div>
+          <div className="mr-2 text-xs text-gray-500">v1.1.3</div>
+          <Link
+            href="https://github.com/JohnsonHuang555/24_points"
+            target="_blank"
+          >
+            <Image
+              src="/github.svg"
+              alt="github"
+              width={14}
+              height={14}
+              priority
+            />
+          </Link>
+        </div>
+      </footer>
+    </>
   );
 };
 

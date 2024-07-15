@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Homepage from '@/components/homepage';
+import MainLayout from '@/components/layouts/main-layout';
 
 export const metadata: Metadata = {
   title: {
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
       '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
     images: [
       {
-        url: 'https://www.math24master.com/logo.svg',
+        url: 'https://www.math24master.com/logo.webp',
         width: 400,
         height: 300,
         alt: '24點',
@@ -30,5 +31,9 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <Homepage />;
+  return (
+    <MainLayout>
+      <Homepage />
+    </MainLayout>
+  );
 }
