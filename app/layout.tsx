@@ -57,7 +57,7 @@ export default function RootLayout({
         <div
           className="m:bg-center absolute h-full w-full bg-cover opacity-30 max-md:bg-right"
           style={{
-            backgroundImage: `url(/b2.jpg)`,
+            backgroundImage: `url(/b2.webp)`,
             zIndex: '-999',
           }}
         />
