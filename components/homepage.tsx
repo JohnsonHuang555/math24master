@@ -81,7 +81,7 @@ const Homepage = () => {
           >
             <Image
               src="/document.svg"
-              alt="math24 rules"
+              alt="24點規則"
               width={16}
               height={16}
               priority
@@ -107,7 +107,7 @@ const Homepage = () => {
               >
                 <Image
                   src="/single-player.svg"
-                  alt="single-player"
+                  alt="單人遊玩"
                   width={58}
                   height={58}
                   priority
@@ -141,7 +141,7 @@ const Homepage = () => {
               >
                 <Image
                   src="/multiple-players.svg"
-                  alt="multiple-players"
+                  alt="多人連線"
                   width={58}
                   height={58}
                   priority
@@ -158,7 +158,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v1.1.4</div>
+          <div className="mx-2 text-xs text-gray-500">v1.2.4</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
