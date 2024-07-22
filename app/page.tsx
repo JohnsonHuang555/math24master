@@ -4,8 +4,8 @@ import MainLayout from '@/components/layouts/main-layout';
 
 export const metadata: Metadata = {
   title: {
-    default: '24點',
-    template: '24點 | %s',
+    default: '24點大師',
+    template: '24點大師 | %s',
   },
   description:
     '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     url: 'https://math24master.com',
     type: 'website',
-    title: '24點',
+    title: '24點大師',
     description:
       '歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維',
     images: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
         url: 'https://www.math24master.com/logo.webp',
         width: 400,
         height: 300,
-        alt: '24點',
+        alt: '24點大師',
       },
     ],
   },

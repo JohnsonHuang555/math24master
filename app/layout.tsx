@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://math24master.com'),
   openGraph: {
-    siteName: '24點',
+    siteName: '24點大師',
     type: 'website',
     locale: 'zh',
   },
@@ -33,9 +33,9 @@ export const metadata: Metadata = {
     'max-video-preview': -1,
     googleBot: 'index, follow',
   },
-  applicationName: '24點',
+  applicationName: '24點大師',
   appleWebApp: {
-    title: '24點',
+    title: '24點大師',
     statusBarStyle: 'default',
     capable: true,
   },
