@@ -507,7 +507,7 @@ export function playCard(
       };
     }
     return {
-      isCorrect: true,
+      isCorrect: false,
       room: _rooms[roomIndex],
     };
   } catch (e) {
