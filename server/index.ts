@@ -187,12 +187,12 @@ app.prepare().then(() => {
     });
 
     socket.on(SocketEvent.PlayCard, ({ roomId }) => {
-      const { room, msg } = playCard(roomId, playerId);
+      const { room, msg, isCorrect } = playCard(roomId, playerId);
       if (msg) {
         socket.emit(SocketEvent.ErrorMessage, msg);
         return;
       }
-      if (room) {
+      if (isCorrect) {
         // 答對
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
           room,
