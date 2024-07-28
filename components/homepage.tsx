@@ -158,7 +158,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v1.2.5</div>
+          <div className="mx-2 text-xs text-gray-500">v1.2.6</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
