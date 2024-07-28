@@ -511,7 +511,7 @@ export function playCard(
       room: _rooms[roomIndex],
     };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (play card)' };
+    return { msg: '算式有誤 (play card)' };
   }
 }
 
@@ -617,7 +617,7 @@ export function selectCard(
 
     if (selectedCards.length === 0 && symbol && symbol !== Symbol.LeftBracket) {
       return {
-        msg: '第一個符號只能用左括號',
+        msg: '第一個只能用左括號或數字',
       };
     }
 
@@ -646,15 +646,27 @@ export function selectCard(
     }
     if (symbol) {
       const lastCard = selectedCards[selectedCards.length - 1];
-      if (lastCard.symbol === Symbol.Minus && symbol === Symbol.Minus) {
+      if (lastCard?.symbol === Symbol.Minus && symbol === Symbol.Minus) {
         return {
           msg: '減號不能連續用',
         };
       }
 
-      if (lastCard.symbol === Symbol.Plus && symbol === Symbol.Plus) {
+      if (lastCard?.symbol === Symbol.Plus && symbol === Symbol.Plus) {
         return {
           msg: '加號不能連續用',
+        };
+      }
+
+      if (lastCard?.symbol === Symbol.Times && symbol === Symbol.Times) {
+        return {
+          msg: '乘號不能連續用',
+        };
+      }
+
+      if (lastCard?.symbol === Symbol.Divide && symbol === Symbol.Divide) {
+        return {
+          msg: '除號不能連續用',
         };
       }
 
@@ -665,7 +677,7 @@ export function selectCard(
       // }
 
       if (
-        lastCard.symbol === Symbol.LeftBracket &&
+        lastCard?.symbol === Symbol.LeftBracket &&
         [Symbol.Plus, Symbol.Minus].includes(symbol)
       ) {
         return {
