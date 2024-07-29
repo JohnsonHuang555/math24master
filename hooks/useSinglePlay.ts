@@ -125,7 +125,7 @@ const useSinglePlay = () => {
 
   // 重選
   const onReselect = () => {
-    if (isGameOver || checkAnswerCorrect !== null) return;
+    if (isGameOver) return;
 
     if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
@@ -190,7 +190,7 @@ const useSinglePlay = () => {
   };
 
   const onBack = () => {
-    if (isGameOver || checkAnswerCorrect !== null) return;
+    if (isGameOver) return;
 
     if (socket && roomInfo?.selectedCards.length) {
       socket.emit(SocketEvent.BackCard, {
