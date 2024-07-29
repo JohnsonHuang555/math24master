@@ -353,15 +353,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 重選
   const onReselect = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
-      return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket) {
       socket.emit(SocketEvent.ReselectCard, {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn, checkAnswerCorrect]);
+  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn]);
 
   // 結束回合並抽牌
   const onDrawCard = useCallback(() => {
@@ -378,8 +377,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 退回鍵
   const onBack = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
-      return;
+    if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket && roomInfo?.selectedCards.length) {
       socket.emit(SocketEvent.BackCard, {
@@ -387,7 +385,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       });
     }
   }, [
-    checkAnswerCorrect,
     isYourTurn,
     roomInfo?.isGameOver,
     roomInfo?.roomId,

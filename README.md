@@ -2,7 +2,7 @@
 
 ![Static Badge](https://img.shields.io/badge/math24-master-orange)&nbsp;
 ![Static Badge](https://img.shields.io/badge/node-v18.18.2-blue)&nbsp;
-![Static Badge](https://img.shields.io/badge/current-v1.2.7-blue)&nbsp;
+![Static Badge](https://img.shields.io/badge/current-v1.2.8-blue)&nbsp;
 ![Static Badge](https://img.shields.io/badge/let's-play-g)
 
 🎉 Welcome to the Math24 Master! This is a challenging and fun puzzle game that tests your mathematical skills and strategic thinking.
