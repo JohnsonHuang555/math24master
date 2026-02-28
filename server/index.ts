@@ -25,7 +25,7 @@ import {
 } from './game';
 
 const port = parseInt(process.env.PORT || '3000', 10);
-const hostname = 'localhost';
+const hostname = process.env.HOSTNAME || 'localhost';
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();

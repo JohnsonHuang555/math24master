@@ -17,7 +17,7 @@ export type AlertDialogStoreProviderProps = {
 export const AlertDialogStoreProvider = ({
   children,
 }: AlertDialogStoreProviderProps) => {
-  const storeRef = useRef<StoreApi<AlertDialogStore>>();
+  const storeRef = useRef<StoreApi<AlertDialogStore> | undefined>(undefined);
   if (!storeRef.current) {
     storeRef.current = createAlertDialogStore();
   }
