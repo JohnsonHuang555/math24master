@@ -1,4 +1,5 @@
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import { cn } from '@/lib/utils';
