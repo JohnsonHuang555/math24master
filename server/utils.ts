@@ -1,10 +1,10 @@
-/** 產生牌庫 n 為各幾張 */
-export function createDeckByStandardMode(n: number) {
+/** 產生牌庫 n 為各幾張，maxValue 為最大牌值（預設 10）*/
+export function createDeckByStandardMode(n: number, maxValue: number = 10) {
   // 創建一個空陣列來儲存結果
   const result = [];
 
-  // 遍歷 1 到 10 的數字
-  for (let i = 1; i <= 10; i++) {
+  // 遍歷 1 到 maxValue 的數字
+  for (let i = 1; i <= maxValue; i++) {
     // 每個數字放入 n 次
     for (let j = 0; j < n; j++) {
       result.push(i);

@@ -18,12 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Difficulty } from '@/models/Room';
 
 type CreateRoomModalProps = {
   roomId: string;
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
-  onConfirm: (roomName: string, maxPlayers: number, password: string) => void;
+  onConfirm: (
+    roomName: string,
+    maxPlayers: number,
+    password: string,
+    difficulty: Difficulty,
+  ) => void;
 };
 
 const CreateRoomModal = ({
@@ -35,6 +41,7 @@ const CreateRoomModal = ({
   const [maxPlayers, setMaxPlayers] = useState('2');
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Normal);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -75,6 +82,26 @@ const CreateRoomModal = ({
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="difficulty" className="text-right">
+              難度
+            </Label>
+            <Select
+              defaultValue={difficulty}
+              onValueChange={v => setDifficulty(v as Difficulty)}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue id="difficulty" placeholder="請選擇難度" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={Difficulty.Easy}>簡單（牌值 1–6）</SelectItem>
+                  <SelectItem value={Difficulty.Normal}>普通（牌值 1–10）</SelectItem>
+                  <SelectItem value={Difficulty.Hard}>困難（牌值 1–13）</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
             <div className="flex justify-end">
               <Checkbox
                 className="border-border"
@@ -107,7 +134,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              onConfirm(roomName, Number(maxPlayers), password);
+              onConfirm(roomName, Number(maxPlayers), password, difficulty);
             }}
           >
             確定

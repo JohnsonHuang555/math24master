@@ -6,6 +6,7 @@ import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
+import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -30,6 +31,9 @@ const MultiplePlayingArea = () => {
     onBack,
     isLastRound,
     countdown,
+    playerId,
+    gameOverData,
+    onCloseGameOver,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(
@@ -67,6 +71,16 @@ const MultiplePlayingArea = () => {
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      {gameOverData && (
+        <GameOverModal
+          isOpen={!!gameOverData}
+          onClose={onCloseGameOver}
+          players={gameOverData.players}
+          currentPlayerId={playerId}
+          onPlayAgain={onCloseGameOver}
+          onGoHome={() => (window.location.href = '/multiple-play')}
+        />
+      )}
       <div className="relative flex w-full basis-1/5 items-center justify-center">
         {/* 對手玩家 */}
         {otherPlayers?.map(player => (

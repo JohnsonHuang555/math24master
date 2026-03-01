@@ -14,9 +14,16 @@ export enum DeckType {
   Random = 'random',
 }
 
+export enum Difficulty {
+  Easy = 'easy',
+  Normal = 'normal',
+  Hard = 'hard',
+}
+
 export type RoomSettings = {
   deckType: DeckType;
   remainSeconds: number | null;
+  difficulty: Difficulty;
 };
 
 export type Room = {

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { AchievementModal } from '@/components/modals/achievement-modal';
+import { StatsModal } from '@/components/modals/stats-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { fadeVariants } from '@/lib/animation-variants';
@@ -12,11 +14,37 @@ const date = new Date();
 
 const Homepage = () => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const [isOpenAchievementModal, setIsOpenAchievementModal] = useState(false);
+  const [isOpenStatsModal, setIsOpenStatsModal] = useState(false);
 
   return (
     <>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <section className="flex h-full w-full flex-col items-center justify-center">
+      <AchievementModal
+        isOpen={isOpenAchievementModal}
+        onClose={() => setIsOpenAchievementModal(false)}
+      />
+      <StatsModal
+        isOpen={isOpenStatsModal}
+        onClose={() => setIsOpenStatsModal(false)}
+      />
+      <section className="relative flex h-full w-full flex-col items-center justify-center">
+        <div className="absolute right-5 top-5 flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpenStatsModal(true)}
+          >
+            統計
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpenAchievementModal(true)}
+          >
+            成就
+          </Button>
+        </div>
         <motion.div
           variants={fadeVariants}
           initial="hidden"
@@ -80,6 +108,7 @@ const Homepage = () => {
             scale: 1,
             transition: { delay: 0.8 },
           }}
+          className="flex flex-col items-center gap-3"
         >
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
             <Button
@@ -88,6 +117,15 @@ const Homepage = () => {
               onClick={() => (window.location.href = '/single-play')}
             >
               開始遊戲
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
+            <Button
+              variant="outline"
+              className="px-8"
+              onClick={() => (window.location.href = '/daily-challenge')}
+            >
+              每日挑戰
             </Button>
           </motion.div>
         </motion.div>
