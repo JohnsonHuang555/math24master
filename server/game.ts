@@ -6,6 +6,7 @@ import { NumberCard, Player } from '../models/Player';
 import { GameResponse } from '../models/Response';
 import { DeckType, Difficulty, HAND_CARD_COUNT, Room } from '../models/Room';
 import { Symbol } from '../models/Symbol';
+import { canMake24 } from '../lib/daily-seed';
 import {
   createDeckByRandomMode,
   createDeckByStandardMode,
@@ -68,6 +69,30 @@ const _getCurrentPlayerIndex = (players: Player[], playerId: string) => {
   const playerIndex = players.findIndex(player => player.id === playerId);
   return playerIndex;
 };
+
+/** 抽出有解的手牌，若多次嘗試仍無解則直接返回（兜底） */
+function _drawSolvableHand(
+  roomIndex: number,
+  n: number,
+  maxAttempts = 20,
+): { drawn: NumberCard[]; deck: NumberCard[] } {
+  let deck = _rooms[roomIndex].deck;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (deck.length < n) break;
+    const { drawn, remaining } = draw(deck, n);
+    if (canMake24(drawn.map(c => c.value))) {
+      return { drawn, deck: remaining };
+    }
+    deck = shuffleArray([...remaining, ...drawn]);
+  }
+  // 兜底：直接抽（牌堆快耗盡或超過嘗試次數）
+  if (deck.length >= n) {
+    const { drawn, remaining } = draw(deck, n);
+    return { drawn, deck: remaining };
+  }
+  // 牌堆不足 n 張：取全部
+  return { drawn: deck, deck: [] };
+}
 
 const _nextPlayerTurn = (roomIndex: number) => {
   const activePlayer = _rooms[roomIndex].currentOrder;
@@ -439,9 +464,9 @@ export function drawCard(
           _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
         }
       } else {
-        const { drawn, remaining } = draw(_rooms[roomIndex].deck, count);
-        _rooms[roomIndex].players[playerIndex].handCard.push(...drawn);
-        _rooms[roomIndex].deck = remaining;
+        const result = _drawSolvableHand(roomIndex, count);
+        _rooms[roomIndex].players[playerIndex].handCard.push(...result.drawn);
+        _rooms[roomIndex].deck = result.deck;
       }
     }
 
@@ -772,9 +797,9 @@ export function skipHand(roomId: string, playerId: string): SkipHandResult {
         _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
       }
     } else {
-      const { drawn, remaining } = draw(_rooms[roomIndex].deck, HAND_CARD_COUNT);
-      _rooms[roomIndex].players[playerIndex].handCard = drawn;
-      _rooms[roomIndex].deck = remaining;
+      const result = _drawSolvableHand(roomIndex, HAND_CARD_COUNT);
+      _rooms[roomIndex].players[playerIndex].handCard = result.drawn;
+      _rooms[roomIndex].deck = result.deck;
     }
 
     // 切換下一位玩家

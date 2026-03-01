@@ -137,19 +137,18 @@ const Homepage = () => {
             scale: 1,
             transition: { delay: 1.5 },
           }}
-          className="mt-10 max-w-[600px] px-4 text-center"
+          className="mt-10 max-w-[500px] px-4 text-center"
         >
           <p className="text-xs leading-relaxed text-gray-400">
             <strong className="font-medium">24點遊戲介紹：</strong>
-            使用4張牌（1–10），透過加、減、乘、除四則運算，計算出結果等於24。
-            支援單人練習和多人即時對戰，免費遊玩，訓練數學和邏輯思維能力。
+            使用4張牌（1-10），透過加、減、乘、除四則運算，計算出結果等於2，訓練數學和邏輯思維能力。
           </p>
         </motion.div>
       </section>
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v2.3.0</div>
+          <div className="mx-2 text-xs text-gray-500">v2.4.0</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"

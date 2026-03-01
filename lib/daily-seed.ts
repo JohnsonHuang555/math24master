@@ -14,7 +14,7 @@ function createSeededRandom(seed: number) {
 }
 
 /** 遞迴暴力搜索：4 張牌能否組出 24 */
-function canMake24(nums: number[]): boolean {
+export function canMake24(nums: number[]): boolean {
   if (nums.length === 1) return Math.abs(nums[0] - 24) < 1e-6;
   for (let i = 0; i < nums.length; i++) {
     for (let j = 0; j < nums.length; j++) {
