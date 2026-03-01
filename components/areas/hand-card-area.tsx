@@ -9,9 +9,9 @@ import GameCard from '../game-card';
 type HandCardAreaProps = {
   selectedCards: SelectedCard[];
   handCard?: NumberCard[];
-  needDiscard: boolean;
+  needDiscard?: boolean;
   onSelect: (number: NumberCard) => void;
-  onDiscard: (id: string) => void;
+  onDiscard?: (id: string) => void;
 };
 
 const HandCardArea = ({
@@ -72,7 +72,7 @@ const HandCardArea = ({
               <GameCard
                 value={card.value}
                 onSelect={() => {
-                  if (needDiscard) {
+                  if (needDiscard && onDiscard) {
                     onDiscard(card.id);
                   } else {
                     onSelect(card);

@@ -43,13 +43,9 @@ export function shuffleArray<T>(array: T[]) {
   return shuffledArray;
 }
 
-/** 抽牌 n = 抽幾張 */
-export function draw<T>(array: T[], n: number) {
-  const cloneArray = [...array];
-  // 改變原始陣列並移除 n 個
-  for (let index = 0; index < n; index++) {
-    array.pop();
-  }
-  // 回傳抽 n 個的結果
-  return cloneArray.slice(-n);
+/** 抽牌 n = 抽幾張，純函數不修改原始陣列 */
+export function draw<T>(array: T[], n: number): { drawn: T[]; remaining: T[] } {
+  const remaining = array.slice(0, -n);
+  const drawn = array.slice(-n);
+  return { drawn, remaining };
 }

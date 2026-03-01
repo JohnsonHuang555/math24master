@@ -2,9 +2,46 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Symbols from '@/components/symbols';
 import { fadeVariants } from '@/lib/animation-variants';
-import { calculateAnswer, calculateNumbersScore } from '@/lib/utils';
+import { calculateAnswer } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
+
+type SymbolScoreAnimationProps = {
+  score: number;
+  show: boolean;
+  delay: number;
+  onComplete: () => void;
+};
+
+const SymbolScoreAnimation = ({
+  score,
+  show,
+  delay,
+  onComplete,
+}: SymbolScoreAnimationProps) => {
+  if (!show) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, top: 0, scale: 0.1 }}
+      animate={{
+        opacity: 1,
+        y: -25,
+        x: 13,
+        scale: 1.15,
+        transition: { delay },
+      }}
+      className="absolute"
+      onAnimationComplete={onComplete}
+    >
+      <div
+        className="font-semibold max-md:text-sm"
+        style={{ color: 'rgb(5 150 105)' }}
+      >
+        +{score}
+      </div>
+    </motion.div>
+  );
+};
 
 type MainPlayAreaProps = {
   checkAnswerCorrect: boolean | null;
@@ -41,27 +78,12 @@ const MainPlayArea = ({
                 className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/plus.svg" alt="plus" priority fill />
-                {checkAnswerCorrect && (
-                  <motion.div
-                    initial={{ opacity: 0, top: 1, scale: 0.1 }}
-                    animate={{
-                      opacity: 1,
-                      y: -25,
-                      x: 13,
-                      scale: 1.15,
-                      transition: { delay: index * 0.3 },
-                    }}
-                    className="absolute"
-                    onAnimationComplete={onFinishedSymbolScoreAnimation}
-                  >
-                    <div
-                      className="font-semibold max-md:text-sm"
-                      style={{ color: 'rgb(5 150 105)' }}
-                    >
-                      +1
-                    </div>
-                  </motion.div>
-                )}
+                <SymbolScoreAnimation
+                  score={1}
+                  show={!!checkAnswerCorrect}
+                  delay={index * 0.3}
+                  onComplete={onFinishedSymbolScoreAnimation}
+                />
               </motion.span>
             );
           case Symbol.Minus:
@@ -74,27 +96,12 @@ const MainPlayArea = ({
                 className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/minus.svg" alt="minus" fill priority />
-                {checkAnswerCorrect && (
-                  <motion.div
-                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
-                    animate={{
-                      opacity: 1,
-                      y: -25,
-                      x: 13,
-                      scale: 1.15,
-                      transition: { delay: index * 0.3 },
-                    }}
-                    className="absolute"
-                    onAnimationComplete={onFinishedSymbolScoreAnimation}
-                  >
-                    <div
-                      className="font-semibold max-md:text-sm"
-                      style={{ color: 'rgb(5 150 105)' }}
-                    >
-                      +1
-                    </div>
-                  </motion.div>
-                )}
+                <SymbolScoreAnimation
+                  score={1}
+                  show={!!checkAnswerCorrect}
+                  delay={index * 0.3}
+                  onComplete={onFinishedSymbolScoreAnimation}
+                />
               </motion.span>
             );
           case Symbol.Times:
@@ -107,27 +114,12 @@ const MainPlayArea = ({
                 className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/times.svg" alt="times" priority fill />
-                {checkAnswerCorrect && (
-                  <motion.div
-                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
-                    animate={{
-                      opacity: 1,
-                      y: -25,
-                      x: 13,
-                      scale: 1.15,
-                      transition: { delay: index * 0.3 },
-                    }}
-                    className="absolute"
-                    onAnimationComplete={onFinishedSymbolScoreAnimation}
-                  >
-                    <div
-                      className="font-semibold max-md:text-sm"
-                      style={{ color: 'rgb(5 150 105)' }}
-                    >
-                      +2
-                    </div>
-                  </motion.div>
-                )}
+                <SymbolScoreAnimation
+                  score={2}
+                  show={!!checkAnswerCorrect}
+                  delay={index * 0.3}
+                  onComplete={onFinishedSymbolScoreAnimation}
+                />
               </motion.span>
             );
           case Symbol.Divide:
@@ -140,27 +132,12 @@ const MainPlayArea = ({
                 className="relative max-md:h-8 max-md:w-8 md:h-10 md:w-10"
               >
                 <Image src="/divide.svg" alt="divide" fill priority />
-                {checkAnswerCorrect && (
-                  <motion.div
-                    initial={{ opacity: 0, top: 0, scale: 0.1 }}
-                    animate={{
-                      opacity: 1,
-                      y: -25,
-                      x: 13,
-                      scale: 1.15,
-                      transition: { delay: index * 0.3 },
-                    }}
-                    className="absolute"
-                    onAnimationComplete={onFinishedSymbolScoreAnimation}
-                  >
-                    <div
-                      className="font-semibold max-md:text-sm"
-                      style={{ color: 'rgb(5 150 105)' }}
-                    >
-                      +3
-                    </div>
-                  </motion.div>
-                )}
+                <SymbolScoreAnimation
+                  score={3}
+                  show={!!checkAnswerCorrect}
+                  delay={index * 0.3}
+                  onComplete={onFinishedSymbolScoreAnimation}
+                />
               </motion.span>
             );
           case Symbol.LeftBracket:
@@ -241,14 +218,6 @@ const MainPlayArea = ({
                 符號 2 張除{' '}
                 <span className="text-base font-semibold text-emerald-600">
                   +1
-                </span>
-              </div>
-            )}
-            {selectedCardNumbers.length >= 4 && (
-              <div className="text-sm">
-                數字牌 {selectedCardNumbers.length} 張{' '}
-                <span className="text-base font-semibold text-emerald-600">
-                  +{calculateNumbersScore(selectedCardNumbers.length)}
                 </span>
               </div>
             )}

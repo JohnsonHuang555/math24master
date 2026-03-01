@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { calculateAnswer, calculateNumbersScore } from '../lib/utils';
+import { calculateAnswer } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
+import { GameResponse } from '../models/Response';
 import { DeckType, HAND_CARD_COUNT, Room } from '../models/Room';
 import { Symbol } from '../models/Symbol';
 import {
@@ -12,10 +13,25 @@ import {
   shuffleArray,
 } from './utils';
 
-type Response = {
-  msg?: string;
-  room?: Room;
-};
+type JoinRoomResult =
+  | { success: true; room: Room }
+  | { success: false; error: string; needPassword?: true };
+
+type DrawCardResult =
+  | { success: true; room: Room; winner?: Player }
+  | { success: false; error: string };
+
+type PlayCardResult =
+  | { success: true; room: Room; isCorrect: boolean }
+  | { success: false; error: string };
+
+type UpdateScoreResult =
+  | { success: true; room: Room; winner?: Player }
+  | { success: false; error: string };
+
+type SkipHandResult =
+  | { success: true; room: Room; winner?: Player }
+  | { success: false; error: string };
 
 // 所有房間資訊
 let _rooms: Room[] = [];
@@ -142,7 +158,7 @@ export function joinRoom(
   playerId: string,
   playerName: string,
   mode: GameMode,
-): Response & { needPassword?: boolean } {
+): JoinRoomResult {
   try {
     _playerInRoomMap[playerId] = payload.roomId;
     const roomIndex = _getCurrentRoomIndex(payload.roomId);
@@ -154,20 +170,16 @@ export function joinRoom(
       );
       const isMaster = _rooms[roomIndex].players[playerIndex]?.isMaster;
       if (isMaster) {
-        return {
-          room: _rooms[roomIndex],
-        };
+        return { success: true, room: _rooms[roomIndex] };
       }
 
       // 當房間有設密碼且不是房主需要回傳密碼輸入事件
       if (_rooms[roomIndex].password && !isMaster) {
         if (!payload.password) {
-          return {
-            needPassword: true,
-          };
+          return { success: false, error: '', needPassword: true };
         }
         if (_rooms[roomIndex].password !== payload.password) {
-          return { msg: '密碼錯誤' };
+          return { success: false, error: '密碼錯誤' };
         }
       }
 
@@ -182,22 +194,18 @@ export function joinRoom(
         isReady: false,
       });
 
-      return {
-        room: _rooms[roomIndex],
-      };
+      return { success: true, room: _rooms[roomIndex] };
     } else {
       // 沒有房間名稱，表示房間已經被刪除剛好有玩家加入時
       if (mode === GameMode.Multiple && !payload.roomName) {
-        return {
-          msg: '房間不存在',
-        };
+        return { success: false, error: '房間不存在' };
       }
       // 建立房間時已經有相同成稱的房間需擋掉
       if (mode === GameMode.Multiple && payload.roomName) {
         const existRoomName = _rooms.find(
           room => room.roomName === payload.roomName,
         );
-        if (existRoomName) return { msg: '房間名稱已存在' };
+        if (existRoomName) return { success: false, error: '房間名稱已存在' };
       }
       // 創建新房間
       const newRoom: Room = {
@@ -228,19 +236,17 @@ export function joinRoom(
       };
       _rooms.push(newRoom);
 
-      return {
-        room: newRoom,
-      };
+      return { success: true, room: newRoom };
     }
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (join room)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (join room)' };
   }
 }
 
 // 離開房間
 export function leaveRoom(
   playerId: string,
-): (Response & { playerName: string }) | undefined {
+): { room: Room; playerName: string } | undefined {
   const roomId = _playerInRoomMap[playerId];
   const room = _getCurrentRoom(roomId);
   // 房間不存在
@@ -274,7 +280,7 @@ export function leaveRoom(
       return room;
     });
 
-    const newRoom = _rooms.find(room => room.roomId === roomId);
+    const newRoom = _rooms.find(room => room.roomId === roomId) as Room;
 
     // 移除 mapping 表
     delete _playerInRoomMap[playerId];
@@ -284,9 +290,9 @@ export function leaveRoom(
 }
 
 // 開始遊戲
-export function startGame(roomId: string): Response {
+export function startGame(roomId: string): GameResponse {
   const room = _getCurrentRoom(roomId);
-  if (!room) return { msg: '房間不存在' };
+  if (!room) return { success: false, error: '房間不存在' };
 
   try {
     let tempDeck: number[] = [];
@@ -317,9 +323,7 @@ export function startGame(roomId: string): Response {
         }
         break;
       default:
-        return {
-          msg: '開始遊戲失敗',
-        };
+        return { success: false, error: '開始遊戲失敗' };
     }
 
     // 洗牌
@@ -337,23 +341,23 @@ export function startGame(roomId: string): Response {
     // 隨機玩家順序
     const shuffledPlayerOrder = shuffleArray(playerOrders);
     if (shuffledPlayerOrder.length !== room.players.length)
-      return { msg: '發生錯誤，請稍後再試 (shuffle)' };
+      return { success: false, error: '發生錯誤，請稍後再試 (shuffle)' };
 
+    let remainingDeck = shuffledDeck;
     shuffledPlayerOrder.forEach((order, index) => {
       _rooms[roomIndex].players[index].playerOrder = order;
       _rooms[roomIndex].players[index].score = 0;
       _rooms[roomIndex].players[index].isLastRoundPlayer = false;
-      if (shuffledDeck.length) {
+      if (remainingDeck.length) {
         // 抽牌並改變牌庫牌數
-        _rooms[roomIndex].players[index].handCard = draw(
-          shuffledDeck,
-          HAND_CARD_COUNT,
-        );
+        const { drawn, remaining } = draw(remainingDeck, HAND_CARD_COUNT);
+        _rooms[roomIndex].players[index].handCard = drawn;
+        remainingDeck = remaining;
       }
     });
 
     // 寫入牌庫
-    _rooms[roomIndex].deck = shuffledDeck;
+    _rooms[roomIndex].deck = remainingDeck;
     // 從玩家1開始
     _rooms[roomIndex].currentOrder = 1;
     // 初始化
@@ -361,34 +365,30 @@ export function startGame(roomId: string): Response {
     _rooms[roomIndex].isGameOver = false;
     _rooms[roomIndex].selectedCards = [];
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (start game)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (start game)' };
   }
 }
 
 // 準備遊戲
-export function readyGame(roomId: string, playerId: string): Response {
+export function readyGame(roomId: string, playerId: string): GameResponse {
   const roomIndex = _getCurrentRoomIndex(roomId);
-  if (roomIndex === -1) return { msg: '房間不存在' };
+  if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
   const playerIndex = _getCurrentPlayerIndex(
     _rooms[roomIndex].players,
     playerId,
   );
-  if (playerIndex === -1) return { msg: '玩家不存在' };
+  if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
   try {
     _rooms[roomIndex].players[playerIndex].isReady =
       !_rooms[roomIndex].players[playerIndex].isReady;
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (ready game)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (ready game)' };
   }
 }
 
@@ -397,20 +397,20 @@ export function drawCard(
   roomId: string,
   playerId: string,
   count: number,
-): Response & { winner?: Player } {
+): DrawCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { msg: '玩家不存在' };
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     const gameOver = _checkGameOver(roomIndex, playerIndex);
     if (gameOver) {
-      return gameOver;
+      return { success: true, room: gameOver.room, winner: gameOver.winner };
     } else {
       if (_rooms[roomIndex].deck.length <= count) {
         _rooms[roomIndex].players[playerIndex].handCard.push(
@@ -425,20 +425,18 @@ export function drawCard(
           _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
         }
       } else {
-        _rooms[roomIndex].players[playerIndex].handCard.push(
-          ...draw(_rooms[roomIndex].deck, count),
-        );
+        const { drawn, remaining } = draw(_rooms[roomIndex].deck, count);
+        _rooms[roomIndex].players[playerIndex].handCard.push(...drawn);
+        _rooms[roomIndex].deck = remaining;
       }
     }
 
     // 切換下一位玩家
     _nextPlayerTurn(roomIndex);
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (draw card)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (draw card)' };
   }
 }
 
@@ -447,27 +445,25 @@ export function discardCard(
   roomId: string,
   playerId: string,
   cardId: string,
-): Response {
+): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { msg: '玩家不存在' };
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
       c => c.id !== cardId,
     );
     _rooms[roomIndex].players[playerIndex].handCard = newCards;
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (discard card)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (discard card)' };
   }
 }
 
@@ -475,58 +471,52 @@ export function discardCard(
 export function playCard(
   roomId: string,
   playerId: string,
-): Response & { isCorrect?: boolean } {
+): PlayCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { msg: '玩家不存在' };
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     const selectedCards = _rooms[roomIndex].selectedCards;
     const answer = calculateAnswer(selectedCards);
 
-    if (answer === 24) {
-      // 使用的數字牌
-      const numberCards = selectedCards
-        .filter(c => c.number)
-        .map(c => c.number?.id);
+    // 使用的數字牌
+    const numberCards = selectedCards
+      .filter(c => c.number)
+      .map(c => c.number?.id);
 
+    // 傳統模式：必須用完所有手牌
+    const handCardCount = _rooms[roomIndex].players[playerIndex].handCard.length;
+    if (answer === 24 && numberCards.length === handCardCount) {
       // 移除數字牌
       const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
         c => !numberCards.includes(c.id),
       );
       _rooms[roomIndex].players[playerIndex].handCard = newCards;
 
-      return {
-        isCorrect: true,
-        room: _rooms[roomIndex],
-      };
+      return { success: true, room: _rooms[roomIndex], isCorrect: true };
     }
-    return {
-      isCorrect: false,
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex], isCorrect: false };
   } catch (e) {
-    return { msg: '算式有誤 (play card)' };
+    return { success: false, error: '算式有誤 (play card)' };
   }
 }
 
-export function backCard(roomId: string): Response {
+export function backCard(roomId: string): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     _rooms[roomIndex].selectedCards.pop();
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (error) {
-    return { msg: '發生錯誤，請稍後再試 (back card)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (back card)' };
   }
 }
 
@@ -534,16 +524,16 @@ export function backCard(roomId: string): Response {
 export function updateScore(
   roomId: string,
   playerId: string,
-): Response & { winner?: Player } {
+): UpdateScoreResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { msg: '玩家不存在' };
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     const selectedCards = _rooms[roomIndex].selectedCards;
 
@@ -579,28 +569,17 @@ export function updateScore(
       score += 1;
     }
 
-    // 使用到的數字牌數量額外加分
-    const bonusNumberCardsScore = calculateNumbersScore(numberCards.length);
-    if (bonusNumberCardsScore) {
-      score += bonusNumberCardsScore;
-    }
-
     // 寫入分數
     _rooms[roomIndex].players[playerIndex].score += score;
     _rooms[roomIndex].selectedCards = [];
 
-    const { room, winner, msg } = drawCard(
-      roomId,
-      playerId,
-      numberCards.length,
-    );
-
-    if (msg) {
-      return { msg };
+    const drawResult = drawCard(roomId, playerId, numberCards.length);
+    if (!drawResult.success) {
+      return { success: false, error: drawResult.error };
     }
-    return { room, winner };
+    return { success: true, room: drawResult.room, winner: drawResult.winner };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (update score)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (update score)' };
   }
 }
 
@@ -608,17 +587,15 @@ export function selectCard(
   roomId: string,
   number: NumberCard,
   symbol: Symbol,
-): Response {
+): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const selectedCards = _rooms[roomIndex].selectedCards;
 
     if (selectedCards.length === 0 && symbol && symbol !== Symbol.LeftBracket) {
-      return {
-        msg: '第一個只能用左括號或數字',
-      };
+      return { success: false, error: '第一個只能用左括號或數字' };
     }
 
     if (number) {
@@ -626,9 +603,7 @@ export function selectCard(
 
       // 如果前一個是數字則不能選
       if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        return {
-          msg: '數字牌不能連續使用',
-        };
+        return { success: false, error: '數字牌不能連續使用' };
       }
 
       if (currentSelect?.symbol === Symbol.RightBracket) {
@@ -647,42 +622,30 @@ export function selectCard(
     if (symbol) {
       const lastCard = selectedCards[selectedCards.length - 1];
       if (lastCard?.symbol === Symbol.Minus && symbol === Symbol.Minus) {
-        return {
-          msg: '減號不能連續用',
-        };
+        return { success: false, error: '減號不能連續用' };
       }
 
       if (lastCard?.symbol === Symbol.Plus && symbol === Symbol.Plus) {
-        return {
-          msg: '加號不能連續用',
-        };
+        return { success: false, error: '加號不能連續用' };
       }
 
       if (lastCard?.symbol === Symbol.Times && symbol === Symbol.Times) {
-        return {
-          msg: '乘號不能連續用',
-        };
+        return { success: false, error: '乘號不能連續用' };
       }
 
       if (lastCard?.symbol === Symbol.Divide && symbol === Symbol.Divide) {
-        return {
-          msg: '除號不能連續用',
-        };
+        return { success: false, error: '除號不能連續用' };
       }
 
       // if (lastCard.symbol === Symbol.Minus && symbol === Symbol.LeftBracket) {
-      //   return {
-      //     msg: '減號後面無法使用左括號',
-      //   };
+      //   return { success: false, error: '減號後面無法使用左括號' };
       // }
 
       if (
         lastCard?.symbol === Symbol.LeftBracket &&
         [Symbol.Plus, Symbol.Minus].includes(symbol)
       ) {
-        return {
-          msg: '左括號後面無法使用減號或加號',
-        };
+        return { success: false, error: '左括號後面無法使用減號或加號' };
       }
 
       if (symbol === Symbol.LeftBracket && lastCard?.number) {
@@ -691,26 +654,22 @@ export function selectCard(
       _rooms[roomIndex].selectedCards.push({ symbol });
     }
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (select card)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (select card)' };
   }
 }
 
-export function reselectCard(roomId: string): Response {
+export function reselectCard(roomId: string): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     _rooms[roomIndex].selectedCards = [];
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (reselect card)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (reselect card)' };
   }
 }
 
@@ -718,19 +677,17 @@ export function editRoom(
   roomId: string,
   newRoomName: string,
   newPassword: string,
-): Response {
+): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     _rooms[roomIndex].roomName = newRoomName;
     _rooms[roomIndex].password = newPassword;
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (edit room)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (edit room)' };
   }
 }
 
@@ -739,10 +696,10 @@ export function editRoomSettings(
   maxPlayers?: number,
   deckType?: DeckType,
   remainSeconds?: number | null,
-): Response {
+): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     if (maxPlayers) {
       _rooms[roomIndex].maxPlayers = maxPlayers;
@@ -756,18 +713,64 @@ export function editRoomSettings(
       _rooms[roomIndex].settings.remainSeconds = remainSeconds;
     }
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (edit room settings)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (edit room settings)' };
   }
 }
 
-export function removePlayer(roomId: string, playerId: string): Response {
+// 跳過（換 4 張新牌，無得分）
+export function skipHand(roomId: string, playerId: string): SkipHandResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { msg: '房間不存在' };
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+
+    const playerIndex = _getCurrentPlayerIndex(
+      _rooms[roomIndex].players,
+      playerId,
+    );
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+
+    // 抽牌前先檢查（與 drawCard 一致），確保 isLastRoundPlayer 已在上一輪出牌後設置的情況下才結算
+    const gameOver = _checkGameOver(roomIndex, playerIndex);
+    if (gameOver) {
+      return { success: true, room: gameOver.room, winner: gameOver.winner };
+    }
+
+    // 清空手牌
+    _rooms[roomIndex].players[playerIndex].handCard = [];
+    // 重置已選牌
+    _rooms[roomIndex].selectedCards = [];
+
+    const deckCount = _rooms[roomIndex].deck.length;
+
+    if (deckCount <= HAND_CARD_COUNT) {
+      // 牌庫不足，拿走剩餘牌
+      _rooms[roomIndex].players[playerIndex].handCard = _rooms[roomIndex].deck;
+      _rooms[roomIndex].deck = [];
+      const hasLastTag = _rooms[roomIndex].players.find(p => p.isLastRoundPlayer);
+      if (!hasLastTag) {
+        _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
+      }
+    } else {
+      const { drawn, remaining } = draw(_rooms[roomIndex].deck, HAND_CARD_COUNT);
+      _rooms[roomIndex].players[playerIndex].handCard = drawn;
+      _rooms[roomIndex].deck = remaining;
+    }
+
+    // 切換下一位玩家
+    _nextPlayerTurn(roomIndex);
+
+    return { success: true, room: _rooms[roomIndex] };
+  } catch (e) {
+    return { success: false, error: '發生錯誤，請稍後再試 (skip hand)' };
+  }
+}
+
+export function removePlayer(roomId: string, playerId: string): GameResponse {
+  try {
+    const roomIndex = _getCurrentRoomIndex(roomId);
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
 
     const playerIndex = _rooms[roomIndex].players.findIndex(
       p => p.id === playerId,
@@ -778,10 +781,8 @@ export function removePlayer(roomId: string, playerId: string): Response {
     // 移除 mapping 表
     delete _playerInRoomMap[playerId];
 
-    return {
-      room: _rooms[roomIndex],
-    };
+    return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { msg: '發生錯誤，請稍後再試 (remove player)' };
+    return { success: false, error: '發生錯誤，請稍後再試 (remove player)' };
   }
 }

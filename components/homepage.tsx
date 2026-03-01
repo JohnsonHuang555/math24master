@@ -1,38 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { fadeVariants } from '@/lib/animation-variants';
 
 const date = new Date();
 
 const Homepage = () => {
-  const [hasPlayerName, setHasPlayerName] = useState(false);
-  const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-
-  useEffect(() => {
-    const playerName = localStorage.getItem('playerName');
-    setHasPlayerName(!!playerName);
-  }, []);
 
   return (
     <>
-      <PlayerNameModal
-        isOpen={isOpenNameModal}
-        onOpenChange={v => setIsOpenNameModal(v)}
-        onConfirm={v => {
-          if (!v) return;
-          localStorage.setItem('playerName', v);
-          window.location.href = '/multiple-play';
-        }}
-      />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <section className="flex h-full w-full flex-col items-center justify-center">
         <motion.div
@@ -90,70 +72,25 @@ const Homepage = () => {
             觀看遊戲規則
           </Button>
         </motion.div>
-        <div className="flex gap-8">
-          <motion.div
-            variants={fadeVariants}
-            initial="hidden"
-            animate={{
-              opacity: 1,
-              scale: 1,
-              transition: { delay: 0.8 },
-            }}
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
-              <Card
-                onClick={() => (window.location.href = '/single-play')}
-                className="flex cursor-pointer items-center justify-center border-2 p-6"
-              >
-                <Image
-                  src="/single-player.svg"
-                  alt="單人遊玩"
-                  width={58}
-                  height={58}
-                  priority
-                />
-                <div className="ml-2 flex flex-col text-lg">
-                  <div>單人</div>
-                  <div>遊玩</div>
-                </div>
-              </Card>
-            </motion.div>
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
+          animate={{
+            opacity: 1,
+            scale: 1,
+            transition: { delay: 0.8 },
+          }}
+        >
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
+            <Button
+              size="lg"
+              className="px-12 py-6 text-xl"
+              onClick={() => (window.location.href = '/single-play')}
+            >
+              開始遊戲
+            </Button>
           </motion.div>
-          <motion.div
-            variants={fadeVariants}
-            initial="hidden"
-            animate={{
-              opacity: 1,
-              scale: 1,
-              transition: { delay: 1.2 },
-            }}
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
-              <Card
-                onClick={() => {
-                  if (!hasPlayerName) {
-                    setIsOpenNameModal(true);
-                  } else {
-                    window.location.href = '/multiple-play';
-                  }
-                }}
-                className="flex cursor-pointer items-center justify-center border-2 p-6"
-              >
-                <Image
-                  src="/multiple-players.svg"
-                  alt="多人連線"
-                  width={58}
-                  height={58}
-                  priority
-                />
-                <div className="ml-2 flex flex-col text-lg">
-                  <div>多人</div>
-                  <div>連線</div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </div>
+        </motion.div>
         <motion.div
           variants={fadeVariants}
           initial="hidden"
@@ -166,7 +103,7 @@ const Homepage = () => {
         >
           <p className="text-xs leading-relaxed text-gray-400">
             <strong className="font-medium">24點遊戲介紹：</strong>
-            使用4張牌（1–13點），透過加、減、乘、除四則運算，計算出結果等於24。
+            使用4張牌（1–10），透過加、減、乘、除四則運算，計算出結果等於24。
             支援單人練習和多人即時對戰，免費遊玩，訓練數學和邏輯思維能力。
           </p>
         </motion.div>
@@ -174,7 +111,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v2.2.8</div>
+          <div className="mx-2 text-xs text-gray-500">v2.3.0</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
