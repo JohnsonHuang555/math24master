@@ -37,11 +37,11 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               </li>
               <li className="mb-1">
                 無法組出算式時可選擇<span className="font-semibold">跳過</span>
-                ，換全部 4 張新牌，無得分
+                ，換全部 4 張新牌，無得分。
                 {/* TODO: 未來加入；多人模式下換完即換下一位玩家。 */}
               </li>
               <li className="mb-1">
-                牌庫耗盡時進入最後一輪，最後一位玩家回合結束後遊戲結束，得分最高者獲勝。
+                牌庫耗盡時進入最後一輪，玩家回合結束後遊戲結束，得分最高者獲勝。
               </li>
             </ol>
           </TabsContent>

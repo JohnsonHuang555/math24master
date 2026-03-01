@@ -2,6 +2,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
+import SoundToggle from '@/components/sound-toggle';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
@@ -63,6 +64,7 @@ export default function RootLayout({
           }}
         />
         <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
+        <SoundToggle />
         <ToastContainer
           position="top-right"
           autoClose={4000}

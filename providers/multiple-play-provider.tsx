@@ -6,16 +6,20 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { toast } from 'react-toastify';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
+import { unlockAchievement } from '@/lib/achievement-manager';
+import { useStatsStore } from '@/stores/stats-store';
+import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
-import { Room, RoomSettings } from '@/models/Room';
+import { Difficulty, Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -26,6 +30,12 @@ const socket = io();
  * 1. 建立 Context
  */
 // 定義 Context 中 value 的型別
+type GameOverData = {
+  name: string;
+  score: number;
+  players: Player[];
+};
+
 type MultiplePlayContextData = {
   searchRooms: (payload?: { roomName: string; showEmpty: boolean }) => void;
   joinRoom: (
@@ -34,6 +44,7 @@ type MultiplePlayContextData = {
     roomName?: string,
     maxPlayers?: number,
     password?: string,
+    difficulty?: Difficulty,
   ) => void;
   socket: Socket;
   roomInfo?: Room;
@@ -69,6 +80,8 @@ type MultiplePlayContextData = {
   isLastRound: boolean;
   countdown?: number;
   sendMessage: (message: string) => void;
+  gameOverData: GameOverData | null;
+  onCloseGameOver: () => void;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -90,11 +103,17 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const [roomInfo, setRoomInfo] = useState<Room>();
   const [playerId, setPlayerId] = useState<string>();
+  const playerIdRef = useRef<string | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [remainRoundTime, setRemainRoundTime] = useState<{
     countdown: number;
     needDrawPlayerId: string;
   }>();
+  const [gameOverData, setGameOverData] = useState<{
+    name: string;
+    score: number;
+    players: Player[];
+  } | null>(null);
 
   const {
     selectedCardSymbols,
@@ -103,6 +122,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     onFinishedSymbolScoreAnimation,
     resetAnimations,
     handlePlayCardResponse,
+    markTurnStart,
   } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
 
   // 當前玩家
@@ -141,8 +161,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       setMessages(state => [...state, message]);
     });
 
-    socket.on(SocketEvent.GetPlayerId, (playerId: string) => {
-      setPlayerId(playerId);
+    socket.on(SocketEvent.GetPlayerId, (id: string) => {
+      setPlayerId(id);
+      playerIdRef.current = id;
     });
 
     socket.on(
@@ -177,8 +198,28 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     socket.on(
       SocketEvent.GameOver,
-      ({ name, score }: { name: string; score: number }) => {
+      ({
+        name,
+        score,
+        players,
+      }: {
+        name: string;
+        score: number;
+        players: Player[];
+      }) => {
         toast.success(`恭喜 ${name} 獲得 ${score} 分，贏得勝利！`);
+        playSound('gameOverWin');
+        setGameOverData({ name, score, players });
+        useStatsStore.getState().incrementMultiPlays();
+        // 成就：多人獲勝（需確認是否為本人）
+        // 用 ref 比較，避免 closure 舊值問題
+        if (playerIdRef.current) {
+          const winnerPlayer = players.find(p => p.name === name);
+          if (winnerPlayer?.id === playerIdRef.current) {
+            unlockAchievement('multiplayer_win');
+            useStatsStore.getState().incrementMultiWins();
+          }
+        }
       },
     );
   }, [resetState]);
@@ -205,6 +246,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       roomName?: string,
       maxPlayers?: number,
       password?: string,
+      difficulty?: Difficulty,
     ) => {
       if (socket) {
         socket.emit(SocketEvent.JoinRoom, {
@@ -213,6 +255,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           roomName,
           maxPlayers,
           password,
+          difficulty,
           mode: GameMode.Multiple,
         });
       }
@@ -291,6 +334,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     ({ number, symbol }: { number?: NumberCard; symbol?: Symbol }) => {
       if (roomInfo?.isGameOver || !isYourTurn) return;
 
+      playSound('select');
       if (socket) {
         socket.emit(SocketEvent.SelectCard, {
           roomId: roomInfo?.roomId,
@@ -354,6 +398,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
       return;
 
+    playSound('skip');
+    useStatsStore.getState().incrementSkips();
     if (socket) {
       // 沒出過牌抽 1 張
       socket.emit(SocketEvent.DrawCard, {
@@ -389,6 +435,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     },
     [roomInfo?.roomId],
   );
+
+  const onCloseGameOver = useCallback(() => {
+    setGameOverData(null);
+  }, []);
 
   useEffect(() => {
     if (
@@ -430,18 +480,22 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       isLastRound,
       countdown: remainRoundTime?.countdown,
       sendMessage,
+      gameOverData,
+      onCloseGameOver,
     };
   }, [
     checkAnswerCorrect,
     currentPlayer,
     editRoom,
     editRoomSettings,
+    gameOverData,
     isLastRound,
     isSymbolScoreAnimationFinished,
     isYourTurn,
     joinRoom,
     messages,
     onBack,
+    onCloseGameOver,
     onDiscardCard,
     onDrawCard,
     onFinishedSymbolScoreAnimation,

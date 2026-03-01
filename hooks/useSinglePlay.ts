@@ -1,23 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameActions } from '@/hooks/useGameActions';
+import { unlockAchievement } from '@/lib/achievement-manager';
+import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { NumberCard } from '@/models/Player';
-import { Room } from '@/models/Room';
+import { Difficulty, Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
+import { useAchievementStore } from '@/stores/achievement-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 const socket = io();
 
-const useSinglePlay = () => {
+const useSinglePlay = (difficulty: Difficulty | null) => {
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
 
   const [roomInfo, setRoomInfo] = useState<Room>();
+  const hasStartedRef = useRef(false);
 
   const {
     selectedCardSymbols,
@@ -26,6 +31,7 @@ const useSinglePlay = () => {
     onFinishedSymbolScoreAnimation,
     resetAnimations,
     handlePlayCardResponse,
+    markTurnStart,
   } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
 
   const isLastRound = useMemo(
@@ -39,6 +45,10 @@ const useSinglePlay = () => {
   );
 
   useEffect(() => {
+    // 等待難度選定後才啟動
+    if (!difficulty || hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
     const roomId = uuidv4();
 
     socket.emit(SocketEvent.JoinRoom, {
@@ -46,6 +56,7 @@ const useSinglePlay = () => {
       maxPlayers: 1,
       playerName: 'single',
       mode: GameMode.Single,
+      difficulty,
     });
 
     socket.on(SocketEvent.JoinRoomSuccess, () => {
@@ -81,13 +92,26 @@ const useSinglePlay = () => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [difficulty]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isLastRound) {
       toast.warning('最後一回合囉');
     }
   }, [isLastRound]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      playSound('gameOverEnd');
+      useStatsStore.getState().incrementSinglePlays();
+      // 成就：精準（本局未跳過）
+      const skipCount = useAchievementStore.getState().singleSkipCount;
+      if (skipCount === 0) {
+        unlockAchievement('no_skip');
+      }
+      useAchievementStore.getState().resetSingleSession();
+    }
+  }, [isGameOver]);
 
   const onSelectCardOrSymbol = ({
     number,
@@ -98,6 +122,7 @@ const useSinglePlay = () => {
   }) => {
     if (isGameOver) return;
 
+    playSound('select');
     if (socket) {
       socket.emit(SocketEvent.SelectCard, {
         roomId: roomInfo?.roomId,
@@ -134,6 +159,9 @@ const useSinglePlay = () => {
   const onSkipHand = () => {
     if (isGameOver) return;
 
+    playSound('skip');
+    useAchievementStore.getState().incrementSkip();
+    useStatsStore.getState().incrementSkips();
     if (socket) {
       socket.emit(SocketEvent.SkipHand, {
         roomId: roomInfo?.roomId,

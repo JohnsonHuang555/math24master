@@ -4,7 +4,7 @@ import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import { NumberCard, Player } from '../models/Player';
 import { GameResponse } from '../models/Response';
-import { DeckType, HAND_CARD_COUNT, Room } from '../models/Room';
+import { DeckType, Difficulty, HAND_CARD_COUNT, Room } from '../models/Room';
 import { Symbol } from '../models/Symbol';
 import {
   createDeckByRandomMode,
@@ -154,7 +154,9 @@ export function checkCanJoinRoom(
 
 // 加入房間
 export function joinRoom(
-  payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'>,
+  payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'> & {
+    difficulty?: Difficulty;
+  },
   playerId: string,
   playerName: string,
   mode: GameMode,
@@ -221,6 +223,7 @@ export function joinRoom(
         settings: {
           deckType: DeckType.Standard,
           remainSeconds: 60,
+          difficulty: payload.difficulty ?? Difficulty.Normal,
         },
         players: [
           {
@@ -296,30 +299,42 @@ export function startGame(roomId: string): GameResponse {
 
   try {
     let tempDeck: number[] = [];
+    const roomIndex = _getCurrentRoomIndex(roomId);
+
+    // 依難度決定牌值範圍，並強制覆寫計時設定
+    const difficulty = room.settings.difficulty ?? Difficulty.Normal;
+    let maxValue = 10;
+    if (difficulty === Difficulty.Easy) {
+      maxValue = 6;
+      _rooms[roomIndex].settings.remainSeconds = null; // 簡單模式無計時
+    } else if (difficulty === Difficulty.Hard) {
+      maxValue = 13;
+      _rooms[roomIndex].settings.remainSeconds = 60; // 困難模式固定 60 秒
+    }
 
     switch (room.players.length) {
       case 1:
-        tempDeck = createDeckByRandomMode(40, 10);
+        tempDeck = createDeckByRandomMode(40, maxValue);
         break;
       case 2:
         if (room.settings.deckType === DeckType.Random) {
-          tempDeck = createDeckByRandomMode(60, 10);
+          tempDeck = createDeckByRandomMode(60, maxValue);
         } else {
-          tempDeck = createDeckByStandardMode(6);
+          tempDeck = createDeckByStandardMode(6, maxValue);
         }
         break;
       case 3:
         if (room.settings.deckType === DeckType.Random) {
-          tempDeck = createDeckByRandomMode(90, 10);
+          tempDeck = createDeckByRandomMode(90, maxValue);
         } else {
-          tempDeck = createDeckByStandardMode(9);
+          tempDeck = createDeckByStandardMode(9, maxValue);
         }
         break;
       case 4:
         if (room.settings.deckType === DeckType.Random) {
-          tempDeck = createDeckByRandomMode(120, 10);
+          tempDeck = createDeckByRandomMode(120, maxValue);
         } else {
-          tempDeck = createDeckByStandardMode(12);
+          tempDeck = createDeckByStandardMode(12, maxValue);
         }
         break;
       default:
@@ -331,7 +346,6 @@ export function startGame(roomId: string): GameResponse {
       id: uuidv4(),
       value: d,
     }));
-    const roomIndex = _getCurrentRoomIndex(roomId);
 
     // [1,2,3,4...]
     const playerOrders = Array.from(Array(room.players.length).keys()).map(
@@ -696,6 +710,7 @@ export function editRoomSettings(
   maxPlayers?: number,
   deckType?: DeckType,
   remainSeconds?: number | null,
+  difficulty?: Difficulty,
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
@@ -711,6 +726,10 @@ export function editRoomSettings(
 
     if (remainSeconds !== undefined) {
       _rooms[roomIndex].settings.remainSeconds = remainSeconds;
+    }
+
+    if (difficulty) {
+      _rooms[roomIndex].settings.difficulty = difficulty;
     }
 
     return { success: true, room: _rooms[roomIndex] };

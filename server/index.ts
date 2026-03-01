@@ -78,12 +78,12 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.JoinRoom,
-      ({ roomId, maxPlayers, playerName, roomName, password, mode }) => {
+      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty }) => {
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
           const result = joinRoom(
-            { roomId, maxPlayers, roomName, password },
+            { roomId, maxPlayers, roomName, password, difficulty },
             playerId,
             playerName,
             mode,
@@ -132,9 +132,13 @@ app.prepare().then(() => {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
         _resetRoundTimer(roomId, room);
         if (winner) {
+          const rankedPlayers = [...room.players].sort(
+            (a, b) => b.score - a.score,
+          );
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
             score: winner.score,
+            players: rankedPlayers,
           });
         }
       } else {
@@ -191,9 +195,13 @@ app.prepare().then(() => {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
         _resetRoundTimer(roomId, room);
         if (winner) {
+          const rankedPlayers = [...room.players].sort(
+            (a, b) => b.score - a.score,
+          );
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
             score: winner.score,
+            players: rankedPlayers,
           });
         }
       } else {
@@ -220,9 +228,13 @@ app.prepare().then(() => {
         });
         _resetRoundTimer(roomId, room);
         if (winner) {
+          const rankedPlayers = [...room.players].sort(
+            (a, b) => b.score - a.score,
+          );
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
             score: winner.score,
+            players: rankedPlayers,
           });
         }
       } else {
@@ -269,8 +281,8 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.EditRoomSettings,
-      ({ roomId, maxPlayers, deckType, remainSeconds }) => {
-        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds);
+      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty }) => {
+        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty);
         if (result.success) {
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
         } else {
