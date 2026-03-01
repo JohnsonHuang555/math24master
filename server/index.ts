@@ -20,6 +20,7 @@ import {
   removePlayer,
   reselectCard,
   selectCard,
+  skipHand,
   startGame,
   updateScore,
 } from './game';
@@ -37,9 +38,15 @@ const timerMap: {
 app.prepare().then(() => {
   const httpServer = createServer(handler);
   const io = new Server(httpServer, {
-    pingInterval: 24 * 60 * 60 * 1000,
-    pingTimeout: 3 * 24 * 60 * 60 * 1000,
+    pingInterval: 25000,
+    pingTimeout: 60000,
   });
+
+  const _resetRoundTimer = (roomId: string, room: Room) => {
+    if (timerMap[roomId] && timerMap[roomId].timer !== null) {
+      _clearAndCreateTimer(roomId, room);
+    }
+  };
 
   const _clearAndCreateTimer = (roomId: string, room: Room) => {
     const needDrawPlayerId = room.players.find(
@@ -75,20 +82,20 @@ app.prepare().then(() => {
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
-          const { room, msg, needPassword } = joinRoom(
+          const result = joinRoom(
             { roomId, maxPlayers, roomName, password },
             playerId,
             playerName,
             mode,
           );
 
-          if (room) {
-            io.sockets.to(roomId).emit(SocketEvent.JoinRoomSuccess, room);
+          if (result.success) {
+            io.sockets.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
             socket.emit(SocketEvent.GetPlayerId, playerId);
-          } else if (needPassword) {
+          } else if (result.needPassword) {
             socket.emit(SocketEvent.NeedRoomPassword);
           } else {
-            socket.emit(SocketEvent.ErrorMessage, msg);
+            socket.emit(SocketEvent.ErrorMessage, result.error);
           }
         } else {
           socket.emit(SocketEvent.ErrorMessage, '房間人數已滿或不存在');
@@ -97,30 +104,16 @@ app.prepare().then(() => {
     );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
-      const { room, msg } = startGame(roomId);
-      if (room) {
+      const result = startGame(roomId);
+      if (result.success) {
+        const { room } = result;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
         if (room.settings.remainSeconds !== null) {
           timerMap[roomId] = {
             countdownTime: room.settings.remainSeconds,
             timer: null,
           };
-          const needDrawPlayerId = room.players.find(
-            p => p.playerOrder === room.currentOrder,
-          )?.id;
-          io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
-            countdown: timerMap[roomId].countdownTime,
-            needDrawPlayerId,
-          });
-          timerMap[roomId].timer = setInterval(() => {
-            timerMap[roomId].countdownTime -= 1;
-            if (timerMap[roomId].countdownTime >= 0) {
-              io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, {
-                countdown: timerMap[roomId].countdownTime,
-                needDrawPlayerId,
-              });
-            }
-          }, 1000);
+          _clearAndCreateTimer(roomId, room);
         } else {
           // 計時器清空
           io.sockets
@@ -128,20 +121,16 @@ app.prepare().then(() => {
             .emit(SocketEvent.CountdownTimeResponse, undefined);
         }
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(SocketEvent.DrawCard, ({ roomId }) => {
-      const { room, msg, winner } = drawCard(roomId, playerId, 1);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
-        // 有計時器需要停止並建立新的
-        if (timerMap[roomId] && timerMap[roomId].timer !== null) {
-          _clearAndCreateTimer(roomId, room);
-        }
+      const result = drawCard(roomId, playerId, 1);
+      if (result.success) {
+        const { room, winner } = result;
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+        _resetRoundTimer(roomId, room);
         if (winner) {
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
@@ -149,94 +138,58 @@ app.prepare().then(() => {
           });
         }
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(SocketEvent.DiscardCard, ({ roomId, cardId }) => {
-      const { room, msg } = discardCard(roomId, playerId, cardId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = discardCard(roomId, playerId, cardId);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(SocketEvent.SelectCard, ({ roomId, number, symbol }) => {
-      const { room, msg } = selectCard(roomId, number, symbol);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = selectCard(roomId, number, symbol);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(SocketEvent.ReselectCard, ({ roomId }) => {
-      const { room, msg } = reselectCard(roomId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = reselectCard(roomId);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(SocketEvent.PlayCard, ({ roomId }) => {
-      const { room, msg, isCorrect } = playCard(roomId, playerId);
-      if (msg) {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+      const result = playCard(roomId, playerId);
+      if (!result.success) {
+        socket.emit(SocketEvent.ErrorMessage, result.error);
         return;
       }
-      if (isCorrect) {
-        // 答對
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-          extra: {
-            event: SocketEvent.PlayCardResponse,
-            data: true,
-          },
-        });
-      } else {
-        // 答錯
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-          extra: {
-            event: SocketEvent.PlayCardResponse,
-            data: false,
-          },
-        });
-      }
+      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
+        room: result.room,
+        extra: {
+          event: SocketEvent.PlayCardResponse,
+          data: result.isCorrect,
+        },
+      });
     });
 
-    socket.on(SocketEvent.BackCard, ({ roomId }) => {
-      const { room, msg } = backCard(roomId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
-      } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
-      }
-    });
-
-    socket.on(SocketEvent.UpdateScore, ({ roomId }) => {
-      const { room, msg, winner } = updateScore(roomId, playerId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-          extra: {
-            event: SocketEvent.UpdateScore,
-          },
-        });
-        // 有計時器需要停止並建立新的
-        if (timerMap[roomId] && timerMap[roomId].timer !== null) {
-          _clearAndCreateTimer(roomId, room);
-        }
+    socket.on(SocketEvent.SkipHand, ({ roomId }) => {
+      const result = skipHand(roomId, playerId);
+      if (result.success) {
+        const { room, winner } = result;
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+        _resetRoundTimer(roomId, room);
         if (winner) {
           io.sockets.to(roomId).emit(SocketEvent.GameOver, {
             name: winner.name,
@@ -244,19 +197,46 @@ app.prepare().then(() => {
           });
         }
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
+      }
+    });
+
+    socket.on(SocketEvent.BackCard, ({ roomId }) => {
+      const result = backCard(roomId);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, result.error);
+      }
+    });
+
+    socket.on(SocketEvent.UpdateScore, ({ roomId }) => {
+      const result = updateScore(roomId, playerId);
+      if (result.success) {
+        const { room, winner } = result;
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
+          room,
+          extra: { event: SocketEvent.UpdateScore },
+        });
+        _resetRoundTimer(roomId, room);
+        if (winner) {
+          io.sockets.to(roomId).emit(SocketEvent.GameOver, {
+            name: winner.name,
+            score: winner.score,
+          });
+        }
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     // 多人模式才有
     socket.on(SocketEvent.ReadyGame, ({ roomId }) => {
-      const { room, msg } = readyGame(roomId, playerId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = readyGame(roomId, playerId);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
@@ -279,58 +259,47 @@ app.prepare().then(() => {
     });
 
     socket.on(SocketEvent.EditRoomName, ({ roomId, roomName, password }) => {
-      const { room, msg } = editRoom(roomId, roomName, password);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = editRoom(roomId, roomName, password);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on(
       SocketEvent.EditRoomSettings,
       ({ roomId, maxPlayers, deckType, remainSeconds }) => {
-        const { room, msg } = editRoomSettings(
-          roomId,
-          maxPlayers,
-          deckType,
-          remainSeconds,
-        );
-        if (room) {
-          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-            room,
-          });
+        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds);
+        if (result.success) {
+          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
         } else {
-          socket.emit(SocketEvent.ErrorMessage, msg);
+          socket.emit(SocketEvent.ErrorMessage, result.error);
         }
       },
     );
 
     socket.on(SocketEvent.RemovePlayer, ({ roomId, playerId }) => {
-      const { room, msg } = removePlayer(roomId, playerId);
-      if (room) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room,
-        });
+      const result = removePlayer(roomId, playerId);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
         io.sockets.to(roomId).emit(SocketEvent.RemovePlayerResponse, playerId);
       } else {
-        socket.emit(SocketEvent.ErrorMessage, msg);
+        socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
 
     socket.on('disconnect', () => {
-      const result = leaveRoom(playerId);
-      if (result?.room) {
-        const roomId = result.room?.roomId as string;
+      const leaveResult = leaveRoom(playerId);
+      if (leaveResult) {
+        const roomId = leaveResult.room.roomId;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room: result.room,
+          room: leaveResult.room,
           event: SocketEvent.UpdateScore,
         });
         io.sockets
           .to(roomId)
-          .emit(SocketEvent.PlayerLeaveRoom, result.playerName);
+          .emit(SocketEvent.PlayerLeaveRoom, leaveResult.playerName);
 
         // 清除計時器
         if (timerMap[roomId] && timerMap[roomId]?.timer !== null) {

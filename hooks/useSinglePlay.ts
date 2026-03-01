@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameActions } from '@/hooks/useGameActions';
 import { GameMode } from '@/models/GameMode';
 import { NumberCard } from '@/models/Player';
 import { Room } from '@/models/Room';
@@ -15,10 +16,17 @@ const useSinglePlay = () => {
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
-  // 動畫完成時
-  const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
   const [roomInfo, setRoomInfo] = useState<Room>();
+
+  const {
+    selectedCardSymbols,
+    selectedCardNumbers,
+    isSymbolScoreAnimationFinished,
+    onFinishedSymbolScoreAnimation,
+    resetAnimations,
+    handlePlayCardResponse,
+  } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
 
   const isLastRound = useMemo(
     () => roomInfo?.deck.length === 0,
@@ -29,22 +37,6 @@ const useSinglePlay = () => {
     () => !!roomInfo?.isGameOver,
     [roomInfo?.isGameOver],
   );
-
-  // 已選的符號牌
-  const selectedCardSymbols = useMemo(() => {
-    return roomInfo?.selectedCards.filter(
-      c =>
-        c.symbol &&
-        [Symbol.Plus, Symbol.Minus, Symbol.Times, Symbol.Divide].includes(
-          c.symbol,
-        ),
-    );
-  }, [roomInfo?.selectedCards]);
-
-  // 已選的數字牌
-  const selectedCardNumbers = useMemo(() => {
-    return roomInfo?.selectedCards.filter(c => c.number);
-  }, [roomInfo?.selectedCards]);
 
   useEffect(() => {
     const roomId = uuidv4();
@@ -73,19 +65,11 @@ const useSinglePlay = () => {
         extra,
       }: {
         room: Room;
-        extra?: { event: SocketEvent; data: any };
+        extra?: { event: SocketEvent; data: boolean };
       }) => {
         setRoomInfo(room);
-        // 重置狀態
-        if (extra?.event === SocketEvent.UpdateScore) {
-        }
         if (extra?.event === SocketEvent.PlayCardResponse) {
-          if (extra.data) {
-            toast.success('答案正確');
-          } else {
-            toast.error('答案不等於 24');
-          }
-          setCheckAnswerCorrect(extra.data as boolean);
+          handlePlayCardResponse(extra.data);
         }
       },
     );
@@ -146,14 +130,13 @@ const useSinglePlay = () => {
     }
   };
 
-  // 棄牌
-  const onDiscardCard = (cardId: string) => {
+  // 跳過（換 4 張新牌）
+  const onSkipHand = () => {
     if (isGameOver) return;
 
     if (socket) {
-      socket.emit(SocketEvent.DiscardCard, {
+      socket.emit(SocketEvent.SkipHand, {
         roomId: roomInfo?.roomId,
-        cardId,
       });
     }
   };
@@ -181,7 +164,7 @@ const useSinglePlay = () => {
     if (socket) {
       // 重置狀態
       setCheckAnswerCorrect(null);
-      setFinishedAnimations(0);
+      resetAnimations();
 
       socket.emit(SocketEvent.UpdateScore, {
         roomId: roomInfo?.roomId,
@@ -199,23 +182,17 @@ const useSinglePlay = () => {
     }
   };
 
-  const onFinishedSymbolScoreAnimation = () => {
-    setFinishedAnimations(state => state + 1);
-  };
-
   return {
     roomInfo,
     onPlayCard,
     onDrawCard,
-    onDiscardCard,
+    onSkipHand,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,
-    isSymbolScoreAnimationFinished:
-      checkAnswerCorrect === true &&
-      finishedAnimations === selectedCardSymbols?.length,
-    selectedCardSymbols: selectedCardSymbols || [],
-    selectedCardNumbers: selectedCardNumbers || [],
+    isSymbolScoreAnimationFinished,
+    selectedCardSymbols,
+    selectedCardNumbers,
     onUpdateScore,
     isGameOver,
     onFinishedSymbolScoreAnimation,

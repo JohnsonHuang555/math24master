@@ -11,22 +11,18 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import { RuleModal } from '@/components/modals/rule-modal';
 import useSinglePlay from '@/hooks/useSinglePlay';
-import { MAX_CARD_COUNT } from '@/models/Room';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 
 export default function SinglePlayPage() {
   const [bestScore, setBestScore] = useState<number>();
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
-  // 需要棄牌
-  const [needDiscard, setNeedDiscard] = useState(false);
-
   const router = useRouter();
   const {
     roomInfo,
     onPlayCard,
     onDrawCard,
-    onDiscardCard,
+    onSkipHand,
     onSelectCardOrSymbol,
     onReselect,
     checkAnswerCorrect,
@@ -45,8 +41,7 @@ export default function SinglePlayPage() {
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
-  const disabledActions =
-    needDiscard || checkAnswerCorrect === true || !!isGameOver;
+  const disabledActions = checkAnswerCorrect === true || !!isGameOver;
 
   useEffect(() => {
     if (isConfirmed) {
@@ -54,15 +49,6 @@ export default function SinglePlayPage() {
       onReset();
     }
   }, [isConfirmed, onReset, router]);
-
-  useEffect(() => {
-    if (handCard.length > MAX_CARD_COUNT) {
-      setTimeout(() => {
-        toast.error('請點選 1 張牌棄掉');
-        setNeedDiscard(true);
-      }, 500);
-    }
-  }, [handCard.length]);
 
   useEffect(() => {
     if (roomInfo?.isGameOver) {
@@ -155,22 +141,22 @@ export default function SinglePlayPage() {
         <HandCardArea
           selectedCards={roomInfo?.selectedCards || []}
           handCard={handCard}
-          needDiscard={needDiscard}
           onSelect={number => onSelectCardOrSymbol({ number })}
-          onDiscard={id => {
-            setNeedDiscard(false);
-            onDiscardCard(id);
-          }}
         />
         <ActionArea
           disabledActions={disabledActions}
-          onSubmit={onPlayCard}
-          onReselect={onReselect}
-          onEndPhase={() => {
-            onReselect();
-            onDrawCard();
+          onSubmit={() => {
+            const selectedNumberCount =
+              roomInfo?.selectedCards.filter(c => c.number).length ?? 0;
+            if (selectedNumberCount !== handCard.length) {
+              toast.error(`必須使用全部 ${handCard.length} 張手牌`);
+              return;
+            }
+            onPlayCard();
           }}
+          onReselect={onReselect}
           onBack={onBack}
+          onSkip={onSkipHand}
           selectedCards={roomInfo?.selectedCards || []}
           isLastRound={isLastRound}
         />

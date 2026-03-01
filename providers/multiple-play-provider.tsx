@@ -9,7 +9,8 @@ import React, {
   useState,
 } from 'react';
 import { toast } from 'react-toastify';
-import { io } from 'socket.io-client';
+import { Socket, io } from 'socket.io-client';
+import { useGameActions } from '@/hooks/useGameActions';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
@@ -34,7 +35,7 @@ type MultiplePlayContextData = {
     maxPlayers?: number,
     password?: string,
   ) => void;
-  socket: any;
+  socket: Socket;
   roomInfo?: Room;
   playerId?: string;
   onReadyGame: () => void;
@@ -86,8 +87,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
   );
-  // 動畫完成時
-  const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
 
   const [roomInfo, setRoomInfo] = useState<Room>();
   const [playerId, setPlayerId] = useState<string>();
@@ -97,21 +96,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     needDrawPlayerId: string;
   }>();
 
-  // 已選的符號牌
-  const selectedCardSymbols = useMemo(() => {
-    return roomInfo?.selectedCards.filter(
-      c =>
-        c.symbol &&
-        [Symbol.Plus, Symbol.Minus, Symbol.Times, Symbol.Divide].includes(
-          c.symbol,
-        ),
-    );
-  }, [roomInfo?.selectedCards]);
-
-  // 已選的數字牌
-  const selectedCardNumbers = useMemo(() => {
-    return roomInfo?.selectedCards.filter(c => c.number);
-  }, [roomInfo?.selectedCards]);
+  const {
+    selectedCardSymbols,
+    selectedCardNumbers,
+    isSymbolScoreAnimationFinished,
+    onFinishedSymbolScoreAnimation,
+    resetAnimations,
+    handlePlayCardResponse,
+  } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
 
   // 當前玩家
   const currentPlayer = useMemo(
@@ -129,7 +121,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const resetState = useCallback(() => {
     setCheckAnswerCorrect(null);
-    setFinishedAnimations(0);
+    resetAnimations();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -159,20 +152,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         extra,
       }: {
         room: Room;
-        extra?: { event: SocketEvent; data: any };
+        extra?: { event: SocketEvent; data: boolean };
       }) => {
         setRoomInfo(room);
-        // 重置狀態
         if (extra?.event === SocketEvent.UpdateScore) {
           resetState();
         }
         if (extra?.event === SocketEvent.PlayCardResponse) {
-          if (extra.data) {
-            toast.success('答案正確');
-          } else {
-            toast.error('答案不等於 24');
-          }
-          setCheckAnswerCorrect(extra.data as boolean);
+          handlePlayCardResponse(extra.data);
         }
       },
     );
@@ -413,10 +400,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDrawCard, playerId, remainRoundTime?.countdown]);
 
-  const onFinishedSymbolScoreAnimation = () => {
-    setFinishedAnimations(state => state + 1);
-  };
-
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
       searchRooms,
@@ -431,11 +414,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       editRoomSettings,
       removePlayer,
       checkAnswerCorrect,
-      isSymbolScoreAnimationFinished:
-        checkAnswerCorrect === true &&
-        finishedAnimations === selectedCardSymbols?.length,
-      selectedCardSymbols: selectedCardSymbols || [],
-      selectedCardNumbers: selectedCardNumbers || [],
+      isSymbolScoreAnimationFinished,
+      selectedCardSymbols,
+      selectedCardNumbers,
       onFinishedSymbolScoreAnimation,
       onUpdateScore,
       onSelectCardOrSymbol,
@@ -455,19 +436,21 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     currentPlayer,
     editRoom,
     editRoomSettings,
-    finishedAnimations,
     isLastRound,
+    isSymbolScoreAnimationFinished,
     isYourTurn,
     joinRoom,
     messages,
     onBack,
     onDiscardCard,
     onDrawCard,
+    onFinishedSymbolScoreAnimation,
     onPlayCard,
     onReadyGame,
     onReselect,
     onSelectCardOrSymbol,
     onStartGame,
+    onUpdateScore,
     playerId,
     remainRoundTime?.countdown,
     removePlayer,
@@ -476,7 +459,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     selectedCardNumbers,
     selectedCardSymbols,
     sendMessage,
-    onUpdateScore,
   ]);
 
   return (

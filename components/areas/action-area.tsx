@@ -7,8 +7,9 @@ type ActionAreaProps = {
   disabledActions: boolean;
   onSubmit: () => void;
   onReselect: () => void;
-  onEndPhase: () => void;
+  onEndPhase?: () => void;
   onBack: () => void;
+  onSkip?: () => void;
   selectedCards?: SelectedCard[];
   isLastRound: boolean;
 };
@@ -19,6 +20,7 @@ const ActionArea = ({
   onReselect,
   onBack,
   onEndPhase,
+  onSkip,
   selectedCards = [],
   isLastRound,
 }: ActionAreaProps) => {
@@ -52,7 +54,7 @@ const ActionArea = ({
         variant={isLastRound ? 'destructive' : 'success'}
         disabled={disabledActions}
         className="h-full"
-        onClick={onEndPhase}
+        onClick={onSkip ?? onEndPhase}
       >
         <Image
           src="/card-draw.svg"
@@ -62,7 +64,7 @@ const ActionArea = ({
           priority
           className="mr-2"
         />
-        {isLastRound ? '結算' : '抽牌'}
+        {isLastRound ? '結算' : onSkip ? '跳過' : '換牌'}
       </Button>
       <Button
         disabled={disabledActions}

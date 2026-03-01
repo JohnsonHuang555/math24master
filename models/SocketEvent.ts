@@ -17,6 +17,7 @@ export enum SocketEvent {
   PlayCard = 'play-card',
   DrawCard = 'draw-card',
   DiscardCard = 'discard-card',
+  SkipHand = 'skip-hand',
   UpdateScore = 'update-score',
   SelectCard = 'select-card',
   ReselectCard = 'reselect-card',

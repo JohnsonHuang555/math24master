@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ const ChatArea = ({ messages, onSend }: ChatAreaProps) => {
     onSend(message);
   };
 
-  const onKeyDown = (e: any) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.keyCode === 13) {
       handleSend();
     }
