@@ -111,8 +111,8 @@ export default function MultiplePlayPage() {
         roomId={roomId}
         isOpen={isOpenCreateRoomModal}
         onOpenChange={setIsOpenCreateRoomModal}
-        onConfirm={(roomName, maxPlayers, password, difficulty) => {
-          joinRoom(playerName, roomId, roomName, maxPlayers, password, difficulty);
+        onConfirm={(roomName, maxPlayers, password, difficulty, gameType) => {
+          joinRoom(playerName, roomId, roomName, maxPlayers, password, difficulty, gameType);
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">

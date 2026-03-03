@@ -19,6 +19,11 @@ import {
   readyGame,
   removePlayer,
   reselectCard,
+  rummyDeclareJoker,
+  rummyDrawCard,
+  rummyStartGame,
+  rummySubmitTurn,
+  rummySwapJoker,
   selectCard,
   skipHand,
   startGame,
@@ -78,12 +83,12 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.JoinRoom,
-      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty }) => {
+      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty, gameType }) => {
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
           const result = joinRoom(
-            { roomId, maxPlayers, roomName, password, difficulty },
+            { roomId, maxPlayers, roomName, password, difficulty, gameType },
             playerId,
             playerName,
             mode,
@@ -104,24 +109,36 @@ app.prepare().then(() => {
     );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
-      const result = startGame(roomId);
-      if (result.success) {
-        const { room } = result;
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-        if (room.settings.remainSeconds !== null) {
-          timerMap[roomId] = {
-            countdownTime: room.settings.remainSeconds,
-            timer: null,
-          };
-          _clearAndCreateTimer(roomId, room);
-        } else {
-          // 計時器清空
-          io.sockets
-            .to(roomId)
-            .emit(SocketEvent.CountdownTimeResponse, undefined);
-        }
-      } else {
+      // 先用 classic startGame 處理共用邏輯（讀取 gameType）
+      // 若是拉密模式，改用 rummyStartGame 覆蓋牌庫與手牌
+      let result = startGame(roomId);
+      if (!result.success) {
         socket.emit(SocketEvent.ErrorMessage, result.error);
+        return;
+      }
+
+      // 拉密模式：重新初始化
+      if (result.room.settings.gameType === 'rummy') {
+        const rummyResult = rummyStartGame(roomId);
+        if (!rummyResult.success) {
+          socket.emit(SocketEvent.ErrorMessage, rummyResult.error);
+          return;
+        }
+        result = rummyResult;
+      }
+
+      const { room } = result;
+      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+      if (room.settings.remainSeconds !== null) {
+        timerMap[roomId] = {
+          countdownTime: room.settings.remainSeconds,
+          timer: null,
+        };
+        _clearAndCreateTimer(roomId, room);
+      } else {
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.CountdownTimeResponse, undefined);
       }
     });
 
@@ -300,6 +317,85 @@ app.prepare().then(() => {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
+
+    // ============================================================
+    // 拉密模式 Socket Events
+    // ============================================================
+
+    socket.on(SocketEvent.RummyDrawCard, ({ roomId }) => {
+      const result = rummyDrawCard(roomId, playerId);
+      if (result.success) {
+        const { room } = result;
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+        _resetRoundTimer(roomId, room);
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, result.error);
+      }
+    });
+
+    socket.on(
+      SocketEvent.RummySubmitTurn,
+      ({ roomId, submittedBoard, playedCardIds }) => {
+        const result = rummySubmitTurn(
+          roomId,
+          playerId,
+          submittedBoard,
+          playedCardIds,
+        );
+        if (result.success) {
+          const { room, winner } = result;
+          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+          _resetRoundTimer(roomId, room);
+          if (winner) {
+            const rankedPlayers = [...room.players].sort(
+              (a, b) => b.score - a.score,
+            );
+            io.sockets.to(roomId).emit(SocketEvent.GameOver, {
+              name: winner.name,
+              score: winner.score,
+              players: rankedPlayers,
+            });
+          }
+        } else {
+          socket.emit(SocketEvent.ErrorMessage, result.error);
+          // 即使失敗也廣播 room（因為可能已罰抽）
+          // 重新取得最新 room 狀態
+        }
+      },
+    );
+
+    socket.on(
+      SocketEvent.RummyDeclareJoker,
+      ({ roomId, jokerCardId, declaredValue, declaredColor }) => {
+        const result = rummyDeclareJoker(
+          roomId,
+          jokerCardId,
+          declaredValue,
+          declaredColor,
+        );
+        if (result.success) {
+          io.sockets
+            .to(roomId)
+            .emit(SocketEvent.RoomUpdate, { room: result.room });
+        } else {
+          socket.emit(SocketEvent.ErrorMessage, result.error);
+        }
+      },
+    );
+
+    socket.on(
+      SocketEvent.RummySwapJoker,
+      ({ roomId, handCardId, jokerCardId }) => {
+        const result = rummySwapJoker(roomId, playerId, handCardId, jokerCardId);
+        if (result.success) {
+          io.sockets
+            .to(roomId)
+            .emit(SocketEvent.RoomUpdate, { room: result.room });
+        } else {
+          socket.emit(SocketEvent.ErrorMessage, result.error);
+        }
+      },
+    );
 
     socket.on('disconnect', () => {
       const leaveResult = leaveRoom(playerId);

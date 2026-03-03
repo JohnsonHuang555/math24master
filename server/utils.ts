@@ -1,3 +1,6 @@
+import { v4 as uuidv4 } from 'uuid';
+import { NumberCard } from '../models/Player';
+
 /** 產生牌庫 n 為各幾張，maxValue 為最大牌值（預設 10）*/
 export function createDeckByStandardMode(n: number, maxValue: number = 10) {
   // 創建一個空陣列來儲存結果
@@ -41,6 +44,26 @@ export function shuffleArray<T>(array: T[]) {
   }
 
   return shuffledArray;
+}
+
+/** 產生拉密牌庫：4 色 × 13 值 × 2 份 = 104 張 + 2 Jokers，已洗牌 */
+export function createRummyDeck() {
+  const colors = ['red', 'blue', 'yellow', 'black'] as const;
+  const cards: NumberCard[] = [];
+
+  for (let copy = 0; copy < 2; copy++) {
+    for (const color of colors) {
+      for (let value = 1; value <= 13; value++) {
+        cards.push({ id: uuidv4(), value, color });
+      }
+    }
+  }
+
+  // 2 張 Joker
+  cards.push({ id: uuidv4(), value: 0, isJoker: true });
+  cards.push({ id: uuidv4(), value: 0, isJoker: true });
+
+  return shuffleArray(cards);
 }
 
 /** 抽牌 n = 抽幾張，純函數不修改原始陣列 */

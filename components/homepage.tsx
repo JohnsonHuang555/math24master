@@ -116,7 +116,16 @@ const Homepage = () => {
               className="px-12 py-6 text-xl"
               onClick={() => (window.location.href = '/single-play')}
             >
-              開始遊戲
+              單人遊玩
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
+            <Button
+              size="lg"
+              className="px-12 py-6 text-xl"
+              onClick={() => (window.location.href = '/multiple-play')}
+            >
+              多人遊玩
             </Button>
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>

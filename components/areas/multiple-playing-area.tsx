@@ -4,6 +4,7 @@ import Image from 'next/image';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
+import RummyPlayingArea from '@/components/areas/rummy-playing-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { GameOverModal } from '@/components/modals/game-over-modal';
@@ -13,6 +14,17 @@ import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
 
 const MultiplePlayingArea = () => {
+  const { roomInfo: _roomInfoCheck } = useMultiplePlay();
+
+  // 拉密模式直接渲染專屬 UI
+  if (_roomInfoCheck?.settings.gameType === 'rummy') {
+    return <RummyPlayingArea />;
+  }
+
+  return <ClassicPlayingArea />;
+};
+
+const ClassicPlayingArea = () => {
   const {
     roomInfo,
     checkAnswerCorrect,

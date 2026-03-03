@@ -23,6 +23,12 @@ export enum SocketEvent {
   ReselectCard = 'reselect-card',
   BackCard = 'back-card',
 
+  // rummy events (f2e emit)
+  RummyDrawCard = 'rummy-draw-card',
+  RummySubmitTurn = 'rummy-submit-turn',
+  RummyDeclareJoker = 'rummy-declare-joker',
+  RummySwapJoker = 'rummy-swap-joker',
+
   // b2e emit
   JoinRoomSuccess = 'join-room-success',
   GetPlayerId = 'get-player-id',
