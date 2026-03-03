@@ -83,12 +83,12 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.JoinRoom,
-      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty, gameType }) => {
+      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty, gameType, remainSeconds }) => {
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
           const result = joinRoom(
-            { roomId, maxPlayers, roomName, password, difficulty, gameType },
+            { roomId, maxPlayers, roomName, password, difficulty, gameType, remainSeconds },
             playerId,
             playerName,
             mode,

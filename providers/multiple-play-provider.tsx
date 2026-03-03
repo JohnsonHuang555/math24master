@@ -46,6 +46,7 @@ type MultiplePlayContextData = {
     password?: string,
     difficulty?: Difficulty,
     gameType?: GameType,
+    remainSeconds?: number | null,
   ) => void;
   socket: Socket;
   roomInfo?: Room;
@@ -254,6 +255,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       password?: string,
       difficulty?: Difficulty,
       gameType?: GameType,
+      remainSeconds?: number | null,
     ) => {
       if (socket) {
         socket.emit(SocketEvent.JoinRoom, {
@@ -264,6 +266,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           password,
           difficulty,
           gameType,
+          remainSeconds,
           mode: GameMode.Multiple,
         });
       }

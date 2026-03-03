@@ -145,7 +145,7 @@ const RoomInfoArea = ({
             }
             onValueChange={v => {
               onRoomSettingsChange({
-                remainSeconds: v === '' ? null : Number(v),
+                remainSeconds: v === 'infinity' ? null : Number(v),
               });
             }}
           >

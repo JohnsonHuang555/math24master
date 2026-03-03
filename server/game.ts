@@ -197,6 +197,7 @@ export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'> & {
     difficulty?: Difficulty;
     gameType?: 'classic' | 'rummy';
+    remainSeconds?: number | null;
   },
   playerId: string,
   playerName: string,
@@ -265,7 +266,7 @@ export function joinRoom(
         status: GameStatus.Idle,
         settings: {
           deckType: DeckType.Standard,
-          remainSeconds: 60,
+          remainSeconds: payload.remainSeconds === undefined ? 60 : payload.remainSeconds,
           difficulty: payload.difficulty ?? Difficulty.Normal,
           gameType: payload.gameType ?? 'classic',
         },
@@ -346,15 +347,13 @@ export function startGame(roomId: string): GameResponse {
     let tempDeck: number[] = [];
     const roomIndex = _getCurrentRoomIndex(roomId);
 
-    // 依難度決定牌值範圍，並強制覆寫計時設定
+    // 依難度決定牌值範圍
     const difficulty = room.settings.difficulty ?? Difficulty.Normal;
     let maxValue = 10;
     if (difficulty === Difficulty.Easy) {
       maxValue = 6;
-      _rooms[roomIndex].settings.remainSeconds = null; // 簡單模式無計時
     } else if (difficulty === Difficulty.Hard) {
       maxValue = 13;
-      _rooms[roomIndex].settings.remainSeconds = 60; // 困難模式固定 60 秒
     }
 
     switch (room.players.length) {
@@ -892,7 +891,6 @@ export function rummyStartGame(roomId: string): GameResponse {
     _rooms[roomIndex].status = GameStatus.Playing;
     _rooms[roomIndex].isGameOver = false;
     _rooms[roomIndex].selectedCards = [];
-    _rooms[roomIndex].settings.remainSeconds = RUMMY_TURN_SECONDS;
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
