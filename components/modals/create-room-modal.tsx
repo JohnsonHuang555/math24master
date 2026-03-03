@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Difficulty } from '@/models/Room';
+import { Difficulty, GameType } from '@/models/Room';
 
 type CreateRoomModalProps = {
   roomId: string;
@@ -29,6 +29,7 @@ type CreateRoomModalProps = {
     maxPlayers: number,
     password: string,
     difficulty: Difficulty,
+    gameType: GameType,
   ) => void;
 };
 
@@ -42,6 +43,7 @@ const CreateRoomModal = ({
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Normal);
+  const [gameType, setGameType] = useState<GameType>('classic');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -102,6 +104,25 @@ const CreateRoomModal = ({
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="game-type" className="text-right">
+              遊戲類型
+            </Label>
+            <Select
+              defaultValue={gameType}
+              onValueChange={v => setGameType(v as GameType)}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue id="game-type" placeholder="請選擇遊戲類型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="classic">傳統模式</SelectItem>
+                  <SelectItem value="rummy">拉密模式</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
             <div className="flex justify-end">
               <Checkbox
                 className="border-border"
@@ -134,7 +155,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              onConfirm(roomName, Number(maxPlayers), password, difficulty);
+              onConfirm(roomName, Number(maxPlayers), password, difficulty, gameType);
             }}
           >
             確定
