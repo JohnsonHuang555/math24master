@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
@@ -44,6 +45,7 @@ export default function MultiplePlayPage() {
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'classic' | 'rummy'>('all');
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
@@ -92,6 +94,11 @@ export default function MultiplePlayPage() {
     return () => clearInterval(interval);
   }, [searchRooms, searchedRoomName, searchedShowEmpty]);
 
+  const filteredRooms =
+    gameTypeFilter === 'all'
+      ? rooms
+      : rooms.filter(r => r.settings.gameType === gameTypeFilter);
+
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
@@ -111,8 +118,8 @@ export default function MultiplePlayPage() {
         roomId={roomId}
         isOpen={isOpenCreateRoomModal}
         onOpenChange={setIsOpenCreateRoomModal}
-        onConfirm={(roomName, maxPlayers, password, difficulty, gameType) => {
-          joinRoom(playerName, roomId, roomName, maxPlayers, password, difficulty, gameType);
+        onConfirm={(roomName, maxPlayers, password, gameType, remainSeconds) => {
+          joinRoom(playerName, roomId, roomName, maxPlayers, password, gameType, remainSeconds);
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">
@@ -170,10 +177,22 @@ export default function MultiplePlayPage() {
               <Button variant="secondary" onClick={() => router.push('/')}>
                 回首頁
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setIsOpenRuleModal(true)}
+              <Select
+                value={gameTypeFilter}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
               >
+                <SelectTrigger className="w-[90px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="classic">傳統</SelectItem>
+                    <SelectItem value="rummy">拉密</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
                 遊戲規則
               </Button>
               <Button onClick={() => setIsOpenCreateRoomModal(true)}>
@@ -191,15 +210,27 @@ export default function MultiplePlayPage() {
           </div>
           {/* mobile only */}
           <div className="mb-6 max-md:flex max-md:justify-between md:hidden">
-            <div className="flex gap-4 ">
+            <div className="flex gap-2">
               <Button variant="secondary" onClick={() => router.push('/')}>
                 回首頁
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setIsOpenRuleModal(true)}
+              <Select
+                value={gameTypeFilter}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
               >
-                遊戲規則
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="classic">傳統</SelectItem>
+                    <SelectItem value="rummy">拉密</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
+                規則
               </Button>
             </div>
             <Button onClick={() => setIsOpenCreateRoomModal(true)}>
@@ -214,10 +245,10 @@ export default function MultiplePlayPage() {
               建立房間
             </Button>
           </div>
-          {rooms.length > 0 ? (
+          {filteredRooms.length > 0 ? (
             <div className="-ml-2 -mt-2 h-[calc(100%-60px)] overflow-y-auto pl-2 pt-2">
               <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
-                {rooms.map(room => (
+                {filteredRooms.map(room => (
                   <motion.div
                     key={room.roomId}
                     whileHover={{ scale: 1.05 }}
@@ -255,6 +286,16 @@ export default function MultiplePlayPage() {
                           )}
                         </div>
                         <div className="flex items-center justify-center gap-2">
+                          <span
+                            className={cn(
+                              'rounded px-1.5 py-0.5 text-xs font-medium',
+                              room.settings.gameType === 'rummy'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-blue-100 text-blue-700',
+                            )}
+                          >
+                            {room.settings.gameType === 'rummy' ? '拉密' : '傳統'}
+                          </span>
                           <Image
                             src="/user.svg"
                             alt="user"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Difficulty, GameType } from '@/models/Room';
+import { GameType } from '@/models/Room';
 
 type CreateRoomModalProps = {
   roomId: string;
@@ -28,8 +28,8 @@ type CreateRoomModalProps = {
     roomName: string,
     maxPlayers: number,
     password: string,
-    difficulty: Difficulty,
     gameType: GameType,
+    remainSeconds: number | null,
   ) => void;
 };
 
@@ -42,8 +42,12 @@ const CreateRoomModal = ({
   const [maxPlayers, setMaxPlayers] = useState('2');
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Normal);
   const [gameType, setGameType] = useState<GameType>('classic');
+  const [remainSeconds, setRemainSeconds] = useState<number | null>(60);
+
+  useEffect(() => {
+    setRemainSeconds(gameType === 'rummy' ? 120 : 60);
+  }, [gameType]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -84,26 +88,6 @@ const CreateRoomModal = ({
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="difficulty" className="text-right">
-              難度
-            </Label>
-            <Select
-              defaultValue={difficulty}
-              onValueChange={v => setDifficulty(v as Difficulty)}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue id="difficulty" placeholder="請選擇難度" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={Difficulty.Easy}>簡單（牌值 1–6）</SelectItem>
-                  <SelectItem value={Difficulty.Normal}>普通（牌值 1–10）</SelectItem>
-                  <SelectItem value={Difficulty.Hard}>困難（牌值 1–13）</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="game-type" className="text-right">
               遊戲類型
             </Label>
@@ -118,6 +102,30 @@ const CreateRoomModal = ({
                 <SelectGroup>
                   <SelectItem value="classic">傳統模式</SelectItem>
                   <SelectItem value="rummy">拉密模式</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="remain-seconds" className="text-right">
+              每回合時間
+            </Label>
+            <Select
+              value={remainSeconds === null ? 'unlimited' : String(remainSeconds)}
+              onValueChange={v =>
+                setRemainSeconds(v === 'unlimited' ? null : Number(v))
+              }
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue id="remain-seconds" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="30">30 秒</SelectItem>
+                  <SelectItem value="60">60 秒</SelectItem>
+                  <SelectItem value="90">90 秒</SelectItem>
+                  <SelectItem value="120">120 秒</SelectItem>
+                  <SelectItem value="unlimited">無限時</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -155,7 +163,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              onConfirm(roomName, Number(maxPlayers), password, difficulty, gameType);
+              onConfirm(roomName, Number(maxPlayers), password, gameType, remainSeconds);
             }}
           >
             確定

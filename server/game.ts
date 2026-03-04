@@ -197,6 +197,7 @@ export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'> & {
     difficulty?: Difficulty;
     gameType?: 'classic' | 'rummy';
+    remainSeconds?: number | null;
   },
   playerId: string,
   playerName: string,
@@ -265,7 +266,7 @@ export function joinRoom(
         status: GameStatus.Idle,
         settings: {
           deckType: DeckType.Standard,
-          remainSeconds: 60,
+          remainSeconds: payload.remainSeconds === undefined ? 60 : payload.remainSeconds,
           difficulty: payload.difficulty ?? Difficulty.Normal,
           gameType: payload.gameType ?? 'classic',
         },
@@ -346,15 +347,13 @@ export function startGame(roomId: string): GameResponse {
     let tempDeck: number[] = [];
     const roomIndex = _getCurrentRoomIndex(roomId);
 
-    // 依難度決定牌值範圍，並強制覆寫計時設定
+    // 依難度決定牌值範圍
     const difficulty = room.settings.difficulty ?? Difficulty.Normal;
     let maxValue = 10;
     if (difficulty === Difficulty.Easy) {
       maxValue = 6;
-      _rooms[roomIndex].settings.remainSeconds = null; // 簡單模式無計時
     } else if (difficulty === Difficulty.Hard) {
       maxValue = 13;
-      _rooms[roomIndex].settings.remainSeconds = 60; // 困難模式固定 60 秒
     }
 
     switch (room.players.length) {
@@ -892,7 +891,7 @@ export function rummyStartGame(roomId: string): GameResponse {
     _rooms[roomIndex].status = GameStatus.Playing;
     _rooms[roomIndex].isGameOver = false;
     _rooms[roomIndex].selectedCards = [];
-    _rooms[roomIndex].settings.remainSeconds = RUMMY_TURN_SECONDS;
+    _rooms[roomIndex].rummyFinalRoundStartOrder = undefined;
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
@@ -900,11 +899,33 @@ export function rummyStartGame(roomId: string): GameResponse {
   }
 }
 
+/** 最後一圈結束檢查：若所有人都已輪過，計算懲罰分並回傳獲勝者 */
+function _checkRummyFinalRoundOver(roomIndex: number): Player | null {
+  const room = _rooms[roomIndex];
+  if (room.rummyFinalRoundStartOrder === undefined) return null;
+  if (room.currentOrder !== room.rummyFinalRoundStartOrder) return null;
+
+  // 所有人都輪過，計算殘局懲罰（手牌扣分）
+  for (const player of _rooms[roomIndex].players) {
+    let penalty = 0;
+    for (const card of player.handCard) {
+      penalty += card.isJoker ? 20 : card.value;
+    }
+    player.score -= penalty;
+  }
+
+  _rooms[roomIndex].isGameOver = true;
+  _rooms[roomIndex].status = GameStatus.Idle;
+
+  // 負分最少（分數最高）者獲勝
+  return [..._rooms[roomIndex].players].sort((a, b) => b.score - a.score)[0];
+}
+
 /** 拉密：抽 1 張牌並結束回合 */
 export function rummyDrawCard(
   roomId: string,
   playerId: string,
-): GameResponse {
+): RummyDrawCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
     if (roomIndex === -1) return { success: false, error: '房間不存在' };
@@ -916,7 +937,13 @@ export function rummyDrawCard(
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     if (_rooms[roomIndex].deck.length === 0) {
-      return { success: false, error: '牌庫已空' };
+      // 最後一圈：無牌可抽，直接 Pass（換人）
+      _nextPlayerTurn(roomIndex);
+      const penaltyWinner = _checkRummyFinalRoundOver(roomIndex);
+      if (penaltyWinner) {
+        return { success: true, room: _rooms[roomIndex], penaltyWinner };
+      }
+      return { success: true, room: _rooms[roomIndex] };
     }
 
     const { drawn, remaining } = draw(_rooms[roomIndex].deck, 1);
@@ -925,14 +952,26 @@ export function rummyDrawCard(
 
     _nextPlayerTurn(roomIndex);
 
+    // 抽完後牌庫剛好耗盡：觸發最後一圈
+    if (
+      _rooms[roomIndex].deck.length === 0 &&
+      _rooms[roomIndex].rummyFinalRoundStartOrder === undefined
+    ) {
+      _rooms[roomIndex].rummyFinalRoundStartOrder = _rooms[roomIndex].currentOrder;
+    }
+
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (rummy draw card)' };
   }
 }
 
+type RummyDrawCardResult =
+  | { success: true; room: Room; penaltyWinner?: Player }
+  | { success: false; error: string };
+
 type RummySubmitResult =
-  | { success: true; room: Room; winner?: Player }
+  | { success: true; room: Room; winner?: Player; penaltyWinner?: Player }
   | { success: false; error: string };
 
 /** 拉密：提交桌面（驗證 + 結算） */
@@ -1023,6 +1062,13 @@ export function rummySubmitTurn(
     }
 
     _nextPlayerTurn(roomIndex);
+
+    // 最後一圈結束檢查
+    const penaltyWinner = _checkRummyFinalRoundOver(roomIndex);
+    if (penaltyWinner) {
+      return { success: true, room: _rooms[roomIndex], penaltyWinner };
+    }
+
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (rummy submit turn)' };

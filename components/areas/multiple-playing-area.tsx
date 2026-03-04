@@ -9,6 +9,7 @@ import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
@@ -55,6 +56,7 @@ const ClassicPlayingArea = () => {
   // 需要棄牌
   const [needDiscard, setNeedDiscard] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const [isOpenRummyRuleModal, setIsOpenRummyRuleModal] = useState(false);
 
   const handCard = currentPlayer?.handCard || [];
 
@@ -83,6 +85,7 @@ const ClassicPlayingArea = () => {
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      <RummyRulesModal isOpen={isOpenRummyRuleModal} onClose={() => setIsOpenRummyRuleModal(false)} />
       {gameOverData && (
         <GameOverModal
           isOpen={!!gameOverData}
@@ -163,7 +166,13 @@ const ClassicPlayingArea = () => {
                 alt="document"
                 fill
                 priority
-                onClick={() => setIsOpenRuleModal(true)}
+                onClick={() => {
+                  if (roomInfo?.settings.gameType === 'rummy') {
+                    setIsOpenRummyRuleModal(true);
+                  } else {
+                    setIsOpenRuleModal(true);
+                  }
+                }}
               />
             </div>
           </HoverTip>

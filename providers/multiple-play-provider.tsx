@@ -18,8 +18,8 @@ import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
-import { CardColor, NumberCard, Player } from '@/models/Player';
-import { Difficulty, EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
+import { NumberCard, Player } from '@/models/Player';
+import { EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -34,6 +34,7 @@ type GameOverData = {
   name: string;
   score: number;
   players: Player[];
+  isPenaltyGameOver?: boolean;
 };
 
 type MultiplePlayContextData = {
@@ -44,8 +45,8 @@ type MultiplePlayContextData = {
     roomName?: string,
     maxPlayers?: number,
     password?: string,
-    difficulty?: Difficulty,
     gameType?: GameType,
+    remainSeconds?: number | null,
   ) => void;
   socket: Socket;
   roomInfo?: Room;
@@ -60,7 +61,6 @@ type MultiplePlayContextData = {
   // 拉密模式
   onRummyDraw: () => void;
   onRummySubmit: (submittedBoard: EquationGroup[], playedCardIds: string[]) => void;
-  onDeclareJoker: (jokerCardId: string, declaredValue: number, declaredColor: CardColor) => void;
   onSwapJoker: (handCardId: string, jokerCardId: string) => void;
   removePlayer: (playerId: string) => void;
   checkAnswerCorrect: boolean | null;
@@ -115,11 +115,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     countdown: number;
     needDrawPlayerId: string;
   }>();
-  const [gameOverData, setGameOverData] = useState<{
-    name: string;
-    score: number;
-    players: Player[];
-  } | null>(null);
+  const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
 
   const {
     selectedCardSymbols,
@@ -208,14 +204,16 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         name,
         score,
         players,
+        isPenaltyGameOver,
       }: {
         name: string;
         score: number;
         players: Player[];
+        isPenaltyGameOver?: boolean;
       }) => {
         toast.success(`恭喜 ${name} 獲得 ${score} 分，贏得勝利！`);
         playSound('gameOverWin');
-        setGameOverData({ name, score, players });
+        setGameOverData({ name, score, players, isPenaltyGameOver });
         useStatsStore.getState().incrementMultiPlays();
         // 成就：多人獲勝（需確認是否為本人）
         // 用 ref 比較，避免 closure 舊值問題
@@ -252,8 +250,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       roomName?: string,
       maxPlayers?: number,
       password?: string,
-      difficulty?: Difficulty,
       gameType?: GameType,
+      remainSeconds?: number | null,
     ) => {
       if (socket) {
         socket.emit(SocketEvent.JoinRoom, {
@@ -262,8 +260,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           roomName,
           maxPlayers,
           password,
-          difficulty,
           gameType,
+          remainSeconds,
           mode: GameMode.Multiple,
         });
       }
@@ -469,19 +467,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     [isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId],
   );
 
-  // 拉密：宣告 Joker
-  const onDeclareJoker = useCallback(
-    (jokerCardId: string, declaredValue: number, declaredColor: CardColor) => {
-      socket.emit(SocketEvent.RummyDeclareJoker, {
-        roomId: roomInfo?.roomId,
-        jokerCardId,
-        declaredValue,
-        declaredColor,
-      });
-    },
-    [roomInfo?.roomId],
-  );
-
   // 拉密：換取桌面 Joker
   const onSwapJoker = useCallback(
     (handCardId: string, jokerCardId: string) => {
@@ -539,7 +524,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onCloseGameOver,
       onRummyDraw,
       onRummySubmit,
-      onDeclareJoker,
       onSwapJoker,
     };
   }, [
@@ -555,7 +539,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     messages,
     onBack,
     onCloseGameOver,
-    onDeclareJoker,
     onDiscardCard,
     onDrawCard,
     onFinishedSymbolScoreAnimation,

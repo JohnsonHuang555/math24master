@@ -1,15 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { GameOverModal } from '@/components/modals/game-over-modal';
-import { JokerDeclareModal } from '@/components/modals/joker-declare-modal';
 import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
 import { NumberCard } from '@/models/Player';
 import { EquationGroup, EquationTile } from '@/models/Room';
@@ -18,18 +15,51 @@ import RummyBoardArea from './rummy-board-area';
 import RummyHandArea from './rummy-hand-area';
 import RummyWorkingArea from './rummy-working-area';
 
+const STASH_COLOR_CLASSES: Record<string, string> = {
+  red: 'text-red-600 border-red-400',
+  blue: 'text-blue-600 border-blue-400',
+  yellow: 'text-yellow-600 border-yellow-400',
+  black: 'text-gray-800 border-gray-600',
+};
+
+const StashCard = ({
+  card,
+  isUsed,
+  onClick,
+}: {
+  card: NumberCard;
+  isUsed: boolean;
+  onClick: () => void;
+}) => {
+  const color = card.isJoker ? card.jokerDeclaredColor : card.color;
+  const colorCls = color ? (STASH_COLOR_CLASSES[color] ?? 'text-gray-600 border-gray-300') : 'text-gray-600 border-gray-300';
+  const label = card.isJoker ? `J(${card.jokerDeclaredValue ?? '?'})` : String(card.value);
+
+  return (
+    <button
+      onClick={isUsed ? undefined : onClick}
+      disabled={isUsed}
+      className={`h-14 w-10 rounded-lg border-2 bg-white text-sm font-bold ${colorCls} ${
+        isUsed ? 'cursor-not-allowed opacity-30' : 'cursor-pointer hover:opacity-80'
+      }`}
+    >
+      {label}
+    </button>
+  );
+};
+
 const RummyPlayingArea = () => {
   const {
     roomInfo,
     currentPlayer,
     isYourTurn,
+    isLastRound,
     playerId,
     countdown,
     gameOverData,
     onCloseGameOver,
     onRummyDraw,
     onRummySubmit,
-    onDeclareJoker,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(p => p.id !== currentPlayer?.id);
@@ -39,27 +69,26 @@ const RummyPlayingArea = () => {
   const [workingBoard, setWorkingBoard] = useState<EquationGroup[]>([]);
   // 當前正在組裝的方程式 tiles
   const [currentTiles, setCurrentTiles] = useState<EquationTile[]>([]);
-  // Joker 宣告對話框
-  const [jokerModalCard, setJokerModalCard] = useState<NumberCard | null>(null);
+  // 拆解後暫存的數字牌
+  const [stashedCards, setStashedCards] = useState<NumberCard[]>([]);
   // 規則 Dialog
   const [showRules, setShowRules] = useState(false);
 
-  // 已放入 workingBoard 的牌 id
-  const usedCardIds = new Set(
-    workingBoard.flatMap(g =>
+  // 已放入 workingBoard 的牌 id（含 currentTiles 與 stashedCards）
+  const usedCardIds = new Set([
+    ...workingBoard.flatMap(g =>
       g.tiles.filter(t => t.type === 'number').map(t => (t as Extract<EquationTile, { type: 'number' }>).card.id),
     ),
-  );
-  // 加上 currentTiles 中的牌
-  currentTiles.forEach(t => {
-    if (t.type === 'number') usedCardIds.add(t.card.id);
-  });
+    ...currentTiles.filter(t => t.type === 'number').map(t => (t as Extract<EquationTile, { type: 'number' }>).card.id),
+    ...stashedCards.map(c => c.id),
+  ]);
 
   // 回合切換時重置 workingBoard（同步成伺服器桌面）
   useEffect(() => {
     if (isYourTurn) {
       setWorkingBoard(roomInfo?.board ?? []);
       setCurrentTiles([]);
+      setStashedCards([]);
     }
   }, [isYourTurn, roomInfo?.board]);
 
@@ -96,34 +125,38 @@ const RummyPlayingArea = () => {
     if (currentTiles.length === 0) return;
     const newGroup: EquationGroup = { id: uuidv4(), tiles: [...currentTiles] };
     setWorkingBoard(prev => [...prev, newGroup]);
+    const usedIds = new Set(
+      currentTiles
+        .filter(t => t.type === 'number')
+        .map(t => (t as Extract<EquationTile, { type: 'number' }>).card.id),
+    );
+    setStashedCards(prev => prev.filter(c => !usedIds.has(c.id)));
     setCurrentTiles([]);
   };
 
-  // 移除 workingBoard 中的某組
-  const handleRemoveGroup = (groupId: string) => {
+  // 拆解單組：提取數字牌至暫存區，從 workingBoard 移除此組
+  const handleDeconstructGroup = (groupId: string) => {
+    const group = workingBoard.find(g => g.id === groupId);
+    if (!group) return;
+    const numberCards = group.tiles
+      .filter((t): t is Extract<EquationTile, { type: 'number' }> => t.type === 'number')
+      .map(t => t.card);
+    setStashedCards(prev => [...prev, ...numberCards]);
     setWorkingBoard(prev => prev.filter(g => g.id !== groupId));
   };
 
-  // 拆解桌面：將 server board 所有牌組移入 workingBoard（替換）
+  // 還原：回到回合初始桌面，清空暫存區與組裝區
   const handleDeconstructBoard = () => {
     setWorkingBoard(roomInfo?.board ?? []);
     setCurrentTiles([]);
+    setStashedCards([]);
   };
 
-  // 點擊桌面上某個 tile，將其移入 currentTiles
-  const handlePickTileFromBoard = (groupId: string, tileIndex: number) => {
-    const group = workingBoard.find(g => g.id === groupId);
-    if (!group) return;
-    const tile = group.tiles[tileIndex];
-    setCurrentTiles(prev => [...prev, tile]);
-    const newTiles = group.tiles.filter((_, i) => i !== tileIndex);
-    if (newTiles.length === 0) {
-      setWorkingBoard(prev => prev.filter(g => g.id !== groupId));
-    } else {
-      setWorkingBoard(prev =>
-        prev.map(g => (g.id === groupId ? { ...g, tiles: newTiles } : g)),
-      );
-    }
+  // 點選暫存區牌，加入 currentTiles（牌留在暫存區，靠 isUsed 顯示 disabled）
+  const handleSelectStashCard = (card: NumberCard) => {
+    if (!isYourTurn) return;
+    if (currentTiles.some(t => t.type === 'number' && (t as Extract<EquationTile, { type: 'number' }>).card.id === card.id)) return;
+    setCurrentTiles(prev => [...prev, { type: 'number', card }]);
   };
 
   // 提交回合
@@ -145,36 +178,8 @@ const RummyPlayingArea = () => {
     onRummySubmit(workingBoard, playedCardIds);
   };
 
-  const canPickFromBoard = isYourTurn && (currentPlayer?.hasMelded ?? false);
-
-  // 拖曳結束處理
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || !isYourTurn) return;
-    const data = active.data.current as
-      | { source: 'hand'; card: NumberCard }
-      | { source: 'board'; groupId: string; tileIndex: number }
-      | { source: 'working'; tileIndex: number }
-      | undefined;
-    if (!data) return;
-
-    const overId = String(over.id);
-    const isWorkingTarget = overId.startsWith('working-') || overId === 'working-area';
-
-    if (data.source === 'hand' && isWorkingTarget) {
-      handleSelectCard(data.card);
-    } else if (data.source === 'board' && isWorkingTarget) {
-      handlePickTileFromBoard(data.groupId, data.tileIndex);
-    } else if (data.source === 'working' && overId.startsWith('working-') && active.id !== over.id) {
-      const oldIdx = parseInt(String(active.id).replace('working-', ''));
-      const newIdx = parseInt(overId.replace('working-', ''));
-      if (!isNaN(oldIdx) && !isNaN(newIdx)) {
-        setCurrentTiles(prev => arrayMove(prev, oldIdx, newIdx));
-      }
-    }
-  };
-
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <>
       <MainLayout>
         {gameOverData && (
           <GameOverModal
@@ -182,20 +187,9 @@ const RummyPlayingArea = () => {
             onClose={onCloseGameOver}
             players={gameOverData.players}
             currentPlayerId={playerId}
+            isPenaltyGameOver={gameOverData.isPenaltyGameOver}
             onPlayAgain={onCloseGameOver}
             onGoHome={() => (window.location.href = '/multiple-play')}
-          />
-        )}
-
-        {jokerModalCard && (
-          <JokerDeclareModal
-            isOpen={true}
-            jokerCardId={jokerModalCard.id}
-            onConfirm={(jokerCardId, value, color) => {
-              onDeclareJoker(jokerCardId, value, color);
-              setJokerModalCard(null);
-            }}
-            onCancel={() => setJokerModalCard(null)}
           />
         )}
 
@@ -254,10 +248,8 @@ const RummyPlayingArea = () => {
             board={isYourTurn ? workingBoard : (roomInfo?.board ?? [])}
             isYourTurn={isYourTurn}
             hasMelded={currentPlayer?.hasMelded ?? false}
-            onDeconstructBoard={isYourTurn ? handleDeconstructBoard : undefined}
-            onJokerClick={canPickFromBoard ? undefined : card => setJokerModalCard(card)}
-            onTileClick={canPickFromBoard ? handlePickTileFromBoard : undefined}
-            onRemoveGroup={canPickFromBoard ? handleRemoveGroup : undefined}
+            onDeconstructBoard={isYourTurn && (currentPlayer?.hasMelded ?? false) ? handleDeconstructBoard : undefined}
+            onDeconstructGroup={isYourTurn && (currentPlayer?.hasMelded ?? false) ? handleDeconstructGroup : undefined}
           />
         </div>
 
@@ -277,6 +269,29 @@ const RummyPlayingArea = () => {
           </div>
         )}
 
+        {/* 暫存區：拆解組後的數字牌 */}
+        {stashedCards.length > 0 && isYourTurn && (
+          <div className="px-4 pb-2">
+            <div className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-orange-50 p-2">
+              <div className="text-xs font-semibold text-orange-600">暫存區</div>
+              <div className="flex flex-wrap gap-2">
+                {stashedCards.map(card => (
+                  <StashCard
+                    key={card.id}
+                    card={card}
+                    isUsed={currentTiles.some(
+                      t =>
+                        t.type === 'number' &&
+                        (t as Extract<EquationTile, { type: 'number' }>).card.id === card.id,
+                    )}
+                    onClick={() => handleSelectStashCard(card)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 底部：手牌 + 操作 */}
         <div className="flex w-full items-center border-t border-gray-100 px-4 py-2">
           <div className="flex-1">
@@ -286,19 +301,18 @@ const RummyPlayingArea = () => {
               onSelectCard={handleSelectCard}
             />
           </div>
-          {isYourTurn && (
-            <div className="ml-4 flex flex-col gap-2">
+          <div className="ml-4 flex w-24 flex-shrink-0 flex-col items-center justify-center">
+            {isYourTurn ? (
               <button
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
                 onClick={onRummyDraw}
               >
-                抽 1 張
+                {isLastRound ? 'Pass 跳過' : '抽 1 張'}
               </button>
-            </div>
-          )}
-          {!isYourTurn && (
-            <div className="ml-4 text-sm text-gray-400">等待其他玩家...</div>
-          )}
+            ) : (
+              <span className="text-center text-xs text-gray-400">等待其他玩家...</span>
+            )}
+          </div>
         </div>
 
         {/* 牌庫剩餘 */}
@@ -306,7 +320,7 @@ const RummyPlayingArea = () => {
           牌庫剩餘：{roomInfo?.deck.length ?? 0} 張
         </div>
       </MainLayout>
-    </DndContext>
+    </>
   );
 };
 

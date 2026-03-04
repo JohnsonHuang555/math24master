@@ -85,7 +85,7 @@ const Homepage = () => {
           }}
         >
           <Button
-            className="mb-10"
+            className="mb-8"
             variant="secondary"
             onClick={() => setIsOpenRuleModal(true)}
           >
@@ -103,16 +103,23 @@ const Homepage = () => {
         <motion.div
           variants={fadeVariants}
           initial="hidden"
+          animate={{ opacity: 1, scale: 1, transition: { delay: 0.6 } }}
+          className="mb-6 rounded-full bg-blue-100 px-4 py-1 text-xs font-medium text-blue-700"
+        >
+          🎉 多人連線新增拉密模式玩法 🎉
+        </motion.div>
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
           animate={{
             opacity: 1,
             scale: 1,
             transition: { delay: 0.8 },
           }}
-          className="flex flex-col items-center gap-3"
+          className="flex flex-col items-center gap-4"
         >
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
             <Button
-              size="lg"
               className="px-12 py-6 text-xl"
               onClick={() => (window.location.href = '/single-play')}
             >
@@ -121,7 +128,6 @@ const Homepage = () => {
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
             <Button
-              size="lg"
               className="px-12 py-6 text-xl"
               onClick={() => (window.location.href = '/multiple-play')}
             >
@@ -150,7 +156,7 @@ const Homepage = () => {
         >
           <p className="text-xs leading-relaxed text-gray-400">
             <strong className="font-medium">24點遊戲介紹：</strong>
-            使用4張牌（1-10），透過加、減、乘、除四則運算，計算出結果等於2，訓練數學和邏輯思維能力。
+            使用4張牌，透過加、減、乘、除四則運算，計算出結果等於24，訓練數學和邏輯思維能力。
           </p>
         </motion.div>
       </section>

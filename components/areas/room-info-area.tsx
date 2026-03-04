@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DeckType, RoomSettings } from '@/models/Room';
+import { DeckType, GameType, RoomSettings } from '@/models/Room';
 import { RuleModal } from '../modals/rule-modal';
 import { Label } from '../ui/label';
 
@@ -106,32 +106,34 @@ const RoomInfoArea = ({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs" htmlFor="remain-seconds">
-            牌庫類型
-          </Label>
-          <Select
-            disabled={!isMaster}
-            value={roomSettings?.deckType}
-            onValueChange={v =>
-              onRoomSettingsChange({ deckType: v as DeckType })
-            }
-          >
-            <SelectTrigger className="mt-1 h-8">
-              <SelectValue id="remain-seconds" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value={DeckType.Standard}>
-                  標準 (1-10 各 {playersCount * 3} 張)
-                </SelectItem>
-                <SelectItem value={DeckType.Random}>
-                  全部隨機 (所有數字牌隨機產生)
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+        {roomSettings.gameType !== 'rummy' && (
+          <div>
+            <Label className="text-xs" htmlFor="remain-seconds">
+              牌庫類型
+            </Label>
+            <Select
+              disabled={!isMaster}
+              value={roomSettings?.deckType}
+              onValueChange={v =>
+                onRoomSettingsChange({ deckType: v as DeckType })
+              }
+            >
+              <SelectTrigger className="mt-1 h-8">
+                <SelectValue id="remain-seconds" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={DeckType.Standard}>
+                    標準 (1-10 各 {playersCount * 3} 張)
+                  </SelectItem>
+                  <SelectItem value={DeckType.Random}>
+                    全部隨機 (所有數字牌隨機產生)
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div>
           <Label className="text-xs" htmlFor="remain-seconds">
             每回合秒數
@@ -145,7 +147,7 @@ const RoomInfoArea = ({
             }
             onValueChange={v => {
               onRoomSettingsChange({
-                remainSeconds: v === '' ? null : Number(v),
+                remainSeconds: v === 'infinity' ? null : Number(v),
               });
             }}
           >
@@ -163,6 +165,26 @@ const RoomInfoArea = ({
                 <SelectItem value="180">180</SelectItem>
                 <SelectItem value="240">240</SelectItem>
                 <SelectItem value="300">300</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs" htmlFor="game-type">
+            遊戲類型
+          </Label>
+          <Select
+            disabled={!isMaster}
+            value={roomSettings.gameType}
+            onValueChange={v => onRoomSettingsChange({ gameType: v as GameType })}
+          >
+            <SelectTrigger className="mt-1 h-8">
+              <SelectValue id="game-type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="classic">傳統模式</SelectItem>
+                <SelectItem value="rummy">拉密模式</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
