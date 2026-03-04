@@ -56,4 +56,5 @@ export type Room = {
   settings: RoomSettings;
   countdownTime?: number; // 回合倒數計時
   board: EquationGroup[]; // 桌面已驗證牌組（拉密模式）
+  rummyFinalRoundStartOrder?: number; // 最後一圈起始玩家的 playerOrder（undefined = 非最後一圈）
 };

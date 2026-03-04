@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Difficulty, GameType } from '@/models/Room';
+import { GameType } from '@/models/Room';
 
 type CreateRoomModalProps = {
   roomId: string;
@@ -28,7 +28,6 @@ type CreateRoomModalProps = {
     roomName: string,
     maxPlayers: number,
     password: string,
-    difficulty: Difficulty,
     gameType: GameType,
     remainSeconds: number | null,
   ) => void;
@@ -43,7 +42,6 @@ const CreateRoomModal = ({
   const [maxPlayers, setMaxPlayers] = useState('2');
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Normal);
   const [gameType, setGameType] = useState<GameType>('classic');
   const [remainSeconds, setRemainSeconds] = useState<number | null>(60);
 
@@ -85,26 +83,6 @@ const CreateRoomModal = ({
                   <SelectItem value="2">2</SelectItem>
                   <SelectItem value="3">3</SelectItem>
                   <SelectItem value="4">4</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="difficulty" className="text-right">
-              難度
-            </Label>
-            <Select
-              defaultValue={difficulty}
-              onValueChange={v => setDifficulty(v as Difficulty)}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue id="difficulty" placeholder="請選擇難度" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={Difficulty.Easy}>簡單（牌值 1–6）</SelectItem>
-                  <SelectItem value={Difficulty.Normal}>普通（牌值 1–10）</SelectItem>
-                  <SelectItem value={Difficulty.Hard}>困難（牌值 1–13）</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -185,7 +163,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              onConfirm(roomName, Number(maxPlayers), password, difficulty, gameType, remainSeconds);
+              onConfirm(roomName, Number(maxPlayers), password, gameType, remainSeconds);
             }}
           >
             確定

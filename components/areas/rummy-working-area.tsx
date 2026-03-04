@@ -1,9 +1,5 @@
 'use client';
 
-import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { cn } from '@/lib/utils';
 import { validateEquationGroup } from '@/lib/rummy-validator';
 import { EquationGroup, EquationTile, OperatorType } from '@/models/Room';
 import { Button } from '../ui/button';
@@ -51,26 +47,6 @@ const TileDisplay = ({ tile }: { tile: EquationTile }) => {
   return <span className="font-semibold text-gray-500">{OPERATOR_LABELS[tile.op]}</span>;
 };
 
-const SortableTile = ({ tile, index }: { tile: EquationTile; index: number }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `working-${index}`,
-    data: { source: 'working', tileIndex: index },
-  });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    cursor: 'grab',
-  };
-
-  return (
-    <span ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TileDisplay tile={tile} />
-    </span>
-  );
-};
-
 const RummyWorkingArea = ({
   currentTiles,
   onAddTile,
@@ -91,32 +67,21 @@ const RummyWorkingArea = ({
       : null;
 
   const ops: OperatorType[] = ['+', '-', '*', '/'];
-  const sortableIds = currentTiles.map((_, i) => `working-${i}`);
-
-  const { setNodeRef: dropRef, isOver } = useDroppable({ id: 'working-area' });
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-dashed border-gray-300 p-3">
       <div className="text-sm font-semibold text-gray-600">方程式組裝區</div>
 
-      {/* 當前正在組裝的方程式（可拖曳放入、可排序） */}
-      <div
-        ref={dropRef}
-        className={cn(
-          'min-h-[40px] rounded border border-gray-200 bg-white p-2',
-          isOver && 'ring-2 ring-blue-400',
-        )}
-      >
+      {/* 當前正在組裝的方程式 */}
+      <div className="min-h-[40px] rounded border border-gray-200 bg-white p-2">
         {currentTiles.length === 0 ? (
-          <span className="text-xs text-gray-400">點選或拖曳手牌 / 桌面牌至此，加入運算子來組裝方程式</span>
+          <span className="text-xs text-gray-400">點選手牌 / 暫存區牌加入方程式，再加入運算子</span>
         ) : (
-          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-            <div className="flex flex-wrap gap-1">
-              {currentTiles.map((t, i) => (
-                <SortableTile key={`working-${i}`} tile={t} index={i} />
-              ))}
-            </div>
-          </SortableContext>
+          <div className="flex flex-wrap gap-1">
+            {currentTiles.map((t, i) => (
+              <TileDisplay key={i} tile={t} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -174,10 +139,6 @@ const RummyWorkingArea = ({
         >
           清空
         </Button>
-      </div>
-
-      {/* 完成此組 & 提交 */}
-      <div className="flex gap-2">
         <Button
           size="sm"
           disabled={!isYourTurn || !validation?.valid}

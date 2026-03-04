@@ -298,8 +298,8 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.EditRoomSettings,
-      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty }) => {
-        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty);
+      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType }) => {
+        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType);
         if (result.success) {
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
         } else {
@@ -328,6 +328,17 @@ app.prepare().then(() => {
         const { room } = result;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
         _resetRoundTimer(roomId, room);
+        if (result.penaltyWinner) {
+          const rankedPlayers = [...room.players].sort(
+            (a, b) => b.score - a.score,
+          );
+          io.sockets.to(roomId).emit(SocketEvent.GameOver, {
+            name: result.penaltyWinner.name,
+            score: result.penaltyWinner.score,
+            players: rankedPlayers,
+            isPenaltyGameOver: true,
+          });
+        }
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -343,7 +354,7 @@ app.prepare().then(() => {
           playedCardIds,
         );
         if (result.success) {
-          const { room, winner } = result;
+          const { room, winner, penaltyWinner } = result;
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
           _resetRoundTimer(roomId, room);
           if (winner) {
@@ -354,6 +365,16 @@ app.prepare().then(() => {
               name: winner.name,
               score: winner.score,
               players: rankedPlayers,
+            });
+          } else if (penaltyWinner) {
+            const rankedPlayers = [...room.players].sort(
+              (a, b) => b.score - a.score,
+            );
+            io.sockets.to(roomId).emit(SocketEvent.GameOver, {
+              name: penaltyWinner.name,
+              score: penaltyWinner.score,
+              players: rankedPlayers,
+              isPenaltyGameOver: true,
             });
           }
         } else {

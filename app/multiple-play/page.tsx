@@ -11,7 +11,6 @@ import MainLayout from '@/components/layouts/main-layout';
 import CreateRoomModal from '@/components/modals/create-room-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
-import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,8 +45,7 @@ export default function MultiplePlayPage() {
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-  const [isOpenRummyRuleModal, setIsOpenRummyRuleModal] = useState(false);
-  const [ruleTarget, setRuleTarget] = useState<'classic' | 'rummy'>('classic');
+  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'classic' | 'rummy'>('all');
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
@@ -96,10 +94,14 @@ export default function MultiplePlayPage() {
     return () => clearInterval(interval);
   }, [searchRooms, searchedRoomName, searchedShowEmpty]);
 
+  const filteredRooms =
+    gameTypeFilter === 'all'
+      ? rooms
+      : rooms.filter(r => r.settings.gameType === gameTypeFilter);
+
   return (
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <RummyRulesModal isOpen={isOpenRummyRuleModal} onClose={() => setIsOpenRummyRuleModal(false)} />
       <PlayerNameModal
         isOpen={isOpenNameModal}
         onOpenChange={setIsOpenNameModal}
@@ -116,8 +118,8 @@ export default function MultiplePlayPage() {
         roomId={roomId}
         isOpen={isOpenCreateRoomModal}
         onOpenChange={setIsOpenCreateRoomModal}
-        onConfirm={(roomName, maxPlayers, password, difficulty, gameType, remainSeconds) => {
-          joinRoom(playerName, roomId, roomName, maxPlayers, password, difficulty, gameType, remainSeconds);
+        onConfirm={(roomName, maxPlayers, password, gameType, remainSeconds) => {
+          joinRoom(playerName, roomId, roomName, maxPlayers, password, gameType, remainSeconds);
         }}
       />
       <div className="flex h-full flex-col items-center justify-center">
@@ -176,26 +178,21 @@ export default function MultiplePlayPage() {
                 回首頁
               </Button>
               <Select
-                value={ruleTarget}
-                onValueChange={v => setRuleTarget(v as 'classic' | 'rummy')}
+                value={gameTypeFilter}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
               >
                 <SelectTrigger className="w-[90px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
+                    <SelectItem value="all">全部</SelectItem>
                     <SelectItem value="classic">傳統</SelectItem>
                     <SelectItem value="rummy">拉密</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (ruleTarget === 'rummy') setIsOpenRummyRuleModal(true);
-                  else setIsOpenRuleModal(true);
-                }}
-              >
+              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
                 遊戲規則
               </Button>
               <Button onClick={() => setIsOpenCreateRoomModal(true)}>
@@ -218,26 +215,21 @@ export default function MultiplePlayPage() {
                 回首頁
               </Button>
               <Select
-                value={ruleTarget}
-                onValueChange={v => setRuleTarget(v as 'classic' | 'rummy')}
+                value={gameTypeFilter}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
               >
                 <SelectTrigger className="w-[80px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
+                    <SelectItem value="all">全部</SelectItem>
                     <SelectItem value="classic">傳統</SelectItem>
                     <SelectItem value="rummy">拉密</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (ruleTarget === 'rummy') setIsOpenRummyRuleModal(true);
-                  else setIsOpenRuleModal(true);
-                }}
-              >
+              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
                 規則
               </Button>
             </div>
@@ -253,10 +245,10 @@ export default function MultiplePlayPage() {
               建立房間
             </Button>
           </div>
-          {rooms.length > 0 ? (
+          {filteredRooms.length > 0 ? (
             <div className="-ml-2 -mt-2 h-[calc(100%-60px)] overflow-y-auto pl-2 pt-2">
               <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
-                {rooms.map(room => (
+                {filteredRooms.map(room => (
                   <motion.div
                     key={room.roomId}
                     whileHover={{ scale: 1.05 }}

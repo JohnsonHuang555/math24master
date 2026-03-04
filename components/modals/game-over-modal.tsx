@@ -19,6 +19,7 @@ type GameOverModalProps = {
   currentPlayerId?: string;
   isSinglePlay?: boolean;
   isNewBestScore?: boolean;
+  isPenaltyGameOver?: boolean;
   onPlayAgain: () => void;
   onGoHome: () => void;
 };
@@ -38,6 +39,7 @@ export function GameOverModal({
   currentPlayerId,
   isSinglePlay,
   isNewBestScore,
+  isPenaltyGameOver,
   onPlayAgain,
   onGoHome,
 }: GameOverModalProps) {
@@ -47,8 +49,13 @@ export function GameOverModal({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-center gap-2 text-2xl">
             <Trophy className="h-6 w-6 text-yellow-400" />
-            遊戲結束
+            {isPenaltyGameOver ? '殘局結算' : '遊戲結束'}
           </DialogTitle>
+          {isPenaltyGameOver && (
+            <p className="text-center text-sm text-muted-foreground">
+              牌庫耗盡！手牌數值越少者獲勝（Joker = -20）
+            </p>
+          )}
         </DialogHeader>
 
         {isSinglePlay && players[0] && (

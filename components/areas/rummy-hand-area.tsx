@@ -1,7 +1,5 @@
 'use client';
 
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { NumberCard } from '@/models/Player';
@@ -27,7 +25,7 @@ const COLOR_ORDER: Record<string, number> = {
   black: 3,
 };
 
-const DraggableCard = ({
+const HandCard = ({
   card,
   index,
   isUsed,
@@ -38,14 +36,6 @@ const DraggableCard = ({
   isUsed: boolean;
   onSelectCard: (card: NumberCard) => void;
 }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `hand-${card.id}`,
-    data: { source: 'hand', card },
-    disabled: isUsed,
-  });
-
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
-
   const colorClass = card.isJoker
     ? 'bg-purple-100 border-purple-400 text-purple-700'
     : card.color
@@ -53,32 +43,30 @@ const DraggableCard = ({
       : 'bg-white border-gray-300 text-gray-700';
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={isDragging ? 'opacity-30' : ''}>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: isUsed ? 0.3 : 1, y: 0 }}
-        transition={{ delay: index * 0.05 }}
-        whileHover={!isUsed && !isDragging ? { scale: 1.1 } : {}}
-        whileTap={!isUsed && !isDragging ? { scale: 0.95 } : {}}
-        className={cn(
-          'flex h-14 w-10 cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 text-sm font-bold shadow-sm',
-          colorClass,
-          isUsed && 'cursor-not-allowed',
-        )}
-        onClick={() => {
-          if (!isUsed) onSelectCard(card);
-        }}
-      >
-        {card.isJoker ? (
-          <span className="text-xs">Joker</span>
-        ) : (
-          <span>{card.value}</span>
-        )}
-        {card.color && !card.isJoker && (
-          <span className="text-[8px] uppercase">{card.color[0]}</span>
-        )}
-      </motion.div>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: isUsed ? 0.3 : 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      whileHover={!isUsed ? { scale: 1.1 } : {}}
+      whileTap={!isUsed ? { scale: 0.95 } : {}}
+      className={cn(
+        'flex h-14 w-10 cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 text-sm font-bold shadow-sm',
+        colorClass,
+        isUsed && 'cursor-not-allowed',
+      )}
+      onClick={() => {
+        if (!isUsed) onSelectCard(card);
+      }}
+    >
+      {card.isJoker ? (
+        <span className="text-xs">Joker</span>
+      ) : (
+        <span>{card.value}</span>
+      )}
+      {card.color && !card.isJoker && (
+        <span className="text-[8px] uppercase">{card.color[0]}</span>
+      )}
+    </motion.div>
   );
 };
 
@@ -97,11 +85,16 @@ const RummyHandArea = ({
     return a.value - b.value;
   });
 
+  const cols = Math.ceil(sortedCards.length / 2);
+
   return (
-    <div className="w-full py-2">
-      <div className="flex flex-wrap gap-2 px-2">
+    <div className="w-full overflow-x-auto py-2">
+      <div
+        className="grid grid-rows-2 gap-2 px-2"
+        style={{ gridTemplateColumns: `repeat(${cols}, 2.5rem)` }}
+      >
         {sortedCards.map((card, index) => (
-          <DraggableCard
+          <HandCard
             key={card.id}
             card={card}
             index={index}
