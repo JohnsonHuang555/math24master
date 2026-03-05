@@ -229,6 +229,11 @@ const RummyPlayingArea = () => {
             <div key={player.id} className="flex flex-col items-center">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-semibold">{player.name}</span>
+                {player.isBot && (
+                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs font-bold text-purple-700">
+                    BOT
+                  </span>
+                )}
                 {player.playerOrder === roomInfo?.currentOrder && (
                   <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-white">
                     換他
@@ -283,7 +288,7 @@ const RummyPlayingArea = () => {
 
         {/* 下方：算式組裝區 */}
         {isYourTurn && (
-          <div className="px-4 pb-2">
+          <div className="p-4">
             <RummyWorkingArea
               currentTiles={currentTiles}
               onAddTile={handleAddTile}
@@ -299,7 +304,7 @@ const RummyPlayingArea = () => {
 
         {/* 暫存區：拆解組後的數字牌 */}
         {stashedCards.length > 0 && isYourTurn && (
-          <div className="px-4 pb-2">
+          <div className="p-4">
             <div className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-orange-50 p-2">
               <div className="text-xs font-semibold text-orange-600">暫存區</div>
               <div className="flex flex-wrap gap-2">

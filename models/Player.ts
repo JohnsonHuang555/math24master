@@ -19,4 +19,6 @@ export type Player = {
   isLastRoundPlayer: boolean; // 是否為最後一回合最後一位玩家
   isReady: boolean;
   hasMelded: boolean; // 是否已破冰（拉密模式）
+  isBot?: boolean; // 是否為 AI 玩家
+  botDifficulty?: 'easy' | 'normal' | 'hard'; // AI 難度
 };

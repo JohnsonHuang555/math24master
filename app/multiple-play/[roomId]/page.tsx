@@ -43,6 +43,7 @@ export default function RoomPage() {
     removePlayer,
     currentPlayer,
     sendMessage,
+    addBot,
   } = useMultiplePlay();
 
   useEffect(() => {
@@ -190,6 +191,12 @@ export default function RoomPage() {
               setRemovingPlayerId(playerId);
               setIsOpenRemovePlayerModal(true);
             }}
+            onAddBot={addBot}
+            canAddBot={
+              !!currentPlayer?.isMaster &&
+              roomInfo.settings.gameType === 'rummy' &&
+              roomInfo.players.length < roomInfo.maxPlayers
+            }
           />
           <div className="flex flex-[3] flex-col gap-4">
             <RoomInfoArea

@@ -64,7 +64,7 @@ const RummyBoardArea = ({
   onDeconstructGroup,
 }: RummyBoardAreaProps) => {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-100 p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-600">
           桌面（{board.length} 組）
@@ -78,11 +78,11 @@ const RummyBoardArea = ({
       {board.length === 0 ? (
         <div className="text-xs text-gray-400">桌面尚無牌組</div>
       ) : (
-        <div className="flex flex-col gap-1 overflow-y-auto">
+        <div className="flex gap-3 overflow-y-auto flex-wrap">
           {board.map(group => (
             <div
               key={group.id}
-              className="flex flex-wrap items-center gap-1 rounded bg-white px-2 py-1 shadow-sm"
+              className="flex flex-wrap items-center gap-2 rounded border-gray-200 border bg-white px-4 py-3 w-[32.5%]"
             >
               {group.tiles.map((tile, i) => (
                 <TileChip

@@ -5,12 +5,14 @@ import { Room } from '@/models/Room';
 import { Message } from '../models/Message';
 import { SocketEvent } from '../models/SocketEvent';
 import {
+  addBotToRoom,
   backCard,
   checkCanJoinRoom,
   discardCard,
   drawCard,
   editRoom,
   editRoomSettings,
+  getCurrentBotPlayer,
   getCurrentRooms,
   getPlayerName,
   joinRoom,
@@ -19,6 +21,7 @@ import {
   readyGame,
   removePlayer,
   reselectCard,
+  rummyBotPlay,
   rummyDeclareJoker,
   rummyDrawCard,
   rummyStartGame,
@@ -46,6 +49,36 @@ app.prepare().then(() => {
     pingInterval: 25000,
     pingTimeout: 60000,
   });
+
+  /** 若目前輪到的玩家是 Bot，延遲 1.5 秒後自動行動 */
+  const _triggerBotIfNeeded = (roomId: string) => {
+    const botPlayer = getCurrentBotPlayer(roomId);
+    if (!botPlayer) return;
+
+    setTimeout(() => {
+      const result = rummyBotPlay(roomId, botPlayer.id);
+      if (!result.success) return;
+
+      const { room, winner, penaltyWinner } = result;
+      io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+      if (timerMap[roomId] && room.settings.remainSeconds !== null) {
+        _clearAndCreateTimer(roomId, room);
+      }
+
+      if (winner || penaltyWinner) {
+        const w = winner ?? penaltyWinner!;
+        const rankedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        io.to(roomId).emit(SocketEvent.GameOver, {
+          name: w.name,
+          score: w.score,
+          players: rankedPlayers,
+          isPenaltyGameOver: !!penaltyWinner,
+        });
+      } else {
+        _triggerBotIfNeeded(roomId);
+      }
+    }, 1500);
+  };
 
   const _resetRoundTimer = (roomId: string, room: Room) => {
     if (timerMap[roomId] && timerMap[roomId].timer !== null) {
@@ -139,6 +172,11 @@ app.prepare().then(() => {
         io.sockets
           .to(roomId)
           .emit(SocketEvent.CountdownTimeResponse, undefined);
+      }
+
+      // 遊戲開始後，若第一位玩家是 Bot，觸發其行動
+      if (room.settings.gameType === 'rummy') {
+        _triggerBotIfNeeded(roomId);
       }
     });
 
@@ -338,6 +376,8 @@ app.prepare().then(() => {
             players: rankedPlayers,
             isPenaltyGameOver: true,
           });
+        } else {
+          _triggerBotIfNeeded(roomId);
         }
       } else if (result.error !== 'NOT_YOUR_TURN') {
         socket.emit(SocketEvent.ErrorMessage, result.error);
@@ -376,6 +416,8 @@ app.prepare().then(() => {
               players: rankedPlayers,
               isPenaltyGameOver: true,
             });
+          } else {
+            _triggerBotIfNeeded(roomId);
           }
         } else if (result.error !== 'NOT_YOUR_TURN') {
           socket.emit(SocketEvent.ErrorMessage, result.error);
@@ -415,6 +457,15 @@ app.prepare().then(() => {
         }
       },
     );
+
+    socket.on(SocketEvent.AddBotToRoom, ({ roomId, difficulty }) => {
+      const result = addBotToRoom(roomId, difficulty);
+      if (result.success) {
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+      } else {
+        socket.emit(SocketEvent.ErrorMessage, result.error);
+      }
+    });
 
     socket.on('disconnect', () => {
       const leaveResult = leaveRoom(playerId);

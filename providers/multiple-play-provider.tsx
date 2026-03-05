@@ -93,6 +93,7 @@ type MultiplePlayContextData = {
   gameOverData: GameOverData | null;
   onCloseGameOver: () => void;
   gameAbortedData: GameAbortedData | null;
+  addBot: (difficulty: 'easy' | 'normal' | 'hard') => void;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -474,6 +475,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     [isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId],
   );
 
+  const addBot = useCallback(
+    (difficulty: 'easy' | 'normal' | 'hard') => {
+      if (!roomInfo?.roomId) return;
+      socket.emit(SocketEvent.AddBotToRoom, { roomId: roomInfo.roomId, difficulty });
+    },
+    [roomInfo?.roomId],
+  );
+
   // 拉密：換取桌面 Joker
   const onSwapJoker = useCallback(
     (handCardId: string, jokerCardId: string) => {
@@ -537,6 +546,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onRummyDraw,
       onRummySubmit,
       onSwapJoker,
+      addBot,
     };
   }, [
     checkAnswerCorrect,
@@ -558,6 +568,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     onPlayCard,
     onReadyGame,
     onReselect,
+    addBot,
     onRummyDraw,
     onRummySubmit,
     onSelectCardOrSymbol,

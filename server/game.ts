@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { calculateAnswer } from '../lib/utils';
 import { validateBoard } from '../lib/rummy-validator';
+import { BotDifficulty, findPlayableGroups } from '../lib/rummy-ai';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import { CardColor, NumberCard, Player } from '../models/Player';
@@ -309,12 +310,6 @@ export function leaveRoom(
   // 房間不存在
   if (!room || !roomId) return;
 
-  // 房間剩下最後一人直接移除房間
-  if (room.players.length === 1) {
-    _rooms = _rooms.filter(room => room.roomId !== roomId);
-    return;
-  }
-
   // 離開的玩家資訊
   const leavingPlayer = room.players.find(player => player.id === playerId);
   const leftPlayerName = leavingPlayer?.name;
@@ -322,6 +317,15 @@ export function leaveRoom(
   const wasCurrentTurn = leavingPlayer?.playerOrder === room.currentOrder;
 
   const newPlayers = room.players.filter(player => player.id !== playerId);
+
+  // 若剩下的全是 Bot（無人類），直接刪除房間
+  const humanPlayersLeft = newPlayers.filter(p => !p.isBot);
+  if (humanPlayersLeft.length === 0) {
+    _rooms = _rooms.filter(r => r.roomId !== roomId);
+    delete _playerInRoomMap[playerId];
+    return;
+  }
+
   const hasMaster = newPlayers.find(player => player.isMaster);
 
   // 如果房主已離開房間，則第一位玩家為房主
@@ -1169,6 +1173,114 @@ export function rummyDeclareJoker(
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (rummy declare joker)' };
   }
+}
+
+/** 加入 Bot 玩家到房間 */
+export function addBotToRoom(
+  roomId: string,
+  difficulty: BotDifficulty,
+): GameResponse {
+  try {
+    const roomIndex = _getCurrentRoomIndex(roomId);
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+
+    const room = _rooms[roomIndex];
+    if (room.players.length >= room.maxPlayers) {
+      return { success: false, error: '房間人數已滿' };
+    }
+
+    const botName =
+      difficulty === 'easy'
+        ? '電腦（簡單）'
+        : difficulty === 'normal'
+          ? '電腦（普通）'
+          : '電腦（困難）';
+
+    const bot: Player = {
+      id: `bot-${uuidv4()}`,
+      name: botName,
+      isBot: true,
+      botDifficulty: difficulty,
+      handCard: [],
+      score: 0,
+      isMaster: false,
+      isReady: true,
+      hasMelded: false,
+      isLastRoundPlayer: false,
+    };
+
+    _rooms[roomIndex].players.push(bot);
+    return { success: true, room: _rooms[roomIndex] };
+  } catch (e) {
+    return { success: false, error: '發生錯誤，請稍後再試 (add bot)' };
+  }
+}
+
+export type BotPlayResult =
+  | { success: true; room: Room; winner?: Player; penaltyWinner?: Player }
+  | { success: false; error: string };
+
+/** Bot 自動行動（出牌或抽牌） */
+export function rummyBotPlay(roomId: string, botPlayerId: string): BotPlayResult {
+  try {
+    const roomIndex = _getCurrentRoomIndex(roomId);
+    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+
+    const room = _rooms[roomIndex];
+    if (room.status !== GameStatus.Playing) {
+      return { success: false, error: 'Game not playing' };
+    }
+
+    const playerIndex = _getCurrentPlayerIndex(room.players, botPlayerId);
+    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
+
+    const bot = room.players[playerIndex];
+    const difficulty = (bot.botDifficulty as BotDifficulty) ?? 'normal';
+
+    const playableGroups = findPlayableGroups(bot.handCard, difficulty);
+
+    if (playableGroups.length > 0) {
+      // 組裝 submittedBoard = 現有桌面 + Bot 新牌組
+      const submittedBoard = [...room.board, ...playableGroups];
+      const boardCardIds = new Set(
+        room.board.flatMap(g =>
+          g.tiles
+            .filter(t => t.type === 'number')
+            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
+        ),
+      );
+      const playedCardIds = playableGroups
+        .flatMap(g =>
+          g.tiles
+            .filter(t => t.type === 'number')
+            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
+        )
+        .filter(id => !boardCardIds.has(id));
+
+      return rummySubmitTurn(roomId, botPlayerId, submittedBoard, playedCardIds);
+    } else {
+      const drawResult = rummyDrawCard(roomId, botPlayerId);
+      if (!drawResult.success) return drawResult;
+      return {
+        success: true,
+        room: drawResult.room,
+        penaltyWinner: drawResult.penaltyWinner,
+      };
+    }
+  } catch (e) {
+    return { success: false, error: '發生錯誤，請稍後再試 (bot play)' };
+  }
+}
+
+/** 取得目前輪到的 Bot 玩家（若不是 Bot 則回傳 null） */
+export function getCurrentBotPlayer(roomId: string): Player | null {
+  const room = _getCurrentRoom(roomId);
+  if (!room || room.status !== GameStatus.Playing) return null;
+  return room.players.find(p => p.playerOrder === room.currentOrder && p.isBot) ?? null;
 }
 
 /** 拉密：用手牌換取桌面上的 Joker */
