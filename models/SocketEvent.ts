@@ -39,5 +39,6 @@ export enum SocketEvent {
   PlayerLeaveRoom = 'player-leave-room', // 玩家在遊戲中離開房間
   NeedRoomPassword = 'need-room-password',
   GameOver = 'game-over',
+  GameAborted = 'game-aborted',
   CountdownTimeResponse = 'countdown-time-response',
 }

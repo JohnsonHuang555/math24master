@@ -8,6 +8,13 @@ import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { NumberCard } from '@/models/Player';
 import { EquationGroup, EquationTile } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -58,6 +65,7 @@ const RummyPlayingArea = () => {
     countdown,
     gameOverData,
     onCloseGameOver,
+    gameAbortedData,
     onRummyDraw,
     onRummySubmit,
   } = useMultiplePlay();
@@ -162,6 +170,10 @@ const RummyPlayingArea = () => {
   // 提交回合
   const handleSubmit = () => {
     if (!isYourTurn) return;
+    if (stashedCards.length > 0) {
+      toast.warning('請先將暫存區的牌放回方程式後再提交');
+      return;
+    }
     const handCardIds = new Set(handCard.map(c => c.id));
     const boardCardIds = new Set(
       (roomInfo?.board ?? []).flatMap(g =>
@@ -188,9 +200,25 @@ const RummyPlayingArea = () => {
             players={gameOverData.players}
             currentPlayerId={playerId}
             isPenaltyGameOver={gameOverData.isPenaltyGameOver}
+            isMultiplePlay
             onPlayAgain={onCloseGameOver}
             onGoHome={() => (window.location.href = '/multiple-play')}
           />
+        )}
+        {gameAbortedData && (
+          <Dialog open>
+            <DialogContent className="sm:max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
+              </DialogHeader>
+              <p className="text-center text-sm text-muted-foreground">
+                由於 <span className="font-semibold">{gameAbortedData.playerName}</span> 離開，遊戲已中斷
+              </p>
+              <Button onClick={() => (window.location.href = '/multiple-play')}>
+                回到房間頁
+              </Button>
+            </DialogContent>
+          </Dialog>
         )}
 
         <RummyRulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
@@ -305,7 +333,13 @@ const RummyPlayingArea = () => {
             {isYourTurn ? (
               <button
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-                onClick={onRummyDraw}
+                onClick={() => {
+                  if (stashedCards.length > 0) {
+                    toast.warning('請先將暫存區的牌放回方程式後再結束回合');
+                    return;
+                  }
+                  onRummyDraw();
+                }}
               >
                 {isLastRound ? 'Pass 跳過' : '抽 1 張'}
               </button>

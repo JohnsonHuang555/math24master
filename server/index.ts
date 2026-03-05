@@ -158,7 +158,7 @@ app.prepare().then(() => {
             players: rankedPlayers,
           });
         }
-      } else {
+      } else if (result.error !== 'NOT_YOUR_TURN') {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -221,7 +221,7 @@ app.prepare().then(() => {
             players: rankedPlayers,
           });
         }
-      } else {
+      } else if (result.error !== 'NOT_YOUR_TURN') {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -254,7 +254,7 @@ app.prepare().then(() => {
             players: rankedPlayers,
           });
         }
-      } else {
+      } else if (result.error !== 'NOT_YOUR_TURN') {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -339,7 +339,7 @@ app.prepare().then(() => {
             isPenaltyGameOver: true,
           });
         }
-      } else {
+      } else if (result.error !== 'NOT_YOUR_TURN') {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -377,10 +377,8 @@ app.prepare().then(() => {
               isPenaltyGameOver: true,
             });
           }
-        } else {
+        } else if (result.error !== 'NOT_YOUR_TURN') {
           socket.emit(SocketEvent.ErrorMessage, result.error);
-          // 即使失敗也廣播 room（因為可能已罰抽）
-          // 重新取得最新 room 狀態
         }
       },
     );
@@ -422,18 +420,34 @@ app.prepare().then(() => {
       const leaveResult = leaveRoom(playerId);
       if (leaveResult) {
         const roomId = leaveResult.room.roomId;
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
-          room: leaveResult.room,
-          event: SocketEvent.UpdateScore,
-        });
-        io.sockets
-          .to(roomId)
-          .emit(SocketEvent.PlayerLeaveRoom, leaveResult.playerName);
+        const { room, playerName, wasPlaying, remainingCount } = leaveResult;
 
-        // 清除計時器
-        if (timerMap[roomId] && timerMap[roomId]?.timer !== null) {
-          clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
-          delete timerMap[roomId];
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+
+        if (wasPlaying && remainingCount <= 1) {
+          // 遊戲中且剩餘 ≤ 1 人：遊戲中斷
+          io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
+          // 清除計時器
+          if (timerMap[roomId]?.timer !== null) {
+            clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+            delete timerMap[roomId];
+          }
+        } else {
+          // 一般離開（toast）
+          io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+
+          if (wasPlaying && remainingCount >= 2) {
+            // 遊戲繼續：重置計時器給下一位玩家
+            if (timerMap[roomId] && room.settings.remainSeconds !== null) {
+              _clearAndCreateTimer(roomId, room);
+            }
+          } else {
+            // 大廳狀態：清除計時器
+            if (timerMap[roomId]?.timer !== null) {
+              clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+              delete timerMap[roomId];
+            }
+          }
         }
       }
     });

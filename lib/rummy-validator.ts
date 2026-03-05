@@ -28,9 +28,9 @@ export function validateEquationGroup(group: EquationGroup): {
 
   const n = numberTiles.length;
 
-  // 數字牌數量 3 ≤ N ≤ 4
-  if (n < 3 || n > 4) {
-    return { valid: false, error: `方程式數字牌數量須為 3 到 4 張（目前 ${n} 張）` };
+  // 數字牌數量 3 ≤ N ≤ 5
+  if (n < 3 || n > 5) {
+    return { valid: false, error: `方程式數字牌數量須為 3 到 5 張（目前 ${n} 張）` };
   }
 
   // 2. 顏色法則（Joker 豁免，只檢查非 Joker 牌）
@@ -42,8 +42,15 @@ export function validateEquationGroup(group: EquationGroup): {
     }
     const uniqueColors = new Set(colors);
     const m = nonJokerTiles.length;
-    if (uniqueColors.size !== 1 && uniqueColors.size !== m) {
-      return { valid: false, error: '所有牌顏色必須各不相同（不可重複）' };
+    // 5 張牌只允許全同色；3-4 張允許全同色或全不同色
+    if (n === 5) {
+      if (uniqueColors.size !== 1) {
+        return { valid: false, error: '5 張牌只允許全部同色' };
+      }
+    } else {
+      if (uniqueColors.size !== 1 && uniqueColors.size !== m) {
+        return { valid: false, error: '所有牌顏色必須各不相同（不可重複）' };
+      }
     }
   }
 

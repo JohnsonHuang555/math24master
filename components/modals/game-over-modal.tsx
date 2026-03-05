@@ -22,6 +22,8 @@ type GameOverModalProps = {
   isPenaltyGameOver?: boolean;
   onPlayAgain: () => void;
   onGoHome: () => void;
+  /** 多人模式：只顯示「回到房間頁」按鈕，不可點外部關閉 */
+  isMultiplePlay?: boolean;
 };
 
 const RANK_COLORS = [
@@ -42,10 +44,15 @@ export function GameOverModal({
   isPenaltyGameOver,
   onPlayAgain,
   onGoHome,
+  isMultiplePlay,
 }: GameOverModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+    <Dialog open={isOpen} onOpenChange={isMultiplePlay ? () => {} : v => !v && onClose()}>
+      <DialogContent
+        className="sm:max-w-sm"
+        onPointerDownOutside={isMultiplePlay ? e => e.preventDefault() : undefined}
+        onEscapeKeyDown={isMultiplePlay ? e => e.preventDefault() : undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center justify-center gap-2 text-2xl">
             <Trophy className="h-6 w-6 text-yellow-400" />
@@ -112,12 +119,20 @@ export function GameOverModal({
         )}
 
         <div className="flex gap-3 pt-2">
-          <Button variant="outline" className="flex-1" onClick={onGoHome}>
-            回首頁
-          </Button>
-          <Button className="flex-1" onClick={onPlayAgain}>
-            再來一局
-          </Button>
+          {isMultiplePlay ? (
+            <Button className="flex-1" onClick={onGoHome}>
+              回到房間頁
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" className="flex-1" onClick={onGoHome}>
+                回首頁
+              </Button>
+              <Button className="flex-1" onClick={onPlayAgain}>
+                再來一局
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
