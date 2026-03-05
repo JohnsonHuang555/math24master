@@ -75,7 +75,7 @@ const RummyWorkingArea = ({
       {/* 當前正在組裝的算式 */}
       <div className="min-h-[40px] rounded border border-gray-200 bg-white p-2">
         {currentTiles.length === 0 ? (
-          <span className="text-xs text-gray-400">點選手牌 / 暫存區牌加入算式，再加入運算子</span>
+          <span className="text-xs text-gray-400">點選手牌 / 暫存區牌加入算式</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {currentTiles.map((t, i) => (
@@ -144,7 +144,7 @@ const RummyWorkingArea = ({
           disabled={!isYourTurn || !validation?.valid}
           onClick={onFinishGroup}
         >
-          完成
+          完成算式
         </Button>
         <Button
           size="sm"

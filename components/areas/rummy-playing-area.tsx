@@ -321,15 +321,15 @@ const RummyPlayingArea = () => {
         )}
 
         {/* 底部：手牌 + 操作 */}
-        <div className="flex w-full items-center border-t border-gray-100 px-4 py-2">
-          <div className="flex-1">
+        <div className="flex w-full items-center border-t border-gray-100 px-4 py-2 gap-4">
+          <div className="flex-1 flex items-center justify-center">
             <RummyHandArea
               handCard={handCard}
               usedCardIds={usedCardIds}
               onSelectCard={handleSelectCard}
             />
           </div>
-          <div className="ml-4 flex w-24 flex-shrink-0 flex-col items-center justify-center">
+          <div className="flex items-center justify-center">
             {isYourTurn ? (
               <button
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
@@ -341,7 +341,7 @@ const RummyPlayingArea = () => {
                   onRummyDraw();
                 }}
               >
-                {isLastRound ? 'Pass 跳過' : '抽 1 張'}
+                {isLastRound ? '跳過' : '抽牌'}
               </button>
             ) : (
               <span className="text-center text-xs text-gray-400">等待其他玩家...</span>
