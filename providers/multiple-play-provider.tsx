@@ -37,6 +37,10 @@ type GameOverData = {
   isPenaltyGameOver?: boolean;
 };
 
+type GameAbortedData = {
+  playerName: string;
+};
+
 type MultiplePlayContextData = {
   searchRooms: (payload?: { roomName: string; showEmpty: boolean }) => void;
   joinRoom: (
@@ -88,6 +92,7 @@ type MultiplePlayContextData = {
   sendMessage: (message: string) => void;
   gameOverData: GameOverData | null;
   onCloseGameOver: () => void;
+  gameAbortedData: GameAbortedData | null;
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -116,6 +121,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     needDrawPlayerId: string;
   }>();
   const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
+  const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
 
   const {
     selectedCardSymbols,
@@ -211,12 +217,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         players: Player[];
         isPenaltyGameOver?: boolean;
       }) => {
-        toast.success(`恭喜 ${name} 獲得 ${score} 分，贏得勝利！`);
         playSound('gameOverWin');
         setGameOverData({ name, score, players, isPenaltyGameOver });
         useStatsStore.getState().incrementMultiPlays();
-        // 成就：多人獲勝（需確認是否為本人）
-        // 用 ref 比較，避免 closure 舊值問題
         if (playerIdRef.current) {
           const winnerPlayer = players.find(p => p.name === name);
           if (winnerPlayer?.id === playerIdRef.current) {
@@ -226,6 +229,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         }
       },
     );
+
+    socket.on(SocketEvent.GameAborted, (playerName: string) => {
+      setGameAbortedData({ playerName });
+    });
   }, [resetState]);
 
   useEffect(() => {
@@ -485,10 +492,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       remainRoundTime?.countdown === 0 &&
       remainRoundTime.needDrawPlayerId === playerId
     ) {
-      onDrawCard();
+      if (roomInfo?.settings.gameType === 'rummy') {
+        onRummyDraw();
+      } else {
+        onDrawCard();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDrawCard, playerId, remainRoundTime?.countdown]);
+  }, [onDrawCard, onRummyDraw, playerId, remainRoundTime?.countdown, roomInfo?.settings.gameType]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
@@ -522,6 +533,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       sendMessage,
       gameOverData,
       onCloseGameOver,
+      gameAbortedData,
       onRummyDraw,
       onRummySubmit,
       onSwapJoker,
@@ -531,6 +543,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     currentPlayer,
     editRoom,
     editRoomSettings,
+    gameAbortedData,
     gameOverData,
     isLastRound,
     isSymbolScoreAnimationFinished,

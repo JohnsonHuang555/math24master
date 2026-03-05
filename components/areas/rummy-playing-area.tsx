@@ -8,6 +8,13 @@ import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { NumberCard } from '@/models/Player';
 import { EquationGroup, EquationTile } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -58,6 +65,7 @@ const RummyPlayingArea = () => {
     countdown,
     gameOverData,
     onCloseGameOver,
+    gameAbortedData,
     onRummyDraw,
     onRummySubmit,
   } = useMultiplePlay();
@@ -67,7 +75,7 @@ const RummyPlayingArea = () => {
 
   // 本輪客戶端桌面狀態（含舊 board + 本輪新組）
   const [workingBoard, setWorkingBoard] = useState<EquationGroup[]>([]);
-  // 當前正在組裝的方程式 tiles
+  // 當前正在組裝的算式 tiles
   const [currentTiles, setCurrentTiles] = useState<EquationTile[]>([]);
   // 拆解後暫存的數字牌
   const [stashedCards, setStashedCards] = useState<NumberCard[]>([]);
@@ -87,9 +95,9 @@ const RummyPlayingArea = () => {
   useEffect(() => {
     if (isYourTurn) {
       setWorkingBoard(roomInfo?.board ?? []);
-      setCurrentTiles([]);
-      setStashedCards([]);
     }
+    setCurrentTiles([]);
+    setStashedCards([]);
   }, [isYourTurn, roomInfo?.board]);
 
   useEffect(() => {
@@ -115,7 +123,7 @@ const RummyPlayingArea = () => {
     setCurrentTiles(prev => prev.slice(0, -1));
   };
 
-  // 清空當前方程式
+  // 清空當前算式
   const handleClearCurrent = () => {
     setCurrentTiles([]);
   };
@@ -159,9 +167,13 @@ const RummyPlayingArea = () => {
     setCurrentTiles(prev => [...prev, { type: 'number', card }]);
   };
 
-  // 提交回合
+  // 結束回合
   const handleSubmit = () => {
     if (!isYourTurn) return;
+    if (stashedCards.length > 0) {
+      toast.warning('請先將暫存區的牌放回算式後再提交');
+      return;
+    }
     const handCardIds = new Set(handCard.map(c => c.id));
     const boardCardIds = new Set(
       (roomInfo?.board ?? []).flatMap(g =>
@@ -188,9 +200,25 @@ const RummyPlayingArea = () => {
             players={gameOverData.players}
             currentPlayerId={playerId}
             isPenaltyGameOver={gameOverData.isPenaltyGameOver}
+            isMultiplePlay
             onPlayAgain={onCloseGameOver}
             onGoHome={() => (window.location.href = '/multiple-play')}
           />
+        )}
+        {gameAbortedData && (
+          <Dialog open>
+            <DialogContent className="sm:max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
+              </DialogHeader>
+              <p className="text-center text-sm text-muted-foreground">
+                由於 <span className="font-semibold">{gameAbortedData.playerName}</span> 離開，遊戲已中斷
+              </p>
+              <Button onClick={() => (window.location.href = '/multiple-play')}>
+                回到房間頁
+              </Button>
+            </DialogContent>
+          </Dialog>
         )}
 
         <RummyRulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
@@ -253,7 +281,7 @@ const RummyPlayingArea = () => {
           />
         </div>
 
-        {/* 下方：方程式組裝區 */}
+        {/* 下方：算式組裝區 */}
         {isYourTurn && (
           <div className="px-4 pb-2">
             <RummyWorkingArea
@@ -293,21 +321,27 @@ const RummyPlayingArea = () => {
         )}
 
         {/* 底部：手牌 + 操作 */}
-        <div className="flex w-full items-center border-t border-gray-100 px-4 py-2">
-          <div className="flex-1">
+        <div className="flex w-full items-center border-t border-gray-100 px-4 py-2 gap-4">
+          <div className="flex-1 flex items-center justify-center">
             <RummyHandArea
               handCard={handCard}
               usedCardIds={usedCardIds}
               onSelectCard={handleSelectCard}
             />
           </div>
-          <div className="ml-4 flex w-24 flex-shrink-0 flex-col items-center justify-center">
+          <div className="flex items-center justify-center">
             {isYourTurn ? (
               <button
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-                onClick={onRummyDraw}
+                onClick={() => {
+                  if (stashedCards.length > 0) {
+                    toast.warning('請先將暫存區的牌放回算式後再結束回合');
+                    return;
+                  }
+                  onRummyDraw();
+                }}
               >
-                {isLastRound ? 'Pass 跳過' : '抽 1 張'}
+                {isLastRound ? '跳過' : '抽牌'}
               </button>
             ) : (
               <span className="text-center text-xs text-gray-400">等待其他玩家...</span>

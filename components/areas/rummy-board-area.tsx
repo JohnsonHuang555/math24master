@@ -78,7 +78,7 @@ const RummyBoardArea = ({
       {board.length === 0 ? (
         <div className="text-xs text-gray-400">桌面尚無牌組</div>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 overflow-y-auto">
           {board.map(group => (
             <div
               key={group.id}

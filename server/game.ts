@@ -110,15 +110,23 @@ function _drawSolvableHand(
 }
 
 const _nextPlayerTurn = (roomIndex: number) => {
-  const activePlayer = _rooms[roomIndex].currentOrder;
-  const playerCount = _rooms[roomIndex].players.length;
-  const nextPlayer = activePlayer + 1;
-  if (nextPlayer <= playerCount) {
-    _rooms[roomIndex].currentOrder = nextPlayer;
-  } else {
-    // 回到第一個玩家
-    _rooms[roomIndex].currentOrder = 1;
-  }
+  const currentOrder = _rooms[roomIndex].currentOrder;
+  const players = _rooms[roomIndex].players;
+  const orders = players
+    .map(p => p.playerOrder!)
+    .filter(o => o !== undefined)
+    .sort((a, b) => a - b);
+  if (orders.length === 0) return;
+  // 找下一個順序（>currentOrder），若無則繞回第一位
+  const nextOrder = orders.find(o => o > currentOrder) ?? orders[0];
+  _rooms[roomIndex].currentOrder = nextOrder;
+};
+
+const _isPlayerTurn = (roomIndex: number, playerIndex: number) => {
+  return (
+    _rooms[roomIndex].players[playerIndex].playerOrder ===
+    _rooms[roomIndex].currentOrder
+  );
 };
 
 const _checkGameOver = (
@@ -295,7 +303,7 @@ export function joinRoom(
 // 離開房間
 export function leaveRoom(
   playerId: string,
-): { room: Room; playerName: string } | undefined {
+): { room: Room; playerName: string; wasPlaying: boolean; remainingCount: number } | undefined {
   const roomId = _playerInRoomMap[playerId];
   const room = _getCurrentRoom(roomId);
   // 房間不存在
@@ -304,38 +312,57 @@ export function leaveRoom(
   // 房間剩下最後一人直接移除房間
   if (room.players.length === 1) {
     _rooms = _rooms.filter(room => room.roomId !== roomId);
-  } else {
-    // 離開的玩家名稱
-    const leftPlayerName = room.players.find(
-      player => player.id === playerId,
-    )?.name;
-    const newPlayers = room.players.filter(player => player.id !== playerId);
-    const hasMaster = newPlayers.find(player => player.isMaster);
-
-    // 如果房主已離開房間，則第一位玩家為房主
-    if (!hasMaster) {
-      newPlayers[0].isMaster = true;
-    }
-
-    _rooms = _rooms.map(room => {
-      if (room.roomId === roomId) {
-        return {
-          ...room,
-          players: newPlayers,
-          status: GameStatus.Idle, // 切換為等待狀態
-          isGameOver: false,
-        };
-      }
-      return room;
-    });
-
-    const newRoom = _rooms.find(room => room.roomId === roomId) as Room;
-
-    // 移除 mapping 表
-    delete _playerInRoomMap[playerId];
-
-    return { room: newRoom, playerName: leftPlayerName || 'player?' };
+    return;
   }
+
+  // 離開的玩家資訊
+  const leavingPlayer = room.players.find(player => player.id === playerId);
+  const leftPlayerName = leavingPlayer?.name;
+  const wasPlaying = room.status === GameStatus.Playing;
+  const wasCurrentTurn = leavingPlayer?.playerOrder === room.currentOrder;
+
+  const newPlayers = room.players.filter(player => player.id !== playerId);
+  const hasMaster = newPlayers.find(player => player.isMaster);
+
+  // 如果房主已離開房間，則第一位玩家為房主
+  if (!hasMaster) {
+    newPlayers[0].isMaster = true;
+  }
+
+  // 遊戲中且剩餘 ≥ 2 人：繼續遊戲；否則回到等待狀態
+  const newStatus =
+    wasPlaying && newPlayers.length >= 2 ? GameStatus.Playing : GameStatus.Idle;
+
+  _rooms = _rooms.map(room => {
+    if (room.roomId === roomId) {
+      return {
+        ...room,
+        players: newPlayers,
+        status: newStatus,
+        isGameOver: newStatus === GameStatus.Idle ? false : room.isGameOver,
+      };
+    }
+    return room;
+  });
+
+  const roomIndex = _getCurrentRoomIndex(roomId);
+
+  // 若遊戲中且是該玩家的回合，自動前進到下一位玩家
+  if (wasPlaying && wasCurrentTurn && newPlayers.length >= 2) {
+    _nextPlayerTurn(roomIndex);
+  }
+
+  const newRoom = _rooms.find(room => room.roomId === roomId) as Room;
+
+  // 移除 mapping 表
+  delete _playerInRoomMap[playerId];
+
+  return {
+    room: newRoom,
+    playerName: leftPlayerName || 'player?',
+    wasPlaying,
+    remainingCount: newPlayers.length,
+  };
 }
 
 // 開始遊戲
@@ -467,6 +494,11 @@ export function drawCard(
     );
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
+    // 回合驗證：防止計時器 race condition 觸發重複抽牌
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
+
     const gameOver = _checkGameOver(roomIndex, playerIndex);
     if (gameOver) {
       return { success: true, room: gameOver.room, winner: gameOver.winner };
@@ -593,6 +625,10 @@ export function updateScore(
       playerId,
     );
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
 
     const selectedCards = _rooms[roomIndex].selectedCards;
 
@@ -800,6 +836,10 @@ export function skipHand(roomId: string, playerId: string): SkipHandResult {
     );
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
+
     // 抽牌前先檢查（與 drawCard 一致），確保 isLastRoundPlayer 已在上一輪出牌後設置的情況下才結算
     const gameOver = _checkGameOver(roomIndex, playerIndex);
     if (gameOver) {
@@ -936,6 +976,10 @@ export function rummyDrawCard(
     );
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
+
     if (_rooms[roomIndex].deck.length === 0) {
       // 最後一圈：無牌可抽，直接 Pass（換人）
       _nextPlayerTurn(roomIndex);
@@ -990,6 +1034,10 @@ export function rummySubmitTurn(
       playerId,
     );
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+
+    if (!_isPlayerTurn(roomIndex, playerIndex)) {
+      return { success: false, error: 'NOT_YOUR_TURN' };
+    }
 
     if (playedCardIds.length === 0) {
       return { success: false, error: '至少需打出 1 張牌' };

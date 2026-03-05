@@ -88,10 +88,9 @@ const RummyHandArea = ({
   const cols = Math.ceil(sortedCards.length / 2);
 
   return (
-    <div className="w-full overflow-x-auto py-2">
+    <div className="w-full overflow-x-auto py-2 max-h-[130px]">
       <div
-        className="grid grid-rows-2 gap-2 px-2"
-        style={{ gridTemplateColumns: `repeat(${cols}, 2.5rem)` }}
+        className="mx-auto flex gap-2 flex-wrap"
       >
         {sortedCards.map((card, index) => (
           <HandCard
