@@ -28,6 +28,7 @@ export enum SocketEvent {
   RummySubmitTurn = 'rummy-submit-turn',
   RummyDeclareJoker = 'rummy-declare-joker',
   RummySwapJoker = 'rummy-swap-joker',
+  AddBotToRoom = 'add-bot-to-room',
 
   // b2e emit
   JoinRoomSuccess = 'join-room-success',

@@ -11,6 +11,8 @@ type PlayersAreaProps = {
   onReady: () => void;
   onStart: () => void;
   onRemovePlayer: (playerId: string) => void;
+  onAddBot?: (difficulty: 'easy' | 'normal' | 'hard') => void;
+  canAddBot?: boolean;
 };
 
 const PlayersArea = ({
@@ -19,6 +21,8 @@ const PlayersArea = ({
   onReady,
   onStart,
   onRemovePlayer,
+  onAddBot,
+  canAddBot,
 }: PlayersAreaProps) => {
   // 檢查所有玩家是否已準備遊戲
   const allPlayersReady =
@@ -58,6 +62,11 @@ const PlayersArea = ({
           <div className="flex justify-between">
             <div className="flex">
               <div className="mr-4 text-xl max-sm:text-lg">{player.name}</div>
+              {player.isBot && (
+                <span className="mr-2 self-center rounded bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700">
+                  BOT
+                </span>
+              )}
               {!player.isMaster && currentPlayer?.isMaster && (
                 <HoverTip content="踢除玩家">
                   <Image
@@ -88,6 +97,22 @@ const PlayersArea = ({
           <hr className="mt-2" />
         </div>
       ))}
+      {canAddBot && onAddBot && (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-gray-500">加入電腦玩家</span>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" onClick={() => onAddBot('easy')}>
+              簡單
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAddBot('normal')}>
+              普通
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAddBot('hard')}>
+              困難
+            </Button>
+          </div>
+        </div>
+      )}
       {currentPlayer?.isMaster ? (
         <Button
           className="mt-auto"

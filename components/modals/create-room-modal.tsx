@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -29,7 +29,6 @@ type CreateRoomModalProps = {
     maxPlayers: number,
     password: string,
     gameType: GameType,
-    remainSeconds: number | null,
   ) => void;
 };
 
@@ -43,11 +42,6 @@ const CreateRoomModal = ({
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
   const [gameType, setGameType] = useState<GameType>('classic');
-  const [remainSeconds, setRemainSeconds] = useState<number | null>(60);
-
-  useEffect(() => {
-    setRemainSeconds(gameType === 'rummy' ? 120 : 60);
-  }, [gameType]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -107,30 +101,6 @@ const CreateRoomModal = ({
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="remain-seconds" className="text-right">
-              每回合時間
-            </Label>
-            <Select
-              value={remainSeconds === null ? 'unlimited' : String(remainSeconds)}
-              onValueChange={v =>
-                setRemainSeconds(v === 'unlimited' ? null : Number(v))
-              }
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue id="remain-seconds" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="30">30 秒</SelectItem>
-                  <SelectItem value="60">60 秒</SelectItem>
-                  <SelectItem value="90">90 秒</SelectItem>
-                  <SelectItem value="120">120 秒</SelectItem>
-                  <SelectItem value="unlimited">無限時</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
             <div className="flex justify-end">
               <Checkbox
                 className="border-border"
@@ -163,7 +133,7 @@ const CreateRoomModal = ({
           <Button
             type="submit"
             onClick={() => {
-              onConfirm(roomName, Number(maxPlayers), password, gameType, remainSeconds);
+              onConfirm(roomName, Number(maxPlayers), password, gameType);
             }}
           >
             確定
