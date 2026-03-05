@@ -70,12 +70,12 @@ const RummyWorkingArea = ({
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-dashed border-gray-300 p-3">
-      <div className="text-sm font-semibold text-gray-600">方程式組裝區</div>
+      <div className="text-sm font-semibold text-gray-600">算式組裝區</div>
 
-      {/* 當前正在組裝的方程式 */}
+      {/* 當前正在組裝的算式 */}
       <div className="min-h-[40px] rounded border border-gray-200 bg-white p-2">
         {currentTiles.length === 0 ? (
-          <span className="text-xs text-gray-400">點選手牌 / 暫存區牌加入方程式，再加入運算子</span>
+          <span className="text-xs text-gray-400">點選手牌 / 暫存區牌加入算式，再加入運算子</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {currentTiles.map((t, i) => (
@@ -90,7 +90,7 @@ const RummyWorkingArea = ({
         <div
           className={`text-xs ${validation.valid ? 'text-green-600' : 'text-red-500'}`}
         >
-          {validation.valid ? '✓ 合法方程式' : `✗ ${validation.error}`}
+          {validation.valid ? '✓ 合法算式' : `✗ ${validation.error}`}
         </div>
       )}
 
@@ -144,7 +144,7 @@ const RummyWorkingArea = ({
           disabled={!isYourTurn || !validation?.valid}
           onClick={onFinishGroup}
         >
-          完成此組
+          完成
         </Button>
         <Button
           size="sm"
@@ -153,7 +153,7 @@ const RummyWorkingArea = ({
           onClick={onSubmit}
           className="bg-green-600 hover:bg-green-700"
         >
-          提交回合
+          結束回合
         </Button>
       </div>
     </div>

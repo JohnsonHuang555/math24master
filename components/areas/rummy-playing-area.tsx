@@ -75,7 +75,7 @@ const RummyPlayingArea = () => {
 
   // 本輪客戶端桌面狀態（含舊 board + 本輪新組）
   const [workingBoard, setWorkingBoard] = useState<EquationGroup[]>([]);
-  // 當前正在組裝的方程式 tiles
+  // 當前正在組裝的算式 tiles
   const [currentTiles, setCurrentTiles] = useState<EquationTile[]>([]);
   // 拆解後暫存的數字牌
   const [stashedCards, setStashedCards] = useState<NumberCard[]>([]);
@@ -95,9 +95,9 @@ const RummyPlayingArea = () => {
   useEffect(() => {
     if (isYourTurn) {
       setWorkingBoard(roomInfo?.board ?? []);
-      setCurrentTiles([]);
-      setStashedCards([]);
     }
+    setCurrentTiles([]);
+    setStashedCards([]);
   }, [isYourTurn, roomInfo?.board]);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ const RummyPlayingArea = () => {
     setCurrentTiles(prev => prev.slice(0, -1));
   };
 
-  // 清空當前方程式
+  // 清空當前算式
   const handleClearCurrent = () => {
     setCurrentTiles([]);
   };
@@ -167,11 +167,11 @@ const RummyPlayingArea = () => {
     setCurrentTiles(prev => [...prev, { type: 'number', card }]);
   };
 
-  // 提交回合
+  // 結束回合
   const handleSubmit = () => {
     if (!isYourTurn) return;
     if (stashedCards.length > 0) {
-      toast.warning('請先將暫存區的牌放回方程式後再提交');
+      toast.warning('請先將暫存區的牌放回算式後再提交');
       return;
     }
     const handCardIds = new Set(handCard.map(c => c.id));
@@ -281,7 +281,7 @@ const RummyPlayingArea = () => {
           />
         </div>
 
-        {/* 下方：方程式組裝區 */}
+        {/* 下方：算式組裝區 */}
         {isYourTurn && (
           <div className="px-4 pb-2">
             <RummyWorkingArea
@@ -335,7 +335,7 @@ const RummyPlayingArea = () => {
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
                 onClick={() => {
                   if (stashedCards.length > 0) {
-                    toast.warning('請先將暫存區的牌放回方程式後再結束回合');
+                    toast.warning('請先將暫存區的牌放回算式後再結束回合');
                     return;
                   }
                   onRummyDraw();

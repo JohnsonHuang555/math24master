@@ -492,10 +492,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       remainRoundTime?.countdown === 0 &&
       remainRoundTime.needDrawPlayerId === playerId
     ) {
-      onDrawCard();
+      if (roomInfo?.settings.gameType === 'rummy') {
+        onRummyDraw();
+      } else {
+        onDrawCard();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDrawCard, playerId, remainRoundTime?.countdown]);
+  }, [onDrawCard, onRummyDraw, playerId, remainRoundTime?.countdown, roomInfo?.settings.gameType]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
