@@ -7,16 +7,8 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import RummyPlayingArea from '@/components/areas/rummy-playing-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
-import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
@@ -51,10 +43,6 @@ const ClassicPlayingArea = () => {
     onBack,
     isLastRound,
     countdown,
-    playerId,
-    gameOverData,
-    onCloseGameOver,
-    gameAbortedData,
   } = useMultiplePlay();
 
   const otherPlayers = roomInfo?.players.filter(
@@ -94,33 +82,6 @@ const ClassicPlayingArea = () => {
     <MainLayout>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <RummyRulesModal isOpen={isOpenRummyRuleModal} onClose={() => setIsOpenRummyRuleModal(false)} />
-      {gameOverData && (
-        <GameOverModal
-          isOpen={!!gameOverData}
-          onClose={onCloseGameOver}
-          players={gameOverData.players}
-          currentPlayerId={playerId}
-          isPenaltyGameOver={gameOverData.isPenaltyGameOver}
-          isMultiplePlay
-          onPlayAgain={onCloseGameOver}
-          onGoHome={() => (window.location.href = '/multiple-play')}
-        />
-      )}
-      {gameAbortedData && (
-        <Dialog open>
-          <DialogContent className="sm:max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
-            </DialogHeader>
-            <p className="text-center text-sm text-muted-foreground">
-              由於 <span className="font-semibold">{gameAbortedData.playerName}</span> 離開，遊戲已中斷
-            </p>
-            <Button onClick={() => (window.location.href = '/multiple-play')}>
-              回到房間頁
-            </Button>
-          </DialogContent>
-        </Dialog>
-      )}
       <div className="relative flex w-full basis-1/5 items-center justify-center">
         {/* 對手玩家 */}
         {otherPlayers?.map(player => (

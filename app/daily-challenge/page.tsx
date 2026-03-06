@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import Image from 'next/image';
 import Link from 'next/link';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import { useStatsStore } from '@/stores/stats-store';
 import { playSound } from '@/lib/sound-manager';
 import {
   DailyChallengeRecord,
@@ -29,6 +30,7 @@ const SYMBOLS = [
 ] as const;
 
 export default function DailyChallengePage() {
+  const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
   const [cards, setCards] = useState<number[]>([]);
   const [formula, setFormula] = useState<FormulaItem[]>([]);
   const [usedCardIndices, setUsedCardIndices] = useState<Set<number>>(
@@ -122,6 +124,7 @@ export default function DailyChallengePage() {
       playSound('correct');
       toast.success(`正確！得 ${score} 分`);
       unlockAchievement('daily_done');
+      incrementDailyChallenge();
     } else {
       playSound('wrong');
       toast.error(`結果是 ${Math.round(value * 100) / 100}，不等於 24`);

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DeckType, GameType, RoomSettings } from '@/models/Room';
+import { DeckType, Difficulty, GameType, RoomSettings } from '@/models/Room';
 import { RuleModal } from '../modals/rule-modal';
 import { Label } from '../ui/label';
 
@@ -189,6 +189,28 @@ const RoomInfoArea = ({
             </SelectContent>
           </Select>
         </div>
+        {roomSettings.gameType === 'rummy' && (
+          <div>
+            <Label className="text-xs" htmlFor="rummy-difficulty">
+              遊戲難度
+            </Label>
+            <Select
+              disabled={!isMaster}
+              value={roomSettings.difficulty}
+              onValueChange={v => onRoomSettingsChange({ difficulty: v as Difficulty })}
+            >
+              <SelectTrigger className="mt-1 h-8">
+                <SelectValue id="rummy-difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={Difficulty.Easy}>簡單（10 張・無顏色限制）</SelectItem>
+                  <SelectItem value={Difficulty.Normal}>普通（14 張・標準規則）</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     </Card>
   );

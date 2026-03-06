@@ -10,9 +10,16 @@ import RoomInfoArea from '@/components/areas/room-info-area';
 import MainLayout from '@/components/layouts/main-layout';
 import EditRoomModal from '@/components/modals/edit-room-modal';
 import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
+import { GameOverModal } from '@/components/modals/game-over-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -44,6 +51,9 @@ export default function RoomPage() {
     currentPlayer,
     sendMessage,
     addBot,
+    gameOverData,
+    onCloseGameOver,
+    gameAbortedData,
   } = useMultiplePlay();
 
   useEffect(() => {
@@ -142,11 +152,38 @@ export default function RoomPage() {
     );
   }
 
-  if (roomInfo.status === GameStatus.Playing) {
-    return <MultiplePlayingArea />;
-  }
-
   return (
+    <>
+      {gameOverData && (
+        <GameOverModal
+          isOpen={!!gameOverData}
+          onClose={onCloseGameOver}
+          players={gameOverData.players}
+          currentPlayerId={playerId}
+          isPenaltyGameOver={gameOverData.isPenaltyGameOver}
+          isMultiplePlay
+          onPlayAgain={onCloseGameOver}
+          onGoHome={() => (window.location.href = '/multiple-play')}
+        />
+      )}
+      {gameAbortedData && (
+        <Dialog open>
+          <DialogContent className="sm:max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
+            </DialogHeader>
+            <p className="text-center text-sm text-muted-foreground">
+              由於 <span className="font-semibold">{gameAbortedData.playerName}</span> 離開，遊戲已中斷
+            </p>
+            <Button onClick={() => (window.location.href = '/multiple-play')}>
+              回到房間頁
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
+      {roomInfo.status === GameStatus.Playing ? (
+        <MultiplePlayingArea />
+      ) : (
     <MainLayout>
       <PlayerNameModal
         isOpen={isOpenNameModal}
@@ -217,5 +254,7 @@ export default function RoomPage() {
         </div>
       </div>
     </MainLayout>
+      )}
+    </>
   );
 }

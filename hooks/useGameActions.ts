@@ -6,6 +6,20 @@ import { Room } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
+import { useStatsStore } from '@/stores/stats-store';
+
+/** 根據已選符號計算本回合得分（與 server/game.ts 邏輯一致） */
+function calcRoundScore(symbols: SelectedCard[]): number {
+  const plusMinusCount = symbols.filter(
+    s => s.symbol === Symbol.Plus || s.symbol === Symbol.Minus,
+  ).length;
+  const timesCount = symbols.filter(s => s.symbol === Symbol.Times).length;
+  const divideCount = symbols.filter(s => s.symbol === Symbol.Divide).length;
+  let score = plusMinusCount + timesCount * 2 + divideCount * 3;
+  if (timesCount >= 2) score += 1;
+  if (divideCount >= 2) score += 1;
+  return score;
+}
 
 /** 提取兩個遊戲模式共用的動畫狀態與選牌計算邏輯 */
 export function useGameActions(
@@ -52,32 +66,46 @@ export function useGameActions(
       toast.success('答案正確');
       playSound('correct');
 
+      const elapsed = Date.now() - turnStartTimeRef.current;
+
       // 成就：初次出牌
       unlockAchievement('first_win');
 
-      // 成就：累計出牌 10 次
+      // 成就：累計出牌 10 / 50 次
       const store = useAchievementStore.getState();
       store.incrementPlays();
-      if (store.totalPlays + 1 >= 10) {
-        unlockAchievement('play_10');
-      }
+      const newTotalPlays = store.totalPlays + 1;
+      if (newTotalPlays >= 10) unlockAchievement('play_10');
+      if (newTotalPlays >= 50) unlockAchievement('play_50');
 
       // 成就：乘法王（3 個乘號）
       const timesCount = selectedCardSymbols.filter(
         s => s.symbol === Symbol.Times,
       ).length;
-      if (timesCount >= 3) {
-        unlockAchievement('all_multiply');
-      }
+      if (timesCount >= 3) unlockAchievement('all_multiply');
 
       // 成就：神速（10 秒內出牌）
-      const elapsed = Date.now() - turnStartTimeRef.current;
-      if (elapsed <= 10000) {
-        unlockAchievement('speed_win');
-      }
+      if (elapsed <= 10000) unlockAchievement('speed_win');
+
+      // 統計：最快出牌
+      useStatsStore.getState().updateFastestPlay(elapsed);
+
+      // 成就：score_10（單回合 ≥ 10 分）
+      const roundScore = calcRoundScore(selectedCardSymbols);
+      if (roundScore >= 10) unlockAchievement('score_10');
+
+      // 成就：連勝達人（連續 3 次成功）
+      store.incrementConsecutiveWins();
+      if (store.consecutiveWins + 1 >= 3) unlockAchievement('consecutive_3');
+
+      // 成就：得分達人（累計 50 分）
+      store.addScore(roundScore);
+      if (store.totalScore + roundScore >= 50) unlockAchievement('total_score_50');
     } else {
       toast.error('答案不等於 24');
       playSound('wrong');
+      // 連勝中斷
+      useAchievementStore.getState().resetConsecutiveWins();
     }
     setCheckAnswerCorrect(isCorrect);
   };

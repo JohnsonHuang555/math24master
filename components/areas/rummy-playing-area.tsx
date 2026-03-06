@@ -6,17 +6,10 @@ import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
-import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RummyRulesModal } from '@/components/modals/rummy-rules-modal';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { ColorRule } from '@/lib/rummy-validator';
 import { NumberCard } from '@/models/Player';
-import { EquationGroup, EquationTile } from '@/models/Room';
+import { Difficulty, EquationGroup, EquationTile } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import RummyBoardArea from './rummy-board-area';
 import RummyHandArea from './rummy-hand-area';
@@ -33,13 +26,21 @@ const StashCard = ({
   card,
   isUsed,
   onClick,
+  colorRule,
 }: {
   card: NumberCard;
   isUsed: boolean;
   onClick: () => void;
+  colorRule?: 'none' | 'standard';
 }) => {
   const color = card.isJoker ? card.jokerDeclaredColor : card.color;
-  const colorCls = color ? (STASH_COLOR_CLASSES[color] ?? 'text-gray-600 border-gray-300') : 'text-gray-600 border-gray-300';
+  const colorCls = card.isJoker
+    ? (color ? (STASH_COLOR_CLASSES[color] ?? 'text-gray-600 border-gray-300') : 'text-gray-600 border-gray-300')
+    : colorRule === 'none'
+      ? 'text-gray-800 border-gray-600'
+      : color
+        ? (STASH_COLOR_CLASSES[color] ?? 'text-gray-600 border-gray-300')
+        : 'text-gray-600 border-gray-300';
   const label = card.isJoker ? `J(${card.jokerDeclaredValue ?? '?'})` : String(card.value);
 
   return (
@@ -61,14 +62,13 @@ const RummyPlayingArea = () => {
     currentPlayer,
     isYourTurn,
     isLastRound,
-    playerId,
     countdown,
-    gameOverData,
-    onCloseGameOver,
-    gameAbortedData,
     onRummyDraw,
     onRummySubmit,
   } = useMultiplePlay();
+
+  const colorRule: ColorRule =
+    roomInfo?.settings.difficulty === Difficulty.Easy ? 'none' : 'standard';
 
   const otherPlayers = roomInfo?.players.filter(p => p.id !== currentPlayer?.id);
   const handCard = currentPlayer?.handCard || [];
@@ -193,34 +193,6 @@ const RummyPlayingArea = () => {
   return (
     <>
       <MainLayout>
-        {gameOverData && (
-          <GameOverModal
-            isOpen={!!gameOverData}
-            onClose={onCloseGameOver}
-            players={gameOverData.players}
-            currentPlayerId={playerId}
-            isPenaltyGameOver={gameOverData.isPenaltyGameOver}
-            isMultiplePlay
-            onPlayAgain={onCloseGameOver}
-            onGoHome={() => (window.location.href = '/multiple-play')}
-          />
-        )}
-        {gameAbortedData && (
-          <Dialog open>
-            <DialogContent className="sm:max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
-              <DialogHeader>
-                <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
-              </DialogHeader>
-              <p className="text-center text-sm text-muted-foreground">
-                由於 <span className="font-semibold">{gameAbortedData.playerName}</span> 離開，遊戲已中斷
-              </p>
-              <Button onClick={() => (window.location.href = '/multiple-play')}>
-                回到房間頁
-              </Button>
-            </DialogContent>
-          </Dialog>
-        )}
-
         <RummyRulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
 
         {/* 頂部：對手資訊 */}
@@ -283,6 +255,7 @@ const RummyPlayingArea = () => {
             hasMelded={currentPlayer?.hasMelded ?? false}
             onDeconstructBoard={isYourTurn && (currentPlayer?.hasMelded ?? false) ? handleDeconstructBoard : undefined}
             onDeconstructGroup={isYourTurn && (currentPlayer?.hasMelded ?? false) ? handleDeconstructGroup : undefined}
+            colorRule={colorRule}
           />
         </div>
 
@@ -298,6 +271,7 @@ const RummyPlayingArea = () => {
               onSubmit={handleSubmit}
               isYourTurn={isYourTurn}
               canSubmit={workingBoard.length > 0}
+              colorRule={colorRule}
             />
           </div>
         )}
@@ -318,6 +292,7 @@ const RummyPlayingArea = () => {
                         (t as Extract<EquationTile, { type: 'number' }>).card.id === card.id,
                     )}
                     onClick={() => handleSelectStashCard(card)}
+                    colorRule={colorRule}
                   />
                 ))}
               </div>
@@ -332,6 +307,7 @@ const RummyPlayingArea = () => {
               handCard={handCard}
               usedCardIds={usedCardIds}
               onSelectCard={handleSelectCard}
+              colorRule={colorRule}
             />
           </div>
           <div className="flex items-center justify-center">

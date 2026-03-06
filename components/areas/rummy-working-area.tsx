@@ -1,6 +1,6 @@
 'use client';
 
-import { validateEquationGroup } from '@/lib/rummy-validator';
+import { ColorRule, validateEquationGroup } from '@/lib/rummy-validator';
 import { EquationGroup, EquationTile, OperatorType } from '@/models/Room';
 import { Button } from '../ui/button';
 
@@ -13,6 +13,7 @@ type RummyWorkingAreaProps = {
   onSubmit: () => void;
   isYourTurn: boolean;
   canSubmit: boolean;
+  colorRule?: ColorRule;
 };
 
 const OPERATOR_LABELS: Record<OperatorType, string> = {
@@ -22,7 +23,7 @@ const OPERATOR_LABELS: Record<OperatorType, string> = {
   '/': '÷',
 };
 
-const TileDisplay = ({ tile }: { tile: EquationTile }) => {
+const TileDisplay = ({ tile, colorRule }: { tile: EquationTile; colorRule?: 'none' | 'standard' }) => {
   if (tile.type === 'number') {
     const card = tile.card;
     const colorMap: Record<string, string> = {
@@ -33,9 +34,11 @@ const TileDisplay = ({ tile }: { tile: EquationTile }) => {
     };
     const cls = card.isJoker
       ? 'text-purple-600'
-      : card.color
-        ? colorMap[card.color]
-        : 'text-gray-700';
+      : colorRule === 'none'
+        ? 'text-gray-800'
+        : card.color
+          ? colorMap[card.color]
+          : 'text-gray-700';
     const display = card.isJoker
       ? `J(${card.jokerDeclaredValue ?? '?'})`
       : String(card.value);
@@ -56,6 +59,7 @@ const RummyWorkingArea = ({
   onSubmit,
   isYourTurn,
   canSubmit,
+  colorRule = 'standard',
 }: RummyWorkingAreaProps) => {
   const currentGroupForValidation: EquationGroup = {
     id: 'preview',
@@ -63,7 +67,7 @@ const RummyWorkingArea = ({
   };
   const validation =
     currentTiles.length > 0
-      ? validateEquationGroup(currentGroupForValidation)
+      ? validateEquationGroup(currentGroupForValidation, colorRule)
       : null;
 
   const ops: OperatorType[] = ['+', '-', '*', '/'];
@@ -79,7 +83,7 @@ const RummyWorkingArea = ({
         ) : (
           <div className="flex flex-wrap gap-1">
             {currentTiles.map((t, i) => (
-              <TileDisplay key={i} tile={t} />
+              <TileDisplay key={i} tile={t} colorRule={colorRule} />
             ))}
           </div>
         )}

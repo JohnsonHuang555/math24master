@@ -10,6 +10,8 @@ export const MAX_CARD_COUNT = 4;
 export const MAX_FORMULAS_NUMBER_COUNT = 4;
 // 拉密模式起始手牌數
 export const RUMMY_HAND_CARD_COUNT = 14;
+// 拉密模式輕鬆難度起始手牌數
+export const RUMMY_HAND_CARD_COUNT_EASY = 10;
 // 拉密模式回合秒數
 export const RUMMY_TURN_SECONDS = 120;
 

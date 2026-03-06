@@ -123,6 +123,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   }>();
   const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
   const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
+  const hadMeldedRef = useRef<boolean>(false);
 
   const {
     selectedCardSymbols,
@@ -185,11 +186,22 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         extra?: { event: SocketEvent; data: boolean };
       }) => {
         setRoomInfo(room);
+        if (room.status === GameStatus.Playing && !room.isGameOver) {
+          setGameOverData(null);
+        }
         if (extra?.event === SocketEvent.UpdateScore) {
           resetState();
         }
         if (extra?.event === SocketEvent.PlayCardResponse) {
           handlePlayCardResponse(extra.data);
+        }
+        // 成就：拉密破冰（hasMelded 首次變 true）
+        if (playerIdRef.current && !hadMeldedRef.current) {
+          const me = room.players.find(p => p.id === playerIdRef.current);
+          if (me?.hasMelded) {
+            hadMeldedRef.current = true;
+            unlockAchievement('rummy_meld');
+          }
         }
       },
     );
@@ -222,10 +234,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         setGameOverData({ name, score, players, isPenaltyGameOver });
         useStatsStore.getState().incrementMultiPlays();
         if (playerIdRef.current) {
+          const isRummy = players.some(p => p.hasMelded !== undefined);
+          if (isRummy) useStatsStore.getState().incrementRummyPlays();
           const winnerPlayer = players.find(p => p.name === name);
           if (winnerPlayer?.id === playerIdRef.current) {
             unlockAchievement('multiplayer_win');
             useStatsStore.getState().incrementMultiWins();
+            if (isRummy) useStatsStore.getState().incrementRummyWins();
           }
         }
       },
@@ -308,6 +323,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       deckType,
       remainSeconds,
       gameType,
+      difficulty,
     }: Partial<RoomSettings> & { maxPlayers?: number }) => {
       if (socket) {
         socket.emit(SocketEvent.EditRoomSettings, {
@@ -316,6 +332,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           deckType,
           remainSeconds,
           gameType,
+          difficulty,
         });
       }
     },
