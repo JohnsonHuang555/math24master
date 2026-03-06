@@ -16,6 +16,7 @@ import useSinglePlay from '@/hooks/useSinglePlay';
 import { cn } from '@/lib/utils';
 import { Difficulty } from '@/models/Room';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
+import { useStatsStore } from '@/stores/stats-store';
 
 const DIFFICULTY_OPTIONS = [
   {
@@ -42,7 +43,6 @@ const DIFFICULTY_OPTIONS = [
 ] as const;
 
 export default function SinglePlayPage() {
-  const [bestScore, setBestScore] = useState<number>();
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -73,6 +73,7 @@ export default function SinglePlayPage() {
   const handCard = currentPlayer?.handCard || [];
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
+  const { bestScore, updateBestScore } = useStatsStore();
 
   const disabledActions = checkAnswerCorrect === true || !!isGameOver;
 
@@ -86,24 +87,14 @@ export default function SinglePlayPage() {
   useEffect(() => {
     if (roomInfo?.isGameOver) {
       const currentScore = roomInfo.players[0].score;
-      if (!bestScore || bestScore < currentScore) {
-        localStorage.setItem('bestScore', String(currentScore));
-        setBestScore(currentScore);
-      }
+      updateBestScore(currentScore);
       setIsGameOverModalOpen(true);
     }
   }, [roomInfo?.isGameOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const score = localStorage.getItem('bestScore');
-    if (score) {
-      setBestScore(Number(score));
-    }
-  }, []);
-
   const currentScore = roomInfo?.players[0]?.score ?? 0;
   const isNewBestScore =
-    isGameOver && (!bestScore || currentScore >= bestScore);
+    isGameOver && currentScore > 0 && currentScore >= bestScore;
 
   // 難度選擇畫面
   if (!difficulty) {

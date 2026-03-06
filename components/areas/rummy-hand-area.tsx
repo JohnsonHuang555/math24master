@@ -16,6 +16,7 @@ type RummyHandAreaProps = {
   /** 已放入 workingBoard 的牌 id 集合（ghost 顯示） */
   usedCardIds: Set<string>;
   onSelectCard: (card: NumberCard) => void;
+  colorRule?: 'none' | 'standard';
 };
 
 const COLOR_ORDER: Record<string, number> = {
@@ -30,17 +31,21 @@ const HandCard = ({
   index,
   isUsed,
   onSelectCard,
+  colorRule,
 }: {
   card: NumberCard;
   index: number;
   isUsed: boolean;
   onSelectCard: (card: NumberCard) => void;
+  colorRule?: 'none' | 'standard';
 }) => {
   const colorClass = card.isJoker
     ? 'bg-purple-100 border-purple-400 text-purple-700'
-    : card.color
-      ? COLOR_CLASSES[card.color]
-      : 'bg-white border-gray-300 text-gray-700';
+    : colorRule === 'none'
+      ? 'bg-gray-200 border-gray-600 text-gray-800'
+      : card.color
+        ? COLOR_CLASSES[card.color]
+        : 'bg-white border-gray-300 text-gray-700';
 
   return (
     <motion.div
@@ -63,7 +68,7 @@ const HandCard = ({
       ) : (
         <span>{card.value}</span>
       )}
-      {card.color && !card.isJoker && (
+      {card.color && !card.isJoker && colorRule !== 'none' && (
         <span className="text-[8px] uppercase">{card.color[0]}</span>
       )}
     </motion.div>
@@ -74,6 +79,7 @@ const RummyHandArea = ({
   handCard,
   usedCardIds,
   onSelectCard,
+  colorRule,
 }: RummyHandAreaProps) => {
   const sortedCards = [...handCard].sort((a, b) => {
     if (a.isJoker && b.isJoker) return 0;
@@ -99,6 +105,7 @@ const RummyHandArea = ({
             index={index}
             isUsed={usedCardIds.has(card.id)}
             onSelectCard={onSelectCard}
+            colorRule={colorRule}
           />
         ))}
       </div>

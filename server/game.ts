@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { calculateAnswer } from '../lib/utils';
-import { validateBoard } from '../lib/rummy-validator';
+import { ColorRule, validateBoard } from '../lib/rummy-validator';
 import { BotDifficulty, findPlayableGroups } from '../lib/rummy-ai';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
@@ -12,6 +12,7 @@ import {
   EquationGroup,
   HAND_CARD_COUNT,
   RUMMY_HAND_CARD_COUNT,
+  RUMMY_HAND_CARD_COUNT_EASY,
   RUMMY_TURN_SECONDS,
   Room,
 } from '../models/Room';
@@ -917,6 +918,11 @@ export function rummyStartGame(roomId: string): GameResponse {
     ).map(i => i + 1);
     const shuffledPlayerOrder = shuffleArray(playerOrders);
 
+    const difficulty = _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
+    const handCount = difficulty === Difficulty.Easy
+      ? RUMMY_HAND_CARD_COUNT_EASY
+      : RUMMY_HAND_CARD_COUNT;
+
     let remainingDeck = rummyDeck;
     shuffledPlayerOrder.forEach((order, index) => {
       _rooms[roomIndex].players[index].playerOrder = order;
@@ -924,7 +930,7 @@ export function rummyStartGame(roomId: string): GameResponse {
       _rooms[roomIndex].players[index].isLastRoundPlayer = false;
       _rooms[roomIndex].players[index].hasMelded = false;
 
-      const { drawn, remaining } = draw(remainingDeck, RUMMY_HAND_CARD_COUNT);
+      const { drawn, remaining } = draw(remainingDeck, handCount);
       _rooms[roomIndex].players[index].handCard = drawn;
       remainingDeck = remaining;
     });
@@ -1047,6 +1053,10 @@ export function rummySubmitTurn(
       return { success: false, error: '至少需打出 1 張牌' };
     }
 
+    const difficulty = _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
+    const colorRule: ColorRule = difficulty === Difficulty.Easy ? 'none' : 'standard';
+    const penaltyCount = difficulty === Difficulty.Easy ? 2 : 3;
+
     // 取得本輪前手牌 id 集合 + 提交前桌面所有 card id
     const handCardIds = new Set(
       _rooms[roomIndex].players[playerIndex].handCard.map(c => c.id),
@@ -1078,18 +1088,18 @@ export function rummySubmitTurn(
       for (const id of oldBoardIds) {
         if (!submittedSet.has(id)) {
           // 罰抽並換人
-          _penaltyDraw(roomIndex, playerIndex, 3);
+          _penaltyDraw(roomIndex, playerIndex, penaltyCount);
           _nextPlayerTurn(roomIndex);
           return {
             success: false,
-            error: '未破冰時不可移動桌面上的既有牌組，已罰抽 3 張',
+            error: `未破冰時不可移動桌面上的既有牌組，已罰抽 ${penaltyCount} 張`,
           };
         }
       }
     }
 
     // 驗證桌面
-    const validation = validateBoard(submittedBoard);
+    const validation = validateBoard(submittedBoard, colorRule);
     if (!validation.valid) {
       return {
         success: false,
@@ -1107,6 +1117,17 @@ export function rummySubmitTurn(
 
     // 判斷勝利（手牌清空）
     if (_rooms[roomIndex].players[playerIndex].handCard.length === 0) {
+      // 計算贏家得分：所有其他玩家的剩餘手牌點數加總
+      let winScore = 0;
+      for (const player of _rooms[roomIndex].players) {
+        if (player.id !== _rooms[roomIndex].players[playerIndex].id) {
+          for (const card of player.handCard) {
+            winScore += card.isJoker ? 20 : card.value;
+          }
+        }
+      }
+      _rooms[roomIndex].players[playerIndex].score += winScore;
+
       _rooms[roomIndex].isGameOver = true;
       _rooms[roomIndex].status = GameStatus.Idle;
       const winner = _rooms[roomIndex].players[playerIndex];

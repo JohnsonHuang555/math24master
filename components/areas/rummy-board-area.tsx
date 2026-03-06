@@ -17,11 +17,17 @@ const COLOR_CLASSES: Record<string, string> = {
   black: 'text-gray-800 border-gray-600',
 };
 
-const TileChip = ({ tile }: { tile: EquationTile }) => {
+const TileChip = ({ tile, colorRule }: { tile: EquationTile; colorRule?: 'none' | 'standard' }) => {
   if (tile.type === 'number') {
     const card = tile.card;
     const color = card.isJoker ? card.jokerDeclaredColor : card.color;
-    const colorCls = color ? COLOR_CLASSES[color] : 'text-gray-600 border-gray-300';
+    const colorCls = card.isJoker
+      ? COLOR_CLASSES[color ?? 'black'] ?? 'text-gray-600 border-gray-300'
+      : colorRule === 'none'
+        ? 'text-gray-800 border-gray-600'
+        : color
+          ? COLOR_CLASSES[color]
+          : 'text-gray-600 border-gray-300';
     const label = card.isJoker
       ? `J(${card.jokerDeclaredValue ?? '?'})`
       : String(card.value);
@@ -54,6 +60,7 @@ type RummyBoardAreaProps = {
   onDeconstructBoard?: () => void;
   /** 拆解整組（提取數字牌→暫存區） */
   onDeconstructGroup?: (groupId: string) => void;
+  colorRule?: 'none' | 'standard';
 };
 
 const RummyBoardArea = ({
@@ -62,6 +69,7 @@ const RummyBoardArea = ({
   hasMelded,
   onDeconstructBoard,
   onDeconstructGroup,
+  colorRule,
 }: RummyBoardAreaProps) => {
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-100 p-3">
@@ -82,17 +90,18 @@ const RummyBoardArea = ({
           {board.map(group => (
             <div
               key={group.id}
-              className="flex flex-wrap items-center gap-2 rounded border-gray-200 border bg-white px-4 py-3 w-[32.5%]"
+              className="flex flex-wrap items-center gap-2 rounded border-gray-200 border bg-white px-4 py-3"
             >
               {group.tiles.map((tile, i) => (
                 <TileChip
                   key={i}
                   tile={tile}
+                  colorRule={colorRule}
                 />
               ))}
               {onDeconstructGroup && (
                 <button
-                  className="ml-auto text-xs text-red-400 hover:text-red-600"
+                  className="ml-4 text-xs text-red-400 hover:text-red-600"
                   onClick={() => onDeconstructGroup(group.id)}
                 >
                   拆解

@@ -10,8 +10,13 @@ const OPERATOR_SYMBOLS: Record<OperatorType, string> = {
   '/': '/',
 };
 
+export type ColorRule = 'none' | 'standard';
+
 /** 驗證單組算式（括號平衡 + 顏色法則 + mathjs 數學） */
-export function validateEquationGroup(group: EquationGroup): {
+export function validateEquationGroup(
+  group: EquationGroup,
+  colorRule: ColorRule = 'standard',
+): {
   valid: boolean;
   error?: string;
 } {
@@ -34,22 +39,24 @@ export function validateEquationGroup(group: EquationGroup): {
   }
 
   // 2. 顏色法則（Joker 豁免，只檢查非 Joker 牌）
-  const nonJokerTiles = numberTiles.filter(t => !t.card.isJoker);
-  if (nonJokerTiles.length >= 2) {
-    const colors = nonJokerTiles.map(t => t.card.color as CardColor);
-    if (colors.some(c => !c)) {
-      return { valid: false, error: '牌缺少顏色資訊' };
-    }
-    const uniqueColors = new Set(colors);
-    const m = nonJokerTiles.length;
-    // 5 張牌只允許全同色；3-4 張允許全同色或全不同色
-    if (n === 5) {
-      if (uniqueColors.size !== 1) {
-        return { valid: false, error: '5 張牌只允許全部同色' };
+  if (colorRule === 'standard') {
+    const nonJokerTiles = numberTiles.filter(t => !t.card.isJoker);
+    if (nonJokerTiles.length >= 2) {
+      const colors = nonJokerTiles.map(t => t.card.color as CardColor);
+      if (colors.some(c => !c)) {
+        return { valid: false, error: '牌缺少顏色資訊' };
       }
-    } else {
-      if (uniqueColors.size !== 1 && uniqueColors.size !== m) {
-        return { valid: false, error: '所有牌顏色必須各不相同（不可重複）' };
+      const uniqueColors = new Set(colors);
+      const m = nonJokerTiles.length;
+      // 5 張牌只允許全同色；3-4 張允許全同色或全不同色
+      if (n === 5) {
+        if (uniqueColors.size !== 1) {
+          return { valid: false, error: '5 張牌只允許全部同色' };
+        }
+      } else {
+        if (uniqueColors.size !== 1 && uniqueColors.size !== m) {
+          return { valid: false, error: '所有牌顏色必須各不相同（不可重複）' };
+        }
       }
     }
   }
@@ -141,7 +148,10 @@ export function validateEquationGroup(group: EquationGroup): {
 }
 
 /** 驗證整個桌面（全部組合法才算通過） */
-export function validateBoard(groups: EquationGroup[]): {
+export function validateBoard(
+  groups: EquationGroup[],
+  colorRule: ColorRule = 'standard',
+): {
   valid: boolean;
   errors: string[];
 } {
@@ -151,7 +161,7 @@ export function validateBoard(groups: EquationGroup[]): {
 
   const errors: string[] = [];
   for (const group of groups) {
-    const result = validateEquationGroup(group);
+    const result = validateEquationGroup(group, colorRule);
     if (!result.valid && result.error) {
       errors.push(`[${group.id}] ${result.error}`);
     }
