@@ -12,6 +12,28 @@ export const metadata: Metadata = {
     description: '每天一題24點謎題，挑戰你的數學反應與邏輯思維，看看今天的牌組能否算出24。',
     url: 'https://math24master.com/daily-challenge',
   },
+  twitter: {
+    card: 'summary_large_image',
+  },
+};
+
+const jsonLdBreadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: '首頁',
+      item: 'https://math24master.com',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: '每日挑戰',
+      item: 'https://math24master.com/daily-challenge',
+    },
+  ],
 };
 
 export default function DailyChallengeLayout({
@@ -19,5 +41,13 @@ export default function DailyChallengeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      <MainLayout>{children}</MainLayout>
+    </>
+  );
 }

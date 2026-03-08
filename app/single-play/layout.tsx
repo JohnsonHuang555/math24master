@@ -12,6 +12,28 @@ export const metadata: Metadata = {
     description: '挑戰自我！在限時內用手牌算出24，透過加減乘除組合算式，累積高分。',
     url: 'https://math24master.com/single-play',
   },
+  twitter: {
+    card: 'summary_large_image',
+  },
+};
+
+const jsonLdBreadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: '首頁',
+      item: 'https://math24master.com',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: '單人模式',
+      item: 'https://math24master.com/single-play',
+    },
+  ],
 };
 
 export default function SinglePlayLayout({
@@ -19,5 +41,13 @@ export default function SinglePlayLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      <MainLayout>{children}</MainLayout>
+    </>
+  );
 }
