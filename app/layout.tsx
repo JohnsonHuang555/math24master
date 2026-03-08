@@ -3,6 +3,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import SoundToggle from '@/components/sound-toggle';
+import { GoogleAnalytics } from '@/components/analytics';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
@@ -26,6 +27,13 @@ export const metadata: Metadata = {
     siteName: '24點大師',
     type: 'website',
     locale: 'zh',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '24點遊戲 - 免費線上益智數學遊戲 | 24點大師',
+    description:
+      '免費線上24點遊戲。用四張牌的加減乘除算出24，支援單人挑戰與多人即時對戰。考驗數學運算與邏輯思維的益智遊戲。',
+    images: ['https://math24master.com/logo.webp'],
   },
   robots: {
     index: true,
@@ -63,6 +71,7 @@ export default function RootLayout({
             zIndex: '-999',
           }}
         />
+        <GoogleAnalytics measurementId="G-HWFWE6ED59" />
         <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
         <SoundToggle />
         <ToastContainer

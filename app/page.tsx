@@ -29,9 +29,9 @@ export const metadata: Metadata = {
       '免費線上24點遊戲。用四張牌的加減乘除算出24，支援單人挑戰與多人即時對戰。考驗數學運算與邏輯思維的益智遊戲。',
     images: [
       {
-        url: 'https://www.math24master.com/logo.webp',
-        width: 400,
-        height: 300,
+        url: 'https://math24master.com/logo.webp',
+        width: 1571,
+        height: 412,
         alt: '24點大師',
       },
     ],

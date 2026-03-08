@@ -172,26 +172,26 @@ export default function MultiplePlayPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              <Select
+                value={gameTypeFilter}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部模式</SelectItem>
+                    <SelectItem value="classic">傳統模式</SelectItem>
+                    <SelectItem value="rummy">拉密模式</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-4 max-md:hidden">
               <Button variant="secondary" onClick={() => router.push('/')}>
                 回首頁
               </Button>
-              <Select
-                value={gameTypeFilter}
-                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
-              >
-                <SelectTrigger className="w-[90px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部</SelectItem>
-                    <SelectItem value="classic">傳統</SelectItem>
-                    <SelectItem value="rummy">拉密</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
               <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
                 遊戲規則
               </Button>

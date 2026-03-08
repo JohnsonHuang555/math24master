@@ -1,6 +1,15 @@
 {
   "name": "24點大師",
-  "short_name": "24點大師",
-  "description": "歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和邏輯思維",
-  "start_url": "/"
+  "short_name": "24點",
+  "description": "免費線上24點遊戲，支援單人挑戰、多人對戰與每日挑戰。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a2e",
+  "orientation": "any",
+  "lang": "zh-TW",
+  "categories": ["games", "education"],
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "16x16 32x32", "type": "image/x-icon" }
+  ]
 }
