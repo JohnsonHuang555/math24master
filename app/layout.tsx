@@ -2,6 +2,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import SoundToggle from '@/components/sound-toggle';
 import { GoogleAnalytics } from '@/components/analytics';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7786092773254630"
+          crossOrigin="anonymous"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body
         className={cn(
           'relative h-dvh font-noto antialiased',
