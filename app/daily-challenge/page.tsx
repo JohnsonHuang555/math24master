@@ -1,24 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { SolutionsPanel } from '@/components/daily/solutions-panel';
+import { Button } from '@/components/ui/button';
 import { unlockAchievement } from '@/lib/achievement-manager';
-import { useStatsStore } from '@/stores/stats-store';
-import { playSound } from '@/lib/sound-manager';
 import {
-  DailyChallengeRecord,
-  FormulaItem,
+  type FormulaItem,
+  type Solution,
   calculateDailyScore,
   evaluateFormula,
+  findAllSolutions,
   getDailyCards,
-  getDailyChallengeRecord,
+  getDailyRecord,
   getTodayDateString,
-  saveDailyChallengeRecord,
+  saveDailyRecord,
 } from '@/lib/daily-seed';
+import { playSound } from '@/lib/sound-manager';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { useStatsStore } from '@/stores/stats-store';
 
 const SYMBOLS = [
   { label: '+', value: '+' },
@@ -31,35 +34,41 @@ const SYMBOLS = [
 
 export default function DailyChallengePage() {
   const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
+  const [today, setToday] = useState('');
   const [cards, setCards] = useState<number[]>([]);
   const [formula, setFormula] = useState<FormulaItem[]>([]);
   const [usedCardIndices, setUsedCardIndices] = useState<Set<number>>(
     new Set(),
   );
-  const [record, setRecord] = useState<DailyChallengeRecord | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [allSolutions, setAllSolutions] = useState<Solution[]>([]);
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
+    const currentDay = getTodayDateString();
+    setToday(currentDay);
     const dailyCards = getDailyCards();
     setCards(dailyCards);
 
-    const existing = getDailyChallengeRecord();
+    const existing = getDailyRecord(currentDay);
     if (existing?.done) {
-      setRecord(existing);
       setIsCompleted(true);
       setFinalScore(existing.score);
+      setStreak(existing.streak);
+      if (existing.formula?.length) setFormula(existing.formula);
+      // defer solution computation to avoid blocking paint
+      setTimeout(() => setAllSolutions(findAllSolutions(dailyCards)), 0);
     }
   }, []);
 
   const handleAddNumber = (index: number) => {
     if (isCompleted) return;
     if (usedCardIndices.has(index)) {
-      // 取消選取：從公式中移除該牌
-      const newFormula = formula.filter(
-        f => !(f.type === 'number' && f.cardIndex === index),
+      setFormula(
+        formula.filter(f => !(f.type === 'number' && f.cardIndex === index)),
       );
-      setFormula(newFormula);
       setUsedCardIndices(prev => {
         const s = new Set(prev);
         s.delete(index);
@@ -84,8 +93,7 @@ export default function DailyChallengePage() {
   const handleBack = () => {
     if (isCompleted || formula.length === 0) return;
     const last = formula[formula.length - 1];
-    const newFormula = formula.slice(0, -1);
-    setFormula(newFormula);
+    setFormula(formula.slice(0, -1));
     if (last.type === 'number') {
       setUsedCardIndices(prev => {
         const s = new Set(prev);
@@ -102,10 +110,12 @@ export default function DailyChallengePage() {
   };
 
   const handleSubmit = () => {
-    if (isCompleted) return;
+    if (isCompleted || isSubmitting.current) return;
+    isSubmitting.current = true;
 
     if (usedCardIndices.size !== 4) {
       toast.error('必須使用全部 4 張牌');
+      isSubmitting.current = false;
       return;
     }
 
@@ -113,25 +123,28 @@ export default function DailyChallengePage() {
     if (value === null) {
       toast.error('算式有誤');
       playSound('wrong');
+      isSubmitting.current = false;
       return;
     }
 
     if (Math.abs(value - 24) < 1e-6) {
       const score = calculateDailyScore(formula);
-      saveDailyChallengeRecord(score);
+      const { streak: s } = saveDailyRecord(today, score, formula);
       setFinalScore(score);
+      setStreak(s);
       setIsCompleted(true);
       playSound('correct');
       toast.success(`正確！得 ${score} 分`);
       unlockAchievement('daily_done');
       incrementDailyChallenge();
+      setTimeout(() => setAllSolutions(findAllSolutions(cards)), 0);
     } else {
       playSound('wrong');
+      isSubmitting.current = false;
       toast.error(`結果是 ${Math.round(value * 100) / 100}，不等於 24`);
     }
   };
 
-  /** 顯示公式字串（便於閱讀） */
   const formulaDisplay = formula
     .map(f => {
       if (f.type === 'number') return f.value;
@@ -141,26 +154,84 @@ export default function DailyChallengePage() {
     })
     .join(' ');
 
+  const streakText =
+    streak === 1 ? '🔥 連續 1 天 — 好的開始！' : `🔥 連續 ${streak} 天`;
+
+  const formulaLine = formulaDisplay || '（算式未記錄）';
+
+  const sharePreviewText =
+    `Math24 每日挑戰 ${today}\n` +
+    `${streakText} | 得分：${finalScore} 分\n\n` +
+    `算式：${formulaLine} = 24\n\n` +
+    `🧮 #Math24Master math24master.com`;
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(sharePreviewText);
+      toast.success('已複製到剪貼簿！');
+    } catch {
+      toast.error('無法自動複製，請手動複製上方文字', { autoClose: false });
+    }
+  };
+
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
       {/* 標題區 */}
       <div className="flex flex-col items-center gap-1">
         <h1 className="text-2xl font-bold">每日挑戰</h1>
-        <p className="text-sm text-muted-foreground">{getTodayDateString()}</p>
+        <p className="text-sm text-muted-foreground">{today}</p>
       </div>
 
-      {/* 結算狀態 */}
+      {/* 結算畫面 */}
       {isCompleted && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6 shadow-sm">
-          <div className="text-sm text-muted-foreground">今日挑戰完成！</div>
-          <div className="text-5xl font-bold text-primary">{finalScore}</div>
-          <div className="text-sm text-muted-foreground">得分</div>
-          {record && (
-            <div className="text-xs text-muted-foreground">
-              挑戰日期：{record.date}
-            </div>
-          )}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex w-full max-w-sm flex-col items-center gap-4"
+        >
+          {/* 結算卡片 */}
+          <div className="w-full rounded-xl border-2 border-foreground p-5 text-center">
+            <div className="text-5xl font-black sm:text-6xl">{finalScore}</div>
+            <div className="text-sm text-muted-foreground">分</div>
+            <div className="mt-2 text-lg font-semibold">{formulaLine} = 24</div>
+            <div className="mt-1 text-sm font-semibold">{streakText}</div>
+          </div>
+
+          {/* 分享預覽 */}
+          <pre className="w-full whitespace-pre-wrap border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
+            {sharePreviewText}
+          </pre>
+
+          {/* 複製分享按鈕 */}
+          <Button
+            className="w-full"
+            onClick={handleShare}
+            aria-label="複製分享文字到剪貼簿"
+          >
+            複製分享
+          </Button>
+
+          {/* 解法面板 */}
+          <SolutionsPanel
+            solutions={allSolutions}
+            userFormula={formulaDisplay}
+          />
+
+          {/* CTA */}
+          <div className="flex w-full gap-3">
+            <Link href="/single-play" className="flex-1">
+              <Button variant="outline" className="w-full">
+                繼續練習
+              </Button>
+            </Link>
+            <Link href="/multiple-play" className="flex-1">
+              <Button variant="outline" className="w-full">
+                挑戰朋友
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
       )}
 
       {/* 牌組顯示 */}
@@ -173,8 +244,8 @@ export default function DailyChallengePage() {
             className={cn(
               'flex h-16 w-12 items-center justify-center rounded-lg border-2 text-xl font-bold shadow transition-all',
               usedCardIndices.has(index)
-                ? 'border-primary bg-primary text-primary-foreground scale-95'
-                : 'border-border bg-card hover:border-primary hover:scale-105',
+                ? 'scale-95 border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card hover:scale-105 hover:border-primary',
               isCompleted && 'cursor-not-allowed opacity-60',
             )}
           >
@@ -254,7 +325,10 @@ export default function DailyChallengePage() {
       </div>
 
       {/* 返回首頁 */}
-      <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+      <Link
+        href="/"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
         回首頁
       </Link>
     </div>
