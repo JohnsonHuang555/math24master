@@ -6,8 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RummyRulesContent } from './rummy-rules-content';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { RummyRulesContent } from './rummy-rules-content';
 
 type RuleModalProps = {
   isOpen: boolean;
@@ -21,23 +21,22 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
         <DialogHeader>
           <DialogTitle>遊戲規則</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="classic" className="mt-2">
+        {/* <Tabs defaultValue="classic" className="mt-2">
           <TabsList>
-            <TabsTrigger value="classic">傳統模式</TabsTrigger>
+            <TabsTrigger value="classic">經典模式</TabsTrigger>
             <TabsTrigger value="rummy">拉密模式</TabsTrigger>
           </TabsList>
-          <TabsContent value="classic">
+          <TabsContent value="classic"> */}
             <div className="mt-2 flex max-h-[50vh] flex-col gap-4 overflow-y-auto text-sm">
               <section>
                 <h3 className="mb-1 font-semibold text-gray-700">規則說明</h3>
                 <ul className="space-y-1 text-gray-600">
-                  <li>• 每位玩家持有 <strong>4</strong> 張手牌</li>
+                  <li>• 玩家有 <strong>4</strong> 張手牌</li>
                   <li>• 使用手牌組出等於 24 的算式並出牌，必須用完所有手牌</li>
                   <li>• 無法組出算式時可選擇<strong>跳過</strong>，換全部 4 張新牌，無得分</li>
                   <li>• 牌庫耗盡時進入最後一輪，玩家回合結束後遊戲結束，得分最高者獲勝</li>
                 </ul>
               </section>
-
               <section>
                 <h3 className="mb-1 font-semibold text-gray-700">計分方式</h3>
                 <ul className="space-y-1 text-gray-600">
@@ -49,7 +48,6 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                   <li>• 左右括號不計分</li>
                 </ul>
               </section>
-
               <section>
                 <h3 className="mb-1 font-semibold text-gray-700">計分範例</h3>
                 <ul className="space-y-1 text-gray-600">
@@ -59,13 +57,13 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 </ul>
               </section>
             </div>
-          </TabsContent>
+          {/* </TabsContent>
           <TabsContent value="rummy">
             <div className="mt-2 flex max-h-[50vh] flex-col gap-4 overflow-y-auto text-sm">
               <RummyRulesContent />
             </div>
           </TabsContent>
-        </Tabs>
+        </Tabs> */}
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>關閉</Button>
         </DialogFooter>

@@ -100,14 +100,14 @@ const Homepage = () => {
             觀看遊戲規則
           </Button>
         </motion.div>
-        <motion.div
+        {/* <motion.div
           variants={fadeVariants}
           initial="hidden"
           animate={{ opacity: 1, scale: 1, transition: { delay: 0.6 } }}
           className="mb-6 rounded-full bg-blue-100 px-4 py-1 text-xs font-medium text-blue-700"
         >
           🎉 多人連線新增拉密模式玩法 🎉
-        </motion.div>
+        </motion.div> */}
         <motion.div
           variants={fadeVariants}
           initial="hidden"
@@ -123,17 +123,18 @@ const Homepage = () => {
               className="px-12 py-6 text-xl"
               onClick={() => (window.location.href = '/single-play')}
             >
-              單人遊玩
+              開始遊戲
             </Button>
           </motion.div>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
+          {/* TODO: 待開發 */}
+          {/* <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
             <Button
               className="px-12 py-6 text-xl"
               onClick={() => (window.location.href = '/multiple-play')}
             >
               多人遊玩
             </Button>
-          </motion.div>
+          </motion.div> */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
             <Button
               variant="outline"
@@ -163,7 +164,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">beta v2.5.1</div>
+          <div className="mx-2 text-xs text-gray-500">beta v2.6.0</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"

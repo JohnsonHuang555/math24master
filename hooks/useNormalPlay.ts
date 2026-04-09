@@ -1,0 +1,162 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { calcRoundScore } from '@/lib/scoring';
+import { generateSolvablePuzzles } from '@/lib/puzzle-generator';
+import { calculateAnswer } from '@/lib/utils';
+import { useTimer } from '@/hooks/useTimer';
+import { SelectedCard } from '@/models/SelectedCard';
+import { NumberCard } from '@/models/Player';
+
+const TOTAL_ROUNDS = 10;
+const WRONG_PENALTY_SECONDS = 10;
+const LOCAL_STORAGE_KEY = 'math24_v2_normal_records';
+const MAX_RECORDS = 100;
+
+export type NormalPlayStatus = 'idle' | 'playing' | 'finished';
+
+export interface NormalRecord {
+  date: string;
+  totalSeconds: number;
+  totalScore: number;
+}
+
+function loadRecords(): NormalRecord[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as NormalRecord[];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecord(record: NormalRecord) {
+  try {
+    const records = loadRecords();
+    records.unshift(record);
+    if (records.length > MAX_RECORDS) records.length = MAX_RECORDS;
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
+  } catch {
+    // localStorage 不可用時靜默失敗
+  }
+}
+
+export function useNormalPlay() {
+  const [status, setStatus] = useState<NormalPlayStatus>('idle');
+  const [puzzles, setPuzzles] = useState<number[][]>([]);
+  const [currentRound, setCurrentRound] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
+  const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
+  const [records, setRecords] = useState<NormalRecord[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const { seconds, isRunning, start, pause, reset: resetTimer, addSeconds } =
+    useTimer({ mode: 'stopwatch' });
+
+  // 當前題目的數字牌
+  const currentNumbers: NumberCard[] = (puzzles[currentRound] ?? []).map(
+    (v, i) => ({ id: `${currentRound}-${i}`, value: v }),
+  );
+
+  // 初始化：載入歷史紀錄
+  useEffect(() => {
+    setRecords(loadRecords());
+  }, []);
+
+  const startGame = useCallback(() => {
+    let generated: number[][];
+    try {
+      generated = generateSolvablePuzzles(TOTAL_ROUNDS);
+    } catch {
+      setErrorMessage('無法產生題目，請重試');
+      return;
+    }
+    setPuzzles(generated);
+    setCurrentRound(0);
+    setTotalScore(0);
+    setSelectedCards([]);
+    setErrorMessage(null);
+    resetTimer();
+    setStatus('playing');
+    // resetTimer 後才 start，讓 seconds 先歸 0
+    requestAnimationFrame(() => start());
+  }, [resetTimer, start]);
+
+  const selectCard = useCallback((card: SelectedCard) => {
+    setSelectedCards(prev => [...prev, card]);
+  }, []);
+
+  const removeCard = useCallback((index: number) => {
+    setSelectedCards(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedCards([]);
+  }, []);
+
+  const submitAnswer = useCallback(() => {
+    setErrorMessage(null);
+    let answer: number;
+    try {
+      answer = calculateAnswer(selectedCards);
+    } catch {
+      setErrorMessage('算式有誤');
+      addSeconds(WRONG_PENALTY_SECONDS);
+      return;
+    }
+
+    if (Math.abs(answer - 24) > 1e-9) {
+      setErrorMessage(`答案 ${answer} 不等於 24，+${WRONG_PENALTY_SECONDS}s 懲罰`);
+      addSeconds(WRONG_PENALTY_SECONDS);
+      return;
+    }
+
+    // 答對
+    const symbolCards = selectedCards.filter(c => c.symbol);
+    const roundScore = calcRoundScore(symbolCards);
+    setTotalScore(prev => prev + roundScore);
+    setSelectedCards([]);
+
+    const nextRound = currentRound + 1;
+    if (nextRound >= TOTAL_ROUNDS) {
+      // 遊戲結束
+      pause();
+      const record: NormalRecord = {
+        date: new Date().toISOString(),
+        totalSeconds: seconds + 1, // +1 因為這一秒還未 tick
+        totalScore: totalScore + roundScore,
+      };
+      saveRecord(record);
+      setRecords(loadRecords());
+      setStatus('finished');
+    } else {
+      setCurrentRound(nextRound);
+    }
+  }, [selectedCards, currentRound, totalScore, seconds, addSeconds, pause]);
+
+  const quitGame = useCallback(() => {
+    pause();
+    setStatus('idle');
+    setSelectedCards([]);
+    resetTimer();
+  }, [pause, resetTimer]);
+
+  return {
+    status,
+    currentRound,
+    totalRounds: TOTAL_ROUNDS,
+    currentNumbers,
+    selectedCards,
+    totalScore,
+    seconds,
+    isRunning,
+    errorMessage,
+    records,
+    startGame,
+    selectCard,
+    removeCard,
+    clearSelection,
+    submitAnswer,
+    quitGame,
+  };
+}

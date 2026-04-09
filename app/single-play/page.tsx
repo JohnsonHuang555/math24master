@@ -11,50 +11,60 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { StartGameModal } from '@/components/modals/start-game-modal';
 import { Button } from '@/components/ui/button';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { cn } from '@/lib/utils';
 import { Difficulty } from '@/models/Room';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import { useStatsStore } from '@/stores/stats-store';
+import NormalPlayGame from '@/app/single-play/[mode]/normal-play-game';
+import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
 
-const DIFFICULTY_OPTIONS = [
+type PlayMode = 'classic' | 'normal' | 'challenge';
+
+const MODE_OPTIONS = [
   {
-    value: Difficulty.Easy,
-    label: '簡單',
-    description: '牌值 1-6',
-    color: 'border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950',
-    activeColor: 'bg-green-500 text-white hover:bg-green-600',
+    value: 'classic' as const,
+    label: '經典模式',
+    description: '自選難度，挑戰最高分',
+    color:
+      'border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950',
+    activeColor: 'bg-purple-500 text-white hover:bg-purple-600',
   },
   {
-    value: Difficulty.Normal,
-    label: '普通',
-    description: '牌值 1-10',
-    color: 'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
+    value: 'normal' as const,
+    label: '關卡模式',
+    description: '總共十題，層層關卡',
+    color:
+      'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
     activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
   },
   {
-    value: Difficulty.Hard,
-    label: '困難',
-    description: '牌值 1-13',
-    color: 'border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950',
-    activeColor: 'bg-red-500 text-white hover:bg-red-600',
+    value: 'challenge' as const,
+    label: '挑戰模式',
+    description: '倒數 5 分鐘，答對加時',
+    color:
+      'border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950',
+    activeColor: 'bg-orange-500 text-white hover:bg-orange-600',
   },
 ] as const;
 
 export default function SinglePlayPage() {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(
     Difficulty.Normal,
   );
+  const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
+  const [selectedMode, setSelectedMode] = useState<PlayMode>('classic');
 
   const router = useRouter();
   const {
     roomInfo,
     onPlayCard,
-    onDrawCard,
     onSkipHand,
     onSelectCardOrSymbol,
     onReselect,
@@ -79,10 +89,11 @@ export default function SinglePlayPage() {
 
   useEffect(() => {
     if (isConfirmed) {
-      router.push('/');
+      setActiveMode(null);
+      setDifficulty(null);
       onReset();
     }
-  }, [isConfirmed, onReset, router]);
+  }, [isConfirmed, onReset]);
 
   useEffect(() => {
     if (roomInfo?.isGameOver) {
@@ -96,51 +107,78 @@ export default function SinglePlayPage() {
   const isNewBestScore =
     isGameOver && currentScore > 0 && currentScore >= bestScore;
 
-  // 難度選擇畫面
-  if (!difficulty) {
+  const handleConfirm = () => {
+    setActiveMode(selectedMode);
+    if (selectedMode === 'classic') {
+      setDifficulty(selectedDifficulty);
+    }
+    setIsModalOpen(false);
+  };
+
+  // 模式選擇畫面
+  if (!activeMode) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-8">
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-2xl font-bold">選擇難度</h1>
-          <p className="text-sm text-muted-foreground">請選擇遊戲難度後開始</p>
-        </div>
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          {DIFFICULTY_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              className={cn(
-                'rounded-xl border-2 px-6 py-4 text-left transition-all',
-                opt.color,
-                selectedDifficulty === opt.value && opt.activeColor,
-              )}
-              onClick={() => setSelectedDifficulty(opt.value)}
-            >
-              <div className="font-bold text-lg">{opt.label}</div>
-              <div
+      <>
+        <StartGameModal
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          selectedMode={selectedMode}
+          selectedDifficulty={selectedDifficulty}
+          onDifficultyChange={setSelectedDifficulty}
+          onConfirm={handleConfirm}
+        />
+        <div className="flex h-full flex-col items-center justify-center gap-8">
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-2xl font-bold">選擇模式</h1>
+            <p className="text-sm text-muted-foreground">請選擇遊戲模式後開始</p>
+          </div>
+          <div className="flex w-full max-w-xs flex-col gap-3">
+            {MODE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
                 className={cn(
-                  'text-sm',
-                  selectedDifficulty === opt.value
-                    ? 'text-white/80'
-                    : 'text-muted-foreground',
+                  'rounded-xl border-2 px-6 py-4 text-left transition-all',
+                  opt.color,
+                  selectedMode === opt.value && opt.activeColor,
                 )}
+                onClick={() => setSelectedMode(opt.value)}
               >
-                {opt.description}
-              </div>
-            </button>
-          ))}
+                <div className="text-lg font-bold">{opt.label}</div>
+                <div
+                  className={cn(
+                    'text-sm',
+                    selectedMode === opt.value
+                      ? 'text-white/80'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {opt.description}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => router.push('/')}>
+              回上一頁
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)}>下一步</Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.push('/')}>
-            返回首頁
-          </Button>
-          <Button onClick={() => setDifficulty(selectedDifficulty)}>
-            開始遊戲
-          </Button>
-        </div>
-      </div>
+      </>
     );
   }
 
+  // Normal 模式
+  if (activeMode === 'normal') {
+    return <NormalPlayGame onBack={() => setActiveMode(null)} autoStart />;
+  }
+
+  // Challenge 模式
+  if (activeMode === 'challenge') {
+    return <ChallengePlayGame onBack={() => setActiveMode(null)} autoStart />;
+  }
+
+  // Classic 模式
   return (
     <>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
@@ -179,8 +217,8 @@ export default function SinglePlayPage() {
               onClick={() => setIsOpenRuleModal(true)}
             />
           </HoverTip>
-          {/* 返回首頁 */}
-          <HoverTip content="回首頁">
+          {/* 返回上一頁 */}
+          <HoverTip content="回上一頁">
             <Image
               src="/leave.svg"
               alt="leave"
@@ -189,7 +227,7 @@ export default function SinglePlayPage() {
               priority
               onClick={() =>
                 onOpen({
-                  title: '回到首頁',
+                  title: '回上一頁',
                   description: isGameOver
                     ? '離開遊戲回到首頁'
                     : '離開遊戲後，當前進度將會消失，確定要離開嗎？',

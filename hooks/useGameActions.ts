@@ -1,25 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import { calcRoundScore } from '@/lib/scoring';
 import { playSound } from '@/lib/sound-manager';
 import { Room } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
-
-/** 根據已選符號計算本回合得分（與 server/game.ts 邏輯一致） */
-function calcRoundScore(symbols: SelectedCard[]): number {
-  const plusMinusCount = symbols.filter(
-    s => s.symbol === Symbol.Plus || s.symbol === Symbol.Minus,
-  ).length;
-  const timesCount = symbols.filter(s => s.symbol === Symbol.Times).length;
-  const divideCount = symbols.filter(s => s.symbol === Symbol.Divide).length;
-  let score = plusMinusCount + timesCount * 2 + divideCount * 3;
-  if (timesCount >= 2) score += 1;
-  if (divideCount >= 2) score += 1;
-  return score;
-}
 
 /** 提取兩個遊戲模式共用的動畫狀態與選牌計算邏輯 */
 export function useGameActions(

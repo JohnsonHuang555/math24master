@@ -586,7 +586,7 @@ export function playCard(
       .filter(c => c.number)
       .map(c => c.number?.id);
 
-    // 傳統模式：必須用完所有手牌
+    // 經典模式：必須用完所有手牌
     const handCardCount = _rooms[roomIndex].players[playerIndex].handCard.length;
     if (answer === 24 && numberCards.length === handCardCount) {
       // 移除數字牌
