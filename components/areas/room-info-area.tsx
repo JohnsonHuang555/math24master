@@ -183,7 +183,7 @@ const RoomInfoArea = ({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="classic">傳統模式</SelectItem>
+                <SelectItem value="classic">經典模式</SelectItem>
                 <SelectItem value="rummy">拉密模式</SelectItem>
               </SelectGroup>
             </SelectContent>
