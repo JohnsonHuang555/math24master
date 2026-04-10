@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { generateSolvablePuzzles } from '@/lib/puzzle-generator';
 import { calculateAnswer } from '@/lib/utils';
 import { useTimer } from '@/hooks/useTimer';
 import { SelectedCard } from '@/models/SelectedCard';
 import { NumberCard } from '@/models/Player';
+import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 10;
 const WRONG_PENALTY_SECONDS = 10;
@@ -49,6 +51,7 @@ export function useNormalPlay() {
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
   const [records, setRecords] = useState<NormalRecord[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [penaltyCount, setPenaltyCount] = useState(0);
 
   const { seconds, isRunning, start, pause, reset: resetTimer, addSeconds } =
     useTimer({ mode: 'stopwatch' });
@@ -76,6 +79,7 @@ export function useNormalPlay() {
     setTotalScore(0);
     setSelectedCards([]);
     setErrorMessage(null);
+    setPenaltyCount(0);
     resetTimer();
     setStatus('playing');
     // resetTimer 後才 start，讓 seconds 先歸 0
@@ -102,12 +106,14 @@ export function useNormalPlay() {
     } catch {
       setErrorMessage('算式有誤');
       addSeconds(WRONG_PENALTY_SECONDS);
+      setPenaltyCount(prev => prev + 1);
       return;
     }
 
     if (Math.abs(answer - 24) > 1e-9) {
       setErrorMessage(`答案 ${answer} 不等於 24，+${WRONG_PENALTY_SECONDS}s 懲罰`);
       addSeconds(WRONG_PENALTY_SECONDS);
+      setPenaltyCount(prev => prev + 1);
       return;
     }
 
@@ -121,18 +127,42 @@ export function useNormalPlay() {
     if (nextRound >= TOTAL_ROUNDS) {
       // 遊戲結束
       pause();
+      const finalSeconds = seconds + 1; // +1 因為這一秒還未 tick
       const record: NormalRecord = {
         date: new Date().toISOString(),
-        totalSeconds: seconds + 1, // +1 因為這一秒還未 tick
+        totalSeconds: finalSeconds,
         totalScore: totalScore + roundScore,
       };
       saveRecord(record);
       setRecords(loadRecords());
+
+      // 統計與成就
+      const statsStore = useStatsStore.getState();
+      statsStore.incrementNormalPlays();
+      statsStore.updateNormalBest(finalSeconds);
+      unlockAchievement('normal_first');
+      if (penaltyCount === 0) {
+        statsStore.incrementNormalPerfectRuns();
+        unlockAchievement('normal_perfect');
+      }
+
       setStatus('finished');
     } else {
       setCurrentRound(nextRound);
     }
-  }, [selectedCards, currentRound, totalScore, seconds, addSeconds, pause]);
+  }, [selectedCards, currentRound, totalScore, seconds, penaltyCount, addSeconds, pause]);
+
+  const skipPuzzle = useCallback(() => {
+    setSelectedCards([]);
+    setErrorMessage(null);
+    const nextRound = currentRound + 1;
+    if (nextRound >= TOTAL_ROUNDS) {
+      pause();
+      setStatus('finished');
+    } else {
+      setCurrentRound(nextRound);
+    }
+  }, [currentRound, pause]);
 
   const quitGame = useCallback(() => {
     pause();
@@ -157,6 +187,7 @@ export function useNormalPlay() {
     removeCard,
     clearSelection,
     submitAnswer,
+    skipPuzzle,
     quitGame,
   };
 }

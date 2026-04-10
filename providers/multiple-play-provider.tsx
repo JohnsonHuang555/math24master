@@ -12,7 +12,6 @@ import React, {
 import { toast } from 'react-toastify';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
-import { unlockAchievement } from '@/lib/achievement-manager';
 import { useStatsStore } from '@/stores/stats-store';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
@@ -123,8 +122,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   }>();
   const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
   const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
-  const hadMeldedRef = useRef<boolean>(false);
-
   const {
     selectedCardSymbols,
     selectedCardNumbers,
@@ -195,14 +192,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         if (extra?.event === SocketEvent.PlayCardResponse) {
           handlePlayCardResponse(extra.data);
         }
-        // 成就：拉密破冰（hasMelded 首次變 true）
-        if (playerIdRef.current && !hadMeldedRef.current) {
-          const me = room.players.find(p => p.id === playerIdRef.current);
-          if (me?.hasMelded) {
-            hadMeldedRef.current = true;
-            unlockAchievement('rummy_meld');
-          }
-        }
       },
     );
 
@@ -232,17 +221,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       }) => {
         playSound('gameOverWin');
         setGameOverData({ name, score, players, isPenaltyGameOver });
-        useStatsStore.getState().incrementMultiPlays();
-        if (playerIdRef.current) {
-          const isRummy = players.some(p => p.hasMelded !== undefined);
-          if (isRummy) useStatsStore.getState().incrementRummyPlays();
-          const winnerPlayer = players.find(p => p.name === name);
-          if (winnerPlayer?.id === playerIdRef.current) {
-            unlockAchievement('multiplayer_win');
-            useStatsStore.getState().incrementMultiWins();
-            if (isRummy) useStatsStore.getState().incrementRummyWins();
-          }
-        }
       },
     );
 
@@ -432,7 +410,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       return;
 
     playSound('skip');
-    useStatsStore.getState().incrementSkips();
+    useStatsStore.getState().incrementClassicSkips();
     if (socket) {
       // 沒出過牌抽 1 張
       socket.emit(SocketEvent.DrawCard, {

@@ -1,8 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Symbols from '@/components/symbols';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNormalPlay } from '@/hooks/useNormalPlay';
@@ -49,8 +58,11 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     removeCard,
     clearSelection,
     submitAnswer,
+    skipPuzzle,
     quitGame,
   } = useNormalPlay();
+
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -226,8 +238,40 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
         <Button variant="secondary" onClick={clearSelection}>
           清除
         </Button>
-        <Button onClick={submitAnswer}>確認</Button>
+        <Button
+          onClick={() => {
+            if (selectedCards.length === 0) {
+              setShowSkipConfirm(true);
+            } else {
+              submitAnswer();
+            }
+          }}
+        >
+          確認
+        </Button>
       </div>
+
+      {/* 未作答確認彈窗 */}
+      <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowSkipConfirm(false)}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSkipConfirm(false);
+                skipPuzzle();
+              }}
+            >
+              跳過
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

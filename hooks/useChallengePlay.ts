@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { generateOnePuzzle } from '@/lib/puzzle-generator';
 import { calculateAnswer } from '@/lib/utils';
 import { useTimer } from '@/hooks/useTimer';
 import { SelectedCard } from '@/models/SelectedCard';
 import { NumberCard } from '@/models/Player';
+import { useAchievementStore } from '@/stores/achievement-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 const INITIAL_SECONDS = 5 * 60; // 5 分鐘
 const CORRECT_BONUS_SECONDS = 60; // 答對 +1 分鐘
@@ -85,6 +88,16 @@ export function useChallengePlay() {
       };
       saveBest(record);
       setBest(loadBest());
+
+      // 統計與成就
+      const answeredCount = Math.max(0, finalStage - 1);
+      const statsStore = useStatsStore.getState();
+      statsStore.incrementChallengePlays();
+      statsStore.updateChallengeBestStage(answeredCount);
+      useAchievementStore.getState().updateChallengeBestStage(answeredCount);
+      if (answeredCount >= 1) unlockAchievement('challenge_first');
+      if (answeredCount >= 10) unlockAchievement('challenge_stage_10');
+
       setStatus('finished');
     },
     [pause],
