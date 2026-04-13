@@ -30,7 +30,7 @@ const TABS: { key: AchievementCategory | 'all'; label: string }[] = [
 ];
 
 export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
-  const { unlockedIds, unlockDates, totalPlays, consecutiveWins, totalScore } =
+  const { unlockedIds, unlockDates, totalPlays, consecutiveWins, totalScore, challengeBestStage, dailyStreak } =
     useAchievementStore();
 
   const unlockedValidCount = unlockedIds.filter(id =>
@@ -42,6 +42,8 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
     totalPlays,
     consecutiveWins,
     totalScore,
+    challengeBestStage,
+    dailyStreak,
   };
 
   const filtered =

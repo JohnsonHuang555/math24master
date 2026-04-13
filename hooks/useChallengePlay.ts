@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { generateOnePuzzle } from '@/lib/puzzle-generator';
@@ -58,7 +59,6 @@ export function useChallengePlay() {
   const [totalScore, setTotalScore] = useState(0);
   const [currentNumbers, setCurrentNumbers] = useState<NumberCard[]>([]);
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [best, setBest] = useState<ChallengeBest | null>(null);
 
   // Refs 讓 onExpire 閉包始終拿到最新值
@@ -113,14 +113,21 @@ export function useChallengePlay() {
     setStage(1);
     setTotalScore(0);
     setSelectedCards([]);
-    setErrorMessage(null);
     resetTimer();
     setStatus('playing');
     requestAnimationFrame(() => start());
   }, [resetTimer, start]);
 
   const selectCard = useCallback((card: SelectedCard) => {
-    setSelectedCards(prev => [...prev, card]);
+    if (card.number) {
+      setSelectedCards(prev => {
+        const idx = prev.findIndex(c => c.number?.id === card.number!.id);
+        if (idx >= 0) return prev.filter((_, i) => i !== idx);
+        return [...prev, card];
+      });
+    } else {
+      setSelectedCards(prev => [...prev, card]);
+    }
   }, []);
 
   const removeCard = useCallback((index: number) => {
@@ -132,23 +139,23 @@ export function useChallengePlay() {
   }, []);
 
   const submitAnswer = useCallback(() => {
-    setErrorMessage(null);
     let answer: number;
     try {
       answer = calculateAnswer(selectedCards);
     } catch {
-      setErrorMessage('算式有誤');
+      toast.error('算式有誤');
       return;
     }
 
     if (Math.abs(answer - 24) > 1e-9) {
-      setErrorMessage(`答案 ${answer} 不等於 24`);
+      toast.error(`答案 ${answer} 不等於 24`);
       return;
     }
 
     // 答對：計分 + 加時 + 下一關
     const symbolCards = selectedCards.filter(c => c.symbol);
     const roundScore = calcRoundScore(symbolCards);
+    toast.success(`答對！+${roundScore}pt +1分鐘`);
     setTotalScore(prev => prev + roundScore);
     setSelectedCards([]);
     addSeconds(CORRECT_BONUS_SECONDS);
@@ -167,7 +174,6 @@ export function useChallengePlay() {
       return next;
     });
     setSelectedCards([]);
-    setErrorMessage(null);
   }, []);
 
   const quitGame = useCallback(() => {
@@ -185,7 +191,6 @@ export function useChallengePlay() {
     selectedCards,
     seconds,
     isRunning,
-    errorMessage,
     best,
     startGame,
     selectCard,

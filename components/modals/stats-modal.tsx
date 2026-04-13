@@ -6,6 +6,7 @@ import {
   useAchievementStore,
 } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
+import { formatTime } from '@/lib/utils';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -61,7 +62,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
       : '-';
 
   const normalBestDisplay =
-    normalBestSeconds > 0 ? `${normalBestSeconds}s` : '-';
+    normalBestSeconds > 0 ? formatTime(normalBestSeconds) : '-';
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
@@ -77,9 +78,11 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
           {/* 經典模式 */}
           <div className="rounded-lg border bg-muted/30 p-4">
             <SectionTitle>經典模式</SectionTitle>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <StatItem label="場次" value={classicPlays} />
               <StatItem label="最高分" value={classicBestScore || '-'} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 opacity-70">
               <StatItem label="最快出牌" value={fastestPlayDisplay} />
               <StatItem label="累計跳過" value={classicTotalSkips} />
             </div>

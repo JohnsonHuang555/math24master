@@ -410,7 +410,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       return;
 
     playSound('skip');
-    useStatsStore.getState().incrementClassicSkips();
     if (socket) {
       // 沒出過牌抽 1 張
       socket.emit(SocketEvent.DrawCard, {
