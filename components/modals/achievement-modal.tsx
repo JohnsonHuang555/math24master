@@ -30,14 +30,20 @@ const TABS: { key: AchievementCategory | 'all'; label: string }[] = [
 ];
 
 export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
-  const { unlockedIds, unlockDates, totalPlays, consecutiveWins, totalScore } =
+  const { unlockedIds, unlockDates, totalPlays, consecutiveWins, totalScore, challengeBestStage, dailyStreak } =
     useAchievementStore();
+
+  const unlockedValidCount = unlockedIds.filter(id =>
+    ACHIEVEMENTS.some(a => a.id === id),
+  ).length;
   const [activeTab, setActiveTab] = useState<AchievementCategory | 'all'>('all');
 
   const progressValues: Record<string, number> = {
     totalPlays,
     consecutiveWins,
     totalScore,
+    challengeBestStage,
+    dailyStreak,
   };
 
   const filtered =
@@ -55,7 +61,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
               成就
             </div>
             <span className="text-sm font-normal text-muted-foreground">
-              已解鎖 {unlockedIds.length} / {ACHIEVEMENTS.length}
+              已解鎖 {unlockedValidCount} / {ACHIEVEMENTS.length}
             </span>
           </DialogTitle>
         </DialogHeader>

@@ -2,68 +2,117 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 type StatsStore = {
-  singlePlays: number;             // 單人遊戲完成場次
-  multiPlays: number;              // 多人遊戲完成場次
-  multiWins: number;               // 多人勝場數
-  totalSkips: number;              // 累計跳過次數
-  bestScore: number;               // 單人最高分
-  dailyChallengeCompletes: number; // 每日挑戰完成次數
-  fastestPlayMs: number;           // 最快出牌毫秒（0=未設定）
-  rummyPlays: number;              // 拉密多人場次
-  rummyWins: number;               // 拉密多人勝場
+  // 經典模式
+  classicPlays: number;            // 場次
+  classicBestScore: number;        // 最高分
+  classicFastestPlayMs: number;    // 最快出牌（ms，0=未設定）
+  classicTotalSkips: number;       // 累計跳過
 
-  incrementSinglePlays: () => void;
-  incrementMultiPlays: () => void;
-  incrementMultiWins: () => void;
-  incrementSkips: () => void;
-  updateBestScore: (score: number) => void;
+  // 關卡模式
+  normalPlays: number;             // 場次
+  normalBestSeconds: number;       // 最速完成秒數（0=未設定）
+  normalPerfectRuns: number;       // 零罰時完成次數
+
+  // 挑戰模式
+  challengePlays: number;          // 場次
+  challengeBestStage: number;      // 最高連續答對題數
+
+  // 每日挑戰
+  dailyChallengeCompletes: number;
+
+  incrementClassicPlays: () => void;
+  updateClassicBestScore: (score: number) => void;
+  updateClassicFastestPlay: (ms: number) => void;
+  incrementClassicSkips: () => void;
+
+  incrementNormalPlays: () => void;
+  updateNormalBest: (seconds: number) => void;
+  incrementNormalPerfectRuns: () => void;
+
+  incrementChallengePlays: () => void;
+  updateChallengeBestStage: (count: number) => void;
+
   incrementDailyChallenge: () => void;
-  updateFastestPlay: (ms: number) => void;
-  incrementRummyPlays: () => void;
-  incrementRummyWins: () => void;
 };
 
 export const useStatsStore = create<StatsStore>()(
   persist(
     (set, get) => ({
-      singlePlays: 0,
-      multiPlays: 0,
-      multiWins: 0,
-      totalSkips: 0,
-      bestScore: 0,
-      dailyChallengeCompletes: 0,
-      fastestPlayMs: 0,
-      rummyPlays: 0,
-      rummyWins: 0,
+      classicPlays: 0,
+      classicBestScore: 0,
+      classicFastestPlayMs: 0,
+      classicTotalSkips: 0,
 
-      incrementSinglePlays: () =>
-        set(state => ({ singlePlays: state.singlePlays + 1 })),
-      incrementMultiPlays: () =>
-        set(state => ({ multiPlays: state.multiPlays + 1 })),
-      incrementMultiWins: () =>
-        set(state => ({ multiWins: state.multiWins + 1 })),
-      incrementSkips: () =>
-        set(state => ({ totalSkips: state.totalSkips + 1 })),
-      updateBestScore: (score: number) => {
-        if (score > get().bestScore) {
-          set({ bestScore: score });
+      normalPlays: 0,
+      normalBestSeconds: 0,
+      normalPerfectRuns: 0,
+
+      challengePlays: 0,
+      challengeBestStage: 0,
+
+      dailyChallengeCompletes: 0,
+
+      incrementClassicPlays: () =>
+        set(state => ({ classicPlays: state.classicPlays + 1 })),
+
+      updateClassicBestScore: (score: number) => {
+        if (score > get().classicBestScore) {
+          set({ classicBestScore: score });
         }
       },
+
+      updateClassicFastestPlay: (ms: number) => {
+        const current = get().classicFastestPlayMs;
+        if (current === 0 || ms < current) {
+          set({ classicFastestPlayMs: ms });
+        }
+      },
+
+      incrementClassicSkips: () =>
+        set(state => ({ classicTotalSkips: state.classicTotalSkips + 1 })),
+
+      incrementNormalPlays: () =>
+        set(state => ({ normalPlays: state.normalPlays + 1 })),
+
+      updateNormalBest: (seconds: number) => {
+        const current = get().normalBestSeconds;
+        if (current === 0 || seconds < current) {
+          set({ normalBestSeconds: seconds });
+        }
+      },
+
+      incrementNormalPerfectRuns: () =>
+        set(state => ({ normalPerfectRuns: state.normalPerfectRuns + 1 })),
+
+      incrementChallengePlays: () =>
+        set(state => ({ challengePlays: state.challengePlays + 1 })),
+
+      updateChallengeBestStage: (count: number) =>
+        set(state => ({
+          challengeBestStage: Math.max(state.challengeBestStage, count),
+        })),
+
       incrementDailyChallenge: () =>
         set(state => ({
           dailyChallengeCompletes: state.dailyChallengeCompletes + 1,
         })),
-      updateFastestPlay: (ms: number) => {
-        const current = get().fastestPlayMs;
-        if (current === 0 || ms < current) {
-          set({ fastestPlayMs: ms });
-        }
-      },
-      incrementRummyPlays: () =>
-        set(state => ({ rummyPlays: state.rummyPlays + 1 })),
-      incrementRummyWins: () =>
-        set(state => ({ rummyWins: state.rummyWins + 1 })),
     }),
-    { name: 'player-stats' },
+    {
+      name: 'player-stats',
+      version: 2,
+      migrate: (persistedState) => ({
+        classicPlays: 0,
+        classicBestScore: 0,
+        classicFastestPlayMs: 0,
+        classicTotalSkips: 0,
+        normalPlays: 0,
+        normalBestSeconds: 0,
+        normalPerfectRuns: 0,
+        challengePlays: 0,
+        challengeBestStage: 0,
+        dailyChallengeCompletes: 0,
+        ...(persistedState as Partial<StatsStore> | undefined),
+      }),
+    },
   ),
 );

@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Symbols from '@/components/symbols';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
 import { fadeVariants } from '@/lib/animation-variants';
+import { formatTime } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
-
-function formatTime(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
 
 function cardLabel(card: SelectedCard): string {
   if (card.number) return String(card.number.value);
@@ -41,7 +46,6 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     currentNumbers,
     selectedCards,
     seconds,
-    errorMessage,
     best,
     startGame,
     selectCard,
@@ -51,6 +55,8 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     skipPuzzle,
     quitGame,
   } = useChallengePlay();
+
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -142,16 +148,14 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
               variants={fadeVariants}
               initial="hidden"
               animate="show"
-              whileHover={{ scale: isSelected ? 1 : 1.08 }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 1 }}
             >
               <Card
-                onClick={() => {
-                  if (!isSelected) selectCard({ number: card });
-                }}
+                onClick={() => selectCard({ number: card })}
                 className={`flex aspect-[5/7] min-w-[70px] cursor-pointer items-center justify-center text-3xl font-bold transition-all md:min-w-[85px] ${
                   isSelected
-                    ? 'bg-slate-400 text-slate-200 cursor-not-allowed opacity-60'
+                    ? 'bg-blue-300 text-blue-900 ring-2 ring-blue-500 hover:bg-red-100 hover:text-red-600 hover:ring-red-400'
                     : 'bg-slate-200 hover:bg-slate-300'
                 }`}
               >
@@ -190,11 +194,6 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         <Symbols onClick={symbol => selectCard({ symbol })} />
       </div>
 
-      {/* 錯誤訊息 */}
-      {errorMessage && (
-        <p className="text-sm font-medium text-red-500">{errorMessage}</p>
-      )}
-
       {/* 操作按鈕 */}
       <div className="flex gap-3">
         <Button
@@ -212,8 +211,43 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         <Button variant="outline" onClick={skipPuzzle}>
           跳過
         </Button>
-        <Button onClick={submitAnswer}>確認</Button>
+        <Button
+          onClick={() => {
+            if (selectedCards.length === 0) {
+              setShowSkipConfirm(true);
+            } else {
+              submitAnswer();
+            }
+          }}
+        >
+          確認
+        </Button>
       </div>
+
+      {/* 未作答確認彈窗 */}
+      <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
+            <AlertDialogDescription>
+              這題尚未作答。跳過不會加時。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowSkipConfirm(false)}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSkipConfirm(false);
+                skipPuzzle();
+              }}
+            >
+              跳過
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

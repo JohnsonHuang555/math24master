@@ -21,6 +21,7 @@ import {
 } from '@/lib/daily-seed';
 import { playSound } from '@/lib/sound-manager';
 import { cn } from '@/lib/utils';
+import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const SYMBOLS = [
@@ -137,6 +138,8 @@ export default function DailyChallengePage() {
       toast.success(`正確！得 ${score} 分`);
       unlockAchievement('daily_done');
       incrementDailyChallenge();
+      useAchievementStore.getState().updateDailyStreak(s);
+      if (s >= 7) unlockAchievement('daily_streak_7');
       setTimeout(() => setAllSolutions(findAllSolutions(cards)), 0);
     } else {
       playSound('wrong');

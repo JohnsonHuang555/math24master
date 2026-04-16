@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { generateSolvablePuzzles } from '@/lib/puzzle-generator';
 import { calculateAnswer } from '@/lib/utils';
 import { useTimer } from '@/hooks/useTimer';
 import { SelectedCard } from '@/models/SelectedCard';
 import { NumberCard } from '@/models/Player';
+import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 10;
 const WRONG_PENALTY_SECONDS = 10;
@@ -48,7 +50,7 @@ export function useNormalPlay() {
   const [totalScore, setTotalScore] = useState(0);
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
   const [records, setRecords] = useState<NormalRecord[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [penaltyCount, setPenaltyCount] = useState(0);
 
   const { seconds, isRunning, start, pause, reset: resetTimer, addSeconds } =
     useTimer({ mode: 'stopwatch' });
@@ -68,14 +70,14 @@ export function useNormalPlay() {
     try {
       generated = generateSolvablePuzzles(TOTAL_ROUNDS);
     } catch {
-      setErrorMessage('無法產生題目，請重試');
+      toast.error('無法產生題目，請重試');
       return;
     }
     setPuzzles(generated);
     setCurrentRound(0);
     setTotalScore(0);
     setSelectedCards([]);
-    setErrorMessage(null);
+    setPenaltyCount(0);
     resetTimer();
     setStatus('playing');
     // resetTimer 後才 start，讓 seconds 先歸 0
@@ -83,7 +85,15 @@ export function useNormalPlay() {
   }, [resetTimer, start]);
 
   const selectCard = useCallback((card: SelectedCard) => {
-    setSelectedCards(prev => [...prev, card]);
+    if (card.number) {
+      setSelectedCards(prev => {
+        const idx = prev.findIndex(c => c.number?.id === card.number!.id);
+        if (idx >= 0) return prev.filter((_, i) => i !== idx);
+        return [...prev, card];
+      });
+    } else {
+      setSelectedCards(prev => [...prev, card]);
+    }
   }, []);
 
   const removeCard = useCallback((index: number) => {
@@ -95,25 +105,27 @@ export function useNormalPlay() {
   }, []);
 
   const submitAnswer = useCallback(() => {
-    setErrorMessage(null);
     let answer: number;
     try {
       answer = calculateAnswer(selectedCards);
     } catch {
-      setErrorMessage('算式有誤');
+      toast.error('算式有誤');
       addSeconds(WRONG_PENALTY_SECONDS);
+      setPenaltyCount(prev => prev + 1);
       return;
     }
 
     if (Math.abs(answer - 24) > 1e-9) {
-      setErrorMessage(`答案 ${answer} 不等於 24，+${WRONG_PENALTY_SECONDS}s 懲罰`);
+      toast.error(`答案 ${answer} 不等於 24，+${WRONG_PENALTY_SECONDS}s 懲罰`);
       addSeconds(WRONG_PENALTY_SECONDS);
+      setPenaltyCount(prev => prev + 1);
       return;
     }
 
     // 答對
     const symbolCards = selectedCards.filter(c => c.symbol);
     const roundScore = calcRoundScore(symbolCards);
+    toast.success(`答對！+${roundScore}pt`);
     setTotalScore(prev => prev + roundScore);
     setSelectedCards([]);
 
@@ -121,18 +133,53 @@ export function useNormalPlay() {
     if (nextRound >= TOTAL_ROUNDS) {
       // 遊戲結束
       pause();
+      const finalSeconds = seconds + 1; // +1 因為這一秒還未 tick
       const record: NormalRecord = {
         date: new Date().toISOString(),
-        totalSeconds: seconds + 1, // +1 因為這一秒還未 tick
+        totalSeconds: finalSeconds,
         totalScore: totalScore + roundScore,
       };
       saveRecord(record);
       setRecords(loadRecords());
+
+      // 統計與成就
+      const statsStore = useStatsStore.getState();
+      statsStore.incrementNormalPlays();
+      statsStore.updateNormalBest(finalSeconds);
+      unlockAchievement('normal_first');
+      if (penaltyCount === 0) {
+        statsStore.incrementNormalPerfectRuns();
+        unlockAchievement('normal_perfect');
+      }
+
       setStatus('finished');
     } else {
       setCurrentRound(nextRound);
     }
-  }, [selectedCards, currentRound, totalScore, seconds, addSeconds, pause]);
+  }, [selectedCards, currentRound, totalScore, seconds, penaltyCount, addSeconds, pause]);
+
+  const skipPuzzle = useCallback(() => {
+    setSelectedCards([]);
+    const nextRound = currentRound + 1;
+    if (nextRound >= TOTAL_ROUNDS) {
+      pause();
+      const finalSeconds = seconds + 1;
+      const record: NormalRecord = {
+        date: new Date().toISOString(),
+        totalSeconds: finalSeconds,
+        totalScore,
+      };
+      saveRecord(record);
+      setRecords(loadRecords());
+      const statsStore = useStatsStore.getState();
+      statsStore.incrementNormalPlays();
+      statsStore.updateNormalBest(finalSeconds);
+      unlockAchievement('normal_first');
+      setStatus('finished');
+    } else {
+      setCurrentRound(nextRound);
+    }
+  }, [currentRound, seconds, totalScore, pause]);
 
   const quitGame = useCallback(() => {
     pause();
@@ -150,13 +197,13 @@ export function useNormalPlay() {
     totalScore,
     seconds,
     isRunning,
-    errorMessage,
     records,
     startGame,
     selectCard,
     removeCard,
     clearSelection,
     submitAnswer,
+    skipPuzzle,
     quitGame,
   };
 }

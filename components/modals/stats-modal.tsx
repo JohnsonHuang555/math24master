@@ -1,8 +1,12 @@
 'use client';
 
-import { BarChart2 } from 'lucide-react';
-import { useAchievementStore } from '@/stores/achievement-store';
+import { BarChart2, Award } from 'lucide-react';
+import {
+  ACHIEVEMENTS,
+  useAchievementStore,
+} from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
+import { formatTime } from '@/lib/utils';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -35,27 +39,34 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const {
-    singlePlays,
-    multiPlays,
-    multiWins,
-    totalSkips,
-    bestScore,
+    classicPlays,
+    classicBestScore,
+    classicFastestPlayMs,
+    classicTotalSkips,
+    normalPlays,
+    normalBestSeconds,
+    normalPerfectRuns,
+    challengePlays,
+    challengeBestStage,
     dailyChallengeCompletes,
-    fastestPlayMs,
-    rummyPlays,
-    rummyWins,
   } = useStatsStore();
-  const totalCorrect = useAchievementStore(state => state.totalPlays);
+  const unlockedIds = useAchievementStore(state => state.unlockedIds);
 
-  const multiWinRate =
-    multiPlays > 0 ? `${Math.round((multiWins / multiPlays) * 100)}%` : '-';
+  const unlockedValidCount = unlockedIds.filter(id =>
+    ACHIEVEMENTS.some(a => a.id === id),
+  ).length;
 
   const fastestPlayDisplay =
-    fastestPlayMs > 0 ? `${(fastestPlayMs / 1000).toFixed(1)}s` : '-';
+    classicFastestPlayMs > 0
+      ? `${(classicFastestPlayMs / 1000).toFixed(1)}s`
+      : '-';
+
+  const normalBestDisplay =
+    normalBestSeconds > 0 ? formatTime(normalBestSeconds) : '-';
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-blue-500" />
@@ -63,40 +74,68 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-5 py-1">
-          {/* 單人遊戲 */}
+        <div className="flex flex-col gap-4 py-1">
+          {/* 經典模式 */}
           <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>單人遊戲</SectionTitle>
-            <div className="grid grid-cols-3 gap-3">
-              <StatItem label="完成場次" value={singlePlays} />
-              <StatItem label="最高分" value={bestScore || '-'} />
+            <SectionTitle>經典模式</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <StatItem label="場次" value={classicPlays} />
+              <StatItem label="最高分" value={classicBestScore || '-'} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 opacity-70">
               <StatItem label="最快出牌" value={fastestPlayDisplay} />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <StatItem label="累計出牌" value={totalCorrect} />
-              <StatItem label="累計跳過" value={totalSkips} />
+              <StatItem label="累計跳過" value={classicTotalSkips} />
             </div>
           </div>
 
-          {/* 多人遊戲 */}
-          <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>多人遊戲</SectionTitle>
-            <div className="grid grid-cols-3 gap-3">
-              <StatItem label="完成場次" value={multiPlays} />
-              <StatItem label="勝場" value={multiWins} />
-              <StatItem label="勝率" value={multiWinRate} />
+          {/* 關卡模式 + 挑戰模式 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>關卡模式</SectionTitle>
+              <div className="flex flex-col gap-3">
+                <StatItem label="場次" value={normalPlays} />
+                <StatItem label="最速完成" value={normalBestDisplay} />
+                <StatItem label="零罰時次數" value={normalPerfectRuns} />
+              </div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <StatItem label="拉密場次" value={rummyPlays} />
-              <StatItem label="拉密勝場" value={rummyWins} />
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>挑戰模式</SectionTitle>
+              <div className="flex flex-col gap-3">
+                <StatItem label="場次" value={challengePlays} />
+                <StatItem label="最高關卡" value={challengeBestStage || '-'} />
+              </div>
             </div>
           </div>
 
-          {/* 每日挑戰 */}
-          <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>每日挑戰</SectionTitle>
-            <div className="flex justify-center">
-              <StatItem label="完成次數" value={dailyChallengeCompletes} />
+          {/* 每日挑戰 + 成就解鎖進度 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>每日挑戰</SectionTitle>
+              <div className="flex justify-center">
+                <StatItem label="完成次數" value={dailyChallengeCompletes} />
+              </div>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>成就解鎖</SectionTitle>
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Award className="h-5 w-5 text-yellow-400" />
+                  <span className="text-2xl font-bold tabular-nums">
+                    {unlockedValidCount}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    / {ACHIEVEMENTS.length}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-yellow-400 transition-all"
+                    style={{
+                      width: `${Math.round((unlockedValidCount / ACHIEVEMENTS.length) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

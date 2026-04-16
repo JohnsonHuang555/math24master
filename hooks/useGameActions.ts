@@ -59,12 +59,11 @@ export function useGameActions(
       // 成就：初次出牌
       unlockAchievement('first_win');
 
-      // 成就：累計出牌 10 / 50 次
+      // 成就：累計出牌 100 次
       const store = useAchievementStore.getState();
       store.incrementPlays();
       const newTotalPlays = store.totalPlays + 1;
-      if (newTotalPlays >= 10) unlockAchievement('play_10');
-      if (newTotalPlays >= 50) unlockAchievement('play_50');
+      if (newTotalPlays >= 100) unlockAchievement('play_100');
 
       // 成就：乘法王（3 個乘號）
       const timesCount = selectedCardSymbols.filter(
@@ -72,23 +71,40 @@ export function useGameActions(
       ).length;
       if (timesCount >= 3) unlockAchievement('all_multiply');
 
+      // 成就：全能達人（單局使用 3 個不同運算符號）
+      const distinctOperatorCount = new Set(
+        selectedCardSymbols
+          .map(s => s.symbol)
+          .filter(symbol =>
+            [
+              Symbol.Plus,
+              Symbol.Minus,
+              Symbol.Times,
+              Symbol.Divide,
+            ].includes(symbol as Symbol),
+          ),
+      ).size;
+      if (
+        selectedCardSymbols.length === 3 &&
+        distinctOperatorCount === 3
+      ) {
+        unlockAchievement('all_ops');
+      }
+
       // 成就：神速（10 秒內出牌）
       if (elapsed <= 10000) unlockAchievement('speed_win');
 
       // 統計：最快出牌
-      useStatsStore.getState().updateFastestPlay(elapsed);
+      useStatsStore.getState().updateClassicFastestPlay(elapsed);
 
-      // 成就：score_10（單回合 ≥ 10 分）
-      const roundScore = calcRoundScore(selectedCardSymbols);
-      if (roundScore >= 10) unlockAchievement('score_10');
-
-      // 成就：連勝達人（連續 3 次成功）
+      // 成就：連勝達人（連續 5 次成功）
       store.incrementConsecutiveWins();
-      if (store.consecutiveWins + 1 >= 3) unlockAchievement('consecutive_3');
+      if (store.consecutiveWins + 1 >= 5) unlockAchievement('consecutive_5');
 
-      // 成就：得分達人（累計 50 分）
+      // 成就：得分達人（累計 100 分）
+      const roundScore = calcRoundScore(selectedCardSymbols);
       store.addScore(roundScore);
-      if (store.totalScore + roundScore >= 50) unlockAchievement('total_score_50');
+      if (store.totalScore + roundScore >= 100) unlockAchievement('total_score_100');
     } else {
       toast.error('答案不等於 24');
       playSound('wrong');

@@ -83,7 +83,7 @@ export default function SinglePlayPage() {
   const handCard = currentPlayer?.handCard || [];
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
-  const { bestScore, updateBestScore } = useStatsStore();
+  const { classicBestScore: bestScore, updateClassicBestScore: updateBestScore } = useStatsStore();
 
   const disabledActions = checkAnswerCorrect === true || !!isGameOver;
 

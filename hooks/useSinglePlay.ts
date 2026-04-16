@@ -103,7 +103,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
   useEffect(() => {
     if (isGameOver) {
       playSound('gameOverEnd');
-      useStatsStore.getState().incrementSinglePlays();
+      useStatsStore.getState().incrementClassicPlays();
       // 成就：精準（本局未跳過）
       const skipCount = useAchievementStore.getState().singleSkipCount;
       if (skipCount === 0) {
@@ -161,7 +161,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
 
     playSound('skip');
     useAchievementStore.getState().incrementSkip();
-    useStatsStore.getState().incrementSkips();
+    useStatsStore.getState().incrementClassicSkips();
     if (socket) {
       socket.emit(SocketEvent.SkipHand, {
         roomId: roomInfo?.roomId,
