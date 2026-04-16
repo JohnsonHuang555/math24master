@@ -71,19 +71,22 @@ export function useGameActions(
       ).length;
       if (timesCount >= 3) unlockAchievement('all_multiply');
 
-      // 成就：全能達人（+、−、×、÷ 各至少一個，共 4 個符號）
-      const hasPlus = selectedCardSymbols.some(s => s.symbol === Symbol.Plus);
-      const hasMinus = selectedCardSymbols.some(s => s.symbol === Symbol.Minus);
-      const hasTimes = selectedCardSymbols.some(s => s.symbol === Symbol.Times);
-      const hasDivide = selectedCardSymbols.some(
-        s => s.symbol === Symbol.Divide,
-      );
+      // 成就：全能達人（單局使用 3 個不同運算符號）
+      const distinctOperatorCount = new Set(
+        selectedCardSymbols
+          .map(s => s.symbol)
+          .filter(symbol =>
+            [
+              Symbol.Plus,
+              Symbol.Minus,
+              Symbol.Times,
+              Symbol.Divide,
+            ].includes(symbol as Symbol),
+          ),
+      ).size;
       if (
-        hasPlus &&
-        hasMinus &&
-        hasTimes &&
-        hasDivide &&
-        selectedCardSymbols.length === 4
+        selectedCardSymbols.length === 3 &&
+        distinctOperatorCount === 3
       ) {
         unlockAchievement('all_ops');
       }

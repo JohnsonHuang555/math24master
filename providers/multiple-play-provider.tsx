@@ -12,7 +12,6 @@ import React, {
 import { toast } from 'react-toastify';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
-import { useStatsStore } from '@/stores/stats-store';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';

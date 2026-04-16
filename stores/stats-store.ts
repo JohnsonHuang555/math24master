@@ -97,6 +97,22 @@ export const useStatsStore = create<StatsStore>()(
           dailyChallengeCompletes: state.dailyChallengeCompletes + 1,
         })),
     }),
-    { name: 'player-stats-v2' },
+    {
+      name: 'player-stats',
+      version: 2,
+      migrate: (persistedState) => ({
+        classicPlays: 0,
+        classicBestScore: 0,
+        classicFastestPlayMs: 0,
+        classicTotalSkips: 0,
+        normalPlays: 0,
+        normalBestSeconds: 0,
+        normalPerfectRuns: 0,
+        challengePlays: 0,
+        challengeBestStage: 0,
+        dailyChallengeCompletes: 0,
+        ...(persistedState as Partial<StatsStore> | undefined),
+      }),
+    },
   ),
 );
