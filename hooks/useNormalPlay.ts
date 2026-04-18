@@ -160,10 +160,12 @@ export function useNormalPlay() {
 
   const skipPuzzle = useCallback(() => {
     setSelectedCards([]);
+    setPenaltyCount(prev => prev + 1);
     const nextRound = currentRound + 1;
     if (nextRound >= TOTAL_ROUNDS) {
       pause();
-      const finalSeconds = seconds + 1;
+      // 直接計算 finalSeconds 避免 async state 問題
+      const finalSeconds = seconds + 1 + WRONG_PENALTY_SECONDS;
       const record: NormalRecord = {
         date: new Date().toISOString(),
         totalSeconds: finalSeconds,
@@ -177,9 +179,10 @@ export function useNormalPlay() {
       unlockAchievement('normal_first');
       setStatus('finished');
     } else {
+      addSeconds(WRONG_PENALTY_SECONDS);
       setCurrentRound(nextRound);
     }
-  }, [currentRound, seconds, totalScore, pause]);
+  }, [currentRound, seconds, totalScore, pause, addSeconds]);
 
   const quitGame = useCallback(() => {
     pause();
@@ -197,6 +200,7 @@ export function useNormalPlay() {
     totalScore,
     seconds,
     isRunning,
+    penaltyCount,
     records,
     startGame,
     selectCard,

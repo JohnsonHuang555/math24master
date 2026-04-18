@@ -18,20 +18,42 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 
 | Mode | Description |
 |------|-------------|
-| **Single Player** | Practice at your own pace with 3 difficulty levels |
+| **Classic** | Multiplayer or solo — form equations from 4 cards to reach 24, score with harder symbols |
+| **Level** | 10 puzzles, stopwatch counts up — wrong answers and skips add 10s penalty |
+| **Challenge** | 5-minute countdown — correct answers add 60s, skips deduct 15s, go as far as you can |
 | **Multiplayer** | Real-time rooms via Socket.IO — optional password & countdown timer |
 | **Daily Challenge** | A seeded daily puzzle, guaranteed solvable, resets every 24 hours |
 
 ---
 
-## 🚀 Game Rules
+## 🚀 Classic Mode Rules
 
 1. Each player holds **4 cards** in hand.
-2. On your turn, use all your cards to form an equation equal to 24.
-3. If you cannot make 24, you can **exchange** your hand — discard all cards and draw 4 new ones (ends your turn).
-4. After a successful play, you draw the same number of cards you used.
-5. When the deck is exhausted, the current round becomes the **final round**. The game ends after all players complete it.
-6. The player with the highest score wins.
+2. Use all your cards to form an equation equal to **24**.
+3. If you cannot make 24, you can **skip** — discard all 4 cards and draw 4 new ones (no score).
+4. When the deck is exhausted, the current round becomes the **final round**. The game ends after all players complete it.
+5. The player with the highest score wins.
+
+---
+
+## 🕐 Level Mode Rules
+
+1. **10 puzzles** in total — complete all of them to finish.
+2. Form an equation equal to **24** using the 4 given numbers and any operators.
+3. **Wrong answer or skip → +10 seconds** penalty added to your total time.
+4. Finish all 10 puzzles as fast as possible for the best record.
+5. Timer turns **red** after 2 or more penalties — a signal to focus.
+
+---
+
+## ⏳ Challenge Mode Rules
+
+1. Starts with a **5-minute countdown**.
+2. **Correct answer → +60 seconds** added to the timer; advance to the next stage.
+3. **Skip → −15 seconds** deducted; stage count does not increase.
+4. Game ends when the timer hits zero.
+5. When you have more than 30 seconds left and have passed stage 3, you can use **Early Finish** to settle your score at any time.
+6. Best record is ranked by **stages reached**.
 
 ---
 
@@ -86,7 +108,7 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 
 ```
 ├── app/                    # Next.js App Router pages
-│   ├── single-play/        # Single-player mode
+│   ├── single-play/        # Single-player modes (Classic / Level / Challenge)
 │   ├── multiple-play/      # Multiplayer mode (dynamic [roomId])
 │   └── daily-challenge/    # Daily challenge mode
 ├── server/                 # Socket.IO server
@@ -96,7 +118,7 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 ├── components/
 │   ├── areas/              # Game board UI (hand, action, players, chat…)
 │   └── ui/                 # Radix UI primitives (shadcn/ui pattern)
-├── hooks/                  # useSinglePlay (single-player logic)
+├── hooks/                  # useSinglePlay / useNormalPlay / useChallengePlay
 ├── providers/              # MultiplePlayProvider (socket + multiplayer state)
 ├── stores/                 # Zustand stores (achievements, stats, sound…)
 ├── models/                 # Shared TypeScript types (client + server)

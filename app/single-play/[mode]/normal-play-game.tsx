@@ -1,37 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import Symbols from '@/components/symbols';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { useEffect } from 'react';
+import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { useNormalPlay } from '@/hooks/useNormalPlay';
-import { fadeVariants } from '@/lib/animation-variants';
 import { formatTime } from '@/lib/utils';
-import { SelectedCard } from '@/models/SelectedCard';
-import { Symbol } from '@/models/Symbol';
-
-function cardLabel(card: SelectedCard): string {
-  if (card.number) return String(card.number.value);
-  switch (card.symbol) {
-    case Symbol.Times:
-      return '×';
-    case Symbol.Divide:
-      return '÷';
-    default:
-      return card.symbol ?? '';
-  }
-}
 
 interface NormalPlayGameProps {
   onBack: () => void;
@@ -47,6 +20,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     selectedCards,
     totalScore,
     seconds,
+    penaltyCount,
     records,
     startGame,
     selectCard,
@@ -56,8 +30,6 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     skipPuzzle,
     quitGame,
   } = useNormalPlay();
-
-  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -71,7 +43,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
           <h1 className="text-3xl font-bold">關卡模式</h1>
           <p className="text-muted-foreground">10 題全部答對，計時結束</p>
           <p className="text-sm text-muted-foreground">
-            答錯 +10 秒懲罰・符號越難分數越高
+            答錯或跳過 +10 秒懲罰・符號越難分數越高
           </p>
         </div>
         {records.length > 0 && (
@@ -137,132 +109,28 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
   }
 
   // 遊戲中
-  const selectedNumberIds = new Set(
-    selectedCards.filter(c => c.number).map(c => c.number!.id),
-  );
-
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 py-4 px-2">
-      {/* 標頭 */}
+    <PuzzlePlayArea
+      currentNumbers={currentNumbers}
+      selectedCards={selectedCards}
+      onSelectCard={selectCard}
+      onRemoveCard={removeCard}
+      onClearSelection={clearSelection}
+      onSubmit={submitAnswer}
+      onSkip={skipPuzzle}
+      onBack={() => {
+        quitGame();
+        onBack();
+      }}
+      showSkipButton={false}
+    >
       <div className="flex w-full max-w-md items-center justify-between rounded-xl border px-4 py-2 text-sm font-semibold">
-        <span>
-          第 {currentRound + 1}/{totalRounds} 題
-        </span>
-        <span
-          className={seconds > 120 ? 'text-red-500' : 'text-foreground'}
-        >
+        <span>第 {currentRound + 1}/{totalRounds} 題</span>
+        <span className={penaltyCount >= 2 ? 'text-red-500' : 'text-foreground'}>
           ⏱ {formatTime(seconds)}
         </span>
         <span>{totalScore} 分</span>
       </div>
-
-      {/* 數字牌 */}
-      <div className="flex gap-4">
-        {currentNumbers.map(card => {
-          const isSelected = selectedNumberIds.has(card.id);
-          return (
-            <motion.div
-              key={card.id}
-              variants={fadeVariants}
-              initial="hidden"
-              animate="show"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 1 }}
-            >
-              <Card
-                onClick={() => selectCard({ number: card })}
-                className={`flex aspect-[5/7] min-w-[70px] cursor-pointer items-center justify-center text-3xl font-bold transition-all md:min-w-[85px] ${
-                  isSelected
-                    ? 'bg-blue-300 text-blue-900 ring-2 ring-blue-500 hover:bg-red-100 hover:text-red-600 hover:ring-red-400'
-                    : 'bg-slate-200 hover:bg-slate-300'
-                }`}
-              >
-                {card.value}
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* 已選卡牌列 */}
-      <div className="flex min-h-[52px] w-full max-w-md flex-wrap items-center gap-2 rounded-xl border p-2">
-        {selectedCards.length === 0 ? (
-          <span className="text-sm text-muted-foreground">
-            點選數字和符號組成算式...
-          </span>
-        ) : (
-          selectedCards.map((card, i) => (
-            <motion.button
-              key={i}
-              variants={fadeVariants}
-              initial="hidden"
-              animate="show"
-              onClick={() => removeCard(i)}
-              className="rounded-md bg-slate-200 px-3 py-1 text-sm font-semibold hover:bg-red-100 hover:text-red-600 transition-colors"
-              title="點擊移除"
-            >
-              {cardLabel(card)}
-            </motion.button>
-          ))
-        )}
-      </div>
-
-      {/* 符號列 */}
-      <div className="flex gap-3">
-        <Symbols onClick={symbol => selectCard({ symbol })} />
-      </div>
-
-      {/* 操作按鈕 */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => {
-            quitGame();
-            onBack();
-          }}
-        >
-          回上一頁
-        </Button>
-        <Button variant="secondary" onClick={clearSelection}>
-          清除
-        </Button>
-        <Button
-          onClick={() => {
-            if (selectedCards.length === 0) {
-              setShowSkipConfirm(true);
-            } else {
-              submitAnswer();
-            }
-          }}
-        >
-          確認
-        </Button>
-      </div>
-
-      {/* 未作答確認彈窗 */}
-      <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
-            <AlertDialogDescription>
-              這題尚未作答。跳過後不會計分。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowSkipConfirm(false)}>
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowSkipConfirm(false);
-                skipPuzzle();
-              }}
-            >
-              跳過
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </PuzzlePlayArea>
   );
 }

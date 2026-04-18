@@ -12,9 +12,11 @@ import { useStatsStore } from '@/stores/stats-store';
 
 const INITIAL_SECONDS = 5 * 60; // 5 分鐘
 const CORRECT_BONUS_SECONDS = 60; // 答對 +1 分鐘
+const SKIP_PENALTY_SECONDS = 15; // 跳過 -15 秒
 const LOCAL_STORAGE_KEY = 'math24_v2_challenge_best';
 
 export type ChallengePlayStatus = 'idle' | 'playing' | 'finished';
+export type ChallengeFinishReason = 'timeout' | 'early';
 
 export interface ChallengeBest {
   stage: number;
@@ -55,6 +57,7 @@ function generateNextPuzzle(nextStage: number): NumberCard[] {
 
 export function useChallengePlay() {
   const [status, setStatus] = useState<ChallengePlayStatus>('idle');
+  const [finishReason, setFinishReason] = useState<ChallengeFinishReason>('timeout');
   const [stage, setStage] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
   const [currentNumbers, setCurrentNumbers] = useState<NumberCard[]>([]);
@@ -64,6 +67,8 @@ export function useChallengePlay() {
   // Refs 讓 onExpire 閉包始終拿到最新值
   const stageRef = useRef(stage);
   const totalScoreRef = useRef(totalScore);
+  // 跳過計數，僅用於產生唯一 card ID，不影響 stage
+  const skipCountRef = useRef(0);
   useEffect(() => { stageRef.current = stage; }, [stage]);
   useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
 
@@ -79,8 +84,9 @@ export function useChallengePlay() {
 
   // 定義 finishGame，並同步到 ref
   const finishGame = useCallback(
-    (finalStage: number, finalScore: number) => {
+    (finalStage: number, finalScore: number, reason: ChallengeFinishReason = 'timeout') => {
       pause();
+      setFinishReason(reason);
       const record: ChallengeBest = {
         stage: finalStage,
         totalScore: finalScore,
@@ -167,24 +173,33 @@ export function useChallengePlay() {
   }, [selectedCards, addSeconds]);
 
   const skipPuzzle = useCallback(() => {
-    // 跳過不加時，直接換題
-    setStage(prev => {
-      const next = prev + 1;
-      setCurrentNumbers(generateNextPuzzle(next));
-      return next;
-    });
+    // 跳過扣時、不計關數，只換一組新牌
+    addSeconds(-SKIP_PENALTY_SECONDS);
+    skipCountRef.current += 1;
+    const key = `skip${skipCountRef.current}`;
+    let nums: number[];
+    try {
+      nums = generateOnePuzzle();
+    } catch {
+      nums = [2, 3, 4, 6];
+    }
+    setCurrentNumbers(nums.map((v, i) => ({ id: `${key}-${i}`, value: v })));
     setSelectedCards([]);
-  }, []);
+  }, [addSeconds]);
+
+  const endGameEarly = useCallback(() => {
+    finishGame(stageRef.current, totalScoreRef.current, 'early');
+  }, [finishGame]);
 
   const quitGame = useCallback(() => {
     pause();
     setStatus('idle');
     setSelectedCards([]);
-    resetTimer();
-  }, [pause, resetTimer]);
+  }, [pause]);
 
   return {
     status,
+    finishReason,
     stage,
     totalScore,
     currentNumbers,
@@ -199,5 +214,6 @@ export function useChallengePlay() {
     submitAnswer,
     skipPuzzle,
     quitGame,
+    endGameEarly,
   };
 }

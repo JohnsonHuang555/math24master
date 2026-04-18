@@ -27,7 +27,7 @@ const MODE_OPTIONS = [
   {
     value: 'classic' as const,
     label: '經典模式',
-    description: '自選難度，挑戰最高分',
+    description: '自選難度，目標挑戰最高分',
     color:
       'border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950',
     activeColor: 'bg-purple-500 text-white hover:bg-purple-600',
@@ -35,7 +35,7 @@ const MODE_OPTIONS = [
   {
     value: 'normal' as const,
     label: '關卡模式',
-    description: '總共十題，層層關卡',
+    description: '總共十題，關關難過關關過',
     color:
       'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
     activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
@@ -43,7 +43,7 @@ const MODE_OPTIONS = [
   {
     value: 'challenge' as const,
     label: '挑戰模式',
-    description: '倒數 5 分鐘，答對加時',
+    description: '計時五分鐘，看看你能挑戰多少分',
     color:
       'border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950',
     activeColor: 'bg-orange-500 text-white hover:bg-orange-600',
