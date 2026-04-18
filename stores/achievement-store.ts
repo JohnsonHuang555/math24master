@@ -64,7 +64,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'all_ops',
     name: '全能達人',
-    description: '一個算式同時使用 ＋、−、×、÷ 四種運算符',
+    description: '一個算式中同時使用三種不同運算符號',
     category: 'advanced',
   },
   {

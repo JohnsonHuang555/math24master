@@ -1,37 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import Symbols from '@/components/symbols';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { useEffect } from 'react';
+import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
-import { fadeVariants } from '@/lib/animation-variants';
 import { formatTime } from '@/lib/utils';
-import { SelectedCard } from '@/models/SelectedCard';
-import { Symbol } from '@/models/Symbol';
-
-function cardLabel(card: SelectedCard): string {
-  if (card.number) return String(card.number.value);
-  switch (card.symbol) {
-    case Symbol.Times:
-      return '×';
-    case Symbol.Divide:
-      return '÷';
-    default:
-      return card.symbol ?? '';
-  }
-}
 
 interface ChallengePlayGameProps {
   onBack: () => void;
@@ -41,6 +14,7 @@ interface ChallengePlayGameProps {
 export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGameProps) {
   const {
     status,
+    finishReason,
     stage,
     totalScore,
     currentNumbers,
@@ -54,9 +28,8 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     submitAnswer,
     skipPuzzle,
     quitGame,
+    endGameEarly,
   } = useChallengePlay();
-
-  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -70,7 +43,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           <h1 className="text-3xl font-bold">挑戰模式</h1>
           <p className="text-muted-foreground">倒數 5 分鐘，答對加 1 分鐘</p>
           <p className="text-sm text-muted-foreground">
-            跳過不加時・撐越多關越好
+            跳過 -15 秒・撐越多關越好
           </p>
         </div>
         {best && (
@@ -97,7 +70,9 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     const isNewBest = best && best.stage === stage;
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl font-bold">時間到！</h1>
+        <h1 className="text-3xl font-bold">
+          {finishReason === 'early' ? '提前結算！' : '時間到！'}
+        </h1>
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="text-5xl font-bold">第 {stage} 關</p>
           <p className="text-muted-foreground">最終關卡</p>
@@ -122,14 +97,23 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   }
 
   // 遊戲中
-  const selectedNumberIds = new Set(
-    selectedCards.filter(c => c.number).map(c => c.number!.id),
-  );
   const isLowTime = seconds <= 60;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 py-4 px-2">
-      {/* 標頭 */}
+    <PuzzlePlayArea
+      currentNumbers={currentNumbers}
+      selectedCards={selectedCards}
+      onSelectCard={selectCard}
+      onRemoveCard={removeCard}
+      onClearSelection={clearSelection}
+      onSubmit={submitAnswer}
+      onSkip={skipPuzzle}
+      onBack={() => {
+        quitGame();
+        onBack();
+      }}
+      showSkipButton={true}
+    >
       <div className="flex w-full max-w-md items-center justify-between rounded-xl border px-4 py-2 text-sm font-semibold">
         <span>第 {stage} 關</span>
         <span className={isLowTime ? 'text-red-500 animate-pulse' : ''}>
@@ -137,117 +121,15 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         </span>
         <span>{totalScore} 分</span>
       </div>
-
-      {/* 數字牌 */}
-      <div className="flex gap-4">
-        {currentNumbers.map(card => {
-          const isSelected = selectedNumberIds.has(card.id);
-          return (
-            <motion.div
-              key={card.id}
-              variants={fadeVariants}
-              initial="hidden"
-              animate="show"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 1 }}
-            >
-              <Card
-                onClick={() => selectCard({ number: card })}
-                className={`flex aspect-[5/7] min-w-[70px] cursor-pointer items-center justify-center text-3xl font-bold transition-all md:min-w-[85px] ${
-                  isSelected
-                    ? 'bg-blue-300 text-blue-900 ring-2 ring-blue-500 hover:bg-red-100 hover:text-red-600 hover:ring-red-400'
-                    : 'bg-slate-200 hover:bg-slate-300'
-                }`}
-              >
-                {card.value}
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* 已選卡牌列 */}
-      <div className="flex min-h-[52px] w-full max-w-md flex-wrap items-center gap-2 rounded-xl border p-2">
-        {selectedCards.length === 0 ? (
-          <span className="text-sm text-muted-foreground">
-            點選數字和符號組成算式...
-          </span>
-        ) : (
-          selectedCards.map((card, i) => (
-            <motion.button
-              key={i}
-              variants={fadeVariants}
-              initial="hidden"
-              animate="show"
-              onClick={() => removeCard(i)}
-              className="rounded-md bg-slate-200 px-3 py-1 text-sm font-semibold hover:bg-red-100 hover:text-red-600 transition-colors"
-              title="點擊移除"
-            >
-              {cardLabel(card)}
-            </motion.button>
-          ))
-        )}
-      </div>
-
-      {/* 符號列 */}
-      <div className="flex gap-3">
-        <Symbols onClick={symbol => selectCard({ symbol })} />
-      </div>
-
-      {/* 操作按鈕 */}
-      <div className="flex gap-3">
+      {seconds > 30 && stage >= 3 && (
         <Button
           variant="outline"
-          onClick={() => {
-            quitGame();
-            onBack();
-          }}
+          className="w-full max-w-md text-muted-foreground"
+          onClick={endGameEarly}
         >
-          回上一頁
+          提前結算
         </Button>
-        <Button variant="secondary" onClick={clearSelection}>
-          清除
-        </Button>
-        <Button variant="outline" onClick={skipPuzzle}>
-          跳過
-        </Button>
-        <Button
-          onClick={() => {
-            if (selectedCards.length === 0) {
-              setShowSkipConfirm(true);
-            } else {
-              submitAnswer();
-            }
-          }}
-        >
-          確認
-        </Button>
-      </div>
-
-      {/* 未作答確認彈窗 */}
-      <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
-            <AlertDialogDescription>
-              這題尚未作答。跳過不會加時。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowSkipConfirm(false)}>
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowSkipConfirm(false);
-                skipPuzzle();
-              }}
-            >
-              跳過
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      )}
+    </PuzzlePlayArea>
   );
 }
