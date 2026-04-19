@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, RotateCcw, SkipForward } from 'lucide-react';
 import Symbols from '@/components/symbols';
 import {
   AlertDialog,
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { fadeVariants } from '@/lib/animation-variants';
+import { calculateAnswer, cn } from '@/lib/utils';
 import { NumberCard } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
@@ -32,6 +34,34 @@ function cardLabel(card: SelectedCard): string {
   }
 }
 
+export type PuzzleTheme = 'blue' | 'orange';
+
+const THEME_TOKENS: Record<PuzzleTheme, {
+  cardSelected: string;
+  expressionBorder: string;
+  confirmBtn: string;
+  timerColor: string;
+  timerLow: string;
+  iconBtn: string;
+}> = {
+  blue: {
+    cardSelected: 'bg-blue-200 text-blue-900 ring-2 ring-blue-400 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
+    expressionBorder: 'border-blue-200 dark:border-blue-800',
+    confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white',
+    timerColor: 'text-blue-600 dark:text-blue-400',
+    timerLow: 'text-red-500',
+    iconBtn: 'border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400',
+  },
+  orange: {
+    cardSelected: 'bg-orange-200 text-orange-900 ring-2 ring-orange-400 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
+    expressionBorder: 'border-orange-200 dark:border-orange-800',
+    confirmBtn: 'bg-orange-500 hover:bg-orange-600 text-white',
+    timerColor: 'text-orange-600 dark:text-orange-400',
+    timerLow: 'text-red-500',
+    iconBtn: 'border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400',
+  },
+};
+
 export interface PuzzlePlayAreaProps {
   currentNumbers: NumberCard[];
   selectedCards: SelectedCard[];
@@ -40,11 +70,9 @@ export interface PuzzlePlayAreaProps {
   onClearSelection: () => void;
   onSubmit: () => void;
   onSkip: () => void;
-  // Challenge: quitGame() 後導回；Level: 同語意，行為由父層決定
   onBack: () => void;
-  // Challenge=true（按鈕常駐）；Level=false（跳過藏在空答案 dialog）
   showSkipButton?: boolean;
-  // 插入標頭區域
+  theme?: PuzzleTheme;
   children?: React.ReactNode;
 }
 
@@ -58,22 +86,42 @@ export function PuzzlePlayArea({
   onSkip,
   onBack,
   showSkipButton = false,
+  theme = 'blue',
   children,
 }: PuzzlePlayAreaProps) {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
 
+  const t = THEME_TOKENS[theme];
+
   const selectedNumberIds = new Set(
     selectedCards.filter(c => c.number).map(c => c.number!.id),
   );
 
+  // Live equation preview
+  const livePreview = useMemo(() => {
+    if (selectedCards.length === 0) return null;
+    try {
+      const result = calculateAnswer(selectedCards);
+      if (typeof result !== 'number' || !isFinite(result)) return null;
+      const rounded = Math.round(result * 1e9) / 1e9;
+      return rounded;
+    } catch {
+      return null;
+    }
+  }, [selectedCards]);
+
+  const isCorrect = livePreview !== null && Math.abs(livePreview - 24) < 1e-9;
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 py-4 px-2">
-      {/* 標頭插槽 */}
-      {children}
+    <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
+      {/* HUD 插槽 (計時器 + 分數) */}
+      <div className="w-full flex flex-col items-center gap-1">
+        {children}
+      </div>
 
       {/* 數字牌 */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {currentNumbers.map(card => {
           const isSelected = selectedNumberIds.has(card.id);
           return (
@@ -83,15 +131,15 @@ export function PuzzlePlayArea({
               initial="hidden"
               animate="show"
               whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 1 }}
+              whileTap={{ scale: 0.96 }}
             >
               <Card
                 onClick={() => onSelectCard({ number: card })}
-                className={`flex aspect-[5/7] min-w-[70px] cursor-pointer items-center justify-center text-3xl font-bold transition-all md:min-w-[85px] ${
-                  isSelected
-                    ? 'bg-blue-300 text-blue-900 ring-2 ring-blue-500 hover:bg-red-100 hover:text-red-600 hover:ring-red-400'
-                    : 'bg-slate-200 hover:bg-slate-300'
-                }`}
+                className={cn(
+                  'flex w-[72px] h-[100px] cursor-pointer items-center justify-center text-3xl font-bold transition-all select-none',
+                  'sm:w-[80px] sm:h-[112px]',
+                  isSelected ? t.cardSelected : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700',
+                )}
               >
                 {card.value}
               </Card>
@@ -100,49 +148,92 @@ export function PuzzlePlayArea({
         })}
       </div>
 
-      {/* 已選卡牌列 */}
-      <div className="flex min-h-[52px] w-full max-w-md flex-wrap items-center gap-2 rounded-xl border p-2">
-        {selectedCards.length === 0 ? (
-          <span className="text-sm text-muted-foreground">
-            點選數字和符號組成算式...
-          </span>
-        ) : (
-          selectedCards.map((card, i) => (
-            <motion.button
-              key={i}
-              variants={fadeVariants}
-              initial="hidden"
-              animate="show"
-              onClick={() => onRemoveCard(i)}
-              className="rounded-md bg-slate-200 px-3 py-1 text-sm font-semibold hover:bg-red-100 hover:text-red-600 transition-colors"
-              title="點擊移除"
+      {/* 算式列 + 即時預覽 */}
+      <div className={cn(
+        'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
+        t.expressionBorder,
+      )}>
+        <div className="min-h-[32px] flex flex-wrap items-center gap-1.5">
+          {selectedCards.length === 0 ? (
+            <span className="text-sm text-muted-foreground">點選數字和符號組成算式...</span>
+          ) : (
+            selectedCards.map((card, i) => (
+              <motion.button
+                key={i}
+                variants={fadeVariants}
+                initial="hidden"
+                animate="show"
+                onClick={() => onRemoveCard(i)}
+                className="rounded-md bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 text-sm font-semibold hover:bg-red-100 hover:text-red-600 transition-colors"
+                title="點擊移除"
+              >
+                {cardLabel(card)}
+              </motion.button>
+            ))
+          )}
+        </div>
+        <AnimatePresence>
+          {livePreview !== null && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+              className={cn(
+                'text-right text-base font-bold',
+                isCorrect ? 'text-green-500' : 'text-red-400',
+              )}
             >
-              {cardLabel(card)}
-            </motion.button>
-          ))
-        )}
+              = {livePreview} {isCorrect ? '✓' : '✗'}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 符號列 */}
-      <div className="flex gap-3">
+      <div className="flex gap-2.5">
         <Symbols onClick={symbol => onSelectCard({ symbol })} />
       </div>
 
-      {/* 操作按鈕 */}
-      <div className="grid w-full max-w-md grid-cols-2 gap-2">
-        <Button variant="outline" onClick={() => setShowBackConfirm(true)}>
-          回上一頁
-        </Button>
-        <Button variant="secondary" onClick={onClearSelection}>
-          清除
-        </Button>
-        {showSkipButton && (
-          <Button variant="outline" onClick={onSkip}>
-            跳過
+      {/* 操作列：圖示小按鈕 + 大 CTA */}
+      <div className="w-full max-w-sm flex flex-col gap-2">
+        <div className="flex gap-2">
+          {/* 返回 */}
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn('flex-1 h-10', t.iconBtn)}
+            onClick={() => setShowBackConfirm(true)}
+            title="回上一頁"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        )}
+          {/* 清除 */}
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn('flex-1 h-10', t.iconBtn)}
+            onClick={onClearSelection}
+            title="清除算式"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          {/* 跳過 (挑戰模式) */}
+          {showSkipButton && (
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn('flex-1 h-10', t.iconBtn)}
+              onClick={onSkip}
+              title="跳過 (-15s)"
+            >
+              <SkipForward className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {/* 確認 CTA */}
         <Button
-          className={showSkipButton ? '' : 'col-span-2'}
+          className={cn('w-full h-12 text-base font-semibold', t.confirmBtn)}
           onClick={() => {
             if (selectedCards.length === 0) {
               setShowSkipConfirm(true);

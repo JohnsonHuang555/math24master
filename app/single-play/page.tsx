@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import MainPlayArea from '@/components/areas/main-play-area';
@@ -11,7 +12,6 @@ import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
-import { StartGameModal } from '@/components/modals/start-game-modal';
 import { Button } from '@/components/ui/button';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,7 @@ const MODE_OPTIONS = [
   {
     value: 'classic' as const,
     label: '經典模式',
-    description: '自選難度，目標挑戰最高分',
+    description: '自選難度・累積最高分・無限局數',
     color:
       'border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950',
     activeColor: 'bg-purple-500 text-white hover:bg-purple-600',
@@ -35,7 +35,7 @@ const MODE_OPTIONS = [
   {
     value: 'normal' as const,
     label: '關卡模式',
-    description: '總共十題，關關難過關關過',
+    description: '10 題計時挑戰・答錯 +10 秒懲罰',
     color:
       'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
     activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
@@ -43,17 +43,40 @@ const MODE_OPTIONS = [
   {
     value: 'challenge' as const,
     label: '挑戰模式',
-    description: '計時五分鐘，看看你能挑戰多少分',
+    description: '5 分鐘倒數・答對 +1 分鐘・挑戰無限關卡',
     color:
       'border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950',
     activeColor: 'bg-orange-500 text-white hover:bg-orange-600',
   },
 ] as const;
 
+const DIFFICULTY_OPTIONS = [
+  {
+    value: Difficulty.Easy,
+    label: '簡單',
+    description: '牌值 1–6',
+    color: 'border-green-400 text-green-600 hover:bg-green-50 dark:hover:bg-green-950',
+    activeColor: 'bg-green-500 text-white hover:bg-green-600',
+  },
+  {
+    value: Difficulty.Normal,
+    label: '普通',
+    description: '牌值 1–10',
+    color: 'border-blue-400 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
+    activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
+  },
+  {
+    value: Difficulty.Hard,
+    label: '困難',
+    description: '牌值 1–13',
+    color: 'border-red-400 text-red-600 hover:bg-red-50 dark:hover:bg-red-950',
+    activeColor: 'bg-red-500 text-white hover:bg-red-600',
+  },
+] as const;
+
 export default function SinglePlayPage() {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(
     Difficulty.Normal,
@@ -107,35 +130,25 @@ export default function SinglePlayPage() {
   const isNewBestScore =
     isGameOver && currentScore > 0 && currentScore >= bestScore;
 
-  const handleConfirm = () => {
+  const handleStart = () => {
     setActiveMode(selectedMode);
     if (selectedMode === 'classic') {
       setDifficulty(selectedDifficulty);
     }
-    setIsModalOpen(false);
   };
 
   // 模式選擇畫面
   if (!activeMode) {
     return (
-      <>
-        <StartGameModal
-          isOpen={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          selectedMode={selectedMode}
-          selectedDifficulty={selectedDifficulty}
-          onDifficultyChange={setSelectedDifficulty}
-          onConfirm={handleConfirm}
-        />
-        <div className="flex h-full flex-col items-center justify-center gap-8">
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-bold">選擇模式</h1>
-            <p className="text-sm text-muted-foreground">請選擇遊戲模式後開始</p>
-          </div>
-          <div className="flex w-full max-w-xs flex-col gap-3">
-            {MODE_OPTIONS.map(opt => (
+      <div className="flex h-full flex-col items-center justify-center gap-8">
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-2xl font-bold">選擇模式</h1>
+          <p className="text-sm text-muted-foreground">請選擇遊戲模式後開始</p>
+        </div>
+        <div className="flex w-full max-w-xs flex-col gap-3">
+          {MODE_OPTIONS.map(opt => (
+            <div key={opt.value} className="flex flex-col gap-2">
               <button
-                key={opt.value}
                 className={cn(
                   'rounded-xl border-2 px-6 py-4 text-left transition-all',
                   opt.color,
@@ -155,16 +168,53 @@ export default function SinglePlayPage() {
                   {opt.description}
                 </div>
               </button>
-            ))}
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => router.push('/')}>
-              回上一頁
-            </Button>
-            <Button onClick={() => setIsModalOpen(true)}>下一步</Button>
-          </div>
+              <AnimatePresence>
+                {selectedMode === 'classic' && opt.value === 'classic' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex gap-2 pt-1">
+                      {DIFFICULTY_OPTIONS.map(d => (
+                        <button
+                          key={d.value}
+                          className={cn(
+                            'flex-1 rounded-lg border-2 py-2 text-sm font-semibold transition-all',
+                            d.color,
+                            selectedDifficulty === d.value && d.activeColor,
+                          )}
+                          onClick={() => setSelectedDifficulty(d.value)}
+                        >
+                          <div>{d.label}</div>
+                          <div
+                            className={cn(
+                              'text-xs',
+                              selectedDifficulty === d.value
+                                ? 'text-white/80'
+                                : 'text-muted-foreground',
+                            )}
+                          >
+                            {d.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
         </div>
-      </>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push('/')}>
+            回上一頁
+          </Button>
+          <Button onClick={handleStart}>開始遊戲</Button>
+        </div>
+      </div>
     );
   }
 
