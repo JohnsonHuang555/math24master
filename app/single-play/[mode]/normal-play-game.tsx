@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
 import { useNormalPlay } from '@/hooks/useNormalPlay';
-import { formatTime } from '@/lib/utils';
+import { cn, formatTime } from '@/lib/utils';
 
 interface NormalPlayGameProps {
   onBack: () => void;
@@ -31,9 +32,21 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     quitGame,
   } = useNormalPlay();
 
+  const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+  const prevPenaltyRef = useRef(0);
+
   useEffect(() => {
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (penaltyCount > prevPenaltyRef.current) {
+      prevPenaltyRef.current = penaltyCount;
+      setPenaltyMsg('+10s');
+      const id = setTimeout(() => setPenaltyMsg(null), 900);
+      return () => clearTimeout(id);
+    }
+  }, [penaltyCount]);
 
   // 開始畫面
   if (status === 'idle') {
@@ -53,10 +66,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
             </p>
             <div className="flex flex-col gap-1">
               {records.slice(0, 3).map((r, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between text-sm"
-                >
+                <div key={i} className="flex justify-between text-sm">
                   <span>{formatTime(r.totalSeconds)}</span>
                   <span className="text-muted-foreground">{r.totalScore} 分</span>
                 </div>
@@ -108,6 +118,8 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     );
   }
 
+  const isFlashing = !!penaltyMsg;
+
   // 遊戲中
   return (
     <PuzzlePlayArea
@@ -123,13 +135,40 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
         onBack();
       }}
       showSkipButton={false}
+      theme="blue"
     >
-      <div className="flex w-full max-w-md items-center justify-between rounded-xl border px-4 py-2 text-sm font-semibold">
-        <span>第 {currentRound + 1}/{totalRounds} 題</span>
-        <span className={penaltyCount >= 2 ? 'text-red-500' : 'text-foreground'}>
-          ⏱ {formatTime(seconds)}
-        </span>
-        <span>{totalScore} 分</span>
+      {/* 計時器主視覺 */}
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-baseline gap-2">
+          <span
+            className={cn(
+              'text-5xl font-bold tabular-nums transition-colors duration-150',
+              isFlashing || penaltyCount >= 2
+                ? 'text-red-500'
+                : 'text-blue-600 dark:text-blue-400',
+            )}
+          >
+            {formatTime(seconds)}
+          </span>
+          <AnimatePresence>
+            {penaltyMsg && (
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="text-sm font-bold text-red-500"
+              >
+                {penaltyMsg}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span>第 {currentRound + 1}/{totalRounds} 題</span>
+          <span>·</span>
+          <span>{totalScore} 分</span>
+        </div>
       </div>
     </PuzzlePlayArea>
   );

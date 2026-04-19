@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
-import { formatTime } from '@/lib/utils';
+import { cn, formatTime } from '@/lib/utils';
 
 interface ChallengePlayGameProps {
   onBack: () => void;
@@ -31,9 +32,22 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     endGameEarly,
   } = useChallengePlay();
 
+  const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+
   useEffect(() => {
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const triggerPenalty = () => {
+    setPenaltyMsg('-15s');
+    const id = setTimeout(() => setPenaltyMsg(null), 900);
+    return () => clearTimeout(id);
+  };
+
+  const handleSkip = () => {
+    skipPuzzle();
+    triggerPenalty();
+  };
 
   // 開始畫面
   if (status === 'idle') {
@@ -98,6 +112,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
 
   // 遊戲中
   const isLowTime = seconds <= 60;
+  const isFlashing = !!penaltyMsg;
 
   return (
     <PuzzlePlayArea
@@ -107,29 +122,56 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
       onRemoveCard={removeCard}
       onClearSelection={clearSelection}
       onSubmit={submitAnswer}
-      onSkip={skipPuzzle}
+      onSkip={handleSkip}
       onBack={() => {
         quitGame();
         onBack();
       }}
       showSkipButton={true}
+      theme="orange"
     >
-      <div className="flex w-full max-w-md items-center justify-between rounded-xl border px-4 py-2 text-sm font-semibold">
-        <span>第 {stage} 關</span>
-        <span className={isLowTime ? 'text-red-500 animate-pulse' : ''}>
-          ⏱ {formatTime(seconds)}
-        </span>
-        <span>{totalScore} 分</span>
+      {/* 計時器主視覺 */}
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-baseline gap-2">
+          <span
+            className={cn(
+              'text-5xl font-bold tabular-nums transition-colors duration-150',
+              isFlashing || isLowTime
+                ? 'text-red-500 animate-pulse'
+                : 'text-orange-600 dark:text-orange-400',
+            )}
+          >
+            {formatTime(seconds)}
+          </span>
+          <AnimatePresence>
+            {penaltyMsg && (
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="text-sm font-bold text-red-500"
+              >
+                {penaltyMsg}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span>第 {stage} 關</span>
+          <span>·</span>
+          <span>{totalScore} 分</span>
+        </div>
       </div>
-      {seconds > 30 && stage >= 3 && (
-        <Button
-          variant="outline"
-          className="w-full max-w-md text-muted-foreground"
-          onClick={endGameEarly}
-        >
-          提前結算
-        </Button>
-      )}
+      {/* 提前結算 */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+        onClick={endGameEarly}
+      >
+        提前結算
+      </Button>
     </PuzzlePlayArea>
   );
 }
