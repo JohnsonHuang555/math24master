@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
     submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() ?? null,
   }));
 
-  return NextResponse.json(rows);
+  return NextResponse.json(rows, {
+    headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=30' },
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -69,6 +71,9 @@ export async function POST(req: NextRequest) {
     const seconds = Number(payload.seconds);
     const totalScore = Number(payload.totalScore ?? 0);
     if (!Number.isFinite(seconds) || seconds < 30) {
+      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
+    }
+    if (!Number.isFinite(totalScore) || totalScore < 0 || totalScore > 10) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
     payload.rankingScore = totalScore * 10 - seconds;
