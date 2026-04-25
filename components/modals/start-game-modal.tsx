@@ -70,7 +70,7 @@ export function StartGameModal({
         {selectedMode === 'classic' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              自選難度，累積最高分，無限局數
+              自選難度，累積最高分
             </p>
             <div className="flex flex-col gap-2">
               {DIFFICULTY_OPTIONS.map(opt => (

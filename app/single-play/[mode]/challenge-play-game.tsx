@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
 import { cn, formatTime } from '@/lib/utils';
 
@@ -33,6 +34,12 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   } = useChallengePlay();
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+
+  useLeaderboardSubmit(
+    'challenge',
+    status === 'finished' ? { stage, totalScore } : null,
+    status === 'finished',
+  );
 
   useEffect(() => {
     if (autoStart) startGame();
