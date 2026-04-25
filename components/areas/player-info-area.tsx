@@ -57,9 +57,9 @@ const PlayerInfoArea = ({
           </HoverTip>
         )}
       </div>
-      {bestScore && (
+      {bestScore ? (
         <div className="mt-2 text-sm text-red-600">最佳分數: {bestScore}</div>
-      )}
+      ) : null}
       <div className="flex">
         <div className="mr-2 text-lg max-md:text-base">當前得分: </div>
         <motion.div className="text-xl max-md:text-base">{rounded}</motion.div>

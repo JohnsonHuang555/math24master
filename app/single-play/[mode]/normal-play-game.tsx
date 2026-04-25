@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useNormalPlay } from '@/hooks/useNormalPlay';
 import { cn, formatTime } from '@/lib/utils';
 
@@ -34,6 +35,12 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
   const prevPenaltyRef = useRef(0);
+
+  useLeaderboardSubmit(
+    'normal',
+    status === 'finished' ? { seconds, totalScore } : null,
+    status === 'finished',
+  );
 
   useEffect(() => {
     if (autoStart) startGame();

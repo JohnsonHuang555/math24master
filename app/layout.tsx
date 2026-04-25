@@ -4,6 +4,7 @@ import { Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import SoundToggle from '@/components/sound-toggle';
+import { SessionProvider } from '@/components/session-provider';
 import { GoogleAnalytics } from '@/components/analytics';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
@@ -81,7 +82,9 @@ export default function RootLayout({
           }}
         />
         <GoogleAnalytics measurementId="G-HWFWE6ED59" />
-        <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
+        <SessionProvider>
+          <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
+        </SessionProvider>
         <SoundToggle />
         <ToastContainer
           position="top-right"

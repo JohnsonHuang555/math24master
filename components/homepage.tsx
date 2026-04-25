@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { AchievementModal } from '@/components/modals/achievement-modal';
+import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
 import { StatsModal } from '@/components/modals/stats-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,15 @@ const Homepage = () => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isOpenAchievementModal, setIsOpenAchievementModal] = useState(false);
   const [isOpenStatsModal, setIsOpenStatsModal] = useState(false);
+  const [isOpenLeaderboardModal, setIsOpenLeaderboardModal] = useState(false);
 
   return (
     <>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      <LeaderboardModal
+        isOpen={isOpenLeaderboardModal}
+        onClose={() => setIsOpenLeaderboardModal(false)}
+      />
       <AchievementModal
         isOpen={isOpenAchievementModal}
         onClose={() => setIsOpenAchievementModal(false)}
@@ -30,6 +36,13 @@ const Homepage = () => {
       />
       <section className="relative flex h-full w-full flex-col items-center justify-center">
         <div className="absolute right-5 top-5 flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpenLeaderboardModal(true)}
+          >
+            排行榜
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -164,7 +177,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">beta v2.7.1</div>
+          <div className="mx-2 text-xs text-gray-500">v1.0.0</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
