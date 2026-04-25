@@ -47,13 +47,17 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# Copy Next.js build output (exclude cache to reduce image size)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/BUILD_ID ./.next/BUILD_ID
+COPY --from=builder --chown=nextjs:nodejs /app/.next/app-build-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/app-path-routes-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/build-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/package.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/prerender-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/react-loadable-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/required-server-files.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/routes-manifest.json ./.next/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/server ./server
@@ -61,6 +65,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/models ./models
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
 
 USER nextjs
 
