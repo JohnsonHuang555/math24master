@@ -22,7 +22,7 @@ export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
+  const loadRows = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -38,8 +38,8 @@ export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
   }, [mode]);
 
   useEffect(() => {
-    if (enabled) fetch();
-  }, [enabled, fetch]);
+    if (enabled) loadRows();
+  }, [enabled, loadRows]);
 
-  return { rows, loading, error, refetch: fetch };
+  return { rows, loading, error, refetch: loadRows };
 }

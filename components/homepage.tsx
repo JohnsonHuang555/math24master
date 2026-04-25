@@ -94,7 +94,7 @@ const Homepage = () => {
           animate={{
             opacity: 1,
             scale: 1,
-            transition: { delay: 0.5 },
+            transition: { delay: 0.4 },
           }}
         >
           <Button
@@ -127,7 +127,7 @@ const Homepage = () => {
           animate={{
             opacity: 1,
             scale: 1,
-            transition: { delay: 0.8 },
+            transition: { delay: 0.4 },
           }}
           className="flex flex-col items-center gap-4"
         >
@@ -164,9 +164,35 @@ const Homepage = () => {
           animate={{
             opacity: 1,
             scale: 1,
-            transition: { delay: 1.5 },
+            transition: { delay: 0.6 },
           }}
-          className="mt-10 max-w-[500px] px-4 text-center"
+          className="mt-8 w-full max-w-[360px] px-4"
+        >
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <p className="mb-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+              📢 公告
+            </p>
+            <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
+                <span>多人連線功能維護中，暫時下線</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
+                <span>排行榜功能已上線！<span className="font-medium text-orange-500">快去登上排行榜</span></span>
+              </li>
+            </ul>
+          </div>
+        </motion.div>
+        <motion.div
+          variants={fadeVariants}
+          initial="hidden"
+          animate={{
+            opacity: 1,
+            scale: 1,
+            transition: { delay: 0.8 },
+          }}
+          className="mt-6 max-w-[500px] px-4 text-center"
         >
           <p className="text-xs leading-relaxed text-gray-400">
             <strong className="font-medium">24點遊戲介紹：</strong>
