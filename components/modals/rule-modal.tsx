@@ -36,7 +36,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                   <li>• 玩家有 <strong>4</strong> 張手牌</li>
                   <li>• 使用手牌組出等於 24 的算式並出牌，必須用完所有手牌</li>
                   <li>• 無法組出算式時可選擇<strong>跳過</strong>，換全部 4 張新牌，無得分</li>
-                  <li>• 牌庫耗盡時進入最後一輪，玩家回合結束後遊戲結束，得分最高者獲勝</li>
+                  <li>• 牌庫耗盡時進入最後一輪，玩家回合結束後遊戲結束</li>
                 </ul>
               </section>
               <section>

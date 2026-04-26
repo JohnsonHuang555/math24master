@@ -42,4 +42,10 @@ export enum SocketEvent {
   GameOver = 'game-over',
   GameAborted = 'game-aborted',
   CountdownTimeResponse = 'countdown-time-response',
+
+  // 斷線重連相關
+  GetReconnectToken = 'get-reconnect-token',
+  PlayerReconnect = 'player-reconnect',
+  PlayerReconnectSuccess = 'player-reconnect-success',
+  PlayerReconnectFailed = 'player-reconnect-failed',
 }

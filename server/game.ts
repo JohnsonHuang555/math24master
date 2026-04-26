@@ -27,7 +27,7 @@ import {
 } from './utils';
 
 type JoinRoomResult =
-  | { success: true; room: Room }
+  | { success: true; room: Room; reconnectToken: string }
   | { success: false; error: string; needPassword?: true };
 
 type DrawCardResult =
@@ -50,6 +50,8 @@ type SkipHandResult =
 let _rooms: Room[] = [];
 // 玩家在房間資訊
 const _playerInRoomMap: { [key: string]: string } = {};
+// reconnectToken → { playerId, roomId } 的映射（重連時用）
+const _tokenToPlayerMap: Map<string, { playerId: string; roomId: string }> = new Map();
 
 // 取得當前房間 需濾掉單人遊戲
 export function getCurrentRooms(payload?: {
@@ -224,7 +226,10 @@ export function joinRoom(
       );
       const isMaster = _rooms[roomIndex].players[playerIndex]?.isMaster;
       if (isMaster) {
-        return { success: true, room: _rooms[roomIndex] };
+        const masterToken = _rooms[roomIndex].players[playerIndex].reconnectToken ?? uuidv4();
+        _rooms[roomIndex].players[playerIndex].reconnectToken = masterToken;
+        _tokenToPlayerMap.set(masterToken, { playerId, roomId: payload.roomId });
+        return { success: true, room: _rooms[roomIndex], reconnectToken: masterToken };
       }
 
       // 當房間有設密碼且不是房主需要回傳密碼輸入事件
@@ -238,6 +243,7 @@ export function joinRoom(
       }
 
       // 房間已存在且不是房主
+      const newPlayerToken = uuidv4();
       _rooms[roomIndex].players.push({
         id: playerId,
         isMaster: false,
@@ -247,9 +253,11 @@ export function joinRoom(
         isLastRoundPlayer: false,
         isReady: false,
         hasMelded: false,
+        reconnectToken: newPlayerToken,
       });
+      _tokenToPlayerMap.set(newPlayerToken, { playerId, roomId: payload.roomId });
 
-      return { success: true, room: _rooms[roomIndex] };
+      return { success: true, room: _rooms[roomIndex], reconnectToken: newPlayerToken };
     } else {
       // 沒有房間名稱，表示房間已經被刪除剛好有玩家加入時
       if (mode === GameMode.Multiple && !payload.roomName) {
@@ -263,6 +271,7 @@ export function joinRoom(
         if (existRoomName) return { success: false, error: '房間名稱已存在' };
       }
       // 創建新房間
+      const masterToken = uuidv4();
       const newRoom: Room = {
         roomId: payload.roomId,
         maxPlayers: payload.maxPlayers,
@@ -290,12 +299,14 @@ export function joinRoom(
             isLastRoundPlayer: false,
             isReady: true,
             hasMelded: false,
+            reconnectToken: masterToken,
           },
         ],
       };
       _rooms.push(newRoom);
+      _tokenToPlayerMap.set(masterToken, { playerId, roomId: payload.roomId });
 
-      return { success: true, room: newRoom };
+      return { success: true, room: newRoom, reconnectToken: masterToken };
     }
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (join room)' };
@@ -368,6 +379,51 @@ export function leaveRoom(
     wasPlaying,
     remainingCount: newPlayers.length,
   };
+}
+
+// 將玩家標記為暫時斷線（寬限期中，不立即移除）
+export function markPlayerDisconnected(playerId: string):
+  | { roomId: string; room: Room; playerName: string; reconnectToken: string }
+  | undefined {
+  const roomId = _playerInRoomMap[playerId];
+  const room = _getCurrentRoom(roomId);
+  if (!room || !roomId) return undefined;
+
+  const player = room.players.find(p => p.id === playerId);
+  if (!player || !player.reconnectToken) return undefined;
+
+  player.isDisconnected = true;
+  player.disconnectedAt = Date.now();
+
+  return { roomId, room, playerName: player.name, reconnectToken: player.reconnectToken };
+}
+
+// 玩家重連：以新 socket.id 恢復舊玩家狀態
+export function reconnectPlayer(
+  newSocketId: string,
+  reconnectToken: string,
+): { success: true; room: Room; playerName: string } | { success: false; error: string } {
+  const entry = _tokenToPlayerMap.get(reconnectToken);
+  if (!entry) return { success: false, error: '重連令牌無效或已過期' };
+
+  const { playerId: oldPlayerId, roomId } = entry;
+  const room = _getCurrentRoom(roomId);
+  if (!room) return { success: false, error: '房間不存在' };
+
+  const player = room.players.find(p => p.id === oldPlayerId);
+  if (!player) return { success: false, error: '玩家資料不存在' };
+
+  // 更新玩家 ID 為新的 socket.id，清除斷線狀態
+  player.id = newSocketId;
+  player.isDisconnected = false;
+  player.disconnectedAt = undefined;
+
+  // 更新映射表
+  delete _playerInRoomMap[oldPlayerId];
+  _playerInRoomMap[newSocketId] = roomId;
+  _tokenToPlayerMap.set(reconnectToken, { playerId: newSocketId, roomId });
+
+  return { success: true, room, playerName: player.name };
 }
 
 // 開始遊戲
