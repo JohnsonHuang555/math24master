@@ -26,9 +26,9 @@ type LeaderboardModalProps = {
 };
 
 const TABS: { mode: LeaderboardMode; label: string }[] = [
+  { mode: 'classic', label: '經典' },
   { mode: 'normal', label: '關卡' },
   { mode: 'challenge', label: '挑戰' },
-  { mode: 'classic', label: '經典' },
 ];
 
 const SCORE_HEADER: Record<LeaderboardMode, string> = {
@@ -165,7 +165,7 @@ function TabPanel({ mode, myId, active }: { mode: LeaderboardMode; myId?: string
 
 export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState<LeaderboardMode>('normal');
+  const [activeTab, setActiveTab] = useState<LeaderboardMode>('classic');
   const myId = (session?.user as { id?: string })?.id;
 
   return (

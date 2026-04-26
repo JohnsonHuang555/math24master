@@ -55,7 +55,6 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
                 <ul className="space-y-1 text-gray-600">
                   <li>• 6 + 6 + 6 + 6 = 24 → 得 <strong>3</strong> 分（3 個加號）</li>
                   <li>• (2 + 4 ÷ 10) × 10 = 24 → 得 <strong>6</strong> 分（加 1、乘 2、除 3）</li>
-                  <li>• 1 × 2 × 3 × 4 = 24 → 得 <strong>7</strong> 分（3 個乘號 6 分 + 2 乘獎勵 1 分）</li>
                 </ul>
               </section>
             </div>

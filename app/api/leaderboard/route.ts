@@ -105,10 +105,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const safePayload =
+    mode === 'normal'
+      ? { seconds: payload.seconds, totalScore: payload.totalScore, rankingScore: payload.rankingScore }
+      : mode === 'challenge'
+      ? { stage: payload.stage, totalScore: payload.totalScore }
+      : { score: payload.score };
+
   await ref.set({
     displayName: session.user.name ?? 'Anonymous',
     photoURL: session.user.image ?? null,
-    ...payload,
+    ...safePayload,
     submittedAt: new Date(),
   });
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, RotateCcw, SkipForward } from 'lucide-react';
+import { ArrowLeft, LogOut, RotateCcw, SkipForward } from 'lucide-react';
 import Symbols from '@/components/symbols';
 import {
   AlertDialog,
@@ -16,6 +16,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { fadeVariants } from '@/lib/animation-variants';
 import { calculateAnswer, cn } from '@/lib/utils';
 import { NumberCard } from '@/models/Player';
@@ -34,7 +40,7 @@ function cardLabel(card: SelectedCard): string {
   }
 }
 
-export type PuzzleTheme = 'blue' | 'orange';
+export type PuzzleTheme = 'blue' | 'orange' | 'emerald';
 
 const THEME_TOKENS: Record<PuzzleTheme, {
   cardSelected: string;
@@ -60,6 +66,14 @@ const THEME_TOKENS: Record<PuzzleTheme, {
     timerLow: 'text-red-500',
     iconBtn: 'border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400',
   },
+  emerald: {
+    cardSelected: 'bg-emerald-100 text-emerald-900 ring-2 ring-emerald-400 dark:bg-emerald-900 dark:text-emerald-100 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
+    expressionBorder: 'border-emerald-200 dark:border-emerald-800',
+    confirmBtn: 'bg-emerald-500 hover:bg-emerald-600 text-white',
+    timerColor: 'text-emerald-600 dark:text-emerald-400',
+    timerLow: 'text-red-500',
+    iconBtn: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400',
+  },
 };
 
 export interface PuzzlePlayAreaProps {
@@ -74,6 +88,12 @@ export interface PuzzlePlayAreaProps {
   showSkipButton?: boolean;
   theme?: PuzzleTheme;
   children?: React.ReactNode;
+  // Classic mode extensions
+  submitLabel?: string;
+  onBackStep?: () => void;
+  hideExitButton?: boolean;
+  footerSlot?: React.ReactNode;
+  compact?: boolean;
 }
 
 export function PuzzlePlayArea({
@@ -88,6 +108,11 @@ export function PuzzlePlayArea({
   showSkipButton = false,
   theme = 'blue',
   children,
+  submitLabel = '確認',
+  onBackStep,
+  hideExitButton = false,
+  footerSlot,
+  compact = false,
 }: PuzzlePlayAreaProps) {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
@@ -113,6 +138,14 @@ export function PuzzlePlayArea({
 
   const isCorrect = livePreview !== null && Math.abs(livePreview - 24) < 1e-9;
 
+  // Card size classes
+  const cardSizeClass = compact
+    ? 'w-[60px] h-[84px] sm:w-[68px] sm:h-[95px]'
+    : 'w-[72px] h-[100px] sm:w-[80px] sm:h-[112px]';
+
+  // When onBackStep is provided, chips are display-only (no per-chip remove)
+  const chipsClickable = !onBackStep;
+
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
       {/* HUD 插槽 (計時器 + 分數) */}
@@ -136,8 +169,8 @@ export function PuzzlePlayArea({
               <Card
                 onClick={() => onSelectCard({ number: card })}
                 className={cn(
-                  'flex w-[72px] h-[100px] cursor-pointer items-center justify-center text-3xl font-bold transition-all select-none',
-                  'sm:w-[80px] sm:h-[112px]',
+                  'flex cursor-pointer items-center justify-center text-3xl font-bold transition-all select-none',
+                  cardSizeClass,
                   isSelected ? t.cardSelected : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700',
                 )}
               >
@@ -163,9 +196,14 @@ export function PuzzlePlayArea({
                 variants={fadeVariants}
                 initial="hidden"
                 animate="show"
-                onClick={() => onRemoveCard(i)}
-                className="rounded-md bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 text-sm font-semibold hover:bg-red-100 hover:text-red-600 transition-colors"
-                title="點擊移除"
+                onClick={chipsClickable ? () => onRemoveCard(i) : undefined}
+                className={cn(
+                  'rounded-md px-2.5 py-0.5 text-sm font-semibold transition-colors',
+                  chipsClickable
+                    ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-100 hover:text-red-600 cursor-pointer'
+                    : 'bg-slate-200 dark:bg-slate-700 cursor-default',
+                )}
+                title={chipsClickable ? '點擊移除' : undefined}
               >
                 {cardLabel(card)}
               </motion.button>
@@ -181,7 +219,7 @@ export function PuzzlePlayArea({
               transition={{ duration: 0.15 }}
               className={cn(
                 'text-right text-base font-bold',
-                isCorrect ? 'text-green-500' : 'text-red-400',
+                isCorrect ? 'text-emerald-500' : 'text-red-400',
               )}
             >
               = {livePreview} {isCorrect ? '✓' : '✗'}
@@ -197,41 +235,73 @@ export function PuzzlePlayArea({
 
       {/* 操作列：圖示小按鈕 + 大 CTA */}
       <div className="w-full max-w-sm flex flex-col gap-2">
-        <div className="flex gap-2">
-          {/* 返回 */}
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn('flex-1 h-10', t.iconBtn)}
-            onClick={() => setShowBackConfirm(true)}
-            title="回上一頁"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          {/* 清除 */}
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn('flex-1 h-10', t.iconBtn)}
-            onClick={onClearSelection}
-            title="清除算式"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          {/* 跳過 (挑戰模式) */}
-          {showSkipButton && (
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn('flex-1 h-10', t.iconBtn)}
-              onClick={onSkip}
-              title="跳過 (-15s)"
-            >
-              <SkipForward className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        {/* 確認 CTA */}
+        <TooltipProvider>
+          <div className="flex gap-2">
+            {/* 清除 */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn('flex-1 h-10', t.iconBtn)}
+                  onClick={onClearSelection}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>清除所選取的牌</TooltipContent>
+            </Tooltip>
+            {/* 倒退一步 (classic mode) */}
+            {onBackStep && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn('flex-1 h-10', t.iconBtn)}
+                    onClick={onBackStep}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>倒退一步</TooltipContent>
+              </Tooltip>
+            )}
+            {/* 跳過 (挑戰模式) */}
+            {showSkipButton && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn('flex-1 h-10', t.iconBtn)}
+                    onClick={onSkip}
+                  >
+                    <SkipForward className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>跳過此題 (-15 秒)</TooltipContent>
+              </Tooltip>
+            )}
+            {/* 返回/離開 (隱藏時不顯示) */}
+            {!hideExitButton && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn('flex-1 h-10', t.iconBtn)}
+                    onClick={() => setShowBackConfirm(true)}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>返回上一頁</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </TooltipProvider>
+        {/* 確認 / 出牌 CTA */}
         <Button
           className={cn('w-full h-12 text-base font-semibold', t.confirmBtn)}
           onClick={() => {
@@ -242,8 +312,10 @@ export function PuzzlePlayArea({
             }
           }}
         >
-          確認
+          {submitLabel}
         </Button>
+        {/* 頁尾插槽 (classic: 跳過換牌) */}
+        {footerSlot}
       </div>
 
       {/* 離開確認彈窗 */}

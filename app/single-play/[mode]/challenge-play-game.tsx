@@ -1,9 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
 import { cn, formatTime } from '@/lib/utils';
@@ -34,6 +44,8 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   } = useChallengePlay();
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+  const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
+  const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useLeaderboardSubmit(
     'challenge',
@@ -46,9 +58,9 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const triggerPenalty = () => {
+    clearTimeout(penaltyTimeoutRef.current);
     setPenaltyMsg('-15s');
-    const id = setTimeout(() => setPenaltyMsg(null), 900);
-    return () => clearTimeout(id);
+    penaltyTimeoutRef.current = setTimeout(() => setPenaltyMsg(null), 900);
   };
 
   const handleSkip = () => {
@@ -69,9 +81,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         </div>
         {best && (
           <div className="w-full max-w-xs rounded-xl border p-4 text-center">
-            <p className="text-sm font-semibold text-muted-foreground">
-              個人最佳
-            </p>
+            <p className="text-sm font-semibold text-muted-foreground">個人最佳</p>
             <p className="text-2xl font-bold">第 {best.stage} 關</p>
             <p className="text-sm text-muted-foreground">{best.totalScore} 分</p>
           </div>
@@ -80,7 +90,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           <Button variant="outline" onClick={() => onBack()}>
             返回
           </Button>
-          <Button onClick={startGame}>開始挑戰</Button>
+          <Button onClick={startGame}>開始遊戲</Button>
         </div>
       </div>
     );
@@ -88,7 +98,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
 
   // 結束畫面
   if (status === 'finished') {
-    const isNewBest = best && best.stage === stage;
+    const isNewBest = best && stage > best.stage;
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6">
         <h1 className="text-3xl font-bold">
@@ -122,6 +132,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   const isFlashing = !!penaltyMsg;
 
   return (
+    <>
     <PuzzlePlayArea
       currentNumbers={currentNumbers}
       selectedCards={selectedCards}
@@ -175,10 +186,32 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         variant="ghost"
         size="sm"
         className="text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
-        onClick={endGameEarly}
+        onClick={() => setShowEarlyEndConfirm(true)}
       >
         提前結算
       </Button>
     </PuzzlePlayArea>
+    <AlertDialog open={showEarlyEndConfirm} onOpenChange={setShowEarlyEndConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>確定要提前結算？</AlertDialogTitle>
+          <AlertDialogDescription>
+            提前結算後遊戲將立即結束，計分以目前關卡為準。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>
+            繼續遊戲
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={() => {
+            setShowEarlyEndConfirm(false);
+            endGameEarly();
+          }}>
+            結算
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }

@@ -14,7 +14,7 @@ const MODE_OPTIONS = [
   {
     value: 'classic' as const,
     label: '經典模式',
-    description: '牌值 1–13・累積最高分',
+    description: '牌值 1–13・固定牌庫',
     color:
       'border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950',
     activeColor: 'bg-purple-500 text-white hover:bg-purple-600',

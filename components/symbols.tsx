@@ -2,7 +2,6 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { fadeVariants } from '@/lib/animation-variants';
 import { Symbol } from '@/models/Symbol';
-import { Card } from './ui/card';
 
 type SymbolsProps = {
   onClick: (symbol: Symbol) => void;
@@ -25,30 +24,25 @@ const Symbols = ({ onClick }: SymbolsProps) => {
   return (
     <>
       {SYMBOLS.map(config => (
-        <motion.div
+        <motion.button
           key={config.symbol}
-          className="relative"
+          type="button"
           variants={fadeVariants}
           initial="hidden"
           animate="show"
           whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 1 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={() => onClick(config.symbol)}
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
         >
-          <Card
-            className="cursor-pointer bg-slate-200 p-3 transition-all"
-            onClick={() => onClick(config.symbol)}
-          >
-            {config.type === 'image' ? (
-              <div className="max-md:h-4 max-md:w-4 md:h-5 md:w-5 lg:h-7 lg:w-7">
-                <Image src={config.icon} alt={config.alt} fill priority />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center text-3xl font-medium max-md:h-4 max-md:w-4 max-md:text-2xl md:h-5 md:w-5 lg:h-7 lg:w-7">
-                {config.text}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+          {config.type === 'image' ? (
+            <div className="relative h-5 w-5">
+              <Image src={config.icon} alt={config.alt} fill priority />
+            </div>
+          ) : (
+            <span className="text-xl font-medium">{config.text}</span>
+          )}
+        </motion.button>
       ))}
     </>
   );
