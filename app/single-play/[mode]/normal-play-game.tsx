@@ -57,6 +57,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
 
   // 開始畫面
   if (status === 'idle') {
+    const best = records.length > 0 ? records[0] : null;
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
@@ -66,19 +67,11 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
             答錯或跳過 +10 秒懲罰・符號越難分數越高
           </p>
         </div>
-        {records.length > 0 && (
-          <div className="w-full max-w-xs rounded-xl border p-4">
-            <p className="mb-2 text-sm font-semibold text-muted-foreground">
-              最近紀錄
-            </p>
-            <div className="flex flex-col gap-1">
-              {records.slice(0, 3).map((r, i) => (
-                <div key={i} className="flex justify-between text-sm">
-                  <span>{formatTime(r.totalSeconds)}</span>
-                  <span className="text-muted-foreground">{r.totalScore} 分</span>
-                </div>
-              ))}
-            </div>
+        {best && (
+          <div className="w-full max-w-xs rounded-xl border p-4 text-center">
+            <p className="text-sm font-semibold text-muted-foreground">最佳紀錄</p>
+            <p className="text-2xl font-bold">{formatTime(best.totalSeconds)}</p>
+            <p className="text-sm text-muted-foreground">{best.totalScore} 分</p>
           </div>
         )}
         <div className="flex gap-3">
@@ -93,7 +86,6 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
 
   // 結束畫面
   if (status === 'finished') {
-    const latest = records[0];
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6">
         <h1 className="text-3xl font-bold">完成！</h1>
@@ -102,19 +94,6 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
           <p className="text-muted-foreground">總用時</p>
           <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
         </div>
-        {records.length > 1 && latest && (
-          <div className="w-full max-w-xs rounded-xl border p-4">
-            <p className="mb-2 text-sm font-semibold text-muted-foreground">
-              歷史最佳
-            </p>
-            {records.slice(0, 3).map((r, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span>{formatTime(r.totalSeconds)}</span>
-                <span className="text-muted-foreground">{r.totalScore} 分</span>
-              </div>
-            ))}
-          </div>
-        )}
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => onBack()}>
             返回選單

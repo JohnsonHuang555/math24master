@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Symbols from '@/components/symbols';
 import { fadeVariants } from '@/lib/animation-variants';
-import { calculateAnswer } from '@/lib/utils';
+import { calculateAnswer, cn } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 
@@ -52,6 +52,8 @@ type MainPlayAreaProps = {
   selectedCardSymbols?: SelectedCard[];
   selectedCardNumbers?: SelectedCard[];
   onSelectSymbol: (symbol: Symbol) => void;
+  hideSymbols?: boolean;
+  shake?: boolean;
 };
 
 const MainPlayArea = ({
@@ -63,6 +65,8 @@ const MainPlayArea = ({
   selectedCardSymbols = [],
   selectedCardNumbers = [],
   onSelectSymbol,
+  hideSymbols = false,
+  shake = false,
 }: MainPlayAreaProps) => {
   const getCurrentSelect = () => {
     return selectedCards.map((card, index) => {
@@ -181,14 +185,23 @@ const MainPlayArea = ({
     }
   };
 
+  const liveResult = selectedCards.length > 0 ? getCurrentAnswer() : null;
+  const isCorrect = liveResult !== null && typeof liveResult === 'number' && Math.abs(liveResult - 24) < 1e-9;
+
   return (
     <>
-      <div className="relative flex min-w-[60%] items-center justify-center gap-2 rounded-md border-2 border-dashed bg-white px-6 text-lg max-md:min-h-[100px] md:min-h-[100px] lg:mt-12 lg:min-h-[130px]">
+      <motion.div
+        animate={shake ? { x: [-8, 8, -6, 6, -4, 4, 0] } : {}}
+        transition={{ duration: 0.4 }}
+        className="relative flex w-full max-w-md items-center justify-center gap-2 rounded-xl border-2 border-dashed bg-white px-6 text-lg max-md:min-h-[90px] md:min-h-[110px] dark:bg-slate-900"
+      >
         <>
           {selectedCards.length ? (
             getCurrentSelect()
           ) : (
-            <div className="text-gray-500">點擊手牌組合出答案為 24 的算式</div>
+            <div className="text-center text-sm text-muted-foreground">
+              點擊手牌組合出答案為 24 的算式
+            </div>
           )}
         </>
         {isSymbolScoreAnimationFinished && (
@@ -223,13 +236,27 @@ const MainPlayArea = ({
             )}
           </motion.div>
         )}
+      </motion.div>
+
+      {/* 即時結果 */}
+      <div
+        className={cn(
+          'text-2xl font-bold tabular-nums transition-colors duration-150',
+          liveResult === null
+            ? 'text-muted-foreground'
+            : isCorrect
+              ? 'text-emerald-500'
+              : 'text-red-400',
+        )}
+      >
+        {liveResult === null ? '= ?' : `= ${liveResult} ${isCorrect ? '✓' : '✗'}`}
       </div>
-      <div className="text-4xl max-md:block max-md:text-3xl md:hidden lg:block">
-        = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
-      </div>
-      <div className="absolute flex gap-4 max-md:-bottom-3 md:-bottom-2 lg:bottom-2">
-        <Symbols onClick={onSelectSymbol} />
-      </div>
+
+      {!hideSymbols && (
+        <div className="absolute flex gap-4 max-md:-bottom-3 md:-bottom-2 lg:bottom-2">
+          <Symbols onClick={onSelectSymbol} />
+        </div>
+      )}
     </>
   );
 };
