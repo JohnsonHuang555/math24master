@@ -21,4 +21,7 @@ export type Player = {
   hasMelded: boolean; // 是否已破冰（拉密模式）
   isBot?: boolean; // 是否為 AI 玩家
   botDifficulty?: 'easy' | 'normal' | 'hard'; // AI 難度
+  reconnectToken?: string; // 斷線重連令牌（UUID），跨重連使用
+  isDisconnected?: boolean; // 是否處於暫時斷線（寬限期中）
+  disconnectedAt?: number; // 斷線時間戳（ms）
 };

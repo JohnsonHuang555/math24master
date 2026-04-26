@@ -92,6 +92,7 @@ type MultiplePlayContextData = {
   onCloseGameOver: () => void;
   gameAbortedData: GameAbortedData | null;
   addBot: (difficulty: 'easy' | 'normal' | 'hard') => void;
+  connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
   undefined,
@@ -121,6 +122,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   }>();
   const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
   const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('connected');
+  const graceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const {
     selectedCardSymbols,
     selectedCardNumbers,
@@ -170,6 +173,40 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.on(SocketEvent.GetPlayerId, (id: string) => {
       setPlayerId(id);
       playerIdRef.current = id;
+    });
+
+    socket.on(SocketEvent.GetReconnectToken, (token: string) => {
+      sessionStorage.setItem('reconnectToken', token);
+    });
+
+    // 斷線：顯示重連中 UI
+    socket.on('disconnect', () => {
+      setConnectionStatus('reconnecting');
+      graceTimerRef.current = setTimeout(() => {
+        setConnectionStatus('disconnected');
+      }, 30_000);
+    });
+
+    // 重連成功後（manager 事件，僅在真正重連後觸發，不含初次連線）
+    socket.io.on('reconnect', () => {
+      const token = sessionStorage.getItem('reconnectToken');
+      if (token) {
+        socket.emit(SocketEvent.PlayerReconnect, { reconnectToken: token });
+      }
+    });
+
+    socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+      setRoomInfo(room);
+      setConnectionStatus('connected');
+      toast.success('已重新連線');
+    });
+
+    socket.on(SocketEvent.PlayerReconnectFailed, () => {
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+      setConnectionStatus('disconnected');
+      sessionStorage.removeItem('reconnectToken');
+      sessionStorage.removeItem('reconnectRoomId');
     });
 
     socket.on(
@@ -254,6 +291,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       remainSeconds?: number | null,
     ) => {
       if (socket) {
+        // 主動加入房間時，清除舊的重連令牌（避免誤觸重連邏輯）
+        sessionStorage.removeItem('reconnectToken');
+        sessionStorage.setItem('reconnectRoomId', roomId);
         socket.emit(SocketEvent.JoinRoom, {
           playerName,
           roomId,
@@ -540,9 +580,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onRummySubmit,
       onSwapJoker,
       addBot,
+      connectionStatus,
     };
   }, [
     checkAnswerCorrect,
+    connectionStatus,
     currentPlayer,
     editRoom,
     editRoomSettings,

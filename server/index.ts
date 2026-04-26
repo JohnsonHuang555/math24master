@@ -17,8 +17,10 @@ import {
   getPlayerName,
   joinRoom,
   leaveRoom,
+  markPlayerDisconnected,
   playCard,
   readyGame,
+  reconnectPlayer,
   removePlayer,
   reselectCard,
   rummyBotPlay,
@@ -42,6 +44,9 @@ const handler = app.getRequestHandler();
 const timerMap: {
   [key: string]: { timer: NodeJS.Timeout | null; countdownTime: number };
 } = {};
+
+// 斷線寬限期計時器 Map：key = reconnectToken, value = setTimeout handle
+const disconnectGraceTimerMap: Map<string, NodeJS.Timeout> = new Map();
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -130,6 +135,7 @@ app.prepare().then(() => {
           if (result.success) {
             io.sockets.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
             socket.emit(SocketEvent.GetPlayerId, playerId);
+            socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
           } else if (result.needPassword) {
             socket.emit(SocketEvent.NeedRoomPassword);
           } else {
@@ -467,40 +473,102 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on('disconnect', () => {
-      const leaveResult = leaveRoom(playerId);
-      if (leaveResult) {
-        const roomId = leaveResult.room.roomId;
-        const { room, playerName, wasPlaying, remainingCount } = leaveResult;
+    socket.on('disconnect', (reason) => {
+      // 用戶主動斷線（切換頁面、關閉分頁）→ 立即移除
+      // 非主動斷線（Mac 待機、網路中斷）→ 30 秒寬限期
+      const isIntentional =
+        reason === 'client namespace disconnect' || reason === 'server namespace disconnect';
 
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+      if (isIntentional) {
+        const leaveResult = leaveRoom(playerId);
+        if (leaveResult) {
+          const roomId = leaveResult.room.roomId;
+          const { room, playerName, wasPlaying, remainingCount } = leaveResult;
 
-        if (wasPlaying && remainingCount <= 1) {
-          // 遊戲中且剩餘 ≤ 1 人：遊戲中斷
-          io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
-          // 清除計時器
-          if (timerMap[roomId]?.timer !== null) {
-            clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
-            delete timerMap[roomId];
-          }
-        } else {
-          // 一般離開（toast）
-          io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
 
-          if (wasPlaying && remainingCount >= 2) {
-            // 遊戲繼續：重置計時器給下一位玩家
-            if (timerMap[roomId] && room.settings.remainSeconds !== null) {
-              _clearAndCreateTimer(roomId, room);
-            }
-          } else {
-            // 大廳狀態：清除計時器
+          if (wasPlaying && remainingCount <= 1) {
+            io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
             if (timerMap[roomId]?.timer !== null) {
               clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
               delete timerMap[roomId];
             }
+          } else {
+            io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+
+            if (wasPlaying && remainingCount >= 2) {
+              if (timerMap[roomId] && room.settings.remainSeconds !== null) {
+                _clearAndCreateTimer(roomId, room);
+              }
+            } else {
+              if (timerMap[roomId]?.timer !== null) {
+                clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+                delete timerMap[roomId];
+              }
+            }
           }
         }
+      } else {
+        // 非主動斷線：標記為暫時斷線，給予 30 秒寬限期
+        const markResult = markPlayerDisconnected(playerId);
+        if (!markResult) return;
+
+        const { roomId, room, reconnectToken } = markResult;
+        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+
+        const graceTimer = setTimeout(() => {
+          disconnectGraceTimerMap.delete(reconnectToken);
+
+          const leaveResult = leaveRoom(playerId);
+          if (leaveResult) {
+            const { room: updatedRoom, playerName, wasPlaying, remainingCount } = leaveResult;
+
+            io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: updatedRoom });
+
+            if (wasPlaying && remainingCount <= 1) {
+              io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
+              if (timerMap[roomId]?.timer !== null) {
+                clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+                delete timerMap[roomId];
+              }
+            } else {
+              io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+
+              if (wasPlaying && remainingCount >= 2) {
+                if (timerMap[roomId] && updatedRoom.settings.remainSeconds !== null) {
+                  _clearAndCreateTimer(roomId, updatedRoom);
+                }
+              } else {
+                if (timerMap[roomId]?.timer !== null) {
+                  clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+                  delete timerMap[roomId];
+                }
+              }
+            }
+          }
+        }, 30_000);
+
+        disconnectGraceTimerMap.set(reconnectToken, graceTimer);
       }
+    });
+
+    socket.on(SocketEvent.PlayerReconnect, ({ reconnectToken }: { reconnectToken: string }) => {
+      // 取消寬限期計時器
+      const graceTimer = disconnectGraceTimerMap.get(reconnectToken);
+      if (graceTimer) {
+        clearTimeout(graceTimer);
+        disconnectGraceTimerMap.delete(reconnectToken);
+      }
+
+      const result = reconnectPlayer(playerId, reconnectToken);
+      if (!result.success) {
+        socket.emit(SocketEvent.PlayerReconnectFailed, { error: result.error });
+        return;
+      }
+
+      socket.join(result.room.roomId);
+      socket.emit(SocketEvent.PlayerReconnectSuccess, { room: result.room });
+      io.sockets.to(result.room.roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
     });
   });
 

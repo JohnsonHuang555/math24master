@@ -12,6 +12,7 @@ import EditRoomModal from '@/components/modals/edit-room-modal';
 import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
 import { GameOverModal } from '@/components/modals/game-over-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
+import { ReconnectOverlay } from '@/components/modals/reconnect-overlay';
 import RemoveRoomPlayerModal from '@/components/modals/remove-room-player-modal';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,6 +55,7 @@ export default function RoomPage() {
     gameOverData,
     onCloseGameOver,
     gameAbortedData,
+    connectionStatus,
   } = useMultiplePlay();
 
   useEffect(() => {
@@ -154,6 +156,14 @@ export default function RoomPage() {
 
   return (
     <>
+      <ReconnectOverlay
+        status={connectionStatus}
+        onLeave={() => {
+          sessionStorage.removeItem('reconnectToken');
+          sessionStorage.removeItem('reconnectRoomId');
+          router.push('/multiple-play');
+        }}
+      />
       {gameOverData && (
         <GameOverModal
           isOpen={!!gameOverData}
