@@ -46,6 +46,10 @@ export const metadata: Metadata = {
     googleBot: 'index, follow',
   },
   applicationName: '24點大師',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/icons/icon-192.png',
+  },
   appleWebApp: {
     title: '24點大師',
     statusBarStyle: 'default',
