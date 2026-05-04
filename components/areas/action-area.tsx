@@ -35,7 +35,7 @@ const ActionArea = ({
   };
 
   return (
-    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-md:absolute max-md:-top-[170px] max-md:right-0 max-md:w-[55%]">
+    <div className="relative grid basis-[23%] grid-cols-2 gap-3 p-5 max-md:order-2 max-md:basis-1/2 max-md:gap-1 max-md:p-2">
       <div className="absolute -top-[72px] right-[20px] text-2xl max-md:hidden lg:hidden">
         = {selectedCards.length === 0 ? '24' : getCurrentAnswer()}
       </div>

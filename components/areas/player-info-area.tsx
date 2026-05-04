@@ -30,7 +30,7 @@ const PlayerInfoArea = ({
   }, [count, score]);
 
   return (
-    <div className="flex basis-[23%] flex-col justify-center p-5 max-md:absolute max-md:-top-[180px]">
+    <div className="flex basis-[23%] flex-col justify-center p-5 max-md:order-1 max-md:basis-1/2 max-md:p-2">
       {isYourTurn && (
         <div className="flex items-center">
           <Image
