@@ -52,7 +52,7 @@ const HandCardArea = ({
         </div>
       )}
       <div
-        className="flex flex-1 items-center overflow-x-auto scroll-smooth"
+        className="flex flex-1 items-center overflow-x-auto scroll-smooth max-md:order-3 max-md:basis-full"
         ref={handCardsRef}
       >
         <div className="m-auto flex gap-4">

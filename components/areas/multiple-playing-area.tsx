@@ -188,7 +188,7 @@ const ClassicPlayingArea = () => {
           onSelectSymbol={symbol => onSelectCardOrSymbol({ symbol })}
         />
       </div>
-      <div className="relative flex w-full basis-1/5">
+      <div className="relative flex w-full basis-1/5 max-md:flex-wrap max-md:basis-[35%]">
         <PlayerInfoArea
           isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}
