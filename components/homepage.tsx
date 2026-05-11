@@ -34,7 +34,7 @@ const Homepage = () => {
         isOpen={isOpenStatsModal}
         onClose={() => setIsOpenStatsModal(false)}
       />
-      <section className="relative flex h-full w-full flex-col items-center justify-center">
+      <section className="relative flex h-full w-full flex-col items-center justify-center max-md:justify-start max-md:overflow-y-auto max-md:pt-14 max-md:pb-20">
         <div className="absolute right-5 top-5 flex gap-2">
           <Button
             variant="ghost"
@@ -62,7 +62,7 @@ const Homepage = () => {
           variants={fadeVariants}
           initial="hidden"
           animate="show"
-          className="mb-[50px]"
+          className="mb-4 md:mb-[50px]"
         >
           <Image
             src="/logo.webp"
@@ -76,7 +76,7 @@ const Homepage = () => {
           variants={fadeVariants}
           initial="hidden"
           animate={{ opacity: 1, scale: 1, transition: { delay: 0.2 } }}
-          className="mb-6 text-xl font-semibold"
+          className="mb-4 text-xl font-semibold"
         >
           運用你的智慧，成為24點大師
         </motion.h1>
@@ -84,7 +84,7 @@ const Homepage = () => {
           variants={fadeVariants}
           initial="hidden"
           animate={{ opacity: 1, scale: 1, transition: { delay: 0.2 } }}
-          className="mx-4 mb-8 max-w-[800px] text-center text-lg"
+          className="mx-4 mb-6 max-w-[800px] text-center text-lg max-md:text-sm max-md:mb-4"
         >
           歡迎來到24點數學遊戲！這是一款充滿挑戰和樂趣的益智遊戲，考驗你的數學運算能力和策略思維
         </motion.p>
@@ -166,7 +166,7 @@ const Homepage = () => {
             scale: 1,
             transition: { delay: 0.6 },
           }}
-          className="mt-8 w-full max-w-[360px] px-4"
+          className="mt-6 w-full max-w-[360px] px-4 max-md:mt-4"
         >
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <p className="mb-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
@@ -203,7 +203,7 @@ const Homepage = () => {
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
         <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v1.0.4</div>
+          <div className="mx-2 text-xs text-gray-500">v1.0.5</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
