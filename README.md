@@ -1,14 +1,14 @@
 # Math24 Master
 
 ![Static Badge](https://img.shields.io/badge/math24-master-orange)&nbsp;
-![Static Badge](https://img.shields.io/badge/node-v18.18.2-blue)&nbsp;
-![Static Badge](https://img.shields.io/badge/current-v1.2.8-blue)&nbsp;
+![Static Badge](https://img.shields.io/badge/node-v18%2B-blue)&nbsp;
+![Static Badge](https://img.shields.io/badge/current-v1.0.5-blue)&nbsp;
 ![Static Badge](https://img.shields.io/badge/let's-play-g)&nbsp;
 ![Static Badge](https://img.shields.io/badge/Next.js-15-black?logo=next.js)&nbsp;
 ![Static Badge](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)&nbsp;
 ![Static Badge](https://img.shields.io/badge/Socket.IO-4-white?logo=socket.io&logoColor=black)
 
-A free online 24-puzzle game with single-player, real-time multiplayer, and daily challenge modes.
+A free online 24-puzzle game with single-player, real-time multiplayer, and daily challenge modes. Installable as a PWA on iOS and Android.
 
 🌐 **Live:** https://math24master.com
 
@@ -18,7 +18,7 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 
 | Mode | Description |
 |------|-------------|
-| **Classic** | Multiplayer or solo — form equations from 4 cards to reach 24, score with harder symbols |
+| **Classic** | Solo — form equations from hand cards to reach 24, score with harder symbols |
 | **Level** | 10 puzzles, stopwatch counts up — wrong answers and skips add 10s penalty |
 | **Challenge** | 5-minute countdown — correct answers add 60s, skips deduct 15s, go as far as you can |
 | **Multiplayer** | Real-time rooms via Socket.IO — optional password & countdown timer |
@@ -28,10 +28,10 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 
 ## 🚀 Classic Mode Rules
 
-1. Each player holds **4 cards** in hand.
+1. Each player holds cards in hand.
 2. Use all your cards to form an equation equal to **24**.
-3. If you cannot make 24, you can **skip** — discard all 4 cards and draw 4 new ones (no score).
-4. When the deck is exhausted, the current round becomes the **final round**. The game ends after all players complete it.
+3. If you cannot make 24, you can **skip** — discard all cards and draw new ones (no score).
+4. When the deck is exhausted, the current round becomes the **final round**.
 5. The player with the highest score wins.
 
 ---
@@ -82,6 +82,8 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 
 ## ✨ Features
 
+- 📱 **PWA** — installable on iOS Safari and Android Chrome; runs fullscreen from the home screen
+- 🏅 **Leaderboard** — Firebase-backed global rankings with Google sign-in (NextAuth)
 - 🎵 **Sound effects** — Web Audio API, no external audio files required
 - 🏆 **8 achievements** with localStorage persistence
 - 📊 **Game statistics** — wins, completions, and skips tracked locally
@@ -98,8 +100,11 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 | Frontend | Next.js 15 (App Router), React 19, TypeScript |
 | Styling | Tailwind CSS, Radix UI, Framer Motion |
 | Realtime | Socket.IO 4 |
+| Auth | NextAuth v5 (Google OAuth) |
+| Database | Firebase Admin (Firestore — leaderboard) |
 | State | Zustand 5 |
 | Math | mathjs |
+| Testing | Vitest |
 | Tooling | ESLint, Prettier, Nodemon |
 
 ---
@@ -122,6 +127,9 @@ A free online 24-puzzle game with single-player, real-time multiplayer, and dail
 ├── providers/              # MultiplePlayProvider (socket + multiplayer state)
 ├── stores/                 # Zustand stores (achievements, stats, sound…)
 ├── models/                 # Shared TypeScript types (client + server)
+├── public/
+│   ├── manifest.json       # PWA manifest
+│   └── icons/              # PWA icons (192px, 512px, maskable)
 └── lib/                    # Utilities, sound manager, animation variants
 ```
 
@@ -148,10 +156,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```bash
 npm run build   # Build Next.js app + compile server TS
-npm start       # Run production build
+npm start       # Run production build (NODE_ENV=production tsx server/index.ts)
 ```
-
-The Next.js config uses `output: 'standalone'`. Set the `PORT` environment variable to change the server port (default: `3000`).
 
 ---
 

@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
-import { BookOpen, LogOut, RotateCcw } from 'lucide-react';
+import { BookOpen, RotateCcw } from 'lucide-react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { Difficulty } from '@/models/Room';
-import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import { useStatsStore } from '@/stores/stats-store';
 import { Symbol } from '@/models/Symbol';
 
@@ -53,7 +52,6 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   const count = useMotionValue(currentScore);
   const rounded = useTransform(count, Math.round);
 
-  const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
   const { classicBestScore: bestScore, updateClassicBestScore: updateBestScore } = useStatsStore();
 
   const disabledActions = checkAnswerCorrect === true || !!isGameOver;
@@ -67,13 +65,6 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   useEffect(() => {
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (isConfirmed) {
-      onReset();
-      window.location.reload();
-    }
-  }, [isConfirmed, onReset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (roomInfo?.isGameOver) {
@@ -221,20 +212,6 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         <Button variant="ghost" size="sm" onClick={() => setIsOpenRuleModal(true)}>
           <BookOpen className="mr-1 h-4 w-4" />規則
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            onOpen({
-              title: '回上一頁',
-              description: isGameOver
-                ? '離開遊戲回到首頁'
-                : '離開遊戲後，當前進度將會消失，確定要離開嗎？',
-            })
-          }
-        >
-          <LogOut className="mr-1 h-4 w-4" />離開
-        </Button>
       </div>
 
       {/* 加分獎勵顯示 */}
@@ -293,11 +270,11 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
           onPlayCard();
         }}
         onSkip={onSkipHand}
-        onBack={() => {}}
+        onBack={onBack}
         theme="emerald"
         submitLabel="出牌"
         onBackStep={disabledActions ? undefined : onBackCard}
-        hideExitButton={true}
+        hideExitButton={false}
         footerSlot={classicFooter}
         showSkipButton={false}
         compact={true}
