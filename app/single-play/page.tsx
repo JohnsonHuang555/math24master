@@ -22,7 +22,7 @@ const MODE_OPTIONS = [
   {
     value: 'normal' as const,
     label: '關卡模式',
-    description: '10 題計時挑戰・答錯 +10 秒懲罰',
+    description: '5 題計時挑戰・答錯 +10 秒懲罰',
     color:
       'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
     activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
