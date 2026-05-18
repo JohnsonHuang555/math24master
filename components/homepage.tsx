@@ -181,6 +181,10 @@ const Homepage = () => {
                 <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
                 <span>排行榜功能已上線！<span className="font-medium text-orange-500">快去登上排行榜</span></span>
               </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-yellow-500" />
+                <span>遊戲規則更新（經典模式牌庫調整、關卡模式改為 5 題），<span className="font-medium text-orange-500">排行榜已重置</span></span>
+              </li>
             </ul>
           </div>
         </motion.div>
@@ -201,9 +205,9 @@ const Homepage = () => {
         </motion.div>
       </section>
       <footer className="fixed bottom-4 left-1/2 w-full -translate-x-1/2">
-        <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
+        {/* <div className="mb-1 flex items-center justify-center text-xs text-gray-500">
           <div>此網站在電腦與平板支援度最佳</div>
-          <div className="mx-2 text-xs text-gray-500">v1.0.5</div>
+          <div className="mx-2 text-xs text-gray-500">v1.0.6</div>
           <Link
             href="https://github.com/JohnsonHuang555/24_points"
             target="_blank"
@@ -216,9 +220,9 @@ const Homepage = () => {
               priority
             />
           </Link>
-        </div>
-        <div className="flex justify-center gap-1 text-xs text-gray-500">
-          <span>#24點大師, #24點, Created by Johnson Huang</span>
+        </div> */}
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+          <span>Created by Johnson Huang</span>
           <Image
             src="/smile-circle.svg"
             alt="smile-circle"
@@ -226,7 +230,7 @@ const Homepage = () => {
             height={12}
             priority
           />
-          <span>{date.getFullYear()}</span>
+          <span>v1.0.6 · {date.getFullYear()}</span>
         </div>
       </footer>
     </>
