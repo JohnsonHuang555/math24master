@@ -9,7 +9,7 @@ import { SelectedCard } from '@/models/SelectedCard';
 import { NumberCard } from '@/models/Player';
 import { useStatsStore } from '@/stores/stats-store';
 
-const TOTAL_ROUNDS = 10;
+const TOTAL_ROUNDS = 5;
 const WRONG_PENALTY_SECONDS = 10;
 const LOCAL_STORAGE_KEY = 'math24_v2_normal_records';
 const MAX_RECORDS = 100;

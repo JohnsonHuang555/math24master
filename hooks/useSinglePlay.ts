@@ -49,6 +49,10 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     if (!difficulty || hasStartedRef.current) return;
     hasStartedRef.current = true;
 
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     const roomId = uuidv4();
 
     socket.emit(SocketEvent.JoinRoom, {
@@ -90,6 +94,9 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     // });
 
     return () => {
+      socket.off(SocketEvent.JoinRoomSuccess);
+      socket.off(SocketEvent.ErrorMessage);
+      socket.off(SocketEvent.RoomUpdate);
       socket.disconnect();
     };
   }, [difficulty]); // eslint-disable-line react-hooks/exhaustive-deps

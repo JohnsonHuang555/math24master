@@ -66,7 +66,7 @@ export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
               <section>
                 <h3 className="mb-1 font-semibold text-gray-700">規則說明</h3>
                 <ul className="space-y-1 text-gray-600">
-                  <li>• 共 <strong>10 題</strong>，全部答對後計時停止</li>
+                  <li>• 共 <strong>5 題</strong>，全部答對後計時停止</li>
                   <li>• 使用 4 個數字和運算符號組出等於 24 的算式</li>
                   <li>• 答錯或跳過 <strong>+10 秒</strong>懲罰</li>
                   <li>• 用時越短、答題越準確，排名越高</li>

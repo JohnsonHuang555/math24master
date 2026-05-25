@@ -62,7 +62,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
       <div className="flex h-full flex-col items-center justify-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-3xl font-bold">關卡模式</h1>
-          <p className="text-muted-foreground">10 題全部答對，計時結束</p>
+          <p className="text-muted-foreground">5 題全部答對，計時結束</p>
           <p className="text-sm text-muted-foreground">
             答錯或跳過 +10 秒懲罰・符號越難分數越高
           </p>
