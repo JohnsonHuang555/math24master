@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon",
     "build": "next build",
-    "start": "cross-env NODE_ENV=production tsx server/index.ts"
+    "start": "cross-env NODE_ENV=production tsx server/index.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
