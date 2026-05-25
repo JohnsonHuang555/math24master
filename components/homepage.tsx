@@ -157,6 +157,15 @@ const Homepage = () => {
               每日挑戰
             </Button>
           </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 1 }}>
+            <Button
+              variant="outline"
+              className="border-teal-500 px-8 text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20"
+              onClick={() => (window.location.href = '/guess-number')}
+            >
+              猜數字
+            </Button>
+          </motion.div>
         </motion.div>
         <motion.div
           variants={fadeVariants}

@@ -64,14 +64,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
-      <head>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7786092773254630"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        />
-      </head>
       <body
         className={cn(
           'relative h-dvh font-noto antialiased',
@@ -84,6 +76,12 @@ export default function RootLayout({
             backgroundImage: `url(/b2.webp)`,
             zIndex: '-999',
           }}
+        />
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7786092773254630"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
         />
         <GoogleAnalytics measurementId="G-HWFWE6ED59" />
         <SessionProvider>
