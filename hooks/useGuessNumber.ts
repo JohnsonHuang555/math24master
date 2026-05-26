@@ -37,11 +37,12 @@ interface GuessNumberState {
 }
 
 function createInitialState(): GuessNumberState {
+  const initialRemaining = getInitialRemaining();
   return {
     answer: Math.floor(Math.random() * 90) + 10,
-    remaining: getInitialRemaining(),
+    remaining: initialRemaining,
     guessedNumbers: [],
-    drawnCards: drawCards([], false, false, true),
+    drawnCards: drawCards([], false, false, true, initialRemaining),
     roundCount: 0,
     usedCardIds: [],
     peekUsed: false,
@@ -113,7 +114,7 @@ export function useGuessNumber() {
           return prev;
         return {
           ...prev,
-          drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, true, prev.lastGuess === null),
+          drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, true, prev.lastGuess === null, prev.remaining),
           redrawUsed: true,
           redrawnThisRound: true,
         };
@@ -204,7 +205,7 @@ export function useGuessNumber() {
       clearTimeout(peekTimerRef.current);
       return {
         ...prev,
-        drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, prev.redrawUsed, false),
+        drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, prev.redrawUsed, false, prev.remaining),
         selectedCard: null,
         clueResult: null,
         isRoundGuessed: false,
