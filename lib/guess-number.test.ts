@@ -314,22 +314,24 @@ describe('applyClue — 多條線索交集', () => {
   });
 });
 
+const SMALL_REMAINING = Array.from({ length: 10 }, (_, i) => i + 10);
+
 describe('drawCards', () => {
   it('always returns exactly 3 cards', () => {
-    expect(drawCards([], false, false, true)).toHaveLength(3);
-    expect(drawCards([], true, true, false)).toHaveLength(3);
+    expect(drawCards([], false, false, true, getInitialRemaining())).toHaveLength(3);
+    expect(drawCards([], true, true, false, getInitialRemaining())).toHaveLength(3);
   });
 
   it('peekUsed=true → no peek card in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
-      expect(drawCards([], true, false, false).every(c => c.id !== 'peek')).toBe(true);
+      expect(drawCards([], true, false, false, SMALL_REMAINING).every(c => c.id !== 'peek')).toBe(true);
     }
   });
 
-  it('peekUsed=false → peek can appear in 500 draws', () => {
+  it('peekUsed=false, remaining<30 → peek can appear in 500 draws', () => {
     let peekFound = false;
     for (let i = 0; i < 500; i++) {
-      if (drawCards([], false, false, false).some(c => c.id === 'peek')) {
+      if (drawCards([], false, false, false, SMALL_REMAINING).some(c => c.id === 'peek')) {
         peekFound = true;
         break;
       }
@@ -337,16 +339,22 @@ describe('drawCards', () => {
     expect(peekFound).toBe(true);
   });
 
+  it('remaining>=30 → peek never appears', () => {
+    for (let i = 0; i < 200; i++) {
+      expect(drawCards([], false, false, false, getInitialRemaining()).every(c => c.id !== 'peek')).toBe(true);
+    }
+  });
+
   it('redrawUsed=true → no redraw card in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
-      expect(drawCards([], false, true, false).every(c => c.id !== 'redraw')).toBe(true);
+      expect(drawCards([], false, true, false, getInitialRemaining()).every(c => c.id !== 'redraw')).toBe(true);
     }
   });
 
   it('redrawUsed=false → redraw can appear in 500 draws', () => {
     let found = false;
     for (let i = 0; i < 500; i++) {
-      if (drawCards([], false, false, false).some(c => c.id === 'redraw')) {
+      if (drawCards([], false, false, false, getInitialRemaining()).some(c => c.id === 'redraw')) {
         found = true;
         break;
       }
@@ -356,7 +364,7 @@ describe('drawCards', () => {
 
   it('isFirstRound=true → dynamic cards never appear in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
-      const drawn = drawCards([], true, true, true);
+      const drawn = drawCards([], true, true, true, getInitialRemaining());
       expect(drawn.every(c => c.id !== 'higher-than-last' && c.id !== 'within-ten')).toBe(true);
     }
   });
@@ -365,7 +373,7 @@ describe('drawCards', () => {
     let found = false;
     for (let i = 0; i < 500; i++) {
       if (
-        drawCards([], true, true, false).some(
+        drawCards([], true, true, false, getInitialRemaining()).some(
           c => c.id === 'higher-than-last' || c.id === 'within-ten',
         )
       ) {
@@ -379,7 +387,7 @@ describe('drawCards', () => {
   it('usedIds excludes those cards from pool in 200 draws', () => {
     const usedIds = ['odd-even', 'half', 'triple', 'repeat', 'multiple-5'] as const;
     for (let i = 0; i < 200; i++) {
-      const drawn = drawCards([...usedIds], true, true, false);
+      const drawn = drawCards([...usedIds], true, true, false, getInitialRemaining());
       drawn.forEach(c => {
         expect(usedIds).not.toContain(c.id);
       });
@@ -388,7 +396,7 @@ describe('drawCards', () => {
 
   it('no duplicate cards within a single hand in 500 draws', () => {
     for (let i = 0; i < 500; i++) {
-      const drawn = drawCards([], false, false, false);
+      const drawn = drawCards([], false, false, false, getInitialRemaining());
       const ids = drawn.map(c => c.id);
       expect(new Set(ids).size).toBe(ids.length);
     }
@@ -397,7 +405,7 @@ describe('drawCards', () => {
   it('fallback: all line cards used → resets pool to full line cards', () => {
     const allIds = LINE_CLUE_CARDS.map(c => c.id);
     for (let i = 0; i < 50; i++) {
-      const drawn = drawCards(allIds, true, true, false);
+      const drawn = drawCards(allIds, true, true, false, getInitialRemaining());
       expect(drawn).toHaveLength(3);
       drawn.forEach(c => {
         expect(c.id).not.toBe('peek');
@@ -408,7 +416,7 @@ describe('drawCards', () => {
 
   it('cards come from the known pool', () => {
     const validIds = ALL_CARDS.map(c => c.id);
-    const drawn = drawCards([], false, false, false);
+    const drawn = drawCards([], false, false, false, getInitialRemaining());
     expect(drawn.every(c => validIds.includes(c.id))).toBe(true);
   });
 });

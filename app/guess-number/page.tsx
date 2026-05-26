@@ -3,7 +3,18 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen } from 'lucide-react';
 import { toast } from 'react-toastify';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGuessNumber } from '@/hooks/useGuessNumber';
@@ -75,14 +86,14 @@ function ClueCardButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-xl border-2 px-2 py-3 text-center transition-all',
+        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-xl border-2 px-2 py-3 text-center outline-none transition-all focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]',
         isRedraw
-          ? 'border-blue-300 bg-blue-50 hover:border-blue-400 dark:border-blue-700 dark:bg-gray-800'
+          ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-gray-800'
           : isPeek
-            ? 'border-amber-300 bg-amber-50 hover:border-amber-400 dark:border-amber-700 dark:bg-gray-800'
+            ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-gray-800'
             : selected
               ? 'border-teal-500 bg-teal-500 text-white'
-              : 'border-gray-200 bg-white hover:border-teal-400 dark:border-gray-700 dark:bg-gray-800',
+              : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800',
         disabled && 'cursor-not-allowed opacity-40',
       )}
     >
@@ -109,7 +120,7 @@ function HistoryChips({ history }: { history: HistoryEntry[] }) {
   if (history.length === 0) return null;
   return (
     <div className="w-full max-w-lg">
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex gap-1.5 overflow-x-auto px-0.5 py-1 scrollbar-none">
         {history.map((e, i) => {
           if (e.type === 'clue') {
             return (
@@ -220,14 +231,26 @@ export default function GuessNumberPage() {
 
   const [inputValue, setInputValue] = useState('');
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [pendingCard, setPendingCard] = useState<ClueCard | null>(null);
+  const [pendingIdx, setPendingIdx] = useState<number | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesMarked, setNotesMarked] = useState<Set<number>>(new Set());
 
   const prevRoundCountRef = useRef(0);
+  const prevClueResultRef = useRef<'yes' | 'no' | null>(null);
   useEffect(() => {
     if (roundCount > prevRoundCountRef.current && !gameOver) {
       toast.error('猜錯了！', { autoClose: 2000 });
     }
     prevRoundCountRef.current = roundCount;
   }, [roundCount, gameOver]);
+
+  useEffect(() => {
+    if (clueResult !== null && prevClueResultRef.current === null) {
+      toast.success('線索獲得！現在可以輸入猜測了', { autoClose: 2500 });
+    }
+    prevClueResultRef.current = clueResult;
+  }, [clueResult]);
 
   const parsedGuess = parseInt(inputValue, 10);
   const isValidInput =
@@ -249,12 +272,29 @@ export default function GuessNumberPage() {
   };
 
   const handleSelectCard = (card: ClueCard, idx: number) => {
-    if (card.id !== 'peek' && card.id !== 'redraw') {
-      setSelectedIdx(idx);
+    setPendingCard(card);
+    setPendingIdx(idx);
+  };
+
+  const handleConfirmCard = () => {
+    if (!pendingCard) return;
+    if (pendingCard.id !== 'peek' && pendingCard.id !== 'redraw') {
+      setSelectedIdx(pendingIdx);
     } else {
       setSelectedIdx(null);
     }
-    selectCard(card);
+    selectCard(pendingCard);
+    setPendingCard(null);
+    setPendingIdx(null);
+  };
+
+  const toggleNoteMark = (n: number) => {
+    setNotesMarked(prev => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
   };
 
   const handleSubmit = () => {
@@ -274,6 +314,8 @@ export default function GuessNumberPage() {
     restart();
     setInputValue('');
     setSelectedIdx(null);
+    setPendingCard(null);
+    setPendingIdx(null);
   };
 
   const visibleCards = drawnCards.filter(c => !(c.id === 'peek' && peekUsed));
@@ -297,7 +339,13 @@ export default function GuessNumberPage() {
           ← 回首頁
         </Link>
         <h1 className="text-xl font-bold">猜數字</h1>
-        <div className="w-16" />
+        <button
+          onClick={() => setNotesOpen(true)}
+          className="flex h-8 w-16 items-center justify-end gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+        >
+          <BookOpen size={16} />
+          <span className="text-xs">筆記</span>
+        </button>
       </div>
 
       {/* 謎題展示區 */}
@@ -497,13 +545,13 @@ export default function GuessNumberPage() {
               isRoundGuessed ||
               gameOver
             }
-            className="text-center text-lg font-bold"
+            className="flex-[3] text-center text-lg font-bold"
             maxLength={2}
           />
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="shrink-0 bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-40"
+            className="flex-1 bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-40"
           >
             送出
           </Button>
@@ -538,6 +586,97 @@ export default function GuessNumberPage() {
               下一回合 →
             </Button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 選牌確認彈窗 */}
+      <AlertDialog
+        open={pendingCard !== null}
+        onOpenChange={open => {
+          if (!open) {
+            setPendingCard(null);
+            setPendingIdx(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>使用這張牌？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingCard?.name}
+              {pendingCard && ' — '}
+              {pendingCard &&
+                ('question' in pendingCard ? pendingCard.question : pendingCard.description)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCard}
+              className="bg-teal-500 text-white hover:bg-teal-600"
+            >
+              確認使用
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 筆記抽屜 */}
+      <AnimatePresence>
+        {notesOpen && (
+          <>
+            <motion.div
+              key="notes-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setNotesOpen(false)}
+              className="fixed inset-0 z-40 bg-black/30"
+            />
+            <motion.div
+              key="notes-drawer"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-gray-900"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-bold">筆記</h2>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setNotesMarked(new Set())}
+                    className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
+                  >
+                    清除全部
+                  </button>
+                  <button
+                    onClick={() => setNotesOpen(false)}
+                    className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
+                  >
+                    關閉
+                  </button>
+                </div>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">點擊數字標記候選，再次點擊取消</p>
+              <div className="grid grid-cols-6 gap-2 sm:grid-cols-10 sm:gap-1">
+                {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => toggleNoteMark(n)}
+                    className={cn(
+                      'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-none sm:h-8 [-webkit-tap-highlight-color:transparent]',
+                      notesMarked.has(n)
+                        ? 'bg-teal-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+                    )}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

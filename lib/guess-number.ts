@@ -227,6 +227,7 @@ export function drawCards(
   peekUsed: boolean,
   redrawUsed: boolean,
   isFirstRound: boolean,
+  remaining: number[],
 ): ClueCard[] {
   let linePool: LineClueCard[] = LINE_CLUE_CARDS.filter(
     c => !usedIds.includes(c.id) && !(isFirstRound && c.isDynamic),
@@ -243,7 +244,7 @@ export function drawCards(
 
   const pool: ClueCard[] = [
     ...linePool,
-    ...(peekUsed ? [] : [PEEK_CARD]),
+    ...(peekUsed || remaining.length >= 30 ? [] : [PEEK_CARD]),
     ...(redrawUsed ? [] : [REDRAW_CARD]),
   ];
 
