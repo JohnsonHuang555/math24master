@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGuessNumber } from '@/hooks/useGuessNumber';
 import type { HistoryEntry } from '@/hooks/useGuessNumber';
-import type { ClueCard } from '@/lib/guess-number';
+import type { ClueCard, LineClueCard } from '@/lib/guess-number';
 import { cn } from '@/lib/utils';
 
 const NumberBoard = memo(function NumberBoard({
@@ -41,29 +41,48 @@ const NumberBoard = memo(function NumberBoard({
   );
 });
 
+function formatCardQuestion(card: LineClueCard, lastGuess: number | null): string {
+  if (card.id === 'higher-than-last' && lastGuess !== null) {
+    return `謎底比你上一次猜的（${lastGuess}）大嗎？`;
+  }
+  if (card.id === 'within-ten' && lastGuess !== null) {
+    return `謎底和你上次猜的（${lastGuess}）相差在 10 以內嗎？`;
+  }
+  return card.question;
+}
+
 function ClueCardButton({
   card,
   selected,
   disabled,
+  lastGuess,
   onClick,
 }: {
   card: ClueCard;
   selected: boolean;
   disabled: boolean;
+  lastGuess: number | null;
   onClick: () => void;
 }) {
   const isPeek = card.id === 'peek';
+  const isRedraw = card.id === 'redraw';
+  const displayText =
+    'question' in card
+      ? formatCardQuestion(card, lastGuess)
+      : card.description;
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={cn(
         'flex h-[100px] flex-1 flex-col items-center justify-center rounded-xl border-2 px-2 py-3 text-center transition-all',
-        isPeek
-          ? 'border-amber-300 bg-amber-50 hover:border-amber-400 dark:border-amber-700 dark:bg-gray-800'
-          : selected
-            ? 'border-teal-500 bg-teal-500 text-white'
-            : 'border-gray-200 bg-white hover:border-teal-400 dark:border-gray-700 dark:bg-gray-800',
+        isRedraw
+          ? 'border-blue-300 bg-blue-50 hover:border-blue-400 dark:border-blue-700 dark:bg-gray-800'
+          : isPeek
+            ? 'border-amber-300 bg-amber-50 hover:border-amber-400 dark:border-amber-700 dark:bg-gray-800'
+            : selected
+              ? 'border-teal-500 bg-teal-500 text-white'
+              : 'border-gray-200 bg-white hover:border-teal-400 dark:border-gray-700 dark:bg-gray-800',
         disabled && 'cursor-not-allowed opacity-40',
       )}
     >
@@ -71,14 +90,16 @@ function ClueCardButton({
       <span
         className={cn(
           'mt-1 text-xs leading-tight',
-          isPeek
-            ? 'text-amber-500 dark:text-amber-400'
-            : selected
-              ? 'text-teal-100'
-              : 'text-gray-500 dark:text-gray-400',
+          isRedraw
+            ? 'text-blue-500 dark:text-blue-400'
+            : isPeek
+              ? 'text-amber-500 dark:text-amber-400'
+              : selected
+                ? 'text-teal-100'
+                : 'text-gray-500 dark:text-gray-400',
         )}
       >
-        {'question' in card ? card.question : card.description}
+        {displayText}
       </span>
     </button>
   );
@@ -188,6 +209,9 @@ export default function GuessNumberPage() {
     rating,
     history,
     isMounted,
+    lastGuess,
+    redrawUsed,
+    redrawnThisRound,
     selectCard,
     submitGuess,
     nextRound,
@@ -220,11 +244,12 @@ export default function GuessNumberPage() {
 
   const getCardDisabled = (card: ClueCard) => {
     if (card.id === 'peek') return peekUsed || isRoundGuessed || gameOver;
+    if (card.id === 'redraw') return redrawUsed || redrawnThisRound || isRoundGuessed || gameOver;
     return lineCardAreaDisabled || gameOver;
   };
 
   const handleSelectCard = (card: ClueCard, idx: number) => {
-    if (card.id !== 'peek') {
+    if (card.id !== 'peek' && card.id !== 'redraw') {
       setSelectedIdx(idx);
     } else {
       setSelectedIdx(null);
@@ -374,7 +399,9 @@ export default function GuessNumberPage() {
                     {'name' in selectedCard ? selectedCard.name : ''}
                   </div>
                   <div className="truncate text-sm text-gray-600 dark:text-gray-400">
-                    {'question' in selectedCard ? selectedCard.question : ''}
+                    {'question' in selectedCard
+                      ? formatCardQuestion(selectedCard as LineClueCard, lastGuess)
+                      : ''}
                   </div>
                 </div>
                 <div
@@ -387,6 +414,26 @@ export default function GuessNumberPage() {
                 </div>
               </motion.div>
             )}
+          {redrawnThisRound && !clueResult && !peekActive && (
+            <motion.div
+              key="redraw-banner"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20"
+            >
+              <span className="text-2xl">🔄</span>
+              <div>
+                <div className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                  全面革新
+                </div>
+                <div className="text-sm text-blue-600 dark:text-blue-500">
+                  已換牌，請選線索牌
+                </div>
+              </div>
+            </motion.div>
+          )}
           {peekActive && !clueResult && (
             <motion.div
               key="peek-banner"
@@ -417,7 +464,9 @@ export default function GuessNumberPage() {
             ? '透視鏡已使用，請輸入猜測數字'
             : selectedCard !== null && selectedCard.id !== 'peek'
               ? '已選牌，請輸入猜測數字'
-              : '選擇一張牌使用'}
+              : redrawnThisRound
+                ? '已換牌，請選線索牌'
+                : '選擇一張牌使用'}
         </p>
         <div className="flex gap-2">
           {visibleCards.map((card, i) => (
@@ -426,6 +475,7 @@ export default function GuessNumberPage() {
               card={card}
               selected={selectedIdx === i}
               disabled={getCardDisabled(card)}
+              lastGuess={lastGuess}
               onClick={() => handleSelectCard(card, i)}
             />
           ))}

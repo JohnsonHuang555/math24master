@@ -31,6 +31,9 @@ interface GuessNumberState {
   isRoundGuessed: boolean;
   gameOver: boolean;
   history: HistoryEntry[];
+  lastGuess: number | null;
+  redrawUsed: boolean;
+  redrawnThisRound: boolean;
 }
 
 function createInitialState(): GuessNumberState {
@@ -38,7 +41,7 @@ function createInitialState(): GuessNumberState {
     answer: Math.floor(Math.random() * 90) + 10,
     remaining: getInitialRemaining(),
     guessedNumbers: [],
-    drawnCards: drawCards([], false),
+    drawnCards: drawCards([], false, false, true),
     roundCount: 0,
     usedCardIds: [],
     peekUsed: false,
@@ -50,6 +53,9 @@ function createInitialState(): GuessNumberState {
     isRoundGuessed: false,
     gameOver: false,
     history: [],
+    lastGuess: null,
+    redrawUsed: false,
+    redrawnThisRound: false,
   };
 }
 
@@ -93,17 +99,40 @@ export function useGuessNumber() {
       return;
     }
 
+    if (card.id === 'redraw') {
+      clearTimeout(peekTimerRef.current);
+      setState(prev => {
+        if (
+          prev === null ||
+          prev.redrawUsed ||
+          prev.redrawnThisRound ||
+          prev.isRoundGuessed ||
+          prev.gameOver ||
+          prev.selectedCard !== null
+        )
+          return prev;
+        return {
+          ...prev,
+          drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, true, prev.lastGuess === null),
+          redrawUsed: true,
+          redrawnThisRound: true,
+        };
+      });
+      return;
+    }
+
     setState(prev => {
       if (prev === null || prev.isRoundGuessed || prev.selectedCard !== null)
         return prev;
 
       const lineCard = card as LineClueCard;
-      const result = calcClueResult(prev.answer, lineCard);
+      const context = { lastGuess: prev.lastGuess ?? undefined };
+      const result = calcClueResult(prev.answer, lineCard, context);
       return {
         ...prev,
         selectedCard: card,
         clueResult: result,
-        remaining: applyClue(prev.remaining, lineCard, result),
+        remaining: applyClue(prev.remaining, lineCard, result, context),
         usedCardIds: [...prev.usedCardIds, lineCard.id],
         history: [
           ...prev.history,
@@ -121,7 +150,6 @@ export function useGuessNumber() {
   const submitGuess = useCallback((guess: number) => {
     setState(prev => {
       if (prev === null || prev.gameOver || prev.isRoundGuessed) return prev;
-      // Allow submit if: a line card is selected OR peek is active this round
       const canGuess =
         (prev.selectedCard !== null && prev.selectedCard.id !== 'peek') ||
         prev.peekActive;
@@ -154,6 +182,7 @@ export function useGuessNumber() {
           isRoundGuessed: true,
           gameOver: true,
           isWin: false,
+          lastGuess: guess,
           history: newHistory,
         };
       }
@@ -163,6 +192,7 @@ export function useGuessNumber() {
         guessedNumbers: newGuessedNumbers,
         roundCount: newRoundCount,
         isRoundGuessed: true,
+        lastGuess: guess,
         history: newHistory,
       };
     });
@@ -174,12 +204,13 @@ export function useGuessNumber() {
       clearTimeout(peekTimerRef.current);
       return {
         ...prev,
-        drawnCards: drawCards(prev.usedCardIds, prev.peekUsed),
+        drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, prev.redrawUsed, false),
         selectedCard: null,
         clueResult: null,
         isRoundGuessed: false,
         isPeeking: false,
         peekActive: false,
+        redrawnThisRound: false,
       };
     });
   }, []);
@@ -206,6 +237,9 @@ export function useGuessNumber() {
       isRoundGuessed: false,
       gameOver: false,
       history: [] as HistoryEntry[],
+      lastGuess: null,
+      redrawUsed: false,
+      redrawnThisRound: false,
     }),
     isMounted: state !== null,
     selectCard,
