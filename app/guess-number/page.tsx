@@ -266,8 +266,8 @@ export default function GuessNumberPage() {
   const lineCardAreaDisabled = isRoundGuessed || selectedCard !== null || peekActive;
 
   const getCardDisabled = (card: ClueCard) => {
-    if (card.id === 'peek') return peekUsed || isRoundGuessed || gameOver;
-    if (card.id === 'redraw') return redrawUsed || redrawnThisRound || isRoundGuessed || gameOver;
+    if (card.id === 'peek') return peekUsed || isRoundGuessed || gameOver || selectedCard !== null;
+    if (card.id === 'redraw') return redrawUsed || redrawnThisRound || isRoundGuessed || gameOver || selectedCard !== null;
     return lineCardAreaDisabled || gameOver;
   };
 
