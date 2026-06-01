@@ -6,6 +6,7 @@ import Script from 'next/script';
 import SoundToggle from '@/components/sound-toggle';
 import { SessionProvider } from '@/components/session-provider';
 import { GoogleAnalytics } from '@/components/analytics';
+import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import './globals.css';
@@ -86,6 +87,7 @@ export default function RootLayout({
         <GoogleAnalytics measurementId="G-HWFWE6ED59" />
         <SessionProvider>
           <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
+          <PendingScoreSubmitter />
         </SessionProvider>
         <SoundToggle />
         <ToastContainer

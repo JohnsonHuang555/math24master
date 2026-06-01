@@ -197,7 +197,7 @@ const Homepage = () => {
                     推理小遊戲
                   </span>
                   <div className="font-bold text-amber-700 dark:text-amber-300">
-                    猜數字 (beta)
+                    猜數字
                   </div>
                   <div className="mt-0.5 text-xs text-amber-600/70 dark:text-amber-400/70">
                     用線索卡推理藏匿的兩位數
@@ -229,7 +229,7 @@ const Homepage = () => {
           </div> */}
           <div className="mt-1 flex items-center justify-center gap-1 text-xs text-gray-500">
             <span>#24點大師, Created by Johnson Huang</span>
-            <span>v1.1.1</span>
+            <span>v1.2.1</span>
             <Image
               src="/smile-circle.svg"
               alt="smile-circle"

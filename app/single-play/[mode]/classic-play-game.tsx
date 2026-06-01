@@ -4,14 +4,18 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { BookOpen, RotateCcw } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { Difficulty } from '@/models/Room';
 import { useStatsStore } from '@/stores/stats-store';
 import { Symbol } from '@/models/Symbol';
+import { useGuestStore } from '@/stores/guest-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
 
 type ClassicStatus = 'idle' | 'playing' | 'finished';
 
@@ -25,7 +29,13 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const prevScoreRef = useRef(0);
+
+  const { status: sessionStatus } = useSession();
+  const { guestId } = useGuestStore();
+  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const {
     roomInfo,
@@ -110,9 +120,17 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
 
   useLeaderboardSubmit(
     'classic',
-    isGameOver ? { score: currentScore } : null,
-    !!isGameOver,
+    isAuthenticated && isGameOver ? { score: currentScore } : null,
+    isAuthenticated && !!isGameOver,
   );
+
+  // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
+  useEffect(() => {
+    if (!isGameOver || isAuthenticated || sessionStatus === 'loading') return;
+    setPendingScore({ mode: 'classic', payload: { score: currentScore } });
+    const id = setTimeout(() => setShowLoginPrompt(true), 1500);
+    return () => clearTimeout(id);
+  }, [isGameOver, isAuthenticated, sessionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 開始畫面
   if (status === 'idle') {
@@ -142,25 +160,32 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   // 結束畫面
   if (status === 'finished') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl font-bold">遊戲結束</h1>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-5xl font-bold">{currentScore} 分</p>
-          <p className="text-muted-foreground">最終得分</p>
-          {isNewBestScore && (
-            <p className="text-sm font-semibold text-amber-500">🏆 新紀錄！</p>
-          )}
-        </div>
-        {!isNewBestScore && bestScore > 0 && (
-          <div className="text-sm text-muted-foreground">
-            個人最高：{bestScore} 分
+      <>
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+        />
+        <div className="flex h-full flex-col items-center justify-center gap-6">
+          <h1 className="text-3xl font-bold">遊戲結束</h1>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <p className="text-5xl font-bold">{currentScore} 分</p>
+            <p className="text-muted-foreground">最終得分</p>
+            {isNewBestScore && (
+              <p className="text-sm font-semibold text-amber-500">🏆 新紀錄！</p>
+            )}
           </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => onBack()}>返回選單</Button>
-          <Button onClick={() => window.location.reload()}>再來一局</Button>
+          {!isNewBestScore && bestScore > 0 && (
+            <div className="text-sm text-muted-foreground">
+              個人最高：{bestScore} 分
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => onBack()}>返回選單</Button>
+            <Button onClick={() => window.location.reload()}>再來一局</Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -249,6 +274,11 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   return (
     <>
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+      />
       <PuzzlePlayArea
         currentNumbers={handCard}
         selectedCards={selectedCards}

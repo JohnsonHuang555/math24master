@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useNormalPlay } from '@/hooks/useNormalPlay';
 import { cn, formatTime } from '@/lib/utils';
+import { useGuestStore } from '@/stores/guest-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
 
 interface NormalPlayGameProps {
   onBack: () => void;
@@ -34,13 +38,29 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
   } = useNormalPlay();
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const prevPenaltyRef = useRef(0);
+
+  const { status: sessionStatus } = useSession();
+  const { guestId } = useGuestStore();
+  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
+
+  const isFinished = status === 'finished';
 
   useLeaderboardSubmit(
     'normal',
-    status === 'finished' ? { seconds, totalScore } : null,
-    status === 'finished',
+    isAuthenticated && isFinished ? { seconds, totalScore } : null,
+    isAuthenticated && isFinished,
   );
+
+  // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
+  useEffect(() => {
+    if (!isFinished || isAuthenticated || sessionStatus === 'loading') return;
+    setPendingScore({ mode: 'normal', payload: { seconds, totalScore } });
+    const id = setTimeout(() => setShowLoginPrompt(true), 1500);
+    return () => clearTimeout(id);
+  }, [isFinished, isAuthenticated, sessionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -87,20 +107,27 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
   // 結束畫面
   if (status === 'finished') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl font-bold">完成！</h1>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-5xl font-bold">{formatTime(seconds)}</p>
-          <p className="text-muted-foreground">總用時</p>
-          <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
+      <>
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+        />
+        <div className="flex h-full flex-col items-center justify-center gap-6">
+          <h1 className="text-3xl font-bold">完成！</h1>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <p className="text-5xl font-bold">{formatTime(seconds)}</p>
+            <p className="text-muted-foreground">總用時</p>
+            <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => onBack()}>
+              返回選單
+            </Button>
+            <Button onClick={startGame}>再來一次</Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => onBack()}>
-            返回選單
-          </Button>
-          <Button onClick={startGame}>再來一次</Button>
-        </div>
-      </div>
+      </>
     );
   }
 

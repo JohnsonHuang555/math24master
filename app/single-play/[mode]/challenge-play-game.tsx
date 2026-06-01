@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,9 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
 import { cn, formatTime } from '@/lib/utils';
+import { useGuestStore } from '@/stores/guest-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
 
 interface ChallengePlayGameProps {
   onBack: () => void;
@@ -45,13 +49,29 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
   const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const { status: sessionStatus } = useSession();
+  const { guestId } = useGuestStore();
+  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
+
+  const isFinished = status === 'finished';
 
   useLeaderboardSubmit(
     'challenge',
-    status === 'finished' ? { stage, totalScore } : null,
-    status === 'finished',
+    isAuthenticated && isFinished ? { stage, totalScore } : null,
+    isAuthenticated && isFinished,
   );
+
+  // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
+  useEffect(() => {
+    if (!isFinished || isAuthenticated || sessionStatus === 'loading') return;
+    setPendingScore({ mode: 'challenge', payload: { stage, totalScore } });
+    const id = setTimeout(() => setShowLoginPrompt(true), 1500);
+    return () => clearTimeout(id);
+  }, [isFinished, isAuthenticated, sessionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -100,30 +120,37 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   if (status === 'finished') {
     const isNewBest = best && stage > best.stage;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl font-bold">
-          {finishReason === 'early' ? '提前結算！' : '時間到！'}
-        </h1>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-5xl font-bold">第 {stage} 關</p>
-          <p className="text-muted-foreground">最終關卡</p>
-          <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
-          {isNewBest && (
-            <p className="text-sm font-semibold text-amber-500">🏆 新紀錄！</p>
-          )}
-        </div>
-        {best && !isNewBest && (
-          <div className="text-sm text-muted-foreground">
-            個人最佳：第 {best.stage} 關（{best.totalScore} 分）
+      <>
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+        />
+        <div className="flex h-full flex-col items-center justify-center gap-6">
+          <h1 className="text-3xl font-bold">
+            {finishReason === 'early' ? '提前結算！' : '時間到！'}
+          </h1>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <p className="text-5xl font-bold">第 {stage} 關</p>
+            <p className="text-muted-foreground">最終關卡</p>
+            <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
+            {isNewBest && (
+              <p className="text-sm font-semibold text-amber-500">🏆 新紀錄！</p>
+            )}
           </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => onBack()}>
-            返回選單
-          </Button>
-          <Button onClick={startGame}>再挑戰</Button>
+          {best && !isNewBest && (
+            <div className="text-sm text-muted-foreground">
+              個人最佳：第 {best.stage} 關（{best.totalScore} 分）
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => onBack()}>
+              返回選單
+            </Button>
+            <Button onClick={startGame}>再挑戰</Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
