@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
   let displayName: string;
   let photoURL: string | null;
 
+  let email: string | null = null;
+
   if (session?.user) {
     const id = (session.user as { id?: string }).id;
     if (!id) {
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
     userId = id;
     displayName = session.user.name ?? 'Anonymous';
     photoURL = session.user.image ?? null;
+    email = session.user.email ?? null;
   } else if (guestId && guestName) {
     if (!GUEST_ID_RE.test(guestId)) {
       return NextResponse.json({ error: 'invalid guest id' }, { status: 400 });
@@ -117,8 +120,51 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const ref = db.collection(COLLECTION[mode]).doc(userId);
-  const existing = await ref.get();
+  let ref = db.collection(COLLECTION[mode]).doc(userId);
+  let existing = await ref.get();
+
+  // If no document found by userId, search by email to detect stale records
+  // created under a different token.sub (e.g., from a previous NextAuth session).
+  if (!existing.exists && email) {
+    const emailSnap = await db
+      .collection(COLLECTION[mode])
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!emailSnap.empty) {
+      const staleDoc = emailSnap.docs[0];
+      // Delete the stale document and migrate its data to the current userId.
+      const staleData = staleDoc.data();
+      await staleDoc.ref.delete();
+
+      const isStaleWorse =
+        (mode === 'normal' && Number(payload.rankingScore) <= Number(staleData.rankingScore)) ||
+        (mode === 'challenge' && Number(payload.stage) <= Number(staleData.stage)) ||
+        (mode === 'classic' && Number(payload.score) <= Number(staleData.score));
+
+      const mergedPayload = isStaleWorse
+        ? { seconds: staleData.seconds, totalScore: staleData.totalScore, rankingScore: staleData.rankingScore, stage: staleData.stage, score: staleData.score }
+        : payload;
+
+      const safeMerged =
+        mode === 'normal'
+          ? { seconds: mergedPayload.seconds, totalScore: mergedPayload.totalScore, rankingScore: mergedPayload.rankingScore }
+          : mode === 'challenge'
+          ? { stage: mergedPayload.stage, totalScore: mergedPayload.totalScore }
+          : { score: mergedPayload.score };
+
+      await ref.set({
+        displayName,
+        photoURL,
+        email,
+        ...safeMerged,
+        submittedAt: isStaleWorse ? (staleData.submittedAt ?? new Date()) : new Date(),
+      });
+
+      return NextResponse.json({ ok: true, updated: !isStaleWorse });
+    }
+  }
 
   if (existing.exists) {
     const old = existing.data()!;
@@ -141,6 +187,7 @@ export async function POST(req: NextRequest) {
   await ref.set({
     displayName,
     photoURL,
+    ...(email ? { email } : {}),
     ...safePayload,
     submittedAt: new Date(),
   });
