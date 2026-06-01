@@ -473,6 +473,12 @@ export function startGame(roomId: string): GameResponse {
         return { success: false, error: '開始遊戲失敗' };
     }
 
+    // 若牌庫大小不是 4 的倍數，隨機移除多餘的牌，確保不會有孤牌剩餘
+    const remainder = tempDeck.length % 4;
+    if (remainder !== 0) {
+      tempDeck = shuffleArray(tempDeck).slice(remainder);
+    }
+
     // 洗牌
     const shuffledDeck: NumberCard[] = shuffleArray(tempDeck).map(d => ({
       id: uuidv4(),

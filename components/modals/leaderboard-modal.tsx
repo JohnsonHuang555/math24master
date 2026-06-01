@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { Trophy } from 'lucide-react';
+import { Trophy, User } from 'lucide-react';
 import {
   LeaderboardMode,
   LeaderboardRow,
   useLeaderboard,
 } from '@/hooks/useLeaderboard';
+import { useGuestStore } from '@/stores/guest-store';
 import { formatTime } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '../ui/button';
@@ -19,6 +20,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { GuestLoginModal } from './guest-login-modal';
 
 type LeaderboardModalProps = {
   isOpen: boolean;
@@ -132,7 +134,9 @@ function LeaderboardTable({
                     className="rounded-full"
                   />
                 ) : (
-                  <div className="h-5 w-5 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
+                    <User className="h-3 w-3 text-slate-500 dark:text-slate-400" />
+                  </div>
                 )}
                 <span className="truncate">{row.displayName}</span>
                 {isMe && (
@@ -165,66 +169,111 @@ function TabPanel({ mode, myId, active }: { mode: LeaderboardMode; myId?: string
 
 export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
   const { data: session, status } = useSession();
+  const { guestId, guestName, setGuest, clearGuest } = useGuestStore();
   const [activeTab, setActiveTab] = useState<LeaderboardMode>('classic');
-  const myId = (session?.user as { id?: string })?.id;
+  const [showGuestLogin, setShowGuestLogin] = useState(false);
+
+  const googleId = (session?.user as { id?: string })?.id;
+  const myId = googleId ?? guestId ?? undefined;
 
   return (
-    <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            全球排行榜
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              全球排行榜
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* 登入狀態列 */}
-        {status === 'authenticated' && session.user ? (
-          <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm">
-            <div className="flex items-center gap-2">
-              {session.user.image && (
-                <Image
-                  src={session.user.image}
-                  alt={session.user.name ?? ''}
-                  width={24}
-                  height={24}
-                  className="rounded-full"
-                />
-              )}
-              <span>{session.user.name}</span>
+          {/* 登入狀態列 */}
+          {status === 'authenticated' && session.user ? (
+            // Google 已登入
+            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                {session.user.image && (
+                  <Image
+                    src={session.user.image}
+                    alt={session.user.name ?? ''}
+                    width={24}
+                    height={24}
+                    className="rounded-full"
+                  />
+                )}
+                <span>{session.user.name}</span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => signOut()}>
+                登出
+              </Button>
             </div>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => signOut()}>
-              登出
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm dark:border-orange-900 dark:bg-orange-950/40">
-            <span className="text-orange-700 dark:text-orange-300">🔑 登入後，讓你的紀錄出現在這裡！</span>
-            <Button size="sm" className="h-7 text-xs" onClick={() => signIn('google')}>
-              Google 登入
-            </Button>
-          </div>
-        )}
+          ) : guestId && guestName ? (
+            // 訪客已登入
+            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
+                  <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                </div>
+                <span>{guestName}</span>
+                <span className="rounded bg-slate-100 px-1 py-px text-[10px] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  訪客
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearGuest}>
+                登出
+              </Button>
+            </div>
+          ) : (
+            // 未登入
+            <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 dark:border-orange-900 dark:bg-orange-950/40">
+              <p className="mb-2 text-xs text-orange-700 dark:text-orange-300">
+                🔑 登入後，讓你的紀錄出現在這裡！
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => signIn('google')}>
+                  Google 登入
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 flex-1 text-xs"
+                  onClick={() => setShowGuestLogin(true)}
+                >
+                  訪客登入
+                </Button>
+              </div>
+            </div>
+          )}
 
-        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as LeaderboardMode)}>
-          <TabsList className="w-full">
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as LeaderboardMode)}>
+            <TabsList className="w-full">
+              {TABS.map(t => (
+                <TabsTrigger key={t.mode} value={t.mode} className="flex-1">
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
             {TABS.map(t => (
-              <TabsTrigger key={t.mode} value={t.mode} className="flex-1">
-                {t.label}
-              </TabsTrigger>
+              <TabsContent key={t.mode} value={t.mode} className="mt-3 max-h-[360px] overflow-y-auto">
+                <TabPanel mode={t.mode} myId={myId} active={activeTab === t.mode} />
+              </TabsContent>
             ))}
-          </TabsList>
-          {TABS.map(t => (
-            <TabsContent key={t.mode} value={t.mode} className="mt-3 max-h-[360px] overflow-y-auto">
-              <TabPanel mode={t.mode} myId={myId} active={activeTab === t.mode} />
-            </TabsContent>
-          ))}
-        </Tabs>
+          </Tabs>
 
-        <Button variant="outline" onClick={onClose}>
-          關閉
-        </Button>
-      </DialogContent>
-    </Dialog>
+          <Button variant="outline" onClick={onClose}>
+            關閉
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <GuestLoginModal
+        isOpen={showGuestLogin}
+        onClose={() => setShowGuestLogin(false)}
+        onConfirm={name => {
+          setGuest(name);
+          setShowGuestLogin(false);
+        }}
+      />
+    </>
   );
 }

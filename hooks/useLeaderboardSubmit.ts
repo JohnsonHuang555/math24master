@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useGuestStore } from '@/stores/guest-store';
 import { LeaderboardMode } from './useLeaderboard';
 
 export function useLeaderboardSubmit(
@@ -10,18 +11,28 @@ export function useLeaderboardSubmit(
   enabled: boolean,
 ) {
   const { data: session } = useSession();
+  const { guestId, guestName } = useGuestStore();
   const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !payload || !session?.user || submittedRef.current) return;
+    if (!enabled || !payload || submittedRef.current) return;
+
+    const hasGoogle = !!session?.user;
+    const hasGuest = !!guestId && !!guestName;
+    if (!hasGoogle && !hasGuest) return;
+
     submittedRef.current = true;
+
+    const body = hasGoogle
+      ? { mode, payload }
+      : { mode, payload, guestId, guestName };
 
     fetch('/api/leaderboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, payload }),
+      body: JSON.stringify(body),
     }).catch(() => {
       // silent fail — leaderboard submit is best-effort
     });
-  }, [enabled, payload, session, mode]);
+  }, [enabled, payload, session, mode, guestId, guestName]);
 }
