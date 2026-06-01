@@ -48,19 +48,45 @@ export async function GET(req: NextRequest) {
   });
 }
 
+const GUEST_ID_RE = /^guest_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
-  const userId = (session.user as { id?: string }).id;
-  if (!userId) {
-    return NextResponse.json({ error: 'no user id' }, { status: 400 });
-  }
 
   const body = await req.json();
-  const { mode, payload } = body as { mode: Mode; payload: Record<string, unknown> };
+  const { mode, payload, guestId, guestName } = body as {
+    mode: Mode;
+    payload: Record<string, unknown>;
+    guestId?: string;
+    guestName?: string;
+  };
+
+  let userId: string;
+  let displayName: string;
+  let photoURL: string | null;
+
+  if (session?.user) {
+    const id = (session.user as { id?: string }).id;
+    if (!id) {
+      return NextResponse.json({ error: 'no user id' }, { status: 400 });
+    }
+    userId = id;
+    displayName = session.user.name ?? 'Anonymous';
+    photoURL = session.user.image ?? null;
+  } else if (guestId && guestName) {
+    if (!GUEST_ID_RE.test(guestId)) {
+      return NextResponse.json({ error: 'invalid guest id' }, { status: 400 });
+    }
+    const trimmedName = String(guestName).trim();
+    if (trimmedName.length < 2 || trimmedName.length > 12) {
+      return NextResponse.json({ error: 'invalid name' }, { status: 400 });
+    }
+    userId = guestId;
+    displayName = trimmedName;
+    photoURL = null;
+  } else {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
 
   if (!mode || !COLLECTION[mode]) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
@@ -113,8 +139,8 @@ export async function POST(req: NextRequest) {
       : { score: payload.score };
 
   await ref.set({
-    displayName: session.user.name ?? 'Anonymous',
-    photoURL: session.user.image ?? null,
+    displayName,
+    photoURL,
     ...safePayload,
     submittedAt: new Date(),
   });
