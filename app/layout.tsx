@@ -89,7 +89,7 @@ export default function RootLayout({
           <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
           <PendingScoreSubmitter />
         </SessionProvider>
-        <SoundToggle />
+        {/* <SoundToggle /> */}
         <ToastContainer
           position="top-right"
           autoClose={4000}

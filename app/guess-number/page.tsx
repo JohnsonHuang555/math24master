@@ -3,7 +3,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, HelpCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   AlertDialog,
@@ -235,9 +235,12 @@ export default function GuessNumberPage() {
   const [pendingIdx, setPendingIdx] = useState<number | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesMarked, setNotesMarked] = useState<Set<number>>(new Set());
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const prevRoundCountRef = useRef(0);
   const prevClueResultRef = useRef<'yes' | 'no' | null>(null);
+  const dragModeRef = useRef<boolean | null>(null);
+  const draggedSetRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (roundCount > prevRoundCountRef.current && !gameOver) {
       toast.error('猜錯了！', { autoClose: 2000 });
@@ -288,13 +291,45 @@ export default function GuessNumberPage() {
     setPendingIdx(null);
   };
 
-  const toggleNoteMark = (n: number) => {
+  const getNumFromTarget = (el: HTMLElement | null): number | null => {
+    while (el) {
+      const attr = (el as HTMLElement & { dataset: DOMStringMap }).dataset?.noteNum;
+      if (attr !== undefined) return Number(attr);
+      el = el.parentElement;
+    }
+    return null;
+  };
+
+  const applyNoteDrag = (n: number, mark: boolean) => {
     setNotesMarked(prev => {
       const next = new Set(prev);
-      if (next.has(n)) next.delete(n);
-      else next.add(n);
+      if (mark) next.add(n);
+      else next.delete(n);
       return next;
     });
+  };
+
+  const handleNotesPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const num = getNumFromTarget(e.target as HTMLElement);
+    if (num === null) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragModeRef.current = !notesMarked.has(num);
+    draggedSetRef.current = new Set([num]);
+    applyNoteDrag(num, dragModeRef.current);
+  };
+
+  const handleNotesPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragModeRef.current === null) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const num = getNumFromTarget(el as HTMLElement);
+    if (num === null || draggedSetRef.current.has(num)) return;
+    draggedSetRef.current.add(num);
+    applyNoteDrag(num, dragModeRef.current);
+  };
+
+  const handleNotesPointerUp = () => {
+    dragModeRef.current = null;
+    draggedSetRef.current.clear();
   };
 
   const handleSubmit = () => {
@@ -339,13 +374,22 @@ export default function GuessNumberPage() {
           ← 回首頁
         </Link>
         <h1 className="text-xl font-bold">猜數字</h1>
-        <button
-          onClick={() => setNotesOpen(true)}
-          className="flex h-8 w-16 items-center justify-end gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
-        >
-          <BookOpen size={16} />
-          <span className="text-xs">筆記</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setRulesOpen(true)}
+            className="flex h-8 items-center gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+          >
+            <HelpCircle size={16} />
+            <span className="text-xs">規則</span>
+          </button>
+          <button
+            onClick={() => setNotesOpen(true)}
+            className="flex h-8 items-center gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+          >
+            <BookOpen size={16} />
+            <span className="text-xs">筆記</span>
+          </button>
+        </div>
       </div>
 
       {/* 謎題展示區 */}
@@ -643,7 +687,7 @@ export default function GuessNumberPage() {
             >
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-bold">筆記</h2>
-                <div className="flex gap-4">
+                <div className="flex gap-6">
                   <button
                     onClick={() => setNotesMarked(new Set())}
                     className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
@@ -658,12 +702,18 @@ export default function GuessNumberPage() {
                   </button>
                 </div>
               </div>
-              <p className="mb-3 text-xs text-muted-foreground">點擊數字標記候選，再次點擊取消</p>
-              <div className="grid grid-cols-6 gap-2 sm:grid-cols-10 sm:gap-1">
+              <p className="mb-3 text-xs text-muted-foreground">點擊或滑動選取候選數字，再次點擊取消</p>
+              <div
+                className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-1 [touch-action:none]"
+                onPointerDown={handleNotesPointerDown}
+                onPointerMove={handleNotesPointerMove}
+                onPointerUp={handleNotesPointerUp}
+                onPointerCancel={handleNotesPointerUp}
+              >
                 {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
                   <button
                     key={n}
-                    onClick={() => toggleNoteMark(n)}
+                    data-note-num={n}
                     className={cn(
                       'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-none sm:h-8 [-webkit-tap-highlight-color:transparent]',
                       notesMarked.has(n)
@@ -675,6 +725,122 @@ export default function GuessNumberPage() {
                   </button>
                 ))}
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 規則抽屜 */}
+      <AnimatePresence>
+        {rulesOpen && (
+          <>
+            <motion.div
+              key="rules-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setRulesOpen(false)}
+              className="fixed inset-0 z-40 bg-black/30"
+            />
+            <motion.div
+              key="rules-drawer"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-gray-900"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-bold">遊戲規則</h2>
+                <button
+                  onClick={() => setRulesOpen(false)}
+                  className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
+                >
+                  關閉
+                </button>
+              </div>
+
+              {/* 遊戲目標 */}
+              <section className="mb-4">
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">遊戲目標</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  利用線索牌推理出藏匿的兩位數（10–99），最多 <span className="font-semibold">10 回合</span>內猜對即獲勝。
+                </p>
+              </section>
+
+              {/* 每回合流程 */}
+              <section className="mb-4">
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">每回合流程</h3>
+                <ol className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">1.</span>從手牌中選一張線索牌，系統回答「是」或「否」</li>
+                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">2.</span>根據線索縮小候選範圍後，輸入你猜測的數字</li>
+                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">3.</span>猜錯則繼續下一回合；猜對立即獲勝</li>
+                </ol>
+              </section>
+
+              {/* 特殊牌 */}
+              <section className="mb-4">
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">特殊牌</h3>
+                <div className="space-y-2">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">🔍 透視鏡</p>
+                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">顯示目前所有候選數字 5 秒。每局限用一次，使用後本回合仍可猜數。</p>
+                  </div>
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-800 dark:bg-blue-900/20">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400">🔄 全面革新</p>
+                    <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-500">重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* 線索牌一覽 */}
+              <section className="mb-4">
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">線索牌一覽</h3>
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {[
+                    ['半壁江山', '謎底 > 50？'],
+                    ['陰陽雙極', '謎底是奇數？'],
+                    ['三陽開泰', '謎底是 3 的倍數？'],
+                    ['五福臨門', '謎底是 5 的倍數？'],
+                    ['七星高照', '謎底是 7 的倍數？'],
+                    ['黃金質數', '謎底是質數？'],
+                    ['複製貼上', '十位數 = 個位數？'],
+                    ['步步高升', '個位數 > 十位數？'],
+                    ['數位加總', '各位數之和是奇數？'],
+                    ['尾數偵測', '個位數 > 5？'],
+                    ['十位偵測', '十位數 > 5？'],
+                    ['數位之積', '十位數 × 個位數 > 20？'],
+                    ['高低雷達', '謎底 > 上一次猜的？'],
+                    ['黃金交叉', '謎底與上次猜的相差 ≤ 10？'],
+                    ['完美平方', '謎底是完全平方數？'],
+                    ['幸運之星', '謎底含有數字 7？'],
+                  ].map(([name, desc]) => (
+                    <div key={name} className="flex items-baseline gap-1.5 rounded px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <span className="shrink-0 font-medium text-gray-700 dark:text-gray-300">{name}</span>
+                      <span className="text-gray-400 dark:text-gray-500">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* 評分 */}
+              <section>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">評分標準</h3>
+                <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  {[
+                    ['1 回合', '🎲 運氣爆棚！'],
+                    ['2–3 回合', '🧠 邏輯天才！'],
+                    ['4–6 回合', '👍 穩健推理'],
+                    ['7–10 回合', '💪 快追上了'],
+                    ['未猜中', '😤 下次再試'],
+                  ].map(([rounds, label]) => (
+                    <div key={rounds} className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-gray-400">{rounds}</span>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </motion.div>
           </>
         )}

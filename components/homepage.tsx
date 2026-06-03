@@ -229,7 +229,7 @@ const Homepage = () => {
           </div> */}
           <div className="mt-1 flex items-center justify-center gap-1 text-xs text-gray-500">
             <span>#24點大師, Created by Johnson Huang</span>
-            <span>v1.2.1</span>
+            <span>v1.2.2</span>
             <Image
               src="/smile-circle.svg"
               alt="smile-circle"
