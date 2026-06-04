@@ -235,6 +235,8 @@ export default function GuessNumberPage() {
   const [pendingIdx, setPendingIdx] = useState<number | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesMarked, setNotesMarked] = useState<Set<number>>(new Set());
+  const [notesColumns, setNotesColumns] = useState<5 | 6>(5);
+  const [dragSelectMode, setDragSelectMode] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   const prevRoundCountRef = useRef(0);
@@ -312,10 +314,20 @@ export default function GuessNumberPage() {
   const handleNotesPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const num = getNumFromTarget(e.target as HTMLElement);
     if (num === null) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragModeRef.current = !notesMarked.has(num);
-    draggedSetRef.current = new Set([num]);
-    applyNoteDrag(num, dragModeRef.current);
+    if (dragSelectMode) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      dragModeRef.current = !notesMarked.has(num);
+      draggedSetRef.current = new Set([num]);
+      applyNoteDrag(num, dragModeRef.current);
+    } else {
+      applyNoteDrag(num, !notesMarked.has(num));
+    }
+  };
+
+  const handleToggleDragSelect = () => {
+    setDragSelectMode(prev => !prev);
+    dragModeRef.current = null;
+    draggedSetRef.current.clear();
   };
 
   const handleNotesPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -674,7 +686,7 @@ export default function GuessNumberPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setNotesOpen(false)}
+              onClick={() => { setNotesOpen(false); setDragSelectMode(false); }}
               className="fixed inset-0 z-40 bg-black/30"
             />
             <motion.div
@@ -683,47 +695,90 @@ export default function GuessNumberPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-gray-900"
+              className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-xl dark:bg-gray-900"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-bold">筆記</h2>
-                <div className="flex gap-6">
-                  <button
-                    onClick={() => setNotesMarked(new Set())}
-                    className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
-                  >
-                    清除全部
-                  </button>
-                  <button
-                    onClick={() => setNotesOpen(false)}
-                    className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
-                  >
-                    關閉
-                  </button>
+              {/* 固定標題區（不參與滾動） */}
+              <div className="shrink-0 px-4 pt-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="font-bold">筆記</h2>
+                  <div className="flex gap-6">
+                    <button
+                      onClick={() => setNotesMarked(new Set())}
+                      className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
+                    >
+                      清除全部
+                    </button>
+                    <button
+                      onClick={() => { setNotesOpen(false); setDragSelectMode(false); }}
+                      className="text-xs text-gray-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-gray-600"
+                    >
+                      關閉
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <p className="mb-3 text-xs text-muted-foreground">點擊或滑動選取候選數字，再次點擊取消</p>
-              <div
-                className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-1 [touch-action:none]"
-                onPointerDown={handleNotesPointerDown}
-                onPointerMove={handleNotesPointerMove}
-                onPointerUp={handleNotesPointerUp}
-                onPointerCancel={handleNotesPointerUp}
-              >
-                {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex overflow-hidden rounded border border-gray-200 dark:border-gray-700">
+                    {([5, 6] as const).map(col => (
+                      <button
+                        key={col}
+                        onClick={() => setNotesColumns(col)}
+                        className={cn(
+                          'px-2.5 py-1 text-xs outline-none [-webkit-tap-highlight-color:transparent]',
+                          notesColumns === col
+                            ? 'bg-teal-500 text-white'
+                            : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800',
+                        )}
+                      >
+                        {col} 列
+                      </button>
+                    ))}
+                  </div>
                   <button
-                    key={n}
-                    data-note-num={n}
+                    onClick={handleToggleDragSelect}
                     className={cn(
-                      'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-none sm:h-8 [-webkit-tap-highlight-color:transparent]',
-                      notesMarked.has(n)
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+                      'rounded border px-2.5 py-1 text-xs outline-none [-webkit-tap-highlight-color:transparent]',
+                      dragSelectMode
+                        ? 'border-teal-500 bg-teal-500 text-white'
+                        : 'border-gray-200 text-gray-500 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800',
                     )}
                   >
-                    {n}
+                    ✎ 連選
                   </button>
-                ))}
+                  <p className="ml-auto text-xs text-muted-foreground">
+                    {dragSelectMode ? '滑動連選中' : '點擊選取'}
+                  </p>
+                </div>
+              </div>
+              {/* 獨立滾動的數字區 */}
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+                <div
+                  className={cn(
+                    'grid gap-2 sm:gap-1',
+                    notesColumns === 5 ? 'grid-cols-5 sm:grid-cols-10' : 'grid-cols-6 sm:grid-cols-10',
+                    dragSelectMode && '[touch-action:none]',
+                  )}
+                  onPointerDown={handleNotesPointerDown}
+                  onPointerMove={dragSelectMode ? handleNotesPointerMove : undefined}
+                  onPointerUp={dragSelectMode ? handleNotesPointerUp : undefined}
+                  onPointerCancel={dragSelectMode ? handleNotesPointerUp : undefined}
+                >
+                  {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
+                    <motion.button
+                      key={n}
+                      layout
+                      transition={{ layout: { type: 'spring', damping: 25, stiffness: 300, duration: 0.3 } }}
+                      data-note-num={n}
+                      className={cn(
+                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-none sm:h-8 [-webkit-tap-highlight-color:transparent]',
+                        notesMarked.has(n)
+                          ? 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+                      )}
+                    >
+                      {n}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </>
@@ -798,7 +853,7 @@ export default function GuessNumberPage() {
                 <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">線索牌一覽</h3>
                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                   {[
-                    ['半壁江山', '謎底 > 50？'],
+                    ['半壁江山', '謎底 ≥ 55？'],
                     ['陰陽雙極', '謎底是奇數？'],
                     ['三陽開泰', '謎底是 3 的倍數？'],
                     ['五福臨門', '謎底是 5 的倍數？'],

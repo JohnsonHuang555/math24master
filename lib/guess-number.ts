@@ -42,7 +42,7 @@ export const REDRAW_CARD: RedrawCard = {
 };
 
 export const LINE_CLUE_CARDS: LineClueCard[] = [
-  { id: 'half', name: '半壁江山', question: '謎底大於 50 嗎？' },
+  { id: 'half', name: '半壁江山', question: '謎底是 55 以上嗎？' },
   { id: 'odd-even', name: '陰陽雙極', question: '謎底是奇數嗎？' },
   { id: 'triple', name: '三陽開泰', question: '謎底是 3 的倍數嗎？' },
   { id: 'multiple-5', name: '五福臨門', question: '謎底是 5 的倍數嗎？' },
@@ -98,8 +98,8 @@ export function applyClue(
   switch (card.id) {
     case 'half':
       return clueResult === 'yes'
-        ? remaining.filter(n => n > 50)
-        : remaining.filter(n => n <= 50);
+        ? remaining.filter(n => n >= 55)
+        : remaining.filter(n => n < 55);
     case 'odd-even':
       return clueResult === 'yes'
         ? remaining.filter(n => n % 2 !== 0)
@@ -179,7 +179,7 @@ export function calcClueResult(
 ): 'yes' | 'no' {
   switch (card.id) {
     case 'half':
-      return answer > 50 ? 'yes' : 'no';
+      return answer >= 55 ? 'yes' : 'no';
     case 'odd-even':
       return answer % 2 !== 0 ? 'yes' : 'no';
     case 'triple':
