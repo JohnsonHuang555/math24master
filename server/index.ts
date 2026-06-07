@@ -546,11 +546,13 @@ app.prepare().then(() => {
               }
             }
           }
-        }, 30_000);
+        }, 300_000); // 5 分鐘，讓行動裝置使用者有足夠時間回來
 
         disconnectGraceTimerMap.set(reconnectToken, graceTimer);
       }
     });
+
+
 
     socket.on(SocketEvent.PlayerReconnect, ({ reconnectToken }: { reconnectToken: string }) => {
       // 取消寬限期計時器

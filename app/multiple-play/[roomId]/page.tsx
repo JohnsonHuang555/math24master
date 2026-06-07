@@ -77,7 +77,14 @@ export default function RoomPage() {
       socket.disconnect();
     };
     if (playerName) {
-      joinRoom(playerName, roomId);
+      const storedToken = sessionStorage.getItem('reconnectToken');
+      const storedRoomId = sessionStorage.getItem('reconnectRoomId');
+
+      if (!storedToken || storedRoomId !== roomId) {
+        // 沒有此房間的重連 token → 正常加入流程
+        joinRoom(playerName, roomId);
+      }
+      // 有此房間的 token → provider 的 connect handler 會自動發 PlayerReconnect
 
       window.addEventListener('beforeunload', handleBeforeUnload);
       window.addEventListener('unload', handleUnload);
