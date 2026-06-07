@@ -23,6 +23,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
 
   const [roomInfo, setRoomInfo] = useState<Room>();
   const hasStartedRef = useRef(false);
+  const reconnectTokenRef = useRef<string | null>(null);
 
   const {
     selectedCardSymbols,
@@ -89,14 +90,35 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
       },
     );
 
-    // socket.on('disconnect', () => {
-    //   toast.error('連線已中斷，請重新整理頁面');
-    // });
+    // 儲存重連 token，供手機切換 App 後恢復遊戲
+    socket.on(SocketEvent.GetReconnectToken, (token: string) => {
+      reconnectTokenRef.current = token;
+    });
+
+    // 手機切換 App 後 socket 重連，自動恢復遊戲狀態
+    socket.on('connect', () => {
+      if (reconnectTokenRef.current) {
+        socket.emit(SocketEvent.PlayerReconnect, { reconnectToken: reconnectTokenRef.current });
+      }
+    });
+
+    socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
+      setRoomInfo(room);
+    });
+
+    socket.on(SocketEvent.PlayerReconnectFailed, () => {
+      reconnectTokenRef.current = null;
+      toast.error('連線已中斷，請重新整理頁面');
+    });
 
     return () => {
       socket.off(SocketEvent.JoinRoomSuccess);
       socket.off(SocketEvent.ErrorMessage);
       socket.off(SocketEvent.RoomUpdate);
+      socket.off(SocketEvent.GetReconnectToken);
+      socket.off('connect');
+      socket.off(SocketEvent.PlayerReconnectSuccess);
+      socket.off(SocketEvent.PlayerReconnectFailed);
       socket.disconnect();
     };
   }, [difficulty]); // eslint-disable-line react-hooks/exhaustive-deps

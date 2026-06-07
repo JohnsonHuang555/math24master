@@ -16,6 +16,7 @@ import { useStatsStore } from '@/stores/stats-store';
 import { Symbol } from '@/models/Symbol';
 import { useGuestStore } from '@/stores/guest-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
+import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 
 type ClassicStatus = 'idle' | 'playing' | 'finished';
 
@@ -35,6 +36,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
   const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } = useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const {
@@ -126,11 +128,11 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
 
   // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
   useEffect(() => {
-    if (!isGameOver || isAuthenticated || sessionStatus === 'loading') return;
+    if (!isGameOver || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
     setPendingScore({ mode: 'classic', payload: { score: currentScore } });
-    const id = setTimeout(() => setShowLoginPrompt(true), 1500);
+    const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
-  }, [isGameOver, isAuthenticated, sessionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isGameOver, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 開始畫面
   if (status === 'idle') {
@@ -165,6 +167,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
           isOpen={showLoginPrompt}
           onClose={() => setShowLoginPrompt(false)}
           onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+          onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
         />
         <div className="flex h-full flex-col items-center justify-center gap-6">
           <h1 className="text-3xl font-bold">遊戲結束</h1>
@@ -278,6 +281,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
         onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+        onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
       />
       <PuzzlePlayArea
         currentNumbers={handCard}

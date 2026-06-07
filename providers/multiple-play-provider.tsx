@@ -184,11 +184,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       setConnectionStatus('reconnecting');
       graceTimerRef.current = setTimeout(() => {
         setConnectionStatus('disconnected');
-      }, 30_000);
+      }, 300_000); // 5 分鐘，與伺服器 grace period 同步
     });
 
-    // 重連成功後（manager 事件，僅在真正重連後觸發，不含初次連線）
-    socket.io.on('reconnect', () => {
+    // transport 重連或頁面重載後，若有 token 則自動恢復遊戲
+    socket.on('connect', () => {
       const token = sessionStorage.getItem('reconnectToken');
       if (token) {
         socket.emit(SocketEvent.PlayerReconnect, { reconnectToken: token });
@@ -198,6 +198,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
       if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
       setRoomInfo(room);
+      setPlayerId(socket.id);
+      playerIdRef.current = socket.id;
       setConnectionStatus('connected');
       toast.success('已重新連線');
     });
@@ -382,6 +384,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   // 選擇牌
   const onSelectCardOrSymbol = useCallback(
     ({ number, symbol }: { number?: NumberCard; symbol?: Symbol }) => {
+      if (connectionStatus !== 'connected') return;
       if (roomInfo?.isGameOver || !isYourTurn) return;
 
       playSound('select');
@@ -393,7 +396,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         });
       }
     },
-    [roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId],
+    [connectionStatus, roomInfo?.isGameOver, isYourTurn, roomInfo?.roomId],
   );
 
   // 棄牌
@@ -413,6 +416,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 出牌
   const onPlayCard = useCallback(() => {
+    if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (roomInfo?.selectedCards.length === 0) {
@@ -426,6 +430,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       });
     }
   }, [
+    connectionStatus,
     roomInfo?.isGameOver,
     isYourTurn,
     roomInfo?.roomId,
@@ -434,6 +439,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   // 重選
   const onReselect = useCallback(() => {
+    if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket) {
@@ -441,10 +447,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn]);
+  }, [connectionStatus, roomInfo?.isGameOver, roomInfo?.roomId, isYourTurn]);
 
   // 結束回合並抽牌
   const onDrawCard = useCallback(() => {
+    if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn || checkAnswerCorrect !== null)
       return;
 
@@ -455,10 +462,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [checkAnswerCorrect, isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId]);
+  }, [connectionStatus, checkAnswerCorrect, isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId]);
 
   // 退回鍵
   const onBack = useCallback(() => {
+    if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (socket && roomInfo?.selectedCards.length) {
@@ -467,6 +475,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       });
     }
   }, [
+    connectionStatus,
     isYourTurn,
     roomInfo?.isGameOver,
     roomInfo?.roomId,

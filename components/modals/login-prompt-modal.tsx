@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,12 +21,14 @@ type LoginPromptModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSkip: () => void;
+  onSkipForever: () => void;
 };
 
-export function LoginPromptModal({ isOpen, onClose, onSkip }: LoginPromptModalProps) {
+export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: LoginPromptModalProps) {
   const [view, setView] = useState<View>('choose');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dontRemind, setDontRemind] = useState(false);
   const trimmed = name.trim();
 
   const { setGuest } = useGuestStore();
@@ -84,8 +87,25 @@ export function LoginPromptModal({ isOpen, onClose, onSkip }: LoginPromptModalPr
                 訪客登入
               </Button>
             </div>
+            <div className="flex justify-center items-center gap-2">
+              <Checkbox
+                id="dont-remind"
+                checked={dontRemind}
+                onCheckedChange={v => setDontRemind(!!v)}
+              />
+              <label
+                htmlFor="dont-remind"
+                className="text-sm text-muted-foreground cursor-pointer select-none"
+              >
+                不要再提醒我
+              </label>
+            </div>
             <DialogFooter>
-              <Button variant="ghost" className="w-full text-muted-foreground" onClick={onSkip}>
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={dontRemind ? onSkipForever : onSkip}
+              >
                 暫不登入
               </Button>
             </DialogFooter>

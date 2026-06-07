@@ -21,6 +21,7 @@ import { useChallengePlay } from '@/hooks/useChallengePlay';
 import { cn, formatTime } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
+import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 
 interface ChallengePlayGameProps {
   onBack: () => void;
@@ -55,6 +56,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
   const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } = useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const isFinished = status === 'finished';
@@ -67,11 +69,11 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
 
   // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
   useEffect(() => {
-    if (!isFinished || isAuthenticated || sessionStatus === 'loading') return;
+    if (!isFinished || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
     setPendingScore({ mode: 'challenge', payload: { stage, totalScore } });
-    const id = setTimeout(() => setShowLoginPrompt(true), 1500);
+    const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
-  }, [isFinished, isAuthenticated, sessionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isFinished, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (autoStart) startGame();
@@ -125,6 +127,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           isOpen={showLoginPrompt}
           onClose={() => setShowLoginPrompt(false)}
           onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
+          onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
         />
         <div className="flex h-full flex-col items-center justify-center gap-6">
           <h1 className="text-3xl font-bold">
