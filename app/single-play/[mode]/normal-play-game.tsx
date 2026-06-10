@@ -100,7 +100,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
           <Button variant="outline" onClick={() => onBack()}>
             返回
           </Button>
-          <Button onClick={startGame}>開始遊戲</Button>
+          <Button variant="tactile" onClick={startGame}>開始遊戲</Button>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
         <div className="flex h-full flex-col items-center justify-center gap-6">
           <h1 className="text-3xl font-bold">完成！</h1>
           <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-5xl font-bold">{formatTime(seconds)}</p>
+            <p className="font-display text-5xl font-bold text-primary">{formatTime(seconds)}</p>
             <p className="text-muted-foreground">總用時</p>
             <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
           </div>
@@ -127,7 +127,7 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
             <Button variant="outline" onClick={() => onBack()}>
               返回選單
             </Button>
-            <Button onClick={startGame}>再來一次</Button>
+            <Button variant="tactile" onClick={startGame}>再來一次</Button>
           </div>
         </div>
       </>
@@ -158,10 +158,8 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
         <div className="flex items-baseline gap-2">
           <span
             className={cn(
-              'text-5xl font-bold tabular-nums transition-colors duration-150',
-              isFlashing || penaltyCount >= 2
-                ? 'text-red-500'
-                : 'text-blue-600 dark:text-blue-400',
+              'font-display text-5xl font-bold tabular-nums transition-colors duration-150',
+              isFlashing || penaltyCount >= 2 ? 'text-red-500' : 'text-primary',
             )}
           >
             {formatTime(seconds)}

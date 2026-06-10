@@ -33,14 +33,14 @@ const Symbols = ({ onClick }: SymbolsProps) => {
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           onClick={() => onClick(config.symbol)}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-zinc-200 bg-white shadow-[0_3px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-primary/40 hover:bg-zinc-50 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
         >
           {config.type === 'image' ? (
             <div className="relative h-5 w-5">
               <Image src={config.icon} alt={config.alt} fill priority />
             </div>
           ) : (
-            <span className="text-xl font-medium">{config.text}</span>
+            <span className="font-display text-xl font-semibold">{config.text}</span>
           )}
         </motion.button>
       ))}

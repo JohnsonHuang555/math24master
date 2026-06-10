@@ -112,7 +112,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           <Button variant="outline" onClick={() => onBack()}>
             返回
           </Button>
-          <Button onClick={startGame}>開始遊戲</Button>
+          <Button variant="tactile" onClick={startGame}>開始遊戲</Button>
         </div>
       </div>
     );
@@ -134,7 +134,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
             {finishReason === 'early' ? '提前結算！' : '時間到！'}
           </h1>
           <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-5xl font-bold">第 {stage} 關</p>
+            <p className="font-display text-5xl font-bold text-primary">第 {stage} 關</p>
             <p className="text-muted-foreground">最終關卡</p>
             <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
             {isNewBest && (
@@ -150,7 +150,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
             <Button variant="outline" onClick={() => onBack()}>
               返回選單
             </Button>
-            <Button onClick={startGame}>再挑戰</Button>
+            <Button variant="tactile" onClick={startGame}>再挑戰</Button>
           </div>
         </div>
       </>
@@ -183,10 +183,8 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         <div className="flex items-baseline gap-2">
           <span
             className={cn(
-              'text-5xl font-bold tabular-nums transition-colors duration-150',
-              isFlashing || isLowTime
-                ? 'text-red-500 animate-pulse'
-                : 'text-orange-600 dark:text-orange-400',
+              'font-display text-5xl font-bold tabular-nums transition-colors duration-150',
+              isFlashing || isLowTime ? 'animate-pulse text-red-500' : 'text-primary',
             )}
           >
             {formatTime(seconds)}
@@ -215,7 +213,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
       <Button
         variant="ghost"
         size="sm"
-        className="text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+        className="text-xs text-primary hover:bg-primary/10 hover:text-primary"
         onClick={() => setShowEarlyEndConfirm(true)}
       >
         提前結算

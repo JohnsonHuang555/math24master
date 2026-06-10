@@ -18,6 +18,11 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        // 觸感立體按鈕：底部硬陰影，按下時陷入（全站遊戲風格主 CTA）
+        tactile:
+          'rounded-2xl bg-primary font-bold text-primary-foreground shadow-[0_4px_0_0_hsl(175_84%_22%)] transition-[transform,box-shadow,filter] hover:brightness-110 active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]',
+        tactileOutline:
+          'rounded-2xl border-2 border-border bg-card font-bold text-foreground shadow-[0_4px_0_0_hsl(var(--border))] transition-[transform,box-shadow] hover:bg-accent active:translate-y-1 active:shadow-none',
       },
       size: {
         default: 'h-10 px-4 py-2',
