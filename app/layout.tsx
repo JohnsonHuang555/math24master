@@ -1,6 +1,6 @@
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Noto_Sans_TC } from 'next/font/google';
+import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import SoundToggle from '@/components/sound-toggle';
@@ -18,10 +18,18 @@ const fontNotoSans = Noto_Sans_TC({
   preload: true,
 });
 
+// 展示字體：圓潤厚實，用於數字牌與大標題（拉丁字元／數字），中文自動 fallback 到 Noto Sans TC
+const fontBaloo = Baloo_2({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-baloo',
+  weight: ['500', '600', '700', '800'],
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#ffffff',
+  themeColor: '#0d9488',
 };
 
 export const metadata: Metadata = {
@@ -69,14 +77,12 @@ export default function RootLayout({
         className={cn(
           'relative h-dvh font-noto antialiased',
           fontNotoSans.variable,
+          fontBaloo.variable,
         )}
       >
         <div
-          className="m:bg-center absolute h-full w-full bg-cover opacity-30 max-md:bg-right"
-          style={{
-            backgroundImage: `url(/b2.webp)`,
-            zIndex: '-999',
-          }}
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 bg-[#f3faf8] [background-image:radial-gradient(42rem_42rem_at_115%_-12%,rgba(13,148,136,0.10),transparent_70%),radial-gradient(34rem_34rem_at_-12%_112%,rgba(245,158,11,0.08),transparent_70%)] dark:bg-zinc-950 dark:[background-image:radial-gradient(42rem_42rem_at_115%_-12%,rgba(45,212,191,0.07),transparent_70%)]"
         />
         <Script
           async

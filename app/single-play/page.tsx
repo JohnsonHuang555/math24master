@@ -14,26 +14,17 @@ const MODE_OPTIONS = [
   {
     value: 'classic' as const,
     label: '經典模式',
-    description: '牌值 1–13・固定牌庫',
-    color:
-      'border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950',
-    activeColor: 'bg-purple-500 text-white hover:bg-purple-600',
+    description: '牌值 1-13・固定牌庫',
   },
   {
     value: 'normal' as const,
     label: '關卡模式',
     description: '5 題計時挑戰・答錯 +10 秒懲罰',
-    color:
-      'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
-    activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
   },
   {
     value: 'challenge' as const,
     label: '挑戰模式',
     description: '5 分鐘倒數・答對 +1 分鐘・挑戰無限關卡',
-    color:
-      'border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950',
-    activeColor: 'bg-orange-500 text-white hover:bg-orange-600',
   },
 ] as const;
 
@@ -65,9 +56,10 @@ export default function SinglePlayPage() {
           <div key={opt.value} className="flex flex-col gap-2">
             <button
               className={cn(
-                'rounded-xl border-2 px-6 py-4 text-left transition-all',
-                opt.color,
-                selectedMode === opt.value && opt.activeColor,
+                'rounded-2xl border-2 px-6 py-4 text-left transition-all active:translate-y-1 active:shadow-none',
+                selectedMode === opt.value
+                  ? 'border-primary bg-primary text-primary-foreground shadow-[0_4px_0_0_hsl(175_84%_22%)]'
+                  : 'border-border bg-card text-foreground shadow-[0_4px_0_0_hsl(var(--border))] hover:bg-accent',
               )}
               onClick={() => setSelectedMode(opt.value)}
             >
@@ -76,7 +68,7 @@ export default function SinglePlayPage() {
                 className={cn(
                   'text-sm',
                   selectedMode === opt.value
-                    ? 'text-white/80'
+                    ? 'text-white/85'
                     : 'text-muted-foreground',
                 )}
               >
@@ -90,7 +82,9 @@ export default function SinglePlayPage() {
         <Button variant="outline" onClick={() => router.push('/')}>
           回上一頁
         </Button>
-        <Button onClick={() => setActiveMode(selectedMode)}>開始遊戲</Button>
+        <Button variant="tactile" onClick={() => setActiveMode(selectedMode)}>
+          開始遊戲
+        </Button>
       </div>
     </div>
   );

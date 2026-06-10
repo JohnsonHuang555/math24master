@@ -23,6 +23,7 @@ const config = {
       fontFamily: {
         // sans: ['var(--font-sans)', ...fontFamily.sans],
         noto: ['var(--font-noto-sans)'],
+        display: ['var(--font-baloo)', 'var(--font-noto-sans)'],
       },
       colors: {
         border: 'hsl(var(--border))',
