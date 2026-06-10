@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
+import { ListChecks, Play } from 'lucide-react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { Button } from '@/components/ui/button';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
@@ -56,7 +57,6 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     isAuthenticated && isFinished,
   );
 
-  // 遊戲結束且未登入 → 暫存分數並顯示引導登入 modal
   useEffect(() => {
     if (!isFinished || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
     setPendingScore({ mode: 'normal', payload: { seconds, totalScore } });
@@ -77,36 +77,40 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
     }
   }, [penaltyCount]);
 
-  // 開始畫面
+  // ── 開始畫面 ──
   if (status === 'idle') {
+    if (autoStart) return null;
     const best = records.length > 0 ? records[0] : null;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-3xl font-bold">關卡模式</h1>
-          <p className="text-muted-foreground">5 題全部答對，計時結束</p>
-          <p className="text-sm text-muted-foreground">
-            答錯或跳過 +10 秒懲罰・符號越難分數越高
-          </p>
+      <div className="flex h-full flex-col items-center justify-center gap-6 px-4">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-500 text-white shadow-[0_5px_0_0_hsl(221,83%,34%)]">
+            <ListChecks className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-black text-foreground">關卡模式</h1>
+            <p className="mt-1 text-sm text-muted-foreground">5 題全過關 · 最短時間勝</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">答錯或跳過 +10 秒懲罰</p>
+          </div>
         </div>
         {best && (
-          <div className="w-full max-w-xs rounded-xl border p-4 text-center">
-            <p className="text-sm font-semibold text-muted-foreground">最佳紀錄</p>
-            <p className="text-2xl font-bold">{formatTime(best.totalSeconds)}</p>
+          <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
+            <p className="text-xs text-muted-foreground">最佳紀錄</p>
+            <p className="font-display text-2xl font-bold text-foreground">{formatTime(best.totalSeconds)}</p>
             <p className="text-sm text-muted-foreground">{best.totalScore} 分</p>
           </div>
         )}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => onBack()}>
-            返回
+          <Button variant="outline" onClick={onBack}>返回</Button>
+          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
+            <Play className="h-4 w-4" />開始遊戲
           </Button>
-          <Button onClick={startGame}>開始遊戲</Button>
         </div>
       </div>
     );
   }
 
-  // 結束畫面
+  // ── 結算畫面 ──
   if (status === 'finished') {
     return (
       <>
@@ -116,27 +120,42 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
           onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
           onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
         />
-        <div className="flex h-full flex-col items-center justify-center gap-6">
-          <h1 className="text-3xl font-bold">完成！</h1>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-5xl font-bold">{formatTime(seconds)}</p>
-            <p className="text-muted-foreground">總用時</p>
-            <p className="mt-2 text-2xl font-semibold">{totalScore} 分</p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onBack()}>
-              返回選單
-            </Button>
-            <Button onClick={startGame}>再來一次</Button>
+        <div className="flex h-full flex-col items-center justify-center px-4">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(221,83%,72%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(221,83%,34%)]">
+            {/* All dots filled */}
+            <div className="mb-4 flex justify-center gap-2">
+              {Array.from({ length: totalRounds }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-4 w-4 rounded-full bg-blue-500"
+                />
+              ))}
+            </div>
+            <h2 className="font-display text-xl font-black text-foreground">全部完成！</h2>
+            <div className="mt-4 flex justify-center gap-8">
+              <div>
+                <p className="font-display text-4xl font-bold text-blue-500">{formatTime(seconds)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">總用時</p>
+              </div>
+              <div className="w-px bg-border" />
+              <div>
+                <p className="font-display text-4xl font-bold text-foreground">{totalScore}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">總分</p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={onBack}>返回選單</Button>
+              <Button variant="tactile" className="flex-1" onClick={startGame}>再來一次</Button>
+            </div>
           </div>
         </div>
       </>
     );
   }
 
+  // ── 遊戲中 ──
   const isFlashing = !!penaltyMsg;
 
-  // 遊戲中
   return (
     <PuzzlePlayArea
       currentNumbers={currentNumbers}
@@ -153,15 +172,35 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
       showSkipButton={false}
       theme="blue"
     >
-      {/* 計時器主視覺 */}
-      <div className="flex flex-col items-center gap-0.5">
-        <div className="flex items-baseline gap-2">
+      {/* HUD */}
+      <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-3 pb-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
+        {/* Progress dots */}
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            {Array.from({ length: totalRounds }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'h-3.5 w-3.5 rounded-full transition-colors duration-300',
+                  i < currentRound
+                    ? 'bg-blue-500'
+                    : i === currentRound
+                    ? 'bg-blue-300'
+                    : 'bg-zinc-200 dark:bg-zinc-700',
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-xs font-semibold text-muted-foreground">
+            第 {currentRound + 1}/{totalRounds} 題
+          </span>
+        </div>
+        {/* Timer */}
+        <div className="mt-1.5 flex items-baseline justify-center gap-2">
           <span
             className={cn(
-              'text-5xl font-bold tabular-nums transition-colors duration-150',
-              isFlashing || penaltyCount >= 2
-                ? 'text-red-500'
-                : 'text-blue-600 dark:text-blue-400',
+              'font-display text-4xl font-bold tabular-nums transition-colors duration-150',
+              isFlashing || penaltyCount >= 2 ? 'text-red-500' : 'text-blue-500',
             )}
           >
             {formatTime(seconds)}
@@ -180,11 +219,10 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
             )}
           </AnimatePresence>
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>第 {currentRound + 1}/{totalRounds} 題</span>
-          <span>·</span>
-          <span>{totalScore} 分</span>
-        </div>
+        {/* Score */}
+        <p className="text-center text-xs text-muted-foreground">
+          累計 <b className="font-bold text-foreground">{totalScore}</b> 分
+        </p>
       </div>
     </PuzzlePlayArea>
   );
