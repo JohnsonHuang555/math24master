@@ -42,38 +42,22 @@ function cardLabel(card: SelectedCard): string {
 
 export type PuzzleTheme = 'blue' | 'orange' | 'emerald';
 
-const THEME_TOKENS: Record<PuzzleTheme, {
-  cardSelected: string;
-  expressionBorder: string;
-  confirmBtn: string;
-  timerColor: string;
-  timerLow: string;
-  iconBtn: string;
-}> = {
-  blue: {
-    cardSelected: 'bg-blue-200 text-blue-900 ring-2 ring-blue-400 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
-    expressionBorder: 'border-blue-200 dark:border-blue-800',
-    confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white',
-    timerColor: 'text-blue-600 dark:text-blue-400',
-    timerLow: 'text-red-500',
-    iconBtn: 'border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400',
-  },
-  orange: {
-    cardSelected: 'bg-orange-200 text-orange-900 ring-2 ring-orange-400 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
-    expressionBorder: 'border-orange-200 dark:border-orange-800',
-    confirmBtn: 'bg-orange-500 hover:bg-orange-600 text-white',
-    timerColor: 'text-orange-600 dark:text-orange-400',
-    timerLow: 'text-red-500',
-    iconBtn: 'border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400',
-  },
-  emerald: {
-    cardSelected: 'bg-emerald-100 text-emerald-900 ring-2 ring-emerald-400 dark:bg-emerald-900 dark:text-emerald-100 hover:bg-red-100 hover:text-red-600 hover:ring-red-400',
-    expressionBorder: 'border-emerald-200 dark:border-emerald-800',
-    confirmBtn: 'bg-emerald-500 hover:bg-emerald-600 text-white',
-    timerColor: 'text-emerald-600 dark:text-emerald-400',
-    timerLow: 'text-red-500',
-    iconBtn: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400',
-  },
+// 全站色彩鎖：三種模式共用 teal 品牌 tokens（theme prop 保留 API 相容）
+const BRAND_TOKENS = {
+  cardSelected:
+    'border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)] hover:border-red-400 hover:bg-red-400 hover:shadow-[0_5px_0_0_theme(colors.red.600)]',
+  cardIdle:
+    'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
+  expressionBox:
+    'border-zinc-200 bg-white shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900',
+  iconBtn:
+    'border-2 border-zinc-200 bg-white text-zinc-500 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:bg-zinc-50 hover:text-primary active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
+};
+
+const THEME_TOKENS: Record<PuzzleTheme, typeof BRAND_TOKENS> = {
+  blue: BRAND_TOKENS,
+  orange: BRAND_TOKENS,
+  emerald: BRAND_TOKENS,
 };
 
 export interface PuzzlePlayAreaProps {
@@ -169,9 +153,9 @@ export function PuzzlePlayArea({
               <Card
                 onClick={() => onSelectCard({ number: card })}
                 className={cn(
-                  'flex cursor-pointer items-center justify-center text-3xl font-bold transition-all select-none',
+                  'flex cursor-pointer select-none items-center justify-center rounded-2xl border-2 font-display text-3xl font-bold transition-all sm:text-4xl',
                   cardSizeClass,
-                  isSelected ? t.cardSelected : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700',
+                  isSelected ? t.cardSelected : t.cardIdle,
                 )}
               >
                 {card.value}
@@ -184,7 +168,7 @@ export function PuzzlePlayArea({
       {/* 算式列 + 即時預覽 */}
       <div className={cn(
         'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
-        t.expressionBorder,
+        t.expressionBox,
       )}>
         <div className="min-h-[32px] flex flex-wrap items-center gap-1.5">
           {selectedCards.length === 0 ? (
@@ -198,10 +182,10 @@ export function PuzzlePlayArea({
                 animate="show"
                 onClick={chipsClickable ? () => onRemoveCard(i) : undefined}
                 className={cn(
-                  'rounded-md px-2.5 py-0.5 text-sm font-semibold transition-colors',
+                  'rounded-lg px-2.5 py-0.5 font-display text-sm font-semibold transition-colors',
                   chipsClickable
-                    ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-100 hover:text-red-600 cursor-pointer'
-                    : 'bg-slate-200 dark:bg-slate-700 cursor-default',
+                    ? 'cursor-pointer bg-zinc-100 hover:bg-red-100 hover:text-red-600 dark:bg-zinc-800'
+                    : 'cursor-default bg-zinc-100 dark:bg-zinc-800',
                 )}
                 title={chipsClickable ? '點擊移除' : undefined}
               >
@@ -218,8 +202,8 @@ export function PuzzlePlayArea({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.15 }}
               className={cn(
-                'text-right text-base font-bold',
-                isCorrect ? 'text-emerald-500' : 'text-red-400',
+                'text-right font-display text-base font-bold',
+                isCorrect ? 'text-primary' : 'text-red-400',
               )}
             >
               = {livePreview} {isCorrect ? '✓' : '✗'}
@@ -303,7 +287,8 @@ export function PuzzlePlayArea({
         </TooltipProvider>
         {/* 確認 / 出牌 CTA */}
         <Button
-          className={cn('w-full h-12 text-base font-semibold', t.confirmBtn)}
+          variant="tactile"
+          className="h-12 w-full text-base"
           onClick={() => {
             if (selectedCards.length === 0) {
               setShowSkipConfirm(true);

@@ -140,7 +140,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
       <div className="flex h-full flex-col items-center justify-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-3xl font-bold">經典模式</h1>
-          <p className="text-muted-foreground">牌值 1–13・累積最高分</p>
+          <p className="text-muted-foreground">牌值 1-13・累積最高分</p>
           <p className="text-sm text-muted-foreground">
             答對得分・跳過換牌・牌組用完遊戲結束
           </p>
@@ -153,7 +153,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         )}
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => onBack()}>返回</Button>
-          <Button onClick={startGame}>開始遊戲</Button>
+          <Button variant="tactile" onClick={startGame}>開始遊戲</Button>
         </div>
       </div>
     );
@@ -172,7 +172,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         <div className="flex h-full flex-col items-center justify-center gap-6">
           <h1 className="text-3xl font-bold">遊戲結束</h1>
           <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-5xl font-bold">{currentScore} 分</p>
+            <p className="font-display text-5xl font-bold text-primary">{currentScore} 分</p>
             <p className="text-muted-foreground">最終得分</p>
             {isNewBestScore && (
               <p className="text-sm font-semibold text-amber-500">🏆 新紀錄！</p>
@@ -185,7 +185,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
           )}
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => onBack()}>返回選單</Button>
-            <Button onClick={() => window.location.reload()}>再來一局</Button>
+            <Button variant="tactile" onClick={() => window.location.reload()}>再來一局</Button>
           </div>
         </div>
       </>
@@ -205,7 +205,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
             exit={{ opacity: 0, scale: 1.4, y: -24 }}
             transition={{ duration: 0.25 }}
           >
-            <span className="text-6xl font-black text-emerald-500 drop-shadow-lg">
+            <span className="font-display text-6xl font-black text-primary drop-shadow-lg">
               +{scoreFlash}分！
             </span>
           </motion.div>
@@ -213,10 +213,10 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
       </AnimatePresence>
 
       {/* HUD bar */}
-      <div className="flex w-full items-center justify-between border-b bg-background/90 px-4 py-2.5 backdrop-blur-sm">
+      <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white px-5 py-2.5 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
         <div>
           <p className="text-xs text-muted-foreground">得分</p>
-          <motion.div className="text-2xl font-bold tabular-nums">{rounded}</motion.div>
+          <motion.div className="font-display text-2xl font-bold tabular-nums text-primary">{rounded}</motion.div>
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-muted-foreground">經典模式</p>
@@ -226,7 +226,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">牌庫</p>
-          <p className="text-lg font-semibold tabular-nums">{remainCards} 張</p>
+          <p className="font-display text-lg font-semibold tabular-nums">{remainCards} 張</p>
         </div>
       </div>
 
@@ -249,7 +249,7 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex gap-3 text-xs font-semibold text-emerald-600"
+            className="flex gap-3 text-xs font-semibold text-primary"
           >
             {selectedCardSymbols.filter(c => c.symbol === Symbol.Times).length >= 2 && (
               <span>符號 2 張乘 +1</span>

@@ -262,7 +262,7 @@ const Homepage = () => {
           <footer className="mt-auto w-full pb-5 pt-2">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <span>#24點大師, Created by Johnson Huang</span>
-              <span>v1.2.2</span>
+              <span>v1.3.2</span>
               <Image
                 src="/smile-circle.svg"
                 alt="smile-circle"

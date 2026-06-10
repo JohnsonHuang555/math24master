@@ -158,7 +158,7 @@ export default function DailyChallengePage() {
     .join(' ');
 
   const streakText =
-    streak === 1 ? '🔥 連續 1 天 — 好的開始！' : `🔥 連續 ${streak} 天`;
+    streak === 1 ? '🔥 連續 1 天，好的開始！' : `🔥 連續 ${streak} 天`;
 
   const formulaLine = formulaDisplay || '（算式未記錄）';
 
@@ -194,8 +194,8 @@ export default function DailyChallengePage() {
           className="flex w-full max-w-sm flex-col items-center gap-4"
         >
           {/* 結算卡片 */}
-          <div className="w-full rounded-xl border-2 border-foreground p-5 text-center">
-            <div className="text-5xl font-black sm:text-6xl">{finalScore}</div>
+          <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="font-display text-5xl font-black text-primary sm:text-6xl">{finalScore}</div>
             <div className="text-sm text-muted-foreground">分</div>
             <div className="mt-2 text-lg font-semibold">{formulaLine} = 24</div>
             <div className="mt-1 text-sm font-semibold">{streakText}</div>
@@ -208,6 +208,7 @@ export default function DailyChallengePage() {
 
           {/* 複製分享按鈕 */}
           <Button
+            variant="tactile"
             className="w-full"
             onClick={handleShare}
             aria-label="複製分享文字到剪貼簿"
@@ -245,10 +246,10 @@ export default function DailyChallengePage() {
             onClick={() => handleAddNumber(index)}
             disabled={isCompleted}
             className={cn(
-              'flex h-16 w-12 items-center justify-center rounded-lg border-2 text-xl font-bold shadow transition-all',
+              'flex h-20 w-14 items-center justify-center rounded-2xl border-2 font-display text-2xl font-bold transition-all',
               usedCardIndices.has(index)
-                ? 'scale-95 border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-card hover:scale-105 hover:border-primary',
+                ? 'scale-95 border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)]'
+                : 'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:scale-105 hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
               isCompleted && 'cursor-not-allowed opacity-60',
             )}
           >
@@ -258,7 +259,7 @@ export default function DailyChallengePage() {
       </div>
 
       {/* 公式顯示框 */}
-      <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-lg border bg-muted/50 px-4 text-lg font-medium">
+      <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white px-4 font-display text-lg font-medium shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
         {formulaDisplay || (
           <span className="text-sm text-muted-foreground">組合你的算式</span>
         )}
@@ -270,7 +271,7 @@ export default function DailyChallengePage() {
           <Button
             key={value}
             variant="outline"
-            className="h-12 w-16 text-lg"
+            className="h-12 w-16 rounded-2xl border-2 border-zinc-200 bg-white font-display text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:border-primary/40 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800"
             disabled={isCompleted}
             onClick={() => handleAddSymbol(value)}
           >
@@ -312,6 +313,7 @@ export default function DailyChallengePage() {
           清除
         </Button>
         <Button
+          variant="tactile"
           disabled={isCompleted || formula.length === 0}
           onClick={handleSubmit}
         >
