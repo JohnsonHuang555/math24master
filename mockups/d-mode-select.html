@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>選擇模式 — 24點大師 Mockup D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .font-display { font-family: 'Baloo 2', 'Noto Sans TC', sans-serif; }
+
+    .mode-card {
+      transition: transform 0.18s cubic-bezier(.16,1,.3,1), box-shadow 0.18s;
+      cursor: pointer;
+    }
+    .mode-card:hover { transform: translateY(-5px); }
+    .mode-card:active { transform: translateY(2px); }
+
+    .btn-teal {
+      background: hsl(175,84%,32%);
+      box-shadow: 0 5px 0 0 hsl(175,84%,20%);
+      transition: transform .12s, box-shadow .12s;
+    }
+    .btn-teal:hover { transform: translateY(2px); box-shadow: 0 3px 0 0 hsl(175,84%,20%); }
+    .btn-teal:active { transform: translateY(5px); box-shadow: none; }
+
+    .btn-amber {
+      background: hsl(36,100%,50%);
+      box-shadow: 0 5px 0 0 hsl(36,100%,34%);
+      transition: transform .12s, box-shadow .12s;
+    }
+    .btn-amber:hover { transform: translateY(2px); box-shadow: 0 3px 0 0 hsl(36,100%,34%); }
+    .btn-amber:active { transform: translateY(5px); box-shadow: none; }
+
+    .btn-blue {
+      background: hsl(221,83%,53%);
+      box-shadow: 0 5px 0 0 hsl(221,83%,34%);
+      transition: transform .12s, box-shadow .12s;
+    }
+    .btn-blue:hover { transform: translateY(2px); box-shadow: 0 3px 0 0 hsl(221,83%,34%); }
+    .btn-blue:active { transform: translateY(5px); box-shadow: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f3faf8]">
+  <!-- Global bg -->
+  <div class="fixed inset-0 -z-10"
+    style="background-image:url('./b2.webp');background-size:cover;background-position:center;opacity:.18;pointer-events:none;"></div>
+  <div class="fixed inset-0 -z-10"
+    style="background:radial-gradient(42rem 42rem at 115% -12%,rgba(13,148,136,.10),transparent 70%),radial-gradient(34rem 34rem at -12% 112%,rgba(245,158,11,.08),transparent 70%);pointer-events:none;"></div>
+
+  <!-- Page -->
+  <div class="flex min-h-screen flex-col">
+
+    <!-- Header -->
+    <header class="flex h-16 items-center justify-between px-4 md:px-8">
+      <button class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-zinc-500 hover:bg-white/60 hover:text-zinc-800 transition-colors">
+        <i data-lucide="arrow-left" class="h-4 w-4"></i>首頁
+      </button>
+      <div class="flex items-center gap-2">
+        <div class="flex h-8 w-8 items-center justify-center rounded-xl font-display text-sm font-bold text-white shadow-[0_2px_0_0_hsl(175,84%,20%)]" style="background:hsl(175,84%,32%)">24</div>
+        <span class="text-base font-black text-zinc-800">24點大師</span>
+      </div>
+      <div class="w-16"></div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex flex-1 flex-col items-center gap-8 px-4 py-6 md:py-10">
+
+      <div class="text-center">
+        <h1 class="font-display text-3xl font-black text-zinc-800 md:text-4xl">選擇模式</h1>
+        <p class="mt-1.5 text-sm text-zinc-500">挑選適合你的遊戲方式</p>
+      </div>
+
+      <div class="w-full max-w-lg space-y-4">
+
+        <!-- ── 經典模式 ── -->
+        <div class="mode-card rounded-3xl border-2 border-zinc-200 bg-white/90 backdrop-blur-sm shadow-[0_8px_0_0_hsl(175,84%,78%)]">
+          <div class="p-5 md:p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_4px_0_0_hsl(175,84%,20%)]" style="background:hsl(175,84%,32%)">
+                <i data-lucide="layers" class="h-7 w-7"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h2 class="font-display text-xl font-black text-zinc-800">經典模式</h2>
+                <p class="mt-0.5 text-sm text-zinc-500">牌值 1–13 · 累積最高分</p>
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  <span class="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">答對得分</span>
+                  <span class="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">跳過換牌</span>
+                  <span class="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">牌盡結束</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
+              <div>
+                <p class="text-xs text-zinc-400">個人最高</p>
+                <p class="font-display text-xl font-bold text-zinc-800">142 分</p>
+              </div>
+              <button class="btn-teal flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-display text-sm font-bold text-white">
+                開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 挑戰模式 ── -->
+        <div class="mode-card rounded-3xl border-2 border-zinc-200 bg-white/90 backdrop-blur-sm shadow-[0_8px_0_0_hsl(36,100%,72%)]">
+          <div class="p-5 md:p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_4px_0_0_hsl(36,100%,34%)]" style="background:hsl(36,100%,50%)">
+                <i data-lucide="timer" class="h-7 w-7"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <h2 class="font-display text-xl font-black text-zinc-800">挑戰模式</h2>
+                  <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600 leading-none flex items-center gap-0.5">
+                    <i data-lucide="flame" class="h-2.5 w-2.5"></i> 高壓
+                  </span>
+                </div>
+                <p class="mt-0.5 text-sm text-zinc-500">倒數 5 分鐘 · 無限關卡</p>
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  <span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">答對 +1 分鐘</span>
+                  <span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">跳過 −15 秒</span>
+                  <span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">撐越多關越好</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
+              <div>
+                <p class="text-xs text-zinc-400">個人最佳</p>
+                <p class="font-display text-xl font-bold text-zinc-800">第 8 關 · 32 分</p>
+              </div>
+              <button class="btn-amber flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-display text-sm font-bold text-white">
+                開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 關卡模式 ── -->
+        <div class="mode-card rounded-3xl border-2 border-zinc-200 bg-white/90 backdrop-blur-sm shadow-[0_8px_0_0_hsl(221,83%,72%)]">
+          <div class="p-5 md:p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_4px_0_0_hsl(221,83%,34%)]" style="background:hsl(221,83%,53%)">
+                <i data-lucide="list-checks" class="h-7 w-7"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h2 class="font-display text-xl font-black text-zinc-800">關卡模式</h2>
+                <p class="mt-0.5 text-sm text-zinc-500">5 題全過關 · 最短時間勝</p>
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">5 題關卡</span>
+                  <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">答錯 +10 秒</span>
+                  <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">最快完成</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
+              <div>
+                <p class="text-xs text-zinc-400">最佳紀錄</p>
+                <p class="font-display text-xl font-bold text-zinc-800">1:23 · 18 分</p>
+              </div>
+              <button class="btn-blue flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-display text-sm font-bold text-white">
+                開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -32,7 +32,7 @@ export type ClueCard = LineClueCard | PeekCard | RedrawCard;
 export const PEEK_CARD: PeekCard = {
   id: 'peek',
   name: '透視鏡',
-  description: '顯示候選範圍 5 秒',
+  description: '顯示剩餘的數字範圍 5 秒',
 };
 
 export const REDRAW_CARD: RedrawCard = {

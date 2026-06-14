@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>遊玩介面 — 24點大師 Mockup E</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; background: #f3faf8; }
+    .font-display { font-family: 'Baloo 2', 'Noto Sans TC', sans-serif; }
+
+    .phone {
+      width: 340px;
+      flex-shrink: 0;
+      border-radius: 36px;
+      border: 2.5px solid #d4d4d8;
+      box-shadow: 0 24px 64px rgba(0,0,0,.13);
+      overflow: hidden;
+      background: #f3faf8;
+      position: relative;
+    }
+    .phone-inner {
+      position: relative;
+      min-height: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 14px;
+    }
+    .phone-bg {
+      position: absolute; inset: 0;
+      background-image: url('./b2.webp');
+      background-size: cover;
+      opacity: .13;
+      pointer-events: none;
+    }
+
+    /* Number cards */
+    .ncard {
+      width: 65px; height: 91px;
+      border-radius: 14px;
+      border: 2px solid #e4e4e7;
+      background: white;
+      box-shadow: 0 5px 0 rgba(0,0,0,.08);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Baloo 2', sans-serif;
+      font-weight: 700; font-size: 28px; color: #27272a;
+    }
+    .ncard.sel-teal { border-color:hsl(175,84%,32%); background:hsl(175,84%,32%); color:white; box-shadow:0 5px 0 hsl(175,84%,20%); }
+    .ncard.sel-amber { border-color:hsl(36,100%,50%); background:hsl(36,100%,50%); color:white; box-shadow:0 5px 0 hsl(36,100%,34%); }
+    .ncard.sel-blue { border-color:hsl(221,83%,53%); background:hsl(221,83%,53%); color:white; box-shadow:0 5px 0 hsl(221,83%,34%); }
+
+    /* Symbol buttons */
+    .sym { width:48px; height:38px; border-radius:10px; border:2px solid #e4e4e7; background:white;
+           box-shadow:0 3px 0 rgba(0,0,0,.06); display:flex; align-items:center; justify-content:center;
+           font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; color:#52525b; }
+
+    /* Icon buttons */
+    .icon-btn { flex:1; height:38px; border-radius:12px; border:2px solid #e4e4e7; background:white;
+                box-shadow:0 3px 0 rgba(0,0,0,.06); display:flex; align-items:center; justify-content:center; }
+
+    .tactile-teal { background:hsl(175,84%,32%); box-shadow:0 5px 0 hsl(175,84%,20%); }
+    .tactile-amber { background:hsl(36,100%,50%); box-shadow:0 5px 0 hsl(36,100%,34%); }
+    .tactile-blue  { background:hsl(221,83%,53%); box-shadow:0 5px 0 hsl(221,83%,34%); }
+
+    /* Result cards */
+    .result-card {
+      width: 300px; border-radius: 24px; border: 2px solid #e4e4e7; background: white;
+      padding: 24px; text-align: center;
+    }
+  </style>
+</head>
+<body class="py-10 px-4">
+
+  <!-- ═══════════════════════ PLAYING SCREENS ═══════════════════════ -->
+  <div class="text-center mb-10">
+    <h1 class="font-display text-3xl font-black text-zinc-800">遊玩介面設計</h1>
+    <p class="text-sm text-zinc-500 mt-1">三種模式各自的 HUD 視覺方向</p>
+  </div>
+
+  <div class="flex gap-6 justify-center flex-wrap mb-20">
+
+    <!-- ══════════ 經典模式 ══════════ -->
+    <div>
+      <p class="text-center text-sm font-bold mb-3" style="color:hsl(175,84%,32%)">經典模式</p>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="phone-bg"></div>
+
+          <!-- HUD bar -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_4px_0_0_rgba(0,0,0,.05)]">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[10px] text-zinc-400 font-medium">得分</p>
+                <p class="font-display text-2xl font-bold tabular-nums" style="color:hsl(175,84%,32%)">142</p>
+              </div>
+              <div class="text-center">
+                <p class="text-xs font-semibold text-zinc-500">經典模式</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[10px] text-zinc-400 font-medium">牌庫</p>
+                <p class="font-display text-lg font-semibold text-zinc-700 tabular-nums">28 張</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score flash + nav -->
+          <div class="relative z-10 w-full flex items-center justify-between px-1">
+            <span class="font-display text-xl font-black tabular-nums" style="color:hsl(175,84%,40%); opacity:.8">+18分！</span>
+            <button class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-zinc-400 hover:bg-white/60">
+              <i data-lucide="book-open" class="h-3 w-3"></i> 規則
+            </button>
+          </div>
+
+          <!-- Number cards -->
+          <div class="relative z-10 flex gap-2">
+            <div class="ncard sel-teal">6</div>
+            <div class="ncard sel-teal">4</div>
+            <div class="ncard">3</div>
+            <div class="ncard">2</div>
+          </div>
+
+          <!-- Expression box -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-3 py-2.5 shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <div class="flex flex-wrap gap-1 min-h-[28px] items-center">
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">6</span>
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">×</span>
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">4</span>
+              <span class="text-xs text-zinc-400">選其他...</span>
+            </div>
+          </div>
+
+          <!-- Symbols -->
+          <div class="relative z-10 flex gap-1.5">
+            <div class="sym">+</div><div class="sym">−</div><div class="sym">×</div>
+            <div class="sym">÷</div><div class="sym">(</div><div class="sym">)</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="relative z-10 w-full space-y-2 mt-auto">
+            <div class="flex gap-1.5">
+              <div class="icon-btn"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+              <div class="icon-btn"><i data-lucide="arrow-left" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+              <div class="icon-btn"><i data-lucide="log-out" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+            </div>
+            <button class="tactile-teal w-full h-11 rounded-xl font-display text-sm font-bold text-white">出牌</button>
+            <p class="text-center text-xs text-zinc-400 py-0.5">跳過換牌</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 挑戰模式 ══════════ -->
+    <div>
+      <p class="text-center text-sm font-bold mb-3" style="color:hsl(36,100%,40%)">挑戰模式</p>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="phone-bg"></div>
+
+          <!-- HUD: Timer focus -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-2.5 pb-3 shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <div class="flex items-center justify-between mb-2">
+              <button class="flex items-center gap-1 text-xs text-zinc-400">
+                <i data-lucide="log-out" class="h-3 w-3"></i>
+              </button>
+              <span class="text-xs font-semibold text-zinc-400">挑戰模式</span>
+              <button class="text-xs font-semibold" style="color:hsl(36,100%,40%)">提前結算</button>
+            </div>
+            <!-- Big timer -->
+            <p class="font-display text-5xl font-bold text-center tabular-nums" style="color:hsl(36,100%,45%)">3:47</p>
+            <!-- Timer bar -->
+            <div class="mt-2 h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
+              <div class="h-2 rounded-full" style="width:63%;background:hsl(36,100%,50%)"></div>
+            </div>
+            <!-- Stage + score -->
+            <div class="mt-2 flex justify-between text-xs text-zinc-500">
+              <span>第 <b class="text-zinc-800 font-bold">8</b> 關</span>
+              <span><b class="text-zinc-800 font-bold">42</b> 分</span>
+            </div>
+          </div>
+
+          <!-- Number cards -->
+          <div class="relative z-10 flex gap-2">
+            <div class="ncard">6</div>
+            <div class="ncard sel-amber">4</div>
+            <div class="ncard">3</div>
+            <div class="ncard">2</div>
+          </div>
+
+          <!-- Expression box -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-3 py-2.5 shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <div class="flex flex-wrap gap-1 min-h-[28px] items-center">
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">4</span>
+              <span class="text-xs text-zinc-400">繼續選擇...</span>
+            </div>
+          </div>
+
+          <!-- Symbols -->
+          <div class="relative z-10 flex gap-1.5">
+            <div class="sym">+</div><div class="sym">−</div><div class="sym">×</div>
+            <div class="sym">÷</div><div class="sym">(</div><div class="sym">)</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="relative z-10 w-full space-y-2 mt-auto">
+            <div class="flex gap-1.5">
+              <div class="icon-btn"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+              <div class="icon-btn"><i data-lucide="skip-forward" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+              <div class="icon-btn"><i data-lucide="log-out" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+            </div>
+            <button class="tactile-amber w-full h-11 rounded-xl font-display text-sm font-bold text-white">確認</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 關卡模式 ══════════ -->
+    <div>
+      <p class="text-center text-sm font-bold mb-3" style="color:hsl(221,83%,53%)">關卡模式</p>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="phone-bg"></div>
+
+          <!-- HUD: Progress dots -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-3 pb-3 shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <!-- Progress dots -->
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex gap-2 items-center">
+                <div class="h-3.5 w-3.5 rounded-full" style="background:hsl(221,83%,53%)"></div>
+                <div class="h-3.5 w-3.5 rounded-full" style="background:hsl(221,83%,53%)"></div>
+                <div class="h-3.5 w-3.5 rounded-full" style="background:hsl(221,83%,80%)"></div>
+                <div class="h-3.5 w-3.5 rounded-full bg-zinc-200"></div>
+                <div class="h-3.5 w-3.5 rounded-full bg-zinc-200"></div>
+              </div>
+              <span class="text-xs font-semibold text-zinc-400">第 3 / 5 題</span>
+            </div>
+            <!-- Timer -->
+            <p class="font-display text-4xl font-bold text-center tabular-nums" style="color:hsl(221,83%,53%)">1:23</p>
+            <!-- Score -->
+            <p class="text-center text-xs text-zinc-500 mt-1">
+              累計 <b class="text-zinc-800 font-bold">18</b> 分 &nbsp;·&nbsp; 跳過罰時 <b class="text-red-500 font-bold">+0 秒</b>
+            </p>
+          </div>
+
+          <!-- Number cards -->
+          <div class="relative z-10 flex gap-2">
+            <div class="ncard sel-blue">6</div>
+            <div class="ncard">4</div>
+            <div class="ncard sel-blue">3</div>
+            <div class="ncard">2</div>
+          </div>
+
+          <!-- Expression box -->
+          <div class="relative z-10 w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-3 py-2.5 shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <div class="flex flex-wrap gap-1 min-h-[28px] items-center">
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">6</span>
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">×</span>
+              <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-display text-xs font-semibold">3</span>
+              <span class="text-xs text-zinc-400">繼續...</span>
+            </div>
+            <div class="text-right font-display text-xs font-bold text-red-400 mt-0.5">= 18 ✗</div>
+          </div>
+
+          <!-- Symbols -->
+          <div class="relative z-10 flex gap-1.5">
+            <div class="sym">+</div><div class="sym">−</div><div class="sym">×</div>
+            <div class="sym">÷</div><div class="sym">(</div><div class="sym">)</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="relative z-10 w-full space-y-2 mt-auto">
+            <div class="flex gap-1.5">
+              <div class="icon-btn"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+              <div class="icon-btn"><i data-lucide="log-out" class="h-3.5 w-3.5 text-zinc-500"></i></div>
+            </div>
+            <button class="tactile-blue w-full h-11 rounded-xl font-display text-sm font-bold text-white">確認</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phone row -->
+
+
+  <!-- ═══════════════════════ RESULT SCREENS ═══════════════════════ -->
+  <div class="text-center mb-10">
+    <h2 class="font-display text-2xl font-black text-zinc-800">結算畫面</h2>
+    <p class="text-sm text-zinc-500 mt-1">遊戲結束後的摘要</p>
+  </div>
+
+  <div class="flex gap-6 justify-center flex-wrap mb-20">
+
+    <!-- Classic result -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(175,84%,32%)">經典模式結算</p>
+      <div class="result-card" style="box-shadow:0 8px 0 hsl(175,84%,78%)">
+        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-2" style="background:hsl(175,84%,96%);border-color:hsl(175,84%,80%)">
+          <i data-lucide="trophy" class="h-7 w-7" style="color:hsl(175,84%,32%)"></i>
+        </div>
+        <h3 class="font-display text-lg font-black text-zinc-800">遊戲結束</h3>
+        <div class="mt-3 mb-1">
+          <p class="font-display text-5xl font-bold" style="color:hsl(175,84%,32%)">142</p>
+          <p class="text-xs text-zinc-500 mt-0.5">最終得分</p>
+        </div>
+        <div class="my-3 rounded-xl border px-4 py-2" style="background:hsl(40,100%,96%);border-color:hsl(40,100%,80%)">
+          <p class="text-xs font-bold" style="color:hsl(36,100%,40%)">新紀錄！超越之前的 98 分</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="flex-1 rounded-xl border-2 border-zinc-200 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)] bg-white">返回選單</button>
+          <button class="flex-1 rounded-xl py-2.5 text-sm font-bold text-white tactile-teal">再來一局</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Challenge result -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(36,100%,40%)">挑戰模式結算</p>
+      <div class="result-card" style="box-shadow:0 8px 0 hsl(36,100%,72%)">
+        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-2" style="background:hsl(36,100%,96%);border-color:hsl(36,100%,78%)">
+          <i data-lucide="timer" class="h-7 w-7" style="color:hsl(36,100%,45%)"></i>
+        </div>
+        <h3 class="font-display text-lg font-black text-zinc-800">時間到！</h3>
+        <div class="mt-3 flex justify-center gap-6">
+          <div>
+            <p class="font-display text-4xl font-bold" style="color:hsl(36,100%,45%)">8</p>
+            <p class="text-xs text-zinc-500">最終關卡</p>
+          </div>
+          <div class="w-px bg-zinc-200"></div>
+          <div>
+            <p class="font-display text-4xl font-bold text-zinc-700">32</p>
+            <p class="text-xs text-zinc-500">總分</p>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button class="flex-1 rounded-xl border-2 border-zinc-200 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)] bg-white">返回選單</button>
+          <button class="flex-1 rounded-xl py-2.5 text-sm font-bold text-white tactile-amber">再挑戰</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level result -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(221,83%,53%)">關卡模式結算</p>
+      <div class="result-card" style="box-shadow:0 8px 0 hsl(221,83%,72%)">
+        <!-- All dots filled = complete -->
+        <div class="flex justify-center gap-2 mb-3">
+          <div class="h-4 w-4 rounded-full" style="background:hsl(221,83%,53%)"></div>
+          <div class="h-4 w-4 rounded-full" style="background:hsl(221,83%,53%)"></div>
+          <div class="h-4 w-4 rounded-full" style="background:hsl(221,83%,53%)"></div>
+          <div class="h-4 w-4 rounded-full" style="background:hsl(221,83%,53%)"></div>
+          <div class="h-4 w-4 rounded-full" style="background:hsl(221,83%,53%)"></div>
+        </div>
+        <h3 class="font-display text-lg font-black text-zinc-800">全部完成！</h3>
+        <div class="mt-3 flex justify-center gap-6">
+          <div>
+            <p class="font-display text-4xl font-bold" style="color:hsl(221,83%,53%)">1:23</p>
+            <p class="text-xs text-zinc-500">總用時</p>
+          </div>
+          <div class="w-px bg-zinc-200"></div>
+          <div>
+            <p class="font-display text-4xl font-bold text-zinc-700">18</p>
+            <p class="text-xs text-zinc-500">總分</p>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button class="flex-1 rounded-xl border-2 border-zinc-200 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)] bg-white">返回選單</button>
+          <button class="flex-1 rounded-xl py-2.5 text-sm font-bold text-white tactile-blue">再來一次</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /result row -->
+
+
+  <!-- ═══════════════════════ START SCREENS ═══════════════════════ -->
+  <div class="text-center mb-10">
+    <h2 class="font-display text-2xl font-black text-zinc-800">開始畫面</h2>
+    <p class="text-sm text-zinc-500 mt-1">進入模式後、尚未開始前的等待畫面</p>
+  </div>
+
+  <div class="flex gap-6 justify-center flex-wrap mb-16">
+
+    <!-- Classic idle -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(175,84%,32%)">經典模式</p>
+      <div class="phone" style="min-height:440px">
+        <div class="phone-inner" style="min-height:440px;justify-content:center;gap:20px">
+          <div class="phone-bg"></div>
+          <div class="relative z-10 text-center">
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl text-white shadow-[0_5px_0_hsl(175,84%,20%)]" style="background:hsl(175,84%,32%)">
+              <i data-lucide="layers" class="h-8 w-8"></i>
+            </div>
+            <h2 class="font-display text-2xl font-black text-zinc-800">經典模式</h2>
+            <p class="text-sm text-zinc-500 mt-1">牌值 1–13 · 累積最高分</p>
+            <p class="text-xs text-zinc-400 mt-1">答對得分・跳過換牌・牌盡結束</p>
+          </div>
+          <div class="relative z-10 w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <p class="text-xs text-zinc-400">個人最高</p>
+            <p class="font-display text-3xl font-bold text-zinc-800 mt-0.5">142 分</p>
+          </div>
+          <div class="relative z-10 flex gap-2">
+            <button class="rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)]">返回</button>
+            <button class="tactile-teal flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Challenge idle -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(36,100%,40%)">挑戰模式</p>
+      <div class="phone" style="min-height:440px">
+        <div class="phone-inner" style="min-height:440px;justify-content:center;gap:20px">
+          <div class="phone-bg"></div>
+          <div class="relative z-10 text-center">
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl text-white shadow-[0_5px_0_hsl(36,100%,34%)]" style="background:hsl(36,100%,50%)">
+              <i data-lucide="timer" class="h-8 w-8"></i>
+            </div>
+            <h2 class="font-display text-2xl font-black text-zinc-800">挑戰模式</h2>
+            <p class="text-sm text-zinc-500 mt-1">倒數 5 分鐘 · 無限關卡</p>
+            <p class="text-xs text-zinc-400 mt-1">跳過 -15 秒 · 撐越多關越好</p>
+          </div>
+          <div class="relative z-10 w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <p class="text-xs text-zinc-400">個人最佳</p>
+            <p class="font-display text-2xl font-bold text-zinc-800 mt-0.5">第 8 關</p>
+            <p class="text-xs text-zinc-500">32 分</p>
+          </div>
+          <div class="relative z-10 flex gap-2">
+            <button class="rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)]">返回</button>
+            <button class="tactile-amber flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level idle -->
+    <div>
+      <p class="text-center text-xs font-bold mb-3" style="color:hsl(221,83%,53%)">關卡模式</p>
+      <div class="phone" style="min-height:440px">
+        <div class="phone-inner" style="min-height:440px;justify-content:center;gap:20px">
+          <div class="phone-bg"></div>
+          <div class="relative z-10 text-center">
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl text-white shadow-[0_5px_0_hsl(221,83%,34%)]" style="background:hsl(221,83%,53%)">
+              <i data-lucide="list-checks" class="h-8 w-8"></i>
+            </div>
+            <h2 class="font-display text-2xl font-black text-zinc-800">關卡模式</h2>
+            <p class="text-sm text-zinc-500 mt-1">5 題全過關 · 最短時間勝</p>
+            <p class="text-xs text-zinc-400 mt-1">答錯或跳過 +10 秒懲罰</p>
+          </div>
+          <div class="relative z-10 w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_rgba(0,0,0,.05)]">
+            <p class="text-xs text-zinc-400">最佳紀錄</p>
+            <p class="font-display text-2xl font-bold text-zinc-800 mt-0.5">1:23</p>
+            <p class="text-xs text-zinc-500">18 分</p>
+          </div>
+          <div class="relative z-10 flex gap-2">
+            <button class="rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-600 shadow-[0_3px_0_rgba(0,0,0,.06)]">返回</button>
+            <button class="tactile-blue flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">開始遊戲 <i data-lucide="play" class="h-3.5 w-3.5"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /start screens -->
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -133,7 +133,7 @@ export function PuzzlePlayArea({
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
       {/* HUD 插槽 (計時器 + 分數) */}
-      <div className="w-full flex flex-col items-center gap-1">
+      <div className="max-w-sm w-full flex flex-col items-center gap-1">
         {children}
       </div>
 
@@ -182,7 +182,7 @@ export function PuzzlePlayArea({
                 animate="show"
                 onClick={chipsClickable ? () => onRemoveCard(i) : undefined}
                 className={cn(
-                  'rounded-lg px-2.5 py-0.5 font-display text-sm font-semibold transition-colors',
+                  'rounded-lg px-3 py-1.5 font-display text-2xl transition-colors',
                   chipsClickable
                     ? 'cursor-pointer bg-zinc-100 hover:bg-red-100 hover:text-red-600 dark:bg-zinc-800'
                     : 'cursor-default bg-zinc-100 dark:bg-zinc-800',
@@ -202,7 +202,7 @@ export function PuzzlePlayArea({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.15 }}
               className={cn(
-                'text-right font-display text-base font-bold',
+                'text-right font-display text-lg font-bold',
                 isCorrect ? 'text-primary' : 'text-red-400',
               )}
             >

@@ -415,7 +415,7 @@ export default function GuessNumberPage() {
             className="w-full max-w-lg rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 shadow-[0_5px_0_0_theme(colors.amber.200)] dark:border-amber-700 dark:bg-zinc-900 dark:shadow-[0_5px_0_0_theme(colors.amber.800)]"
           >
             <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
-              透視中… 候選範圍（{remaining.length} 個）
+              透視中… 剩餘的數字為（{remaining.length} 個）
             </p>
             <NumberBoard remaining={remaining} guessedNumbers={guessedNumbers} />
             <motion.div
@@ -427,7 +427,7 @@ export default function GuessNumberPage() {
             <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="inline-block h-3 w-3 rounded bg-white ring-1 ring-zinc-300 dark:bg-zinc-800" />
-                候選
+                剩餘
               </span>
               <span className="flex items-center gap-1">
                 <span className="inline-block h-3 w-3 rounded bg-zinc-100 dark:bg-zinc-900" />
@@ -451,7 +451,7 @@ export default function GuessNumberPage() {
               ??
             </div>
             <div className="mt-2 font-display text-2xl font-bold text-primary">
-              剩 {remaining.length} 個候選
+              剩 {remaining.length} 個未猜
             </div>
             <div className="mt-1 text-xs text-zinc-400">謎底是 10-99 之間的數字</div>
           </motion.div>
@@ -827,7 +827,7 @@ export default function GuessNumberPage() {
                 <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">每回合流程</h3>
                 <ol className="space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
                   <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">1.</span>從手牌中選一張線索牌，系統回答「是」或「否」</li>
-                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">2.</span>根據線索縮小候選範圍後，輸入你猜測的數字</li>
+                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">2.</span>根據線索縮小謎底範圍後，輸入你猜測的數字</li>
                   <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">3.</span>猜錯則繼續下一回合；猜對立即獲勝</li>
                 </ol>
               </section>
@@ -838,7 +838,7 @@ export default function GuessNumberPage() {
                 <div className="space-y-2">
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
                     <p className="text-sm font-medium text-amber-700 dark:text-amber-400">🔍 透視鏡</p>
-                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">顯示目前所有候選數字 5 秒。每局限用一次，使用後本回合仍可猜數。</p>
+                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">顯示目前所有可能為謎底的數字 5 秒。每局限用一次，使用後本回合仍可猜數。</p>
                   </div>
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
                     <p className="text-sm font-medium text-amber-700 dark:text-amber-400">🔄 全面革新</p>
