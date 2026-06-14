@@ -316,7 +316,7 @@ const Homepage = () => {
                     每日挑戰
                   </div>
                   <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
-                    每天一題，全球同步關卡
+                    每天一題，動動腦
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-teal-400" />
@@ -350,7 +350,7 @@ const Homepage = () => {
                     </span>
                   </div>
                   <div className="mt-0.5 text-sm text-amber-600 dark:text-amber-400/80">
-                    用線索卡推理藏匿的兩位數
+                    用線索卡推理謎底數字
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-amber-400" />
