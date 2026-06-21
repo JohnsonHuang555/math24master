@@ -1,6 +1,7 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { Flame } from 'lucide-react';
 import { Player } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
@@ -21,6 +22,25 @@ const BuzzerPlayerCard = ({
   const reduceMotion = useReducedMotion();
   const isLocked = playerState?.isLocked ?? false;
   const streak = playerState?.streak ?? 0;
+
+  // 分數滾動動畫
+  const count = useMotionValue(player.score);
+  const displayScore = useTransform(count, v => Math.round(v));
+  useEffect(() => {
+    animate(count, player.score, { duration: 0.5, ease: 'easeOut' });
+  }, [player.score, count]);
+
+  // 分數變動 delta floater
+  const prevScoreRef = useRef(player.score);
+  const [delta, setDelta] = useState<number | null>(null);
+  useEffect(() => {
+    const diff = player.score - prevScoreRef.current;
+    prevScoreRef.current = player.score;
+    if (diff === 0) return;
+    setDelta(diff);
+    const t = setTimeout(() => setDelta(null), 1800);
+    return () => clearTimeout(t);
+  }, [player.score]);
 
   const getCardClass = () => {
     if (isCurrentAnswerer)
@@ -76,16 +96,34 @@ const BuzzerPlayerCard = ({
         )}
       </span>
 
-      {/* 分數 */}
-      <span
-        className={`font-display text-3xl font-black md:text-4xl ${
-          isCurrentAnswerer
-            ? 'text-primary'
-            : 'text-zinc-900 dark:text-zinc-100'
-        }`}
-      >
-        {player.score}
-      </span>
+      {/* 分數 + delta floater */}
+      <div className="relative flex items-center justify-center">
+        <motion.span
+          className={`font-display text-3xl font-black tabular-nums md:text-4xl ${
+            isCurrentAnswerer
+              ? 'text-primary'
+              : 'text-zinc-900 dark:text-zinc-100'
+          }`}
+        >
+          {displayScore}
+        </motion.span>
+        <AnimatePresence>
+          {delta !== null && !reduceMotion && (
+            <motion.span
+              key={`delta-${player.score}`}
+              initial={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 0, y: delta > 0 ? -28 : 28 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.4, ease: 'easeOut' }}
+              className={`pointer-events-none absolute left-full ml-1 whitespace-nowrap font-display text-sm font-black ${
+                delta > 0 ? 'text-emerald-500' : 'text-rose-500'
+              }`}
+            >
+              {delta > 0 ? `+${delta}` : delta}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* 連勝 */}
       {streak > 0 && (

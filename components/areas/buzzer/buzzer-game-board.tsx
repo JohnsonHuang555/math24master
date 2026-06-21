@@ -13,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { GameOverModal } from '@/components/modals/game-over-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { NumberCard } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
@@ -47,7 +46,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
     noSolutionVotes,
     totalPlayers,
     lastAnswerResult,
-    gameOver,
+    roundTimeoutNotification,
     answerSelectedCards,
     buzzIn,
     submitAnswer,
@@ -146,19 +145,6 @@ export default function BuzzerGameBoard({ roomId }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 遊戲結束 Modal */}
-      {gameOver && (
-        <GameOverModal
-          isOpen={!!gameOver}
-          onClose={() => (window.location.href = `/multiple-play/${roomId}`)}
-          players={gameOver.players as any}
-          currentPlayerId={playerId}
-          isMultiplePlay
-          onPlayAgain={() => (window.location.href = `/multiple-play/${roomId}`)}
-          onGoHome={() => (window.location.href = `/multiple-play/${roomId}`)}
-        />
-      )}
-
       {/* 全螢幕倒數 overlay */}
       <AnimatePresence>
         {countdownValue !== null && (
@@ -184,9 +170,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.3 }}
-              className="mt-4 font-display text-lg font-black tracking-widest text-white/60"
+              className="mt-4 font-display text-2xl font-black tracking-widest text-white/60"
             >
-              遊戲準備開始
+              Ready ?
             </motion.p>
           </motion.div>
         )}
@@ -201,7 +187,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 280, damping: 22 }}
-            className={`fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full px-6 py-3 font-display text-sm font-black shadow-lg ${
+            className={`fixed inset-x-0 top-5 z-50 mx-auto w-fit rounded-full px-6 py-3 font-display text-sm font-black shadow-lg ${
               lastAnswerResult.isCorrect
                 ? 'bg-primary text-white shadow-[0_4px_0_0_hsl(175_84%_22%)]'
                 : 'bg-rose-500 text-white shadow-[0_4px_0_0_hsl(347_77%_35%)]'
@@ -214,10 +200,26 @@ export default function BuzzerGameBoard({ roomId }: Props) {
         )}
       </AnimatePresence>
 
+      {/* 回合超時 全體扣分通知 */}
+      <AnimatePresence>
+        {roundTimeoutNotification && (
+          <motion.div
+            key="round-timeout-notification"
+            initial={reduceMotion ? false : { opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+            className="fixed inset-x-0 top-5 z-50 mx-auto w-fit rounded-full bg-zinc-800 px-6 py-3 font-display text-sm font-black text-white shadow-lg dark:bg-zinc-700"
+          >
+            ⏰ 時間到！沒有人答對，全體扣 {roundTimeoutNotification.penaltyPoints} 分
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 頂部工具列 */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200/60 px-3 md:h-20 md:px-6 dark:border-zinc-700/40">
         {/* 左側：回合 badge + 工具按鈕 */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-1 items-center gap-2">
           <div className="rounded-full border-2 border-primary/20 bg-primary/10 px-3 py-1 md:px-4 md:py-1.5 dark:border-primary/30">
             <span className="font-display text-xs font-black text-primary md:text-sm">
               第 {roundNumber} 回合
@@ -245,22 +247,21 @@ export default function BuzzerGameBoard({ roomId }: Props) {
           isPaused={roundTimerPaused}
         />
 
-        <BuzzerNoSolutionVote
-          votes={noSolutionVotes}
-          totalPlayers={totalPlayers}
-          hasVoted={hasVotedNoSolution}
-          isDisabled={isAnswering}
-          onVote={() => voteNoSolution(roomId)}
-        />
+        <div className="flex flex-1 justify-end">
+          <BuzzerNoSolutionVote
+            votes={noSolutionVotes}
+            totalPlayers={totalPlayers}
+            hasVoted={hasVotedNoSolution}
+            isDisabled={isAnswering}
+            onVote={() => voteNoSolution(roomId)}
+          />
+        </div>
       </div>
 
       {/* 主內容區 */}
       <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-4 py-4 md:gap-5 md:py-6">
         {/* 公共牌 */}
-        <BuzzerPublicCards
-          cards={publicCards}
-          isBuzzerOpen={isBuzzerOpen}
-        />
+        <BuzzerPublicCards cards={publicCards} />
 
         {/* 作答中狀態列 */}
         <AnimatePresence>

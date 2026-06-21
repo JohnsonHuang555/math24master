@@ -27,6 +27,7 @@ import {
   removePlayer,
   reselectCard,
   rummyBotPlay,
+  endBuzzerGame,
   rummyDeclareJoker,
   rummyDrawCard,
   rummyStartGame,
@@ -141,7 +142,7 @@ app.prepare().then(() => {
       if (entry.elapsed >= entry.total) {
         _clearBuzzerRoundTimer(roomId);
         const room = getCurrentRoom(roomId);
-        if (!room) return;
+        if (!room || room.status !== 'playing') return;
         const result = applyRoundTimeout(room);
         if (result.success) {
           const updated = applyBuzzerRoomUpdate(result.room);
@@ -161,7 +162,7 @@ app.prepare().then(() => {
 
   const _startBuzzerRoundWithCountdown = (roomId: string) => {
     const room = getCurrentRoom(roomId);
-    if (!room) return;
+    if (!room || room.status !== 'playing') return;
 
     _clearBuzzerAnswerTimer(roomId);
     _clearBuzzerRoundTimer(roomId);
@@ -186,7 +187,10 @@ app.prepare().then(() => {
       if (count < 0) {
         clearInterval(countdown);
         io.to(roomId).emit(SocketEvent.BuzzerOpen);
-        triggerBuzzerBot(roomId, io);
+        triggerBuzzerBot(roomId, io, (rid) => {
+          _clearBuzzerRoundTimer(rid);
+          setTimeout(() => _startBuzzerRoundWithCountdown(rid), 1500);
+        });
 
         if (settings.roundSeconds !== null) {
           const entry: BuzzerRoundTimer = { timer: null, elapsed: 0, total: settings.roundSeconds };
@@ -747,17 +751,23 @@ app.prepare().then(() => {
 
         if (result.winner) {
           const rankedPlayers = [...updated.players].sort((a, b) => b.score - a.score);
+          _clearBuzzerRoundTimer(roomId);
+          _clearBuzzerAnswerTimer(roomId);
           io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
             winner: result.winner,
             players: rankedPlayers,
           });
+          // 3 秒後將房間重設為 Idle，讓玩家可以回大廳等待下一局
+          setTimeout(() => {
+            const idleRoom = endBuzzerGame(roomId);
+            if (idleRoom) io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
+          }, 3000);
           return;
         }
 
-        // 1.5 秒緩衝後恢復回合計時 → 繼續同一回合讓其他人搶答
-        setTimeout(() => {
-          if (settings.roundSeconds !== null) _resumeBuzzerRoundTimer(roomId);
-        }, 1500);
+        // 答題成功：清除舊回合計時，1.5 秒後換新題
+        _clearBuzzerRoundTimer(roomId);
+        setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 1500);
 
       } else {
         // processBuzzerAnswer 失敗帶有 room（_handleAnswerFail 已處理）

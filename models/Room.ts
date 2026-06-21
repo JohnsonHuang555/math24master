@@ -39,7 +39,7 @@ export enum Difficulty {
 
 export type BuzzerSettings = {
   presetMode: 'standard' | 'fast' | 'casual' | 'custom';
-  answerSeconds: 10 | 15 | 20 | 25 | 30;
+  answerSeconds: 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45;
   penaltyPoints: 0 | 1 | 2 | 3;
   lockSeconds: 10 | 15 | 20 | 25 | 30;
   winScore: 15 | 20 | 25 | 30;
@@ -53,7 +53,7 @@ export type BuzzerSettings = {
 
 export const DEFAULT_BUZZER_SETTINGS: BuzzerSettings = {
   presetMode: 'standard',
-  answerSeconds: 15,
+  answerSeconds: 25,
   penaltyPoints: 2,
   lockSeconds: 15,
   winScore: 20,

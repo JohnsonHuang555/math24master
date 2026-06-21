@@ -8,7 +8,6 @@ import { CardColor, NumberCard, Player } from '../models/Player';
 import { GameResponse } from '../models/Response';
 import {
   BuzzerSettings,
-  BuzzerState,
   DEFAULT_BUZZER_SETTINGS,
   DeckType,
   Difficulty,
@@ -1475,4 +1474,18 @@ export function applyBuzzerRoomUpdate(updatedRoom: Room): Room | null {
 /** 取得當前房間（供 buzzer timer callbacks 使用） */
 export function getCurrentRoom(roomId: string): Room | undefined {
   return _getCurrentRoom(roomId);
+}
+
+/** Buzzer 遊戲結束：將房間重設為 Idle（等待下一局），清除 buzzerState */
+export function endBuzzerGame(roomId: string): Room | null {
+  const roomIndex = _getCurrentRoomIndex(roomId);
+  if (roomIndex === -1) return null;
+  _rooms[roomIndex].status = GameStatus.Idle;
+  _rooms[roomIndex].isGameOver = false;
+  _rooms[roomIndex].buzzerState = undefined;
+  _rooms[roomIndex].players = _rooms[roomIndex].players.map(p => ({
+    ...p,
+    isReady: !!p.isBot,
+  }));
+  return _rooms[roomIndex];
 }

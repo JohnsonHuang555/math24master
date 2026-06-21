@@ -289,6 +289,18 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.on(SocketEvent.GameAborted, (playerName: string) => {
       setGameAbortedData({ playerName });
     });
+
+    socket.on(
+      SocketEvent.BuzzerGameOver,
+      (data: { winner: { id: string; name: string; score: number }; players: { id: string; name: string; score: number }[] }) => {
+        playSound('gameOverWin');
+        setGameOverData({
+          name: data.winner.name,
+          score: data.winner.score,
+          players: data.players as unknown as Player[],
+        });
+      },
+    );
   }, [resetState]);
 
   useEffect(() => {
