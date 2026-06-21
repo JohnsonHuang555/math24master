@@ -48,4 +48,25 @@ export enum SocketEvent {
   PlayerReconnect = 'player-reconnect',
   PlayerReconnectSuccess = 'player-reconnect-success',
   PlayerReconnectFailed = 'player-reconnect-failed',
+
+  // ── 搶答模式 (Buzzer Mode) ──────────────────────────────────────
+  // S→C
+  BuzzerRoundStart = 'buzzer-round-start',
+  BuzzerCountdown = 'buzzer-countdown',
+  BuzzerOpen = 'buzzer-open',
+  BuzzerBuzzInSuccess = 'buzzer-buzz-in-success',
+  BuzzerBuzzInFailed = 'buzzer-buzz-in-failed',
+  BuzzerRoundTimerPaused = 'buzzer-round-timer-paused',
+  BuzzerRoundTimerResumed = 'buzzer-round-timer-resumed',
+  BuzzerAnswerResult = 'buzzer-answer-result',
+  BuzzerPlayerLocked = 'buzzer-player-locked',
+  BuzzerPlayerUnlocked = 'buzzer-player-unlocked',
+  BuzzerNoSolutionVoteUpdate = 'buzzer-no-solution-vote-update',
+  BuzzerNoSolutionPassed = 'buzzer-no-solution-passed',
+  BuzzerRoundTimeout = 'buzzer-round-timeout',
+  BuzzerGameOver = 'buzzer-game-over',
+  // C→S
+  BuzzerBuzzIn = 'buzzer-buzz-in',
+  BuzzerSubmitAnswer = 'buzzer-submit-answer',
+  BuzzerVoteNoSolution = 'buzzer-vote-no-solution',
 }

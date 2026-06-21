@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useParams, useRouter } from 'next/navigation';
 import ChatArea from '@/components/areas/chat-area';
+import BuzzerGameBoard from '@/components/areas/buzzer/buzzer-game-board';
 import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
 import PlayersArea from '@/components/areas/players-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
+import { BuzzerPlayProvider } from '@/providers/buzzer-play-provider';
 import MainLayout from '@/components/layouts/main-layout';
 import EditRoomModal from '@/components/modals/edit-room-modal';
 import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
@@ -199,7 +201,13 @@ export default function RoomPage() {
         </Dialog>
       )}
       {roomInfo.status === GameStatus.Playing ? (
-        <MultiplePlayingArea />
+        roomInfo.settings.gameType === 'buzzer' ? (
+          <BuzzerPlayProvider>
+            <BuzzerGameBoard roomId={roomId} />
+          </BuzzerPlayProvider>
+        ) : (
+          <MultiplePlayingArea />
+        )
       ) : (
     <MainLayout>
       <PlayerNameModal
@@ -248,7 +256,7 @@ export default function RoomPage() {
             onAddBot={addBot}
             canAddBot={
               !!currentPlayer?.isMaster &&
-              roomInfo.settings.gameType === 'rummy' &&
+              (roomInfo.settings.gameType === 'rummy' || roomInfo.settings.gameType === 'buzzer') &&
               roomInfo.players.length < roomInfo.maxPlayers
             }
           />

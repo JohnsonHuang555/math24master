@@ -17,7 +17,7 @@ import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
-import { EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
+import { BuzzerSettings, EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -49,6 +49,7 @@ type MultiplePlayContextData = {
     password?: string,
     gameType?: GameType,
     remainSeconds?: number | null,
+    buzzerSettings?: BuzzerSettings,
   ) => void;
   socket: Socket;
   roomInfo?: Room;
@@ -291,9 +292,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       password?: string,
       gameType?: GameType,
       remainSeconds?: number | null,
+      buzzerSettings?: BuzzerSettings,
     ) => {
       if (socket) {
-        // 主動加入房間時，清除舊的重連令牌（避免誤觸重連邏輯）
         sessionStorage.removeItem('reconnectToken');
         sessionStorage.setItem('reconnectRoomId', roomId);
         socket.emit(SocketEvent.JoinRoom, {
@@ -304,6 +305,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           password,
           gameType,
           remainSeconds,
+          buzzerSettings,
           mode: GameMode.Multiple,
         });
       }
@@ -343,6 +345,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       remainSeconds,
       gameType,
       difficulty,
+      buzzerSettings,
     }: Partial<RoomSettings> & { maxPlayers?: number }) => {
       if (socket) {
         socket.emit(SocketEvent.EditRoomSettings, {
@@ -352,6 +355,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           remainSeconds,
           gameType,
           difficulty,
+          buzzerSettings,
         });
       }
     },

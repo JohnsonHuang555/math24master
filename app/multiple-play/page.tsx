@@ -45,7 +45,7 @@ export default function MultiplePlayPage() {
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'classic' | 'rummy'>('all');
+  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'buzzer'>('all');
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
@@ -174,7 +174,7 @@ export default function MultiplePlayPage() {
               </Select>
               <Select
                 value={gameTypeFilter}
-                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'buzzer')}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
@@ -182,8 +182,7 @@ export default function MultiplePlayPage() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">全部模式</SelectItem>
-                    <SelectItem value="classic">經典模式</SelectItem>
-                    <SelectItem value="rummy">拉密模式</SelectItem>
+                    <SelectItem value="buzzer">搶答模式</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -216,7 +215,7 @@ export default function MultiplePlayPage() {
               </Button>
               <Select
                 value={gameTypeFilter}
-                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
+                onValueChange={v => setGameTypeFilter(v as 'all' | 'buzzer')}
               >
                 <SelectTrigger className="w-[80px]">
                   <SelectValue />
@@ -224,8 +223,7 @@ export default function MultiplePlayPage() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">全部</SelectItem>
-                    <SelectItem value="classic">傳統</SelectItem>
-                    <SelectItem value="rummy">拉密</SelectItem>
+                    <SelectItem value="buzzer">搶答</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
