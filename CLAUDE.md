@@ -77,3 +77,4 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
+- 開發新功能畫面、保持視覺風格一致 → invoke math24-design-system

@@ -9,7 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
 import { playSound } from '@/lib/sound-manager';
@@ -17,7 +17,7 @@ import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
-import { EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
+import { BuzzerSettings, EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -49,6 +49,7 @@ type MultiplePlayContextData = {
     password?: string,
     gameType?: GameType,
     remainSeconds?: number | null,
+    buzzerSettings?: BuzzerSettings,
   ) => void;
   socket: Socket;
   roomInfo?: Room;
@@ -91,6 +92,7 @@ type MultiplePlayContextData = {
   gameOverData: GameOverData | null;
   onCloseGameOver: () => void;
   gameAbortedData: GameAbortedData | null;
+  clearGameAbortedData: () => void;
   addBot: (difficulty: 'easy' | 'normal' | 'hard') => void;
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 };
@@ -124,6 +126,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('connected');
   const graceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 用來區分「頁面首次載入」vs「遊戲中斷線重連」：
+  // 只有 socket 曾觸發 disconnect 後才會為 true，新 socket instance 預設 false
+  const wasReconnectingRef = useRef(false);
   const {
     selectedCardSymbols,
     selectedCardNumbers,
@@ -181,6 +186,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     // 斷線：顯示重連中 UI
     socket.on('disconnect', () => {
+      wasReconnectingRef.current = true;
       setConnectionStatus('reconnecting');
       graceTimerRef.current = setTimeout(() => {
         setConnectionStatus('disconnected');
@@ -197,6 +203,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
       if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+      wasReconnectingRef.current = false;
       setRoomInfo(room);
       setPlayerId(socket.id);
       playerIdRef.current = socket.id;
@@ -206,6 +213,23 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     socket.on(SocketEvent.PlayerReconnectFailed, () => {
       if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+
+      if (!wasReconnectingRef.current) {
+        // socket 是剛建立的新 instance（玩家離開後重新進入同一房間）
+        // → token 已因離開而失效，自動 fallback 到一般 joinRoom
+        const playerName = localStorage.getItem('playerName');
+        const roomId = sessionStorage.getItem('reconnectRoomId');
+        sessionStorage.removeItem('reconnectToken');
+        if (playerName && roomId) {
+          socket.emit(SocketEvent.JoinRoom, {
+            playerName,
+            roomId,
+            mode: GameMode.Multiple,
+          });
+          return;
+        }
+      }
+
       setConnectionStatus('disconnected');
       sessionStorage.removeItem('reconnectToken');
       sessionStorage.removeItem('reconnectRoomId');
@@ -291,9 +315,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       password?: string,
       gameType?: GameType,
       remainSeconds?: number | null,
+      buzzerSettings?: BuzzerSettings,
     ) => {
       if (socket) {
-        // 主動加入房間時，清除舊的重連令牌（避免誤觸重連邏輯）
         sessionStorage.removeItem('reconnectToken');
         sessionStorage.setItem('reconnectRoomId', roomId);
         socket.emit(SocketEvent.JoinRoom, {
@@ -304,6 +328,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           password,
           gameType,
           remainSeconds,
+          buzzerSettings,
           mode: GameMode.Multiple,
         });
       }
@@ -343,6 +368,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       remainSeconds,
       gameType,
       difficulty,
+      buzzerSettings,
     }: Partial<RoomSettings> & { maxPlayers?: number }) => {
       if (socket) {
         socket.emit(SocketEvent.EditRoomSettings, {
@@ -352,6 +378,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
           remainSeconds,
           gameType,
           difficulty,
+          buzzerSettings,
         });
       }
     },
@@ -498,6 +525,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     setGameOverData(null);
   }, []);
 
+  const clearGameAbortedData = useCallback(() => {
+    setGameAbortedData(null);
+  }, []);
+
   // 拉密：抽 1 張牌
   const onRummyDraw = useCallback(() => {
     if (roomInfo?.isGameOver || !isYourTurn) return;
@@ -585,6 +616,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       gameOverData,
       onCloseGameOver,
       gameAbortedData,
+      clearGameAbortedData,
       onRummyDraw,
       onRummySubmit,
       onSwapJoker,
@@ -598,6 +630,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     editRoom,
     editRoomSettings,
     gameAbortedData,
+    clearGameAbortedData,
     gameOverData,
     isLastRound,
     isSymbolScoreAnimationFinished,

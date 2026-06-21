@@ -7,6 +7,7 @@ import { AchievementModal } from '@/components/modals/achievement-modal';
 import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
 import { StatsModal } from '@/components/modals/stats-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
+import AnnouncementBanner from '@/components/announcement-banner';
 import { Button } from '@/components/ui/button';
 import {
   Trophy,
@@ -15,6 +16,7 @@ import {
   CalendarDays,
   Search,
   ChevronRight,
+  Users,
 } from 'lucide-react';
 
 const HERO_CARDS = [
@@ -73,6 +75,8 @@ const Homepage = () => {
       />
 
       <div ref={scrollRef} className="flex h-full w-full flex-col overflow-y-auto">
+        <AnnouncementBanner />
+
         {/* ════════════════════════════════
             HERO
         ════════════════════════════════ */}
@@ -220,18 +224,33 @@ const Homepage = () => {
               }}
               className="flex flex-col items-center gap-3"
             >
-              <motion.div
-                whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-              >
-                <Button
-                  variant="tactile"
-                  className="h-14 px-12 text-xl"
-                  onClick={() => (window.location.href = '/single-play')}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <motion.div
+                  whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                 >
-                  立即開始
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="tactile"
+                    className="h-14 px-12 text-xl"
+                    onClick={() => (window.location.href = '/single-play')}
+                  >
+                    立即開始
+                  </Button>
+                </motion.div>
+                <motion.div
+                  whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+                >
+                  <Button
+                    variant="tactileOutline"
+                    className="h-14 gap-2 px-8 text-xl"
+                    onClick={() => (window.location.href = '/multiple-play')}
+                  >
+                    <Users className="h-5 w-5" />
+                    多人對戰
+                  </Button>
+                </motion.div>
+              </div>
               <button
                 className="px-2 py-1.5 text-sm font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
                 onClick={() => setIsOpenRuleModal(true)}
@@ -288,15 +307,41 @@ const Homepage = () => {
         ════════════════════════════════ */}
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="mx-auto max-w-4xl">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
-                更多遊戲模式
-              </h2>
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                多人連線維護中，排行榜已上線
-              </span>
+            <h2 className="mb-6 text-2xl font-black tracking-tight text-foreground md:text-3xl">
+              更多遊戲模式
+            </h2>
+            <div className="grid gap-4 md:gap-6">
+              {/* 多人連線 — 全寬 */}
+              <motion.button
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ root: scrollRef, once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={reduceMotion ? undefined : { y: -4 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                className="flex w-full items-center gap-4 rounded-2xl border-2 border-primary/25 bg-primary/5 p-5 text-left shadow-[0_6px_0_0_hsl(175_84%_72%/0.4)] transition-colors hover:bg-primary/10 active:translate-y-1 active:shadow-none dark:border-teal-700 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_theme(colors.teal.800)] dark:hover:bg-teal-900/30 md:p-6"
+                onClick={() => (window.location.href = '/multiple-play')}
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
+                  <Users className="h-7 w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-teal-800 dark:text-teal-300">
+                      多人連線
+                    </span>
+                    <span className="rounded-full bg-primary px-2 py-0.5 font-display text-[10px] font-black text-white">
+                      NEW
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
+                    即時房間對戰，全新搶答模式
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-primary/50" />
+              </motion.button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+            <div className="mt-4 grid gap-4 md:grid-cols-2 md:gap-6">
               {/* 每日挑戰 */}
               <motion.button
                 initial={reduceMotion ? false : { opacity: 0, y: 20 }}
@@ -358,6 +403,7 @@ const Homepage = () => {
             </div>
           </div>
         </section>
+
 
         {/* ════════════════════════════════
             Footer

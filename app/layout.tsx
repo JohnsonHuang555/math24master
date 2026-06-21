@@ -1,5 +1,4 @@
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from '@/components/ui/sonner';
 import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
@@ -100,18 +99,7 @@ export default function RootLayout({
           <PendingScoreSubmitter />
         </SessionProvider>
         {/* <SoundToggle /> */}
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-        />
+        <Toaster />
       </body>
     </html>
   );

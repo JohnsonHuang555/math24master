@@ -1,60 +1,150 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-import HoverTip from '@/components/hover-tip';
-import MainLayout from '@/components/layouts/main-layout';
 import CreateRoomModal from '@/components/modals/create-room-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
+import AlertDialogModal from '@/components/modals/alert-dialog-modal';
+import {
+  ArrowLeft,
+  BookOpen,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  Users,
+  Zap,
+} from 'lucide-react';
 
 const RELOAD_ROOMS_TIMER = 1000;
-
 const roomId = uuidv4();
 
-export default function MultiplePlayPage() {
-  const [rooms, setRooms] = useState<Room[]>([]);
+type GameTypeFilter = 'all' | 'classic' | 'rummy' | 'buzzer';
 
+const GAME_TYPE_LABELS: Record<string, string> = {
+  classic: '傳統',
+  rummy: '拉密',
+  buzzer: '搶答',
+};
+
+function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
+  const reduceMotion = useReducedMotion();
+  const isFull = room.players.length >= room.maxPlayers;
+  const gameType = room.settings.gameType;
+
+  const colorMap = {
+    classic: {
+      border: 'border-teal-200 dark:border-teal-800',
+      bg: 'bg-teal-50 dark:bg-teal-900/20',
+      shadow: 'shadow-[0_6px_0_0_theme(colors.teal.200)] dark:shadow-[0_6px_0_0_theme(colors.teal.800)]',
+      hover: 'hover:bg-teal-100/70 dark:hover:bg-teal-900/30',
+      badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+      icon: 'bg-teal-500',
+      name: 'text-teal-800 dark:text-teal-200',
+      count: 'text-teal-600 dark:text-teal-400',
+    },
+    rummy: {
+      border: 'border-teal-200 dark:border-teal-800',
+      bg: 'bg-teal-50/60 dark:bg-teal-900/10',
+      shadow: 'shadow-[0_6px_0_0_theme(colors.teal.200)] dark:shadow-[0_6px_0_0_theme(colors.teal.800)]',
+      hover: 'hover:bg-teal-100/50 dark:hover:bg-teal-900/20',
+      badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+      icon: 'bg-teal-400',
+      name: 'text-teal-800 dark:text-teal-200',
+      count: 'text-teal-600 dark:text-teal-400',
+    },
+    buzzer: {
+      border: 'border-amber-200 dark:border-amber-800',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      shadow: 'shadow-[0_6px_0_0_theme(colors.amber.200)] dark:shadow-[0_6px_0_0_theme(colors.amber.800)]',
+      hover: 'hover:bg-amber-100/70 dark:hover:bg-amber-900/30',
+      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      icon: 'bg-amber-500',
+      name: 'text-amber-800 dark:text-amber-200',
+      count: 'text-amber-600 dark:text-amber-400',
+    },
+  };
+
+  const c = colorMap[gameType as keyof typeof colorMap] ?? colorMap.classic;
+
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={reduceMotion || isFull ? undefined : { y: -4 }}
+      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+      disabled={isFull}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left',
+        'transition-colors active:translate-y-1 active:shadow-none',
+        c.border, c.bg, c.shadow, c.hover,
+        isFull && 'cursor-not-allowed opacity-50',
+      )}
+    >
+      {/* 遊戲類型圖示 */}
+      <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white', c.icon)}>
+        {gameType === 'buzzer' ? (
+          <Zap className="h-5 w-5" />
+        ) : (
+          <span className="font-display text-base font-black">24</span>
+        )}
+      </div>
+
+      {/* 房間資訊 */}
+      <div className="min-w-0 flex-1">
+        <div className={cn('flex items-center gap-1.5 font-display text-base font-black', c.name)}>
+          {room.password && <Lock className="h-3.5 w-3.5 shrink-0" />}
+          <span className="truncate">{room.roomName}</span>
+        </div>
+        <div className={cn('mt-0.5 flex items-center gap-2 text-sm', c.count)}>
+          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', c.badge)}>
+            {GAME_TYPE_LABELS[gameType] ?? gameType}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" />
+            {room.players.length} / {room.maxPlayers}
+          </span>
+          {isFull && <span className="text-xs font-medium text-rose-500">人數已滿</span>}
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+export default function MultiplePlayPage() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+
+  const [rooms, setRooms] = useState<Room[]>([]);
   const router = useRouter();
   const { searchRooms, joinRoom, socket } = useMultiplePlay();
   const [searchedRoomName, setSearchedRoomName] = useState('');
-  const [searchedShowEmpty, setSearchedShowEmpty] = useState('all');
+  const [gameTypeFilter, setGameTypeFilter] = useState<GameTypeFilter>('all');
   const [playerName, setPlayerName] = useState<string>('');
   const [selectedRoomId, setSelectedRoomId] = useState<string>();
-
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
-  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'classic' | 'rummy'>('all');
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
 
   useEffect(() => {
-    const playerName = localStorage.getItem('playerName') || '';
-    if (!playerName) {
+    const name = localStorage.getItem('playerName') || '';
+    if (!name) {
       setIsOpenNameModal(true);
     } else {
-      setPlayerName(playerName);
+      setPlayerName(name);
     }
   }, []);
 
@@ -75,32 +165,37 @@ export default function MultiplePlayPage() {
   }, [router, socket, searchRooms]);
 
   useEffect(() => {
-    // 加入房間
     if (isConfirmed) {
       window.location.href = `/multiple-play/${selectedRoomId}`;
       onReset();
     }
   }, [isConfirmed, onReset, selectedRoomId]);
 
-  // 每 {RELOAD_ROOMS_TIMER} 秒刷新一次
   useEffect(() => {
     const interval = setInterval(() => {
       searchRooms({
         roomName: searchedRoomName,
-        showEmpty: searchedShowEmpty !== 'all',
+        showEmpty: false,
       });
     }, RELOAD_ROOMS_TIMER);
-
     return () => clearInterval(interval);
-  }, [searchRooms, searchedRoomName, searchedShowEmpty]);
+  }, [searchRooms, searchedRoomName]);
 
   const filteredRooms =
     gameTypeFilter === 'all'
       ? rooms
       : rooms.filter(r => r.settings.gameType === gameTypeFilter);
 
+  // const FILTERS: { value: GameTypeFilter; label: string }[] = [
+  //   { value: 'all', label: '全部' },
+  //   { value: 'classic', label: '傳統' },
+  //   { value: 'rummy', label: '拉密' },
+  //   { value: 'buzzer', label: '搶答' },
+  // ];
+
   return (
-    <MainLayout>
+    <main className="flex h-full flex-col">
+      <AlertDialogModal />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <PlayerNameModal
         isOpen={isOpenNameModal}
@@ -122,212 +217,182 @@ export default function MultiplePlayPage() {
           joinRoom(playerName, roomId, roomName, maxPlayers, password, gameType);
         }}
       />
-      <div className="flex h-full flex-col items-center justify-center">
-        <div className="h-2/3 w-2/3 max-md:h-full max-md:w-full max-md:p-4 md:h-5/6 md:w-5/6">
-          <div className="mb-4 flex justify-between">
-            <h1 className="text-xl font-semibold">房間列表</h1>
-            <div className="flex items-center">
-              <div className="text-lg">Hi, {playerName}</div>
-              <HoverTip content="編輯名稱">
-                <Image
-                  src="/edit.svg"
-                  alt="edit"
-                  className="ml-3"
-                  width={20}
-                  height={20}
-                  priority
-                  onClick={() => setIsOpenNameModal(true)}
-                />
-              </HoverTip>
-            </div>
+
+      {/* Memphis 底圖 */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-[url('/b2.webp')] bg-cover bg-center opacity-[0.20]"
+      />
+
+      {/* 頁面捲動容器 */}
+      <div ref={scrollRef} className="flex h-full flex-col overflow-y-auto">
+        {/* Header */}
+        <header className="relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-8">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo.webp"
+              alt="24點大師"
+              width={100}
+              height={30}
+              className="h-7 w-auto dark:invert cursor-pointer"
+              priority
+              onClick={() => router.push('/')}
+            />
           </div>
-          <div className="mb-8 flex justify-between max-md:mb-3">
-            <div className="flex gap-4 max-md:w-full max-md:gap-2">
-              <div className="relative w-[150px] max-md:w-1/2">
-                <Input
-                  placeholder="房間名稱"
-                  className="pl-8"
-                  onChange={e => setSearchedRoomName(e.target.value)}
-                />
-                <Image
-                  src="/search.svg"
-                  alt="search"
-                  className="absolute top-[50%] ml-2 -translate-y-1/2"
-                  width={20}
-                  height={20}
-                  priority
-                />
-              </div>
-              <Select
-                value={searchedShowEmpty}
-                onValueChange={setSearchedShowEmpty}
-              >
-                <SelectTrigger className="w-[120px] max-md:w-1/2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部房間</SelectItem>
-                    <SelectItem value="only-empty">人數未滿</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Select
-                value={gameTypeFilter}
-                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部模式</SelectItem>
-                    <SelectItem value="classic">經典模式</SelectItem>
-                    <SelectItem value="rummy">拉密模式</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-4 max-md:hidden">
-              <Button variant="secondary" onClick={() => router.push('/')}>
-                回首頁
-              </Button>
-              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
-                遊戲規則
-              </Button>
-              <Button onClick={() => setIsOpenCreateRoomModal(true)}>
-                <Image
-                  src="/add-room.svg"
-                  alt="add-room"
-                  className="mr-1"
-                  width={20}
-                  height={20}
-                  priority
-                />
-                建立房間
-              </Button>
-            </div>
-          </div>
-          {/* mobile only */}
-          <div className="mb-6 max-md:flex max-md:justify-between md:hidden">
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.push('/')}>
-                回首頁
-              </Button>
-              <Select
-                value={gameTypeFilter}
-                onValueChange={v => setGameTypeFilter(v as 'all' | 'classic' | 'rummy')}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部</SelectItem>
-                    <SelectItem value="classic">傳統</SelectItem>
-                    <SelectItem value="rummy">拉密</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Button variant="secondary" onClick={() => setIsOpenRuleModal(true)}>
-                規則
-              </Button>
-            </div>
-            <Button onClick={() => setIsOpenCreateRoomModal(true)}>
-              <Image
-                src="/add-room.svg"
-                alt="add-room"
-                className="mr-1"
-                width={20}
-                height={20}
-                priority
-              />
-              建立房間
+          <nav className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden font-bold text-muted-foreground hover:text-foreground md:flex"
+              onClick={() => setIsOpenRuleModal(true)}
+            >
+              <BookOpen className="mr-1.5 h-4 w-4" />
+              遊戲規則
             </Button>
-          </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground md:hidden"
+              onClick={() => setIsOpenRuleModal(true)}
+            >
+              <BookOpen className="h-5 w-5" />
+            </Button>
+            {/* 玩家名稱 */}
+            <button
+              onClick={() => setIsOpenNameModal(true)}
+              className="ml-1 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <span className="hidden md:inline">Hi, </span>
+              <span className="font-bold">{playerName}</span>
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </nav>
+        </header>
+
+        {/* Main */}
+        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-8 md:px-8">
+          {/* 頁面標題 */}
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-6 mt-2 flex items-end justify-between"
+          >
+            <div>
+              <h1 className="font-display text-3xl font-black leading-tight text-foreground md:text-4xl">
+                多人對戰
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                加入房間或建立你的專屬對局
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsOpenCreateRoomModal(true)}
+              className="h-11 gap-2 rounded-2xl bg-primary px-5 font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] transition-all active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">建立房間</span>
+              <span className="sm:hidden">建立</span>
+            </Button>
+          </motion.div>
+
+          {/* 篩選列 */}
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.07, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-5 flex flex-wrap items-center gap-3"
+          >
+            {/* 搜尋框 */}
+            <div className="relative min-w-0 flex-1 sm:max-w-[200px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="搜尋房間..."
+                className="rounded-xl border-zinc-200 pl-9 focus-visible:ring-primary dark:border-zinc-700"
+                onChange={e => setSearchedRoomName(e.target.value)}
+              />
+            </div>
+
+            {/* TODO: 之後再做, 遊戲類型篩選 */}
+            {/* <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white/60 p-1 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+              {FILTERS.map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setGameTypeFilter(f.value)}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-sm font-bold transition-colors',
+                    gameTypeFilter === f.value
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div> */}
+          </motion.div>
+
+          {/* 房間計數 */}
+          {filteredRooms.length > 0 && (
+            <p className="mb-3 text-xs font-medium text-muted-foreground">
+              {filteredRooms.length} 個房間
+            </p>
+          )}
+
+          {/* 房間列表 */}
           {filteredRooms.length > 0 ? (
-            <div className="-ml-2 -mt-2 h-[calc(100%-60px)] overflow-y-auto pl-2 pt-2">
-              <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
-                {filteredRooms.map(room => (
-                  <motion.div
-                    key={room.roomId}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 1 }}
-                  >
-                    <Card
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (room.players.length === room.maxPlayers) {
-                          toast.info('房間人數已滿');
-                          return;
-                        }
-                        setSelectedRoomId(room.roomId);
-                        onOpen({
-                          title: '加入房間',
-                          description: `確定要加入 ${room.roomName} 嗎？`,
-                        });
-                      }}
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-lg">
-                          {room.roomName}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex justify-between">
-                        <div className="flex items-center justify-center">
-                          {room.password && (
-                            <Image
-                              src="/lock.svg"
-                              alt="lock"
-                              width={20}
-                              height={20}
-                              priority
-                            />
-                          )}
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <span
-                            className={cn(
-                              'rounded px-1.5 py-0.5 text-xs font-medium',
-                              room.settings.gameType === 'rummy'
-                                ? 'bg-purple-100 text-purple-700'
-                                : 'bg-blue-100 text-blue-700',
-                            )}
-                          >
-                            {room.settings.gameType === 'rummy' ? '拉密' : '傳統'}
-                          </span>
-                          <Image
-                            src="/user.svg"
-                            alt="user"
-                            width={20}
-                            height={20}
-                            priority
-                          />
-                          <div>
-                            {room.players.length} / {room.maxPlayers}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredRooms.map((room, i) => (
+                <motion.div
+                  key={room.roomId}
+                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <RoomCard
+                    room={room}
+                    onClick={() => {
+                      if (room.players.length >= room.maxPlayers) {
+                        toast.info('房間人數已滿');
+                        return;
+                      }
+                      setSelectedRoomId(room.roomId);
+                      onOpen({
+                        title: '加入房間',
+                        description: `確定要加入 ${room.roomName} 嗎？`,
+                      });
+                    }}
+                  />
+                </motion.div>
+              ))}
             </div>
           ) : (
-            <div className="mt-14 flex flex-col items-center">
-              <Image
-                src="/no-room.svg"
-                alt="no-room"
-                className="mb-6"
-                width={46}
-                height={46}
-                priority
-              />
-              <div className="text-center text-gray-500">目前沒有遊戲房間</div>
-            </div>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-1 flex-col items-center justify-center pb-20"
+            >
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
+                <Users className="h-7 w-7 text-zinc-400" />
+              </div>
+              <p className="font-display text-xl font-black text-zinc-600 dark:text-zinc-400">
+                目前沒有房間
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                建立房間，邀請朋友一起來玩吧！
+              </p>
+              <Button
+                onClick={() => setIsOpenCreateRoomModal(true)}
+                className="mt-6 h-11 gap-2 rounded-2xl bg-primary px-6 font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
+              >
+                <Plus className="h-4 w-4" />
+                建立第一個房間
+              </Button>
+            </motion.div>
           )}
         </div>
       </div>
-    </MainLayout>
+    </main>
   );
 }

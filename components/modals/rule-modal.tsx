@@ -6,127 +6,92 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type RuleModalProps = {
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
 };
 
+function RuleSection({
+  title,
+  accent,
+  children,
+}: {
+  title: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className={`mb-2 text-sm font-black ${accent ?? 'text-foreground'}`}>
+        {title}
+      </h3>
+      <ul className="space-y-1.5 text-sm text-muted-foreground">{children}</ul>
+    </section>
+  );
+}
+
 export function RuleModal({ isOpen, onOpenChange }: RuleModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>遊戲規則</DialogTitle>
+          <DialogTitle>搶答模式規則</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="classic" className="mt-2">
-          <TabsList className="w-full">
-            <TabsTrigger value="classic" className="flex-1">經典</TabsTrigger>
-            <TabsTrigger value="level" className="flex-1">關卡</TabsTrigger>
-            <TabsTrigger value="challenge" className="flex-1">挑戰</TabsTrigger>
-          </TabsList>
 
-          {/* 經典模式 */}
-          <TabsContent value="classic">
-            <div className="mt-2 flex max-h-[50vh] flex-col gap-4 overflow-y-auto text-sm">
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">規則說明</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 玩家有 <strong>4</strong> 張手牌</li>
-                  <li>• 使用手牌組出等於 24 的算式並出牌，必須用完所有手牌</li>
-                  <li>• 無法組出算式時可選擇<strong>跳過</strong>，換全部 4 張新牌，無得分</li>
-                  <li>• 牌庫耗盡時進入最後一輪，玩家回合結束後遊戲結束</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">計分方式</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 算式中有<strong>加減</strong>符號各加 1 分</li>
-                  <li>• 算式中有<strong>乘</strong>符號各加 2 分</li>
-                  <li>• 算式中有<strong>除</strong>符號各加 3 分</li>
-                  <li>• 算式中有 2 張<strong>乘</strong>符號額外加 1 分</li>
-                  <li>• 算式中有 2 張<strong>除</strong>符號額外加 1 分</li>
-                  <li>• 左右括號不計分</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">計分範例</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 6 + 6 + 6 + 6 = 24 → 得 <strong>3</strong> 分（3 個加號）</li>
-                  <li>• (2 + 4 ÷ 10) × 10 = 24 → 得 <strong>6</strong> 分（加 1、乘 2、除 3）</li>
-                </ul>
-              </section>
-            </div>
-          </TabsContent>
+        <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto pr-1 text-sm">
+          <RuleSection title="目標" accent="text-teal-700 dark:text-teal-400">
+            <li>使用 <strong>4 張公共牌</strong>，透過加減乘除組出等於 <strong>24</strong> 的算式</li>
+            <li>先累積達到設定<strong>獲勝分數</strong>（預設 20 分）的玩家獲勝</li>
+          </RuleSection>
 
-          {/* 關卡模式 */}
-          <TabsContent value="level">
-            <div className="mt-2 flex max-h-[50vh] flex-col gap-4 overflow-y-auto text-sm">
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">規則說明</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 共 <strong>5 題</strong>，全部答對後計時停止</li>
-                  <li>• 使用 4 個數字和運算符號組出等於 24 的算式</li>
-                  <li>• 答錯或跳過 <strong>+10 秒</strong>懲罰</li>
-                  <li>• 用時越短、答題越準確，排名越高</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">計分方式</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 符號越難，每題得分越高</li>
-                  <li>• 算式中有<strong>加減</strong>符號各加 1 分</li>
-                  <li>• 算式中有<strong>乘</strong>符號各加 2 分</li>
-                  <li>• 算式中有<strong>除</strong>符號各加 3 分</li>
-                  <li>• 答錯或跳過本題不計分</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">策略提示</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 計時器出現<span className="text-red-500 font-semibold">紅色</span>代表已累積 2 次以上懲罰，注意節奏</li>
-                  <li>• 盡量避免跳過，每次跳過都會增加總用時</li>
-                </ul>
-              </section>
-            </div>
-          </TabsContent>
+          <RuleSection title="流程">
+            <li>每回合顯示 <strong>4 張公共牌</strong>（所有玩家共用同一組）</li>
+            <li>任何未被鎖定的玩家可按下<strong>搶答鈕</strong>取得作答資格</li>
+            <li>搶到後在<strong>作答時間</strong>內選牌、選符號並提交算式</li>
+            <li>答對得分，進入下一回合；答錯或超時則扣分並鎖定</li>
+          </RuleSection>
 
-          {/* 挑戰模式 */}
-          <TabsContent value="challenge">
-            <div className="mt-2 flex max-h-[50vh] flex-col gap-4 overflow-y-auto text-sm">
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">規則說明</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 從 <strong>5 分鐘</strong>開始倒數</li>
-                  <li>• 答對一題 <strong>+1 分鐘</strong>，繼續挑戰下一關</li>
-                  <li>• 跳過換題 <strong>-15 秒</strong>，關卡數不增加</li>
-                  <li>• 時間歸零，遊戲結束並結算</li>
-                  <li>• 剩餘時間超過 30 秒且已過第 3 關，可按<strong>提前結算</strong>隨時結束</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">計分方式</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 每題依使用的符號計分（同經典模式）</li>
-                  <li>• 算式中有<strong>加減</strong>符號各加 1 分</li>
-                  <li>• 算式中有<strong>乘</strong>符號各加 2 分</li>
-                  <li>• 算式中有<strong>除</strong>符號各加 3 分</li>
-                </ul>
-              </section>
-              <section>
-                <h3 className="mb-1 font-semibold text-gray-700">策略提示</h3>
-                <ul className="space-y-1 text-gray-600">
-                  <li>• 跳過有代價，非必要不要跳</li>
-                  <li>• 剩餘時間 <span className="text-red-500 font-semibold">紅色閃爍</span> 代表低於 60 秒，需加快節奏</li>
-                  <li>• 最佳紀錄以<strong>關卡數</strong>為主要排名依據</li>
-                </ul>
-              </section>
-            </div>
-          </TabsContent>
-        </Tabs>
+          <RuleSection title="計分方式">
+            <li>算式含<strong>加 / 減</strong>符號各得 <strong>1 分</strong></li>
+            <li>算式含<strong>乘</strong>符號各得 <strong>2 分</strong></li>
+            <li>算式含<strong>除</strong>符號各得 <strong>3 分</strong></li>
+            <li>使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個<strong>除</strong>額外 <strong>+1 分</strong></li>
+            <li className="pt-0.5 text-xs">
+              範例：<span className="font-mono font-bold">6 × 4 × (3 − 2) = 24</span> → <strong>5 分</strong>（乘 2 + 乘 2 + 雙乘 1）
+            </li>
+          </RuleSection>
+
+          <RuleSection title="鎖定機制" accent="text-rose-600 dark:text-rose-400">
+            <li>答錯或作答超時：依設定<strong>扣分</strong>（0–3 分），並進入<strong>鎖定</strong>狀態</li>
+            <li>鎖定期間無法搶答，<strong>連勝數歸零</strong></li>
+            <li>設定開啟「換回合解鎖」時，新回合開始自動解除鎖定</li>
+          </RuleSection>
+
+          <RuleSection title="連勝加分" accent="text-amber-700 dark:text-amber-400">
+            <li>連續答對可累積<strong>連勝數</strong></li>
+            <li>若房間開啟連勝加分，每次答對額外加 <strong>連勝數 × 1</strong> 或 <strong>× 2 分</strong></li>
+            <li>答錯或超時連勝數歸零</li>
+          </RuleSection>
+
+          <RuleSection title="無解投票">
+            <li>若認為目前 4 張牌<strong>無法湊出 24</strong>，可投票「無解」</li>
+            <li>超過半數玩家投票後，換新的一組牌，不扣分</li>
+          </RuleSection>
+
+          <RuleSection title="回合超時（選項）">
+            <li>設有回合時間時，時間到且無人答對，所有玩家依設定<strong>扣分</strong></li>
+            <li>自動換新的一組牌進入下一回合</li>
+          </RuleSection>
+        </div>
+
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>關閉</Button>
+          <Button
+            onClick={() => onOpenChange(false)}
+            className="rounded-2xl bg-primary font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
+          >
+            了解
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

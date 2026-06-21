@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { useGuestStore } from '@/stores/guest-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';

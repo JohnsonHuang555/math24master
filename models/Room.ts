@@ -20,7 +20,7 @@ export enum DeckType {
   Random = 'random',
 }
 
-export type GameType = 'classic' | 'rummy';
+export type GameType = 'classic' | 'rummy' | 'buzzer';
 
 export type OperatorType = '+' | '-' | '*' | '/';
 
@@ -37,11 +37,57 @@ export enum Difficulty {
   Hard = 'hard',
 }
 
+export type BuzzerSettings = {
+  presetMode: 'standard' | 'fast' | 'casual' | 'custom';
+  answerSeconds: 10 | 15 | 20 | 25 | 30;
+  penaltyPoints: 0 | 1 | 2 | 3;
+  lockSeconds: 10 | 15 | 20 | 25 | 30;
+  winScore: 15 | 20 | 25 | 30;
+  roundSeconds: 30 | 60 | 90 | null;
+  roundTimeoutPenalty: 0 | 1 | 2 | 3;
+  scoreFloor: 0 | -5 | -10 | null;
+  streakBonus: 'none' | 'n1' | 'n2';
+  cardMaxValue: 10 | 13;
+  clearLockOnNewRound: boolean;
+};
+
+export const DEFAULT_BUZZER_SETTINGS: BuzzerSettings = {
+  presetMode: 'standard',
+  answerSeconds: 15,
+  penaltyPoints: 2,
+  lockSeconds: 15,
+  winScore: 20,
+  roundSeconds: 60,
+  roundTimeoutPenalty: 1,
+  scoreFloor: null,
+  streakBonus: 'n1',
+  cardMaxValue: 13,
+  clearLockOnNewRound: true,
+};
+
+export type BuzzerPlayerState = {
+  isLocked: boolean;
+  lockUntil: number | null;
+  streak: number;
+};
+
+export type BuzzerState = {
+  roundNumber: number;
+  publicCards: NumberCard[];
+  roundTimerElapsed: number;
+  roundTimerPaused: boolean;
+  currentAnswerPlayerId: string | null;
+  answerStartAt: number | null;
+  noSolutionVotes: string[];
+  playerStates: { [playerId: string]: BuzzerPlayerState };
+};
+
 export type RoomSettings = {
   deckType: DeckType;
   remainSeconds: number | null;
   difficulty: Difficulty;
   gameType: GameType; // 預設 'classic'
+  buzzerSettings?: BuzzerSettings;
 };
 
 export type Room = {
@@ -59,4 +105,5 @@ export type Room = {
   countdownTime?: number; // 回合倒數計時
   board: EquationGroup[]; // 桌面已驗證牌組（拉密模式）
   rummyFinalRoundStartOrder?: number; // 最後一圈起始玩家的 playerOrder（undefined = 非最後一圈）
+  buzzerState?: BuzzerState;
 };

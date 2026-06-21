@@ -2,10 +2,12 @@ import { createServer } from 'http';
 import next from 'next';
 import { Server } from 'socket.io';
 import { Room } from '@/models/Room';
+import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { Message } from '../models/Message';
 import { SocketEvent } from '../models/SocketEvent';
 import {
   addBotToRoom,
+  applyBuzzerRoomUpdate,
   backCard,
   checkCanJoinRoom,
   discardCard,
@@ -13,6 +15,7 @@ import {
   editRoom,
   editRoomSettings,
   getCurrentBotPlayer,
+  getCurrentRoom,
   getCurrentRooms,
   getPlayerName,
   joinRoom,
@@ -34,6 +37,16 @@ import {
   startGame,
   updateScore,
 } from './game';
+import {
+  applyRoundTimeout,
+  processBuzzIn,
+  processBuzzerAnswer,
+  processBuzzerAnswerTimeout,
+  processNoSolutionVote,
+  startBuzzerRound,
+  unlockPlayer,
+} from './buzzer';
+import { triggerBuzzerBot } from './buzzer-bot';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const hostname = process.env.HOSTNAME || 'localhost';
@@ -47,6 +60,17 @@ const timerMap: {
 
 // 斷線寬限期計時器 Map：key = reconnectToken, value = setTimeout handle
 const disconnectGraceTimerMap: Map<string, NodeJS.Timeout> = new Map();
+
+// ── Buzzer Mode Timers ────────────────────────────────────────────────────────
+type BuzzerRoundTimer = {
+  timer: NodeJS.Timeout | null;
+  elapsed: number;  // 已過秒數
+  total: number;    // 總秒數（roundSeconds）
+};
+const buzzerRoundTimerMap: Map<string, BuzzerRoundTimer> = new Map();
+const buzzerAnswerTimerMap: Map<string, NodeJS.Timeout> = new Map();   // key = roomId
+const buzzerLockTimerMap: Map<string, NodeJS.Timeout> = new Map();     // key = playerId
+const startCountdownMap = new Map<string, ReturnType<typeof setTimeout>[]>(); // key = roomId
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -85,6 +109,149 @@ app.prepare().then(() => {
     }, 1500);
   };
 
+  // ── Buzzer Mode Helpers ──────────────────────────────────────────────────────
+
+  const _clearBuzzerAnswerTimer = (roomId: string) => {
+    const t = buzzerAnswerTimerMap.get(roomId);
+    if (t) { clearTimeout(t); buzzerAnswerTimerMap.delete(roomId); }
+  };
+
+  const _clearBuzzerRoundTimer = (roomId: string) => {
+    const entry = buzzerRoundTimerMap.get(roomId);
+    if (entry?.timer) { clearInterval(entry.timer); }
+    buzzerRoundTimerMap.delete(roomId);
+  };
+
+  const _pauseBuzzerRoundTimer = (roomId: string) => {
+    const entry = buzzerRoundTimerMap.get(roomId);
+    if (!entry || !entry.timer) return;
+    clearInterval(entry.timer);
+    entry.timer = null;
+    buzzerRoundTimerMap.set(roomId, entry);
+    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerPaused, { elapsedSeconds: entry.elapsed });
+  };
+
+  const _resumeBuzzerRoundTimer = (roomId: string) => {
+    const entry = buzzerRoundTimerMap.get(roomId);
+    if (!entry) return;
+    const remaining = entry.total - entry.elapsed;
+    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, { remainingSeconds: remaining });
+    entry.timer = setInterval(() => {
+      entry.elapsed += 1;
+      if (entry.elapsed >= entry.total) {
+        _clearBuzzerRoundTimer(roomId);
+        const room = getCurrentRoom(roomId);
+        if (!room) return;
+        const result = applyRoundTimeout(room);
+        if (result.success) {
+          const updated = applyBuzzerRoomUpdate(result.room);
+          if (updated) {
+            io.to(roomId).emit(SocketEvent.BuzzerRoundTimeout, {
+              penaltyPoints: updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
+              players: updated.players,
+            });
+            io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+            setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 2000);
+          }
+        }
+      }
+    }, 1000);
+    buzzerRoundTimerMap.set(roomId, entry);
+  };
+
+  const _startBuzzerRoundWithCountdown = (roomId: string) => {
+    const room = getCurrentRoom(roomId);
+    if (!room) return;
+
+    _clearBuzzerAnswerTimer(roomId);
+    _clearBuzzerRoundTimer(roomId);
+
+    const newRoom = startBuzzerRound(room);
+    const updated = applyBuzzerRoomUpdate(newRoom);
+    if (!updated || !updated.buzzerState) return;
+
+    const settings = updated.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+
+    io.to(roomId).emit(SocketEvent.BuzzerRoundStart, {
+      publicCards: updated.buzzerState.publicCards,
+      roundNumber: updated.buzzerState.roundNumber,
+      roundSeconds: settings.roundSeconds,
+    });
+
+    // 3 秒等待倒數
+    let count = 3;
+    const countdown = setInterval(() => {
+      io.to(roomId).emit(SocketEvent.BuzzerCountdown, { countdown: count });
+      count--;
+      if (count < 0) {
+        clearInterval(countdown);
+        io.to(roomId).emit(SocketEvent.BuzzerOpen);
+        triggerBuzzerBot(roomId, io);
+
+        if (settings.roundSeconds !== null) {
+          const entry: BuzzerRoundTimer = { timer: null, elapsed: 0, total: settings.roundSeconds };
+          buzzerRoundTimerMap.set(roomId, entry);
+          _resumeBuzzerRoundTimer(roomId);
+        }
+      }
+    }, 1000);
+  };
+
+  const _startAnswerTimer = (roomId: string, playerId: string, answerSeconds: number) => {
+    _clearBuzzerAnswerTimer(roomId);
+    const t = setTimeout(() => {
+      buzzerAnswerTimerMap.delete(roomId);
+      const room = getCurrentRoom(roomId);
+      if (!room || room.buzzerState?.currentAnswerPlayerId !== playerId) return;
+
+      const result = processBuzzerAnswerTimeout(room, playerId);
+      const updated = applyBuzzerRoomUpdate(result.room);
+      if (!updated) return;
+
+      io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
+        isCorrect: false,
+        playerId,
+        scoreDelta: result.scoreDelta,
+        newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
+        streak: 0,
+        streakBonus: 0,
+      });
+      io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+
+      const ps = updated.buzzerState?.playerStates[playerId];
+      if (ps?.isLocked && ps.lockUntil) {
+        io.to(roomId).emit(SocketEvent.BuzzerPlayerLocked, {
+          playerId,
+          lockSeconds: updated.settings.buzzerSettings?.lockSeconds ?? 15,
+          lockUntil: ps.lockUntil,
+        });
+        _scheduleLockExpiry(roomId, playerId, updated.settings.buzzerSettings?.lockSeconds ?? 15);
+      }
+
+      // 1.5 秒緩衝後恢復回合計時
+      setTimeout(() => {
+        const settings = updated.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+        if (settings.roundSeconds !== null) _resumeBuzzerRoundTimer(roomId);
+      }, 1500);
+    }, answerSeconds * 1000);
+    buzzerAnswerTimerMap.set(roomId, t);
+  };
+
+  const _scheduleLockExpiry = (roomId: string, playerId: string, lockSeconds: number) => {
+    const existing = buzzerLockTimerMap.get(playerId);
+    if (existing) clearTimeout(existing);
+    const t = setTimeout(() => {
+      buzzerLockTimerMap.delete(playerId);
+      const room = getCurrentRoom(roomId);
+      if (!room) return;
+      const updated = applyBuzzerRoomUpdate(unlockPlayer(room, playerId));
+      if (updated) io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, { playerId });
+    }, lockSeconds * 1000);
+    buzzerLockTimerMap.set(playerId, t);
+  };
+
+  // ── End Buzzer Helpers ───────────────────────────────────────────────────────
+
   const _resetRoundTimer = (roomId: string, room: Room) => {
     if (timerMap[roomId] && timerMap[roomId].timer !== null) {
       _clearAndCreateTimer(roomId, room);
@@ -115,6 +282,92 @@ app.prepare().then(() => {
       }
     }, 1000);
   };
+
+  // ── 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────────
+
+  const _actuallyStartGame = (roomId: string) => {
+    let result = startGame(roomId);
+    if (!result.success) {
+      io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, result.error);
+      return;
+    }
+
+    if (result.room.settings.gameType === 'buzzer') {
+      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+      setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 600);
+      return;
+    }
+
+    if (result.room.settings.gameType === 'rummy') {
+      const rummyResult = rummyStartGame(roomId);
+      if (!rummyResult.success) {
+        io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, rummyResult.error);
+        return;
+      }
+      result = rummyResult;
+    }
+
+    const { room } = result;
+    io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    if (room.settings.remainSeconds !== null) {
+      timerMap[roomId] = { countdownTime: room.settings.remainSeconds, timer: null };
+      _clearAndCreateTimer(roomId, room);
+    } else {
+      io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, undefined);
+    }
+
+    if (room.settings.gameType === 'rummy') {
+      _triggerBotIfNeeded(roomId);
+    }
+  };
+
+  const _cancelGameCountdown = (roomId: string) => {
+    const timers = startCountdownMap.get(roomId);
+    if (!timers) return;
+    timers.forEach(clearTimeout);
+    startCountdownMap.delete(roomId);
+    io.to(roomId).emit(SocketEvent.GetMessage, {
+      name: '',
+      message: '遊戲開始倒數已取消',
+      isSystem: true,
+    } as Message);
+  };
+
+  const _startGameCountdown = (roomId: string, socketId: string) => {
+    if (startCountdownMap.has(roomId)) return;
+
+    const room = getCurrentRoom(roomId);
+    if (!room) {
+      io.to(socketId).emit(SocketEvent.ErrorMessage, '房間不存在');
+      return;
+    }
+    if (!room.players.every(p => p.isReady)) {
+      io.to(socketId).emit(SocketEvent.ErrorMessage, '尚有玩家未準備');
+      return;
+    }
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    [5, 4, 3, 2, 1].forEach((n, i) => {
+      timers.push(
+        setTimeout(() => {
+          io.to(roomId).emit(SocketEvent.GetMessage, {
+            name: '',
+            message: `遊戲將在 ${String(n)} 秒開始`,
+            isSystem: true,
+          } as Message);
+        }, i * 1000),
+      );
+    });
+    timers.push(
+      setTimeout(() => {
+        startCountdownMap.delete(roomId);
+        _actuallyStartGame(roomId);
+      }, 5000),
+    );
+    startCountdownMap.set(roomId, timers);
+  };
+
+  // ── End 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────
 
   io.on('connection', socket => {
     const playerId = socket.id;
@@ -148,42 +401,7 @@ app.prepare().then(() => {
     );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
-      // 先用 classic startGame 處理共用邏輯（讀取 gameType）
-      // 若是拉密模式，改用 rummyStartGame 覆蓋牌庫與手牌
-      let result = startGame(roomId);
-      if (!result.success) {
-        socket.emit(SocketEvent.ErrorMessage, result.error);
-        return;
-      }
-
-      // 拉密模式：重新初始化
-      if (result.room.settings.gameType === 'rummy') {
-        const rummyResult = rummyStartGame(roomId);
-        if (!rummyResult.success) {
-          socket.emit(SocketEvent.ErrorMessage, rummyResult.error);
-          return;
-        }
-        result = rummyResult;
-      }
-
-      const { room } = result;
-      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-      if (room.settings.remainSeconds !== null) {
-        timerMap[roomId] = {
-          countdownTime: room.settings.remainSeconds,
-          timer: null,
-        };
-        _clearAndCreateTimer(roomId, room);
-      } else {
-        io.sockets
-          .to(roomId)
-          .emit(SocketEvent.CountdownTimeResponse, undefined);
-      }
-
-      // 遊戲開始後，若第一位玩家是 Bot，觸發其行動
-      if (room.settings.gameType === 'rummy') {
-        _triggerBotIfNeeded(roomId);
-      }
+      _startGameCountdown(roomId, socket.id);
     });
 
     socket.on(SocketEvent.DrawCard, ({ roomId }) => {
@@ -307,6 +525,10 @@ app.prepare().then(() => {
     socket.on(SocketEvent.ReadyGame, ({ roomId }) => {
       const result = readyGame(roomId, playerId);
       if (result.success) {
+        const player = result.room.players.find(p => p.id === playerId);
+        if (player && !player.isReady) {
+          _cancelGameCountdown(roomId);
+        }
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
@@ -342,8 +564,8 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.EditRoomSettings,
-      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType }) => {
-        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType);
+      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType, buzzerSettings }) => {
+        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType, buzzerSettings);
         if (result.success) {
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
         } else {
@@ -473,6 +695,134 @@ app.prepare().then(() => {
       }
     });
 
+    // ============================================================
+    // 搶答模式 Socket Events
+    // ============================================================
+
+    socket.on(SocketEvent.BuzzerBuzzIn, ({ roomId }) => {
+      const room = getCurrentRoom(roomId);
+      if (!room) return;
+      const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+
+      const result = processBuzzIn(room, playerId);
+      if (!result.success) {
+        // player_locked 或 already_answering → 僅通知本人
+        socket.emit(SocketEvent.BuzzerBuzzInFailed, { reason: result.reason });
+        return;
+      }
+
+      const updated = applyBuzzerRoomUpdate(result.room);
+      if (!updated) return;
+
+      _pauseBuzzerRoundTimer(roomId);
+      io.to(roomId).emit(SocketEvent.BuzzerBuzzInSuccess, {
+        playerId,
+        playerName: updated.players.find(p => p.id === playerId)?.name ?? '',
+        answerSeconds: settings.answerSeconds,
+      });
+      _startAnswerTimer(roomId, playerId, settings.answerSeconds);
+    });
+
+    socket.on(SocketEvent.BuzzerSubmitAnswer, ({ roomId, selectedCards }) => {
+      const room = getCurrentRoom(roomId);
+      if (!room) return;
+      const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+
+      const result = processBuzzerAnswer(room, playerId, selectedCards);
+
+      if (result.success) {
+        _clearBuzzerAnswerTimer(roomId);
+        const updated = applyBuzzerRoomUpdate(result.room);
+        if (!updated) return;
+
+        io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
+          isCorrect: true,
+          playerId,
+          scoreDelta: result.scoreDelta,
+          newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
+          streak: result.streak,
+          streakBonus: result.streakBonus,
+        });
+        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+
+        if (result.winner) {
+          const rankedPlayers = [...updated.players].sort((a, b) => b.score - a.score);
+          io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
+            winner: result.winner,
+            players: rankedPlayers,
+          });
+          return;
+        }
+
+        // 1.5 秒緩衝後恢復回合計時 → 繼續同一回合讓其他人搶答
+        setTimeout(() => {
+          if (settings.roundSeconds !== null) _resumeBuzzerRoundTimer(roomId);
+        }, 1500);
+
+      } else {
+        // processBuzzerAnswer 失敗帶有 room（_handleAnswerFail 已處理）
+        const failResult = result as import('./buzzer').BuzzerAnswerFailed;
+        _clearBuzzerAnswerTimer(roomId);
+        const updated = applyBuzzerRoomUpdate(failResult.room);
+        if (!updated) return;
+
+        io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
+          isCorrect: false,
+          playerId,
+          scoreDelta: failResult.scoreDelta,
+          newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
+          streak: 0,
+          streakBonus: 0,
+        });
+        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+
+        const ps = updated.buzzerState?.playerStates[playerId];
+        if (ps?.isLocked && ps.lockUntil) {
+          io.to(roomId).emit(SocketEvent.BuzzerPlayerLocked, {
+            playerId,
+            lockSeconds: settings.lockSeconds,
+            lockUntil: ps.lockUntil,
+          });
+          _scheduleLockExpiry(roomId, playerId, settings.lockSeconds);
+        }
+
+        setTimeout(() => {
+          if (settings.roundSeconds !== null) _resumeBuzzerRoundTimer(roomId);
+        }, 1500);
+      }
+    });
+
+    socket.on(SocketEvent.BuzzerVoteNoSolution, ({ roomId }) => {
+      const room = getCurrentRoom(roomId);
+      if (!room) return;
+
+      // 作答進行中不接受投票
+      if (room.buzzerState?.currentAnswerPlayerId !== null) return;
+
+      const result = processNoSolutionVote(room, playerId);
+
+      if ('room' in result) {
+        applyBuzzerRoomUpdate((result as { room: Room }).room);
+      }
+
+      if (result.passed) {
+        io.to(roomId).emit(SocketEvent.BuzzerNoSolutionPassed);
+        _clearBuzzerAnswerTimer(roomId);
+        _clearBuzzerRoundTimer(roomId);
+        setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 1500);
+      } else {
+        io.to(roomId).emit(SocketEvent.BuzzerNoSolutionVoteUpdate, {
+          votes: result.votes,
+          total: room.players.length,
+        });
+      }
+    });
+
+    // 搶答選牌進度廣播（原封不動 relay 給房間其他人）
+    socket.on(SocketEvent.BuzzerSelectionUpdate, ({ roomId, selectedCards }) => {
+      socket.to(roomId).emit(SocketEvent.BuzzerSelectionUpdate, { selectedCards });
+    });
+
     socket.on('disconnect', (reason) => {
       // 用戶主動斷線（切換頁面、關閉分頁）→ 立即移除
       // 非主動斷線（Mac 待機、網路中斷）→ 30 秒寬限期
@@ -485,6 +835,7 @@ app.prepare().then(() => {
           const roomId = leaveResult.room.roomId;
           const { room, playerName, wasPlaying, remainingCount } = leaveResult;
 
+          if (!wasPlaying) _cancelGameCountdown(roomId);
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
 
           if (wasPlaying && remainingCount <= 1) {

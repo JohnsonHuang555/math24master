@@ -7,9 +7,13 @@ import { GameStatus } from '../models/GameStatus';
 import { CardColor, NumberCard, Player } from '../models/Player';
 import { GameResponse } from '../models/Response';
 import {
+  BuzzerSettings,
+  BuzzerState,
+  DEFAULT_BUZZER_SETTINGS,
   DeckType,
   Difficulty,
   EquationGroup,
+  GameType,
   HAND_CARD_COUNT,
   RUMMY_HAND_CARD_COUNT,
   RUMMY_HAND_CARD_COUNT_EASY,
@@ -208,8 +212,9 @@ export function checkCanJoinRoom(
 export function joinRoom(
   payload: Pick<Room, 'roomId' | 'maxPlayers' | 'roomName' | 'password'> & {
     difficulty?: Difficulty;
-    gameType?: 'classic' | 'rummy';
+    gameType?: GameType;
     remainSeconds?: number | null;
+    buzzerSettings?: BuzzerSettings;
   },
   playerId: string,
   playerName: string,
@@ -288,6 +293,9 @@ export function joinRoom(
           remainSeconds: payload.remainSeconds === undefined ? 60 : payload.remainSeconds,
           difficulty: payload.difficulty ?? Difficulty.Normal,
           gameType: payload.gameType ?? 'classic',
+          buzzerSettings: payload.gameType === 'buzzer'
+            ? (payload.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS)
+            : undefined,
         },
         players: [
           {
@@ -859,7 +867,8 @@ export function editRoomSettings(
   deckType?: DeckType,
   remainSeconds?: number | null,
   difficulty?: Difficulty,
-  gameType?: 'classic' | 'rummy',
+  gameType?: GameType,
+  buzzerSettings?: BuzzerSettings,
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
@@ -883,6 +892,10 @@ export function editRoomSettings(
 
     if (gameType) {
       _rooms[roomIndex].settings.gameType = gameType;
+    }
+
+    if (buzzerSettings !== undefined) {
+      _rooms[roomIndex].settings.buzzerSettings = buzzerSettings;
     }
 
     return { success: true, room: _rooms[roomIndex] };
@@ -1447,4 +1460,19 @@ export function rummySwapJoker(
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (rummy swap joker)' };
   }
+}
+
+// ─── Buzzer 模式輔助 ──────────────────────────────────────────────────────────
+
+/** 將 buzzer pure functions 回傳的 Room 物件同步回 _rooms[] */
+export function applyBuzzerRoomUpdate(updatedRoom: Room): Room | null {
+  const roomIndex = _getCurrentRoomIndex(updatedRoom.roomId);
+  if (roomIndex === -1) return null;
+  _rooms[roomIndex] = updatedRoom;
+  return _rooms[roomIndex];
+}
+
+/** 取得當前房間（供 buzzer timer callbacks 使用） */
+export function getCurrentRoom(roomId: string): Room | undefined {
+  return _getCurrentRoom(roomId);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';

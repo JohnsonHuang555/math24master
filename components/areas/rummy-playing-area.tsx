@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import HoverTip from '@/components/hover-tip';
