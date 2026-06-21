@@ -54,7 +54,7 @@ type BuzzerPlayContextType = {
 
   // 最後答題結果（短暫顯示後清除）
   lastAnswerResult: BuzzerAnswerResultData | null;
-  gameOver: BuzzerGameOverData | null;
+  roundTimeoutNotification: { penaltyPoints: number } | null;
 
   // 作答者目前選牌進度（供旁觀者即時查看）
   answerSelectedCards: SelectedCard[];
@@ -97,7 +97,7 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
   const [noSolutionVotes, setNoSolutionVotes] = useState<string[]>([]);
 
   const [lastAnswerResult, setLastAnswerResult] = useState<BuzzerAnswerResultData | null>(null);
-  const [gameOver, setGameOver] = useState<BuzzerGameOverData | null>(null);
+  const [roundTimeoutNotification, setRoundTimeoutNotification] = useState<{ penaltyPoints: number } | null>(null);
   const [answerSelectedCards, setAnswerSelectedCards] = useState<SelectedCard[]>([]);
 
   // client-side 倒數計時 refs
@@ -227,14 +227,13 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
       _clearAnswerTick();
     });
 
-    socket.on(SocketEvent.BuzzerRoundTimeout, ({ players }) => {
-      // roomInfo.players scores are updated via RoomUpdate; here just clear timer
+    socket.on(SocketEvent.BuzzerRoundTimeout, ({ penaltyPoints }: { penaltyPoints: number; players: unknown[] }) => {
       _clearRoundTick();
       setRoundRemaining(0);
-    });
-
-    socket.on(SocketEvent.BuzzerGameOver, (data: BuzzerGameOverData) => {
-      setGameOver(data);
+      if (penaltyPoints > 0) {
+        setRoundTimeoutNotification({ penaltyPoints });
+        setTimeout(() => setRoundTimeoutNotification(null), 3000);
+      }
     });
 
     socket.on(SocketEvent.BuzzerSelectionUpdate, ({ selectedCards }) => {
@@ -301,7 +300,7 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
       noSolutionVotes,
       totalPlayers: roomInfo?.players.length ?? 0,
       lastAnswerResult,
-      gameOver,
+      roundTimeoutNotification,
       answerSelectedCards,
       buzzIn,
       submitAnswer,

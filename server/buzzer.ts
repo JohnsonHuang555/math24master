@@ -182,7 +182,9 @@ export function processBuzzerAnswer(
   // 答對：計算分數
   const ps = state.playerStates[playerId];
   const newStreak = ps.streak + 1;
-  const { base, streakBonus: bonus, total } = calculateBuzzerScore(selectedCards, newStreak, settings.streakBonus);
+  // ps.streak 是「之前」的連勝數：第 1 次答對時 ps.streak=0（bonus=0），
+  // 第 2 次連續答對時 ps.streak=1（bonus=1），符合「連續答對才算連勝」定義
+  const { base, streakBonus: bonus, total } = calculateBuzzerScore(selectedCards, ps.streak, settings.streakBonus);
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score + total;
@@ -337,6 +339,15 @@ export function applyRoundTimeout(room: Room): RoundTimeoutResult {
     ...p,
     score: _applyScoreFloor(p.score - settings.roundTimeoutPenalty, settings.scoreFloor),
   }));
+
+  // 全體扣分時重置所有玩家的連勝紀錄
+  const state = room.buzzerState;
+  if (state) {
+    const newPlayerStates = Object.fromEntries(
+      Object.entries(state.playerStates).map(([id, ps]) => [id, { ...ps, streak: 0 }]),
+    );
+    return { success: true, room: { ...room, players: newPlayers, buzzerState: { ...state, playerStates: newPlayerStates } } };
+  }
 
   return { success: true, room: { ...room, players: newPlayers } };
 }
