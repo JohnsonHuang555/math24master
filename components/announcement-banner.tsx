@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X, Zap } from 'lucide-react';
 
@@ -40,12 +41,12 @@ const AnnouncementBanner = () => {
             <span className="hidden text-sm text-white/75 sm:inline">
               搶答模式全新登場，邀請朋友一起挑戰 24
             </span>
-            <a
+            <Link
               href="/multiple-play"
               className="text-sm font-bold text-white/90 underline underline-offset-2 transition-colors hover:text-white"
             >
               立即體驗 →
-            </a>
+            </Link>
           </div>
 
           {/* Dismiss */}
