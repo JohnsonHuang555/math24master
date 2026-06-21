@@ -16,6 +16,8 @@ import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
+import { useGuestStore } from '@/stores/guest-store';
+import { useSession } from 'next-auth/react';
 import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import {
   ArrowLeft,
@@ -138,15 +140,24 @@ export default function MultiplePlayPage() {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
+  const { data: session, status } = useSession();
+  const { guestName } = useGuestStore();
 
   useEffect(() => {
-    const name = localStorage.getItem('playerName') || '';
-    if (!name) {
-      setIsOpenNameModal(true);
-    } else {
-      setPlayerName(name);
+    if (status === 'loading') return;
+    const stored = localStorage.getItem('playerName') || '';
+    if (stored) {
+      setPlayerName(stored);
+      return;
     }
-  }, []);
+    const authName = session?.user?.name ?? guestName ?? '';
+    if (authName) {
+      localStorage.setItem('playerName', authName);
+      setPlayerName(authName);
+    } else {
+      setIsOpenNameModal(true);
+    }
+  }, [status, session, guestName]);
 
   useEffect(() => {
     searchRooms();
