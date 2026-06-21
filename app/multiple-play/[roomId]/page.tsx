@@ -29,6 +29,8 @@ import {
 import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
+import { useGuestStore } from '@/stores/guest-store';
+import { useSession } from 'next-auth/react';
 
 export default function RoomPage() {
   const router = useRouter();
@@ -63,14 +65,24 @@ export default function RoomPage() {
     connectionStatus,
   } = useMultiplePlay();
 
+  const { data: session, status } = useSession();
+  const { guestName } = useGuestStore();
+
   useEffect(() => {
-    const localStoragePlayerName = localStorage.getItem('playerName') || '';
-    if (!localStoragePlayerName) {
-      setIsOpenNameModal(true);
+    if (status === 'loading') return;
+    const stored = localStorage.getItem('playerName') || '';
+    if (stored) {
+      setPlayerName(stored);
       return;
     }
-    setPlayerName(localStoragePlayerName);
-  }, []);
+    const authName = session?.user?.name ?? guestName ?? '';
+    if (authName) {
+      localStorage.setItem('playerName', authName);
+      setPlayerName(authName);
+    } else {
+      setIsOpenNameModal(true);
+    }
+  }, [status, session, guestName]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: any) => {
