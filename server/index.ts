@@ -405,7 +405,12 @@ app.prepare().then(() => {
     );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
-      _startGameCountdown(roomId, socket.id);
+      const room = getCurrentRoom(roomId);
+      if (room?.maxPlayers === 1) {
+        _actuallyStartGame(roomId);
+      } else {
+        _startGameCountdown(roomId, socket.id);
+      }
     });
 
     socket.on(SocketEvent.DrawCard, ({ roomId }) => {
