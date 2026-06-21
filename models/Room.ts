@@ -60,7 +60,7 @@ export const DEFAULT_BUZZER_SETTINGS: BuzzerSettings = {
   roundSeconds: 60,
   roundTimeoutPenalty: 1,
   scoreFloor: null,
-  streakBonus: 'n2',
+  streakBonus: 'n1',
   cardMaxValue: 13,
   clearLockOnNewRound: true,
 };

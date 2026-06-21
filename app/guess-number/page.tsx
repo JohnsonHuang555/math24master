@@ -4,7 +4,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, HelpCircle } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -245,14 +245,14 @@ export default function GuessNumberPage() {
   const draggedSetRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (roundCount > prevRoundCountRef.current && !gameOver) {
-      toast.error('猜錯了！', { autoClose: 2000 });
+      toast.error('猜錯了！', { duration: 2000 });
     }
     prevRoundCountRef.current = roundCount;
   }, [roundCount, gameOver]);
 
   useEffect(() => {
     if (clueResult !== null && prevClueResultRef.current === null) {
-      toast.success('線索獲得！現在可以輸入猜測了', { autoClose: 2500 });
+      toast.success('線索獲得！現在可以輸入猜測了', { duration: 2500 });
     }
     prevClueResultRef.current = clueResult;
   }, [clueResult]);

@@ -65,8 +65,9 @@ export enum SocketEvent {
   BuzzerNoSolutionPassed = 'buzzer-no-solution-passed',
   BuzzerRoundTimeout = 'buzzer-round-timeout',
   BuzzerGameOver = 'buzzer-game-over',
-  // C→S
+  // C→S (and relayed S→C)
   BuzzerBuzzIn = 'buzzer-buzz-in',
   BuzzerSubmitAnswer = 'buzzer-submit-answer',
   BuzzerVoteNoSolution = 'buzzer-vote-no-solution',
+  BuzzerSelectionUpdate = 'buzzer-selection-update',
 }

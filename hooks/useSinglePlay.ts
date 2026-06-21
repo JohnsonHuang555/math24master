@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameActions } from '@/hooks/useGameActions';

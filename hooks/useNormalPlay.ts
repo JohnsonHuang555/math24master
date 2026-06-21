@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { generateSolvablePuzzles } from '@/lib/puzzle-generator';

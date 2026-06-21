@@ -70,6 +70,7 @@ type BuzzerRoundTimer = {
 const buzzerRoundTimerMap: Map<string, BuzzerRoundTimer> = new Map();
 const buzzerAnswerTimerMap: Map<string, NodeJS.Timeout> = new Map();   // key = roomId
 const buzzerLockTimerMap: Map<string, NodeJS.Timeout> = new Map();     // key = playerId
+const startCountdownMap = new Map<string, ReturnType<typeof setTimeout>[]>(); // key = roomId
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -149,6 +150,7 @@ app.prepare().then(() => {
               penaltyPoints: updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
               players: updated.players,
             });
+            io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
             setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 2000);
           }
         }
@@ -181,7 +183,7 @@ app.prepare().then(() => {
     const countdown = setInterval(() => {
       io.to(roomId).emit(SocketEvent.BuzzerCountdown, { countdown: count });
       count--;
-      if (count === 0) {
+      if (count < 0) {
         clearInterval(countdown);
         io.to(roomId).emit(SocketEvent.BuzzerOpen);
         triggerBuzzerBot(roomId, io);
@@ -214,6 +216,7 @@ app.prepare().then(() => {
         streak: 0,
         streakBonus: 0,
       });
+      io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
       const ps = updated.buzzerState?.playerStates[playerId];
       if (ps?.isLocked && ps.lockUntil) {
@@ -280,6 +283,92 @@ app.prepare().then(() => {
     }, 1000);
   };
 
+  // ── 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────────
+
+  const _actuallyStartGame = (roomId: string) => {
+    let result = startGame(roomId);
+    if (!result.success) {
+      io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, result.error);
+      return;
+    }
+
+    if (result.room.settings.gameType === 'buzzer') {
+      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+      setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 600);
+      return;
+    }
+
+    if (result.room.settings.gameType === 'rummy') {
+      const rummyResult = rummyStartGame(roomId);
+      if (!rummyResult.success) {
+        io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, rummyResult.error);
+        return;
+      }
+      result = rummyResult;
+    }
+
+    const { room } = result;
+    io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    if (room.settings.remainSeconds !== null) {
+      timerMap[roomId] = { countdownTime: room.settings.remainSeconds, timer: null };
+      _clearAndCreateTimer(roomId, room);
+    } else {
+      io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, undefined);
+    }
+
+    if (room.settings.gameType === 'rummy') {
+      _triggerBotIfNeeded(roomId);
+    }
+  };
+
+  const _cancelGameCountdown = (roomId: string) => {
+    const timers = startCountdownMap.get(roomId);
+    if (!timers) return;
+    timers.forEach(clearTimeout);
+    startCountdownMap.delete(roomId);
+    io.to(roomId).emit(SocketEvent.GetMessage, {
+      name: '',
+      message: '遊戲開始倒數已取消',
+      isSystem: true,
+    } as Message);
+  };
+
+  const _startGameCountdown = (roomId: string, socketId: string) => {
+    if (startCountdownMap.has(roomId)) return;
+
+    const room = getCurrentRoom(roomId);
+    if (!room) {
+      io.to(socketId).emit(SocketEvent.ErrorMessage, '房間不存在');
+      return;
+    }
+    if (!room.players.every(p => p.isReady)) {
+      io.to(socketId).emit(SocketEvent.ErrorMessage, '尚有玩家未準備');
+      return;
+    }
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    [5, 4, 3, 2, 1].forEach((n, i) => {
+      timers.push(
+        setTimeout(() => {
+          io.to(roomId).emit(SocketEvent.GetMessage, {
+            name: '',
+            message: `遊戲將在 ${String(n)} 秒開始`,
+            isSystem: true,
+          } as Message);
+        }, i * 1000),
+      );
+    });
+    timers.push(
+      setTimeout(() => {
+        startCountdownMap.delete(roomId);
+        _actuallyStartGame(roomId);
+      }, 5000),
+    );
+    startCountdownMap.set(roomId, timers);
+  };
+
+  // ── End 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────
+
   io.on('connection', socket => {
     const playerId = socket.id;
 
@@ -312,47 +401,7 @@ app.prepare().then(() => {
     );
 
     socket.on(SocketEvent.StartGame, ({ roomId }) => {
-      let result = startGame(roomId);
-      if (!result.success) {
-        socket.emit(SocketEvent.ErrorMessage, result.error);
-        return;
-      }
-
-      // 搶答模式：直接開始第一回合
-      // 延遲 600ms 讓客戶端有時間掛載 BuzzerPlayProvider 並註冊 socket 監聽器
-      if (result.room.settings.gameType === 'buzzer') {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
-        setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 600);
-        return;
-      }
-
-      // 拉密模式：重新初始化
-      if (result.room.settings.gameType === 'rummy') {
-        const rummyResult = rummyStartGame(roomId);
-        if (!rummyResult.success) {
-          socket.emit(SocketEvent.ErrorMessage, rummyResult.error);
-          return;
-        }
-        result = rummyResult;
-      }
-
-      const { room } = result;
-      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-      if (room.settings.remainSeconds !== null) {
-        timerMap[roomId] = {
-          countdownTime: room.settings.remainSeconds,
-          timer: null,
-        };
-        _clearAndCreateTimer(roomId, room);
-      } else {
-        io.sockets
-          .to(roomId)
-          .emit(SocketEvent.CountdownTimeResponse, undefined);
-      }
-
-      if (room.settings.gameType === 'rummy') {
-        _triggerBotIfNeeded(roomId);
-      }
+      _startGameCountdown(roomId, socket.id);
     });
 
     socket.on(SocketEvent.DrawCard, ({ roomId }) => {
@@ -476,6 +525,10 @@ app.prepare().then(() => {
     socket.on(SocketEvent.ReadyGame, ({ roomId }) => {
       const result = readyGame(roomId, playerId);
       if (result.success) {
+        const player = result.room.players.find(p => p.id === playerId);
+        if (player && !player.isReady) {
+          _cancelGameCountdown(roomId);
+        }
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
@@ -690,6 +743,7 @@ app.prepare().then(() => {
           streak: result.streak,
           streakBonus: result.streakBonus,
         });
+        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
         if (result.winner) {
           const rankedPlayers = [...updated.players].sort((a, b) => b.score - a.score);
@@ -720,6 +774,7 @@ app.prepare().then(() => {
           streak: 0,
           streakBonus: 0,
         });
+        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
         const ps = updated.buzzerState?.playerStates[playerId];
         if (ps?.isLocked && ps.lockUntil) {
@@ -763,6 +818,11 @@ app.prepare().then(() => {
       }
     });
 
+    // 搶答選牌進度廣播（原封不動 relay 給房間其他人）
+    socket.on(SocketEvent.BuzzerSelectionUpdate, ({ roomId, selectedCards }) => {
+      socket.to(roomId).emit(SocketEvent.BuzzerSelectionUpdate, { selectedCards });
+    });
+
     socket.on('disconnect', (reason) => {
       // 用戶主動斷線（切換頁面、關閉分頁）→ 立即移除
       // 非主動斷線（Mac 待機、網路中斷）→ 30 秒寬限期
@@ -775,6 +835,7 @@ app.prepare().then(() => {
           const roomId = leaveResult.room.roomId;
           const { room, playerName, wasPlaying, remainingCount } = leaveResult;
 
+          if (!wasPlaying) _cancelGameCountdown(roomId);
           io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
 
           if (wasPlaying && remainingCount <= 1) {

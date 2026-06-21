@@ -1,7 +1,12 @@
 import { useState } from 'react';
-import Image from 'next/image';
+import {
+  BookOpen,
+  Lock,
+  LogOut,
+  Pencil,
+  Settings2,
+} from 'lucide-react';
 import HoverTip from '@/components/hover-tip';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -55,18 +60,24 @@ const SettingSelect = ({
   children,
 }: SettingSelectProps) => (
   <div>
-    <div className="flex items-center gap-1">
-      <Label className={`text-xs${dimLabel ? ' opacity-40' : ''}`}>{label}</Label>
+    <div className="mb-1 flex items-center gap-1">
+      <Label
+        className={`text-xs font-medium text-muted-foreground${dimLabel ? ' opacity-40' : ''}`}
+      >
+        {label}
+      </Label>
       {tooltip && (
-        <HoverTip content={<span className="block max-w-48 text-wrap">{tooltip}</span>}>
-          <span className="flex h-4 w-4 border cursor-pointer items-center justify-center rounded-full text-[10px] leading-none text-muted-foreground">
+        <HoverTip
+          content={<span className="block max-w-48 text-wrap">{tooltip}</span>}
+        >
+          <span className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-zinc-300 text-[10px] leading-none text-muted-foreground dark:border-zinc-600">
             ?
           </span>
         </HoverTip>
       )}
     </div>
     <Select disabled={disabled} value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="mt-1 h-8">
+      <SelectTrigger className="h-8 rounded-xl border-zinc-200 bg-white/60 text-xs dark:border-zinc-700 dark:bg-zinc-800/40">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -104,50 +115,52 @@ const RoomInfoArea = ({
   const roundUnlimited = bs.roundSeconds === null;
 
   return (
-    <Card className="grow p-4">
+    <div className="md:h-full grow rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/30">
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <div className="mb-4 flex gap-4">
-        <div className="flex grow items-center gap-2">
+
+      {/* Header */}
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500 text-white">
+          <Settings2 className="h-4 w-4" />
+        </div>
+        <div className="flex flex-1 items-center gap-1.5 min-w-0">
           {password && (
-            <Image src="/lock.svg" alt="lock" width={18} height={18} priority />
+            <Lock className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
           )}
-          <div className="mr-1 mt-[2px]">房間名稱: {roomName}</div>
+          <span className="truncate font-display text-base font-black text-foreground">
+            {roomName}
+          </span>
           {isMaster && (
-            <HoverTip content="編輯名稱">
-              <Image
-                onClick={onEditRoomName}
-                src="/edit.svg"
-                alt="edit"
-                width={20}
-                height={20}
-                priority
-              />
-            </HoverTip>
+            <button
+              onClick={onEditRoomName}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
-        <HoverTip content="遊戲規則">
-          <Image
-            onClick={() => setIsOpenRuleModal(true)}
-            src="/document.svg"
-            alt="document"
-            width={20}
-            height={20}
-            priority
-          />
-        </HoverTip>
-        <HoverTip content="離開房間">
-          <Image
-            onClick={onLeaveRoom}
-            src="/leave.svg"
-            alt="leave"
-            width={24}
-            height={24}
-            priority
-          />
-        </HoverTip>
+        <div className="flex items-center gap-1">
+          <HoverTip content="遊戲規則">
+            <button
+              onClick={() => setIsOpenRuleModal(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+            >
+              <BookOpen className="h-4 w-4" />
+            </button>
+          </HoverTip>
+          <HoverTip content="離開房間">
+            <button
+              onClick={onLeaveRoom}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </HoverTip>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-2">
+      {/* 設定表格 */}
+      <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
         <SettingSelect
           label="玩家人數"
           disabled={!isMaster}
@@ -156,7 +169,7 @@ const RoomInfoArea = ({
         >
           {[2, 3, 4, 5, 6].map(n => (
             <SelectItem key={n} value={String(n)}>
-              {n}
+              {n} 人
             </SelectItem>
           ))}
         </SettingSelect>
@@ -171,7 +184,9 @@ const RoomInfoArea = ({
             <SelectItem value={DeckType.Standard}>
               標準 (1-10 各 {playersCount * 3} 張)
             </SelectItem>
-            <SelectItem value={DeckType.Random}>全部隨機 (所有數字牌隨機產生)</SelectItem>
+            <SelectItem value={DeckType.Random}>
+              全部隨機
+            </SelectItem>
           </SettingSelect>
         )}
 
@@ -185,13 +200,15 @@ const RoomInfoArea = ({
                 : String(roomSettings.remainSeconds)
             }
             onValueChange={v =>
-              onRoomSettingsChange({ remainSeconds: v === 'infinity' ? null : Number(v) })
+              onRoomSettingsChange({
+                remainSeconds: v === 'infinity' ? null : Number(v),
+              })
             }
           >
             <SelectItem value="infinity">無限時</SelectItem>
             {[30, 60, 90, 120, 150, 180, 240, 300].map(s => (
               <SelectItem key={s} value={String(s)}>
-                {s}
+                {s} 秒
               </SelectItem>
             ))}
           </SettingSelect>
@@ -211,10 +228,16 @@ const RoomInfoArea = ({
             label="遊戲難度"
             disabled={!isMaster}
             value={roomSettings.difficulty}
-            onValueChange={v => onRoomSettingsChange({ difficulty: v as Difficulty })}
+            onValueChange={v =>
+              onRoomSettingsChange({ difficulty: v as Difficulty })
+            }
           >
-            <SelectItem value={Difficulty.Easy}>簡單（10 張・無顏色限制）</SelectItem>
-            <SelectItem value={Difficulty.Normal}>普通（14 張・標準規則）</SelectItem>
+            <SelectItem value={Difficulty.Easy}>
+              簡單（10 張・無顏色限制）
+            </SelectItem>
+            <SelectItem value={Difficulty.Normal}>
+              普通（14 張・標準規則）
+            </SelectItem>
           </SettingSelect>
         )}
 
@@ -224,7 +247,9 @@ const RoomInfoArea = ({
               label="牌面範圍"
               disabled={!isMaster}
               value={String(bs.cardMaxValue)}
-              onValueChange={v => updateBuzzer({ cardMaxValue: Number(v) as 10 | 13 })}
+              onValueChange={v =>
+                updateBuzzer({ cardMaxValue: Number(v) as 10 | 13 })
+              }
             >
               <SelectItem value="10">1 – 10</SelectItem>
               <SelectItem value="13">1 – 13</SelectItem>
@@ -250,7 +275,9 @@ const RoomInfoArea = ({
               disabled={!isMaster}
               value={String(bs.answerSeconds)}
               onValueChange={v =>
-                updateBuzzer({ answerSeconds: Number(v) as 10 | 15 | 20 | 25 | 30 })
+                updateBuzzer({
+                  answerSeconds: Number(v) as 10 | 15 | 20 | 25 | 30,
+                })
               }
             >
               {BUZZER_SECONDS.map(s => (
@@ -282,7 +309,9 @@ const RoomInfoArea = ({
               disabled={!isMaster}
               value={String(bs.lockSeconds)}
               onValueChange={v =>
-                updateBuzzer({ lockSeconds: Number(v) as 10 | 15 | 20 | 25 | 30 })
+                updateBuzzer({
+                  lockSeconds: Number(v) as 10 | 15 | 20 | 25 | 30,
+                })
               }
             >
               {BUZZER_SECONDS.map(s => (
@@ -295,10 +324,13 @@ const RoomInfoArea = ({
             <SettingSelect
               label="每回合時間"
               disabled={!isMaster}
-              value={bs.roundSeconds === null ? 'unlimited' : String(bs.roundSeconds)}
+              value={
+                bs.roundSeconds === null ? 'unlimited' : String(bs.roundSeconds)
+              }
               onValueChange={v =>
                 updateBuzzer({
-                  roundSeconds: v === 'unlimited' ? null : (Number(v) as 30 | 60 | 90),
+                  roundSeconds:
+                    v === 'unlimited' ? null : (Number(v) as 30 | 60 | 90),
                 })
               }
             >
@@ -317,7 +349,9 @@ const RoomInfoArea = ({
               dimLabel={roundUnlimited}
               value={String(bs.roundTimeoutPenalty)}
               onValueChange={v =>
-                updateBuzzer({ roundTimeoutPenalty: Number(v) as 0 | 1 | 2 | 3 })
+                updateBuzzer({
+                  roundTimeoutPenalty: Number(v) as 0 | 1 | 2 | 3,
+                })
               }
             >
               {PENALTY_OPTIONS.map(o => (
@@ -347,7 +381,8 @@ const RoomInfoArea = ({
               value={bs.scoreFloor === null ? 'none' : String(bs.scoreFloor)}
               onValueChange={v =>
                 updateBuzzer({
-                  scoreFloor: v === 'none' ? null : (Number(v) as 0 | -5 | -10),
+                  scoreFloor:
+                    v === 'none' ? null : (Number(v) as 0 | -5 | -10),
                 })
               }
             >
@@ -362,7 +397,9 @@ const RoomInfoArea = ({
               tooltip="開啟時，新回合開始時自動解除所有玩家的鎖定狀態"
               disabled={!isMaster}
               value={bs.clearLockOnNewRound ? 'true' : 'false'}
-              onValueChange={v => updateBuzzer({ clearLockOnNewRound: v === 'true' })}
+              onValueChange={v =>
+                updateBuzzer({ clearLockOnNewRound: v === 'true' })
+              }
             >
               <SelectItem value="true">開啟</SelectItem>
               <SelectItem value="false">關閉</SelectItem>
@@ -370,7 +407,7 @@ const RoomInfoArea = ({
           </>
         )}
       </div>
-    </Card>
+    </div>
   );
 };
 

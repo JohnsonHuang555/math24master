@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -173,7 +173,7 @@ export default function DailyChallengePage() {
       await navigator.clipboard.writeText(sharePreviewText);
       toast.success('已複製到剪貼簿！');
     } catch {
-      toast.error('無法自動複製，請手動複製上方文字', { autoClose: false });
+      toast.error('無法自動複製，請手動複製上方文字', { duration: Infinity });
     }
   };
 

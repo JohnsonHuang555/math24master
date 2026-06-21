@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import {
   ACHIEVEMENTS,
   AchievementId,
@@ -12,7 +12,7 @@ export function unlockAchievement(id: AchievementId): void {
     const achievement = ACHIEVEMENTS.find(a => a.id === id);
     if (achievement) {
       toast.info(`成就解鎖：${achievement.name} — ${achievement.description}`, {
-        autoClose: 4000,
+        duration: 4000,
       });
     }
   }

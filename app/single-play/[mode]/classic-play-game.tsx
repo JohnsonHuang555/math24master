@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { BookOpen, Layers, Play, RotateCcw, Trophy } from 'lucide-react';
 import { useSession } from 'next-auth/react';

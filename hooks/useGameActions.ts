@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { playSound } from '@/lib/sound-manager';

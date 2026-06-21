@@ -151,6 +151,7 @@ export function triggerBuzzerBot(roomId: string, io: Server) {
             streak: answerResult.streak,
             streakBonus: answerResult.streakBonus,
           });
+          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
           if (answerResult.winner) {
             const ranked = [...updated.players].sort((a, b) => b.score - a.score);
@@ -177,6 +178,7 @@ export function triggerBuzzerBot(roomId: string, io: Server) {
             streak: 0,
             streakBonus: 0,
           });
+          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
           const ps2 = updated.buzzerState?.playerStates[bot.id];
           if (ps2?.isLocked && ps2.lockUntil) {
