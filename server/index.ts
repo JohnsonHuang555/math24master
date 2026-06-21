@@ -319,9 +319,10 @@ app.prepare().then(() => {
       }
 
       // 搶答模式：直接開始第一回合
+      // 延遲 600ms 讓客戶端有時間掛載 BuzzerPlayProvider 並註冊 socket 監聽器
       if (result.room.settings.gameType === 'buzzer') {
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
-        _startBuzzerRoundWithCountdown(roomId);
+        setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 600);
         return;
       }
 

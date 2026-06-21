@@ -289,10 +289,16 @@ export default function MultiplePlayPage() {
                               'rounded px-1.5 py-0.5 text-xs font-medium',
                               room.settings.gameType === 'rummy'
                                 ? 'bg-purple-100 text-purple-700'
-                                : 'bg-blue-100 text-blue-700',
+                                : room.settings.gameType === 'buzzer'
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-blue-100 text-blue-700',
                             )}
                           >
-                            {room.settings.gameType === 'rummy' ? '拉密' : '傳統'}
+                            {room.settings.gameType === 'rummy'
+                              ? '拉密'
+                              : room.settings.gameType === 'buzzer'
+                                ? '搶答'
+                                : '傳統'}
                           </span>
                           <Image
                             src="/user.svg"
