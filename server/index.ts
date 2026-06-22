@@ -16,6 +16,7 @@ import {
   editRoomSettings,
   getCurrentBotPlayer,
   getCurrentRoom,
+  getCurrentRoomId,
   getCurrentRooms,
   getPlayerName,
   joinRoom,
@@ -379,6 +380,29 @@ app.prepare().then(() => {
     socket.on(
       SocketEvent.JoinRoom,
       ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty, gameType, remainSeconds }) => {
+        // 若玩家已在另一個房間，先自動離開舊房間（防止幽靈玩家/幽靈房間）
+        const prevRoomId = getCurrentRoomId(playerId);
+        if (prevRoomId && prevRoomId !== roomId) {
+          socket.leave(prevRoomId);
+          const autoLeave = leaveRoom(playerId);
+          if (autoLeave) {
+            const { room: prevRoom, playerName: pName, wasPlaying: wp, remainingCount: rc } = autoLeave;
+            if (!wp) _cancelGameCountdown(prevRoomId);
+            io.sockets.to(prevRoomId).emit(SocketEvent.RoomUpdate, { room: prevRoom });
+            if (wp && rc <= 1) {
+              io.sockets.to(prevRoomId).emit(SocketEvent.GameAborted, pName);
+              if (timerMap[prevRoomId]?.timer !== null) {
+                clearInterval(timerMap[prevRoomId].timer as NodeJS.Timeout);
+                delete timerMap[prevRoomId];
+              }
+            } else if (wp && rc >= 2) {
+              if (timerMap[prevRoomId] && prevRoom.settings.remainSeconds !== null) {
+                _clearAndCreateTimer(prevRoomId, prevRoom);
+              }
+            }
+          }
+        }
+
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
           socket.join(roomId);
@@ -918,7 +942,36 @@ app.prepare().then(() => {
       }
     });
 
-
+    // 玩家主動透過 SPA 導頁離開房間（不斷線 socket，改用此事件通知 server 清理）
+    socket.on(SocketEvent.LeaveRoom, () => {
+      const roomId = getCurrentRoomId(playerId);
+      if (!roomId) return;
+      socket.leave(roomId);
+      const leaveResult = leaveRoom(playerId);
+      if (!leaveResult) return;
+      const { room, playerName, wasPlaying, remainingCount } = leaveResult;
+      if (!wasPlaying) _cancelGameCountdown(roomId);
+      io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+      if (wasPlaying && remainingCount <= 1) {
+        io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
+        if (timerMap[roomId]?.timer !== null) {
+          clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+          delete timerMap[roomId];
+        }
+      } else {
+        io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+        if (wasPlaying && remainingCount >= 2) {
+          if (timerMap[roomId] && room.settings.remainSeconds !== null) {
+            _clearAndCreateTimer(roomId, room);
+          }
+        } else {
+          if (timerMap[roomId]?.timer !== null) {
+            clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
+            delete timerMap[roomId];
+          }
+        }
+      }
+    });
 
     socket.on(SocketEvent.PlayerReconnect, ({ reconnectToken }: { reconnectToken: string }) => {
       // 取消寬限期計時器

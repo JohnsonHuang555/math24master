@@ -2,6 +2,7 @@ export enum SocketEvent {
   // f2e emit
   ErrorMessage = 'error-message',
   JoinRoom = 'join-room',
+  LeaveRoom = 'leave-room',
   ReadyGame = 'ready-game',
   StartGame = 'start-game',
   RoomUpdate = 'room-update',

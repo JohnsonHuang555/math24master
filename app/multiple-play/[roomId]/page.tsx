@@ -104,6 +104,12 @@ export default function RoomPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('unload', handleUnload);
+      // SPA 導頁（例如按瀏覽器上一頁）：主動通知 server 離開，避免幽靈玩家殘留
+      if (playerName) {
+        socket.emit(SocketEvent.LeaveRoom);
+        sessionStorage.removeItem('reconnectToken');
+        sessionStorage.removeItem('reconnectRoomId');
+      }
     };
   }, [joinRoom, playerName, roomId, socket]);
 
