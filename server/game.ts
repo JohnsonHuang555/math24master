@@ -163,6 +163,10 @@ const _checkGameOver = (
   }
 };
 
+export function getCurrentRoomId(playerId: string): string | undefined {
+  return _playerInRoomMap[playerId];
+}
+
 export function getPlayerName(roomId: string, playerId: string) {
   const roomIndex = _getCurrentRoomIndex(roomId);
   if (roomIndex === -1) return;
@@ -333,6 +337,11 @@ export function leaveRoom(
   const leavingPlayer = room.players.find(player => player.id === playerId);
   const leftPlayerName = leavingPlayer?.name;
   const wasPlaying = room.status === GameStatus.Playing;
+
+  // 清除 reconnect token，防止已離開玩家的 token 觸發意外重連
+  if (leavingPlayer?.reconnectToken) {
+    _tokenToPlayerMap.delete(leavingPlayer.reconnectToken);
+  }
   const wasCurrentTurn = leavingPlayer?.playerOrder === room.currentOrder;
 
   const newPlayers = room.players.filter(player => player.id !== playerId);
