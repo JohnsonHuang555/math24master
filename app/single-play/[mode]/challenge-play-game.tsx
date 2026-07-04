@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSession } from 'next-auth/react';
 import { Play, Timer } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
-import { Button } from '@/components/ui/button';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,20 +16,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
-import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
+import { Button } from '@/components/ui/button';
 import { useChallengePlay } from '@/hooks/useChallengePlay';
+import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { cn, formatTime } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
-import { usePendingScoreStore } from '@/stores/pending-score-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
 
 interface ChallengePlayGameProps {
   onBack: () => void;
   autoStart?: boolean;
 }
 
-export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGameProps) {
+export default function ChallengePlayGame({
+  onBack,
+  autoStart,
+}: ChallengePlayGameProps) {
   const {
     status,
     finishReason,
@@ -39,6 +42,7 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     selectedCards,
     seconds,
     best,
+    nextSkipPenalty,
     startGame,
     selectCard,
     removeCard,
@@ -52,12 +56,15 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
   const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
   const { setPendingScore, clearPendingScore } = usePendingScoreStore();
-  const { skipLoginPrompt, setSkipLoginPrompt } = useLoginPromptPreferenceStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } =
+    useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const isFinished = status === 'finished';
@@ -69,7 +76,13 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
   );
 
   useEffect(() => {
-    if (!isFinished || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
+    if (
+      !isFinished ||
+      isAuthenticated ||
+      sessionStatus === 'loading' ||
+      skipLoginPrompt
+    )
+      return;
     setPendingScore({ mode: 'challenge', payload: { stage, totalScore } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
@@ -79,15 +92,15 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const triggerPenalty = () => {
+  const triggerPenalty = (penalty: number) => {
     clearTimeout(penaltyTimeoutRef.current);
-    setPenaltyMsg('-15s');
+    setPenaltyMsg(`-${penalty}s`);
     penaltyTimeoutRef.current = setTimeout(() => setPenaltyMsg(null), 900);
   };
 
   const handleSkip = () => {
-    skipPuzzle();
-    triggerPenalty();
+    const penalty = skipPuzzle();
+    triggerPenalty(penalty);
   };
 
   // ── 開始畫面 ──
@@ -100,22 +113,35 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
             <Timer className="h-8 w-8" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-black text-foreground">挑戰模式</h1>
-            <p className="mt-1 text-sm text-muted-foreground">倒數 5 分鐘 · 無限關卡</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">跳過 −15 秒 · 撐越多關越好</p>
+            <h1 className="font-display text-2xl font-black text-foreground">
+              挑戰模式
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              倒數 5 分鐘 · 無限關卡
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              答對加時遞減 · 連續跳過懲罰加重
+            </p>
           </div>
         </div>
         {best && (
           <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
             <p className="text-xs text-muted-foreground">個人最佳</p>
-            <p className="font-display text-2xl font-bold text-foreground">第 {best.stage} 關</p>
-            <p className="text-sm text-muted-foreground">{best.totalScore} 分</p>
+            <p className="font-display text-2xl font-bold text-foreground">
+              第 {best.stage} 關
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {best.totalScore} 分
+            </p>
           </div>
         )}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={onBack}>返回</Button>
+          <Button variant="outline" onClick={onBack}>
+            返回
+          </Button>
           <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />開始遊戲
+            <Play className="h-4 w-4" />
+            開始遊戲
           </Button>
         </div>
       </div>
@@ -130,8 +156,15 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
         <LoginPromptModal
           isOpen={showLoginPrompt}
           onClose={() => setShowLoginPrompt(false)}
-          onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
-          onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
+          onSkip={() => {
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+          onSkipForever={() => {
+            setSkipLoginPrompt(true);
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
         />
         <div className="flex h-full flex-col items-center justify-center px-4">
           <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(36,100%,72%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(36,100%,34%)]">
@@ -143,18 +176,24 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
             </h2>
             <div className="mt-4 flex justify-center gap-8">
               <div>
-                <p className="font-display text-4xl font-bold text-amber-500">{stage}</p>
+                <p className="font-display text-4xl font-bold text-amber-500">
+                  {stage}
+                </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">最終關卡</p>
               </div>
               <div className="w-px bg-border" />
               <div>
-                <p className="font-display text-4xl font-bold text-foreground">{totalScore}</p>
+                <p className="font-display text-4xl font-bold text-foreground">
+                  {totalScore}
+                </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">總分</p>
               </div>
             </div>
             {isNewBest && (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">新紀錄！</p>
+                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                  新紀錄！
+                </p>
               </div>
             )}
             {best && !isNewBest && (
@@ -163,8 +202,12 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
               </p>
             )}
             <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={onBack}>返回選單</Button>
-              <Button variant="tactile" className="flex-1" onClick={startGame}>再挑戰</Button>
+              <Button variant="outline" className="flex-1" onClick={onBack}>
+                返回選單
+              </Button>
+              <Button variant="tactile" className="flex-1" onClick={startGame}>
+                再挑戰
+              </Button>
             </div>
           </div>
         </div>
@@ -192,12 +235,15 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           onBack();
         }}
         showSkipButton={true}
+        skipPenaltyText={`-${nextSkipPenalty} 秒`}
         theme="orange"
       >
         {/* HUD */}
-        <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-2.5 pb-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
+        <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pb-3 pt-2.5 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">挑戰模式</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              挑戰模式
+            </span>
             <button
               className="text-xs font-semibold text-amber-500 hover:text-amber-600 dark:text-amber-400"
               onClick={() => setShowEarlyEndConfirm(true)}
@@ -232,20 +278,30 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           {/* Timer progress bar */}
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
             <motion.div
-              className={cn('h-1.5 rounded-full', isLowTime ? 'bg-red-400' : 'bg-amber-400')}
+              className={cn(
+                'h-1.5 rounded-full',
+                isLowTime ? 'bg-red-400' : 'bg-amber-400',
+              )}
               style={{ width: `${progressPct}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
           {/* Stage + score */}
           <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
-            <span>第 <b className="font-bold text-foreground">{stage}</b> 關</span>
-            <span><b className="font-bold text-foreground">{totalScore}</b> 分</span>
+            <span>
+              第 <b className="font-bold text-foreground">{stage}</b> 關
+            </span>
+            <span>
+              <b className="font-bold text-foreground">{totalScore}</b> 分
+            </span>
           </div>
         </div>
       </PuzzlePlayArea>
 
-      <AlertDialog open={showEarlyEndConfirm} onOpenChange={setShowEarlyEndConfirm}>
+      <AlertDialog
+        open={showEarlyEndConfirm}
+        onOpenChange={setShowEarlyEndConfirm}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確定要提前結算？</AlertDialogTitle>
@@ -255,10 +311,12 @@ export default function ChallengePlayGame({ onBack, autoStart }: ChallengePlayGa
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>繼續遊戲</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              setShowEarlyEndConfirm(false);
-              endGameEarly();
-            }}>
+            <AlertDialogAction
+              onClick={() => {
+                setShowEarlyEndConfirm(false);
+                endGameEarly();
+              }}
+            >
               結算
             </AlertDialogAction>
           </AlertDialogFooter>

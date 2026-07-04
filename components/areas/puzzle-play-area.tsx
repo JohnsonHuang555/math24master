@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, LogOut, RotateCcw, SkipForward } from 'lucide-react';
 import Symbols from '@/components/symbols';
 import {
@@ -70,6 +70,8 @@ export interface PuzzlePlayAreaProps {
   onSkip: () => void;
   onBack: () => void;
   showSkipButton?: boolean;
+  /** 跳過懲罰的顯示文字（如 '-15 秒'），供 tooltip 與確認彈窗使用 */
+  skipPenaltyText?: string;
   theme?: PuzzleTheme;
   children?: React.ReactNode;
   // Classic mode extensions
@@ -90,6 +92,7 @@ export function PuzzlePlayArea({
   onSkip,
   onBack,
   showSkipButton = false,
+  skipPenaltyText = '-15 秒',
   theme = 'blue',
   children,
   submitLabel = '確認',
@@ -133,7 +136,7 @@ export function PuzzlePlayArea({
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
       {/* HUD 插槽 (計時器 + 分數) */}
-      <div className="max-w-sm w-full flex flex-col items-center gap-1">
+      <div className="flex w-full max-w-sm flex-col items-center gap-1">
         {children}
       </div>
 
@@ -166,13 +169,17 @@ export function PuzzlePlayArea({
       </div>
 
       {/* 算式列 + 即時預覽 */}
-      <div className={cn(
-        'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
-        t.expressionBox,
-      )}>
-        <div className="min-h-[32px] flex flex-wrap items-center gap-1.5">
+      <div
+        className={cn(
+          'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
+          t.expressionBox,
+        )}
+      >
+        <div className="flex min-h-[32px] flex-wrap items-center gap-1.5">
           {selectedCards.length === 0 ? (
-            <span className="text-sm text-muted-foreground">點選數字和符號組成算式...</span>
+            <span className="text-sm text-muted-foreground">
+              點選數字和符號組成算式...
+            </span>
           ) : (
             selectedCards.map((card, i) => (
               <motion.button
@@ -218,7 +225,7 @@ export function PuzzlePlayArea({
       </div>
 
       {/* 操作列：圖示小按鈕 + 大 CTA */}
-      <div className="w-full max-w-sm flex flex-col gap-2">
+      <div className="flex w-full max-w-sm flex-col gap-2">
         <TooltipProvider>
           <div className="flex gap-2">
             {/* 清除 */}
@@ -227,7 +234,7 @@ export function PuzzlePlayArea({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn('flex-1 h-10', t.iconBtn)}
+                  className={cn('h-10 flex-1', t.iconBtn)}
                   onClick={onClearSelection}
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -242,7 +249,7 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('flex-1 h-10', t.iconBtn)}
+                    className={cn('h-10 flex-1', t.iconBtn)}
                     onClick={onBackStep}
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -258,13 +265,13 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('flex-1 h-10', t.iconBtn)}
+                    className={cn('h-10 flex-1', t.iconBtn)}
                     onClick={onSkip}
                   >
                     <SkipForward className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>跳過此題 (-15 秒)</TooltipContent>
+                <TooltipContent>跳過此題 ({skipPenaltyText})</TooltipContent>
               </Tooltip>
             )}
             {/* 返回/離開 (隱藏時不顯示) */}
@@ -274,7 +281,7 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('flex-1 h-10', t.iconBtn)}
+                    className={cn('h-10 flex-1', t.iconBtn)}
                     onClick={() => setShowBackConfirm(true)}
                   >
                     <LogOut className="h-4 w-4" />
@@ -316,9 +323,7 @@ export function PuzzlePlayArea({
             <AlertDialogCancel onClick={() => setShowBackConfirm(false)}>
               繼續遊戲
             </AlertDialogCancel>
-            <AlertDialogAction onClick={onBack}>
-              離開
-            </AlertDialogAction>
+            <AlertDialogAction onClick={onBack}>離開</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -330,7 +335,7 @@ export function PuzzlePlayArea({
             <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
             <AlertDialogDescription>
               這題尚未作答。跳過後不會計分。
-              {showSkipButton && '（跳過 -15 秒）'}
+              {showSkipButton && `（跳過 ${skipPenaltyText}）`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

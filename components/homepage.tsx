@@ -3,21 +3,21 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
-import { AchievementModal } from '@/components/modals/achievement-modal';
-import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
-import { StatsModal } from '@/components/modals/stats-modal';
-import { RuleModal } from '@/components/modals/rule-modal';
-import AnnouncementBanner from '@/components/announcement-banner';
-import { Button } from '@/components/ui/button';
 import {
-  Trophy,
-  BarChart2,
   Award,
+  BarChart2,
   CalendarDays,
-  Search,
   ChevronRight,
+  Search,
+  Trophy,
   Users,
 } from 'lucide-react';
+import AnnouncementBanner from '@/components/announcement-banner';
+import { AchievementModal } from '@/components/modals/achievement-modal';
+import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
+import { StatsModal } from '@/components/modals/stats-modal';
+import { Button } from '@/components/ui/button';
 
 const HERO_CARDS = [
   { value: 6, rotate: -14, y: 22 },
@@ -32,7 +32,8 @@ const STEPS = [
     title: '抽牌',
     desc: '每局抽 4 張手牌，1 ~ 13 的隨機數字',
     numBg: 'bg-teal-500',
-    cardStyle: 'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800',
+    cardStyle:
+      'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800',
   },
   {
     num: '2',
@@ -46,7 +47,8 @@ const STEPS = [
     title: '得分',
     desc: '符號越困難，得分越高',
     numBg: 'bg-amber-500',
-    cardStyle: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
+    cardStyle:
+      'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
   },
 ];
 
@@ -74,7 +76,10 @@ const Homepage = () => {
         onClose={() => setIsOpenStatsModal(false)}
       />
 
-      <div ref={scrollRef} className="flex h-full w-full flex-col overflow-y-auto">
+      <div
+        ref={scrollRef}
+        className="flex h-full w-full flex-col overflow-y-auto"
+      >
         <AnnouncementBanner />
 
         {/* ════════════════════════════════
@@ -89,7 +94,14 @@ const Homepage = () => {
 
           {/* 導覽列 */}
           <header className="relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-10">
-            <Image src="/logo.webp" alt="24點大師" width={100} height={30} className="h-7 w-auto" priority />
+            <Image
+              src="/logo.webp"
+              alt="24點大師"
+              width={100}
+              height={30}
+              className="h-7 w-auto"
+              priority
+            />
             <nav className="flex items-center gap-0.5">
               {/* 桌面：文字按鈕 */}
               <Button
@@ -204,9 +216,7 @@ const Homepage = () => {
               <h1 className="font-display text-3xl font-black leading-none tracking-tight text-foreground md:text-6xl lg:text-6xl">
                 你能用 4 張牌
                 <br />
-                算出{' '}
-                <span className="text-primary">24</span>
-                {' '}嗎？
+                算出 <span className="text-primary">24</span> 嗎？
               </h1>
               <p className="mx-auto max-w-[24rem] text-base text-muted-foreground md:text-lg">
                 利用 4 張數字牌，透過加、減、乘、除與括號，組合出等於 24 的算式
@@ -251,12 +261,12 @@ const Homepage = () => {
                   </Button>
                 </motion.div>
               </div>
-              <button
+              {/* <button
                 className="px-2 py-1.5 text-sm font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
                 onClick={() => setIsOpenRuleModal(true)}
               >
                 觀看遊戲規則
-              </button>
+              </button> */}
             </motion.div>
           </div>
         </section>
@@ -361,7 +371,7 @@ const Homepage = () => {
                     每日挑戰
                   </div>
                   <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
-                    每天一題，動動腦
+                    每天 3 題 · 全球競速
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-teal-400" />
@@ -403,7 +413,6 @@ const Homepage = () => {
             </div>
           </div>
         </section>
-
 
         {/* ════════════════════════════════
             Footer

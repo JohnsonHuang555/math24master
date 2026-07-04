@@ -1,4 +1,5 @@
 import { evaluate } from 'mathjs';
+import { getTaipeiDateString } from '@/lib/date';
 
 export type FormulaItem =
   | { type: 'number'; value: number; cardIndex: number }
@@ -11,6 +12,8 @@ export type DailyChallengeRecord = {
   done: boolean;
   streak: number;
   maxStreak: number;
+  /** 完成 3 題的總秒數（改版後新增；舊紀錄無此欄位） */
+  totalSeconds?: number;
 };
 
 type DailyRecordsMap = Record<string, DailyChallengeRecord>;
@@ -46,9 +49,9 @@ export function canMake24(nums: number[]): boolean {
   return false;
 }
 
+/** 每日挑戰的「今天」以台灣時區為界（全球同題） */
 export function getTodayDateString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return getTaipeiDateString();
 }
 
 function dateToSeed(dateStr: string): number {
@@ -69,9 +72,12 @@ function getYesterdayDateString(today: string): string {
 export function getDailyCards(): number[] {
   const dateStr = getTodayDateString();
   const baseSeed = dateToSeed(dateStr);
+  return generatePuzzleFromSeed(baseSeed);
+}
 
+function generatePuzzleFromSeed(seed: number): number[] {
   for (let attempt = 0; attempt < 500; attempt++) {
-    const rng = createSeededRandom(baseSeed + attempt * 7919);
+    const rng = createSeededRandom(seed + attempt * 7919);
     const cards = [
       Math.floor(rng() * 10) + 1,
       Math.floor(rng() * 10) + 1,
@@ -80,8 +86,15 @@ export function getDailyCards(): number[] {
     ];
     if (canMake24(cards)) return cards;
   }
-
   return [1, 2, 3, 4];
+}
+
+/** 每日 3 題：同日全球 deterministic，每題各自可解 */
+export function getDailyPuzzles(count = 3): number[][] {
+  const baseSeed = dateToSeed(getTodayDateString());
+  return Array.from({ length: count }, (_, i) =>
+    generatePuzzleFromSeed((baseSeed + i * 104729) >>> 0),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +154,7 @@ export function saveDailyRecord(
   date: string,
   score: number,
   formula: FormulaItem[],
+  totalSeconds?: number,
 ): { streak: number; maxStreak: number } {
   if (typeof window === 'undefined') return { streak: 1, maxStreak: 1 };
   try {
@@ -149,7 +163,12 @@ export function saveDailyRecord(
 
     // Guard：同一天已完成，只更新 score/formula，不重算 streak
     if (map[date]?.done) {
-      map[date] = { ...map[date], score, formula };
+      map[date] = {
+        ...map[date],
+        score,
+        formula,
+        totalSeconds: totalSeconds ?? map[date].totalSeconds,
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
       return { streak: map[date].streak, maxStreak: map[date].maxStreak };
     }
@@ -169,7 +188,15 @@ export function saveDailyRecord(
       ...allRecords.map(r => r.maxStreak ?? 0),
     );
 
-    map[date] = { date, score, formula, done: true, streak, maxStreak };
+    map[date] = {
+      date,
+      score,
+      formula,
+      done: true,
+      streak,
+      maxStreak,
+      totalSeconds,
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     return { streak, maxStreak };
   } catch {

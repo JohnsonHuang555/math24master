@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X, Zap } from 'lucide-react';
 
-const BANNER_KEY = 'announcement-multiplayer-v1';
+const BANNER_KEY = 'announcement-rebalance-daily-v1';
 
 const AnnouncementBanner = () => {
   const [isDismissed, setIsDismissed] = useState(true);
@@ -37,12 +37,15 @@ const AnnouncementBanner = () => {
 
           {/* Text */}
           <div className="flex flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-sm font-bold text-white">多人連線正式上線！</span>
+            <span className="text-sm font-bold text-white">
+              每日挑戰全新改版！
+            </span>
             <span className="hidden text-sm text-white/75 sm:inline">
-              搶答模式全新登場，邀請朋友一起挑戰 24
+              每天 3
+              題全球競速・挑戰模式平衡調整、排行榜重新起算・關卡模式改版準備中
             </span>
             <Link
-              href="/multiple-play"
+              href="/daily-challenge"
               className="text-sm font-bold text-white/90 underline underline-offset-2 transition-colors hover:text-white"
             >
               立即體驗 →

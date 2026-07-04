@@ -3,19 +3,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
-  ACHIEVEMENTS,
   AchievementCategory,
+  VISIBLE_ACHIEVEMENTS,
   useAchievementStore,
 } from '@/stores/achievement-store';
-import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type AchievementModalProps = {
   isOpen: boolean;
@@ -30,13 +25,22 @@ const TABS: { key: AchievementCategory | 'all'; label: string }[] = [
 ];
 
 export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
-  const { unlockedIds, unlockDates, totalPlays, consecutiveWins, totalScore, challengeBestStage, dailyStreak } =
-    useAchievementStore();
+  const {
+    unlockedIds,
+    unlockDates,
+    totalPlays,
+    consecutiveWins,
+    totalScore,
+    challengeBestStage,
+    dailyStreak,
+  } = useAchievementStore();
 
   const unlockedValidCount = unlockedIds.filter(id =>
-    ACHIEVEMENTS.some(a => a.id === id),
+    VISIBLE_ACHIEVEMENTS.some(a => a.id === id),
   ).length;
-  const [activeTab, setActiveTab] = useState<AchievementCategory | 'all'>('all');
+  const [activeTab, setActiveTab] = useState<AchievementCategory | 'all'>(
+    'all',
+  );
 
   const progressValues: Record<string, number> = {
     totalPlays,
@@ -48,8 +52,8 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
 
   const filtered =
     activeTab === 'all'
-      ? ACHIEVEMENTS
-      : ACHIEVEMENTS.filter(a => a.category === activeTab);
+      ? VISIBLE_ACHIEVEMENTS
+      : VISIBLE_ACHIEVEMENTS.filter(a => a.category === activeTab);
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
@@ -61,7 +65,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
               成就
             </div>
             <span className="text-sm font-normal text-muted-foreground">
-              已解鎖 {unlockedValidCount} / {ACHIEVEMENTS.length}
+              已解鎖 {unlockedValidCount} / {VISIBLE_ACHIEVEMENTS.length}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -94,7 +98,10 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
               achievement.progressKey !== undefined &&
               achievement.progressTarget !== undefined;
             const progress = achievement.progressKey
-              ? Math.min(progressValues[achievement.progressKey] ?? 0, achievement.progressTarget!)
+              ? Math.min(
+                  progressValues[achievement.progressKey] ?? 0,
+                  achievement.progressTarget!,
+                )
               : 0;
             const pct = achievement.progressTarget
               ? Math.round((progress / achievement.progressTarget) * 100)
@@ -103,11 +110,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
             return (
               <motion.div
                 key={achievement.id}
-                animate={
-                  isUnlocked
-                    ? { scale: [1, 1.03, 1] }
-                    : { scale: 1 }
-                }
+                animate={isUnlocked ? { scale: [1, 1.03, 1] } : { scale: 1 }}
                 transition={{ duration: 0.3 }}
                 className={cn(
                   'rounded-lg border p-3 transition-colors',
@@ -151,12 +154,13 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
                       {achievement.description}
                     </span>
                     {/* 進度條 */}
-                    {(hasProgress || (isUnlocked && achievement.progressTarget)) && (
+                    {(hasProgress ||
+                      (isUnlocked && achievement.progressTarget)) && (
                       <div className="mt-2">
                         <div className="mb-1 flex justify-between text-xs text-muted-foreground">
                           <span>
-                            {isUnlocked ? achievement.progressTarget : progress} /{' '}
-                            {achievement.progressTarget}
+                            {isUnlocked ? achievement.progressTarget : progress}{' '}
+                            / {achievement.progressTarget}
                           </span>
                           <span>{isUnlocked ? 100 : pct}%</span>
                         </div>
