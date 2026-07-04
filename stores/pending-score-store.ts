@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type PendingScoreMode = 'classic' | 'normal' | 'challenge';
+export type PendingScoreMode = 'classic' | 'normal' | 'challenge' | 'daily';
 
 type PendingScore = {
   mode: PendingScoreMode;

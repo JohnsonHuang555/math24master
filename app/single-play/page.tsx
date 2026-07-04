@@ -1,26 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Layers, Timer, ListChecks } from 'lucide-react';
-import { cn, formatTime } from '@/lib/utils';
-import { useStatsStore } from '@/stores/stats-store';
-import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Layers, Timer } from 'lucide-react';
 import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
-import NormalPlayGame from '@/app/single-play/[mode]/normal-play-game';
+import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
+import { cn } from '@/lib/utils';
+import { useStatsStore } from '@/stores/stats-store';
 
-type PlayMode = 'classic' | 'normal' | 'challenge';
+// 關卡模式（normal）暫時下架，改版為固定題庫後再回歸
+type PlayMode = 'classic' | 'challenge';
 
 const MODE_CONFIG = [
   {
     value: 'classic' as const,
     label: '經典模式',
     tagline: '牌值 1–13 · 累積最高分',
-    chips: ['答對得分', '跳過換牌', '牌盡結束'],
+    chips: ['答對得分', '跳過換牌', '牌庫抽完即遊戲結束'],
     Icon: Layers,
     color: {
-      icon: 'bg-teal-500 shadow-[0_4px_0_0_hsl(175,84%,20%)]',
+      icon: 'bg-teal-500',
       chip: 'bg-teal-50 border-teal-200 text-teal-700',
       shadow: 'shadow-[0_8px_0_0_hsl(175,84%,78%)]',
       hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(175,84%,78%)]',
@@ -31,29 +31,14 @@ const MODE_CONFIG = [
     value: 'challenge' as const,
     label: '挑戰模式',
     tagline: '倒數 5 分鐘 · 無限關卡',
-    chips: ['答對 +1 分鐘', '跳過 −15 秒', '撐越多關越好'],
-    badge: '高壓',
+    chips: ['答對加時遞減', '跳過懲罰遞增', '挑戰關卡數量'],
     Icon: Timer,
     color: {
-      icon: 'bg-amber-400 shadow-[0_4px_0_0_hsl(36,100%,34%)]',
+      icon: 'bg-amber-400',
       chip: 'bg-amber-50 border-amber-200 text-amber-700',
       shadow: 'shadow-[0_8px_0_0_hsl(36,100%,72%)]',
       hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(36,100%,72%)]',
       activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
-    },
-  },
-  {
-    value: 'normal' as const,
-    label: '關卡模式',
-    tagline: '5 題全過關 · 最短時間勝',
-    chips: ['5 題關卡', '答錯 +10 秒', '最快完成'],
-    Icon: ListChecks,
-    color: {
-      icon: 'bg-blue-500 shadow-[0_4px_0_0_hsl(221,83%,34%)]',
-      chip: 'bg-blue-50 border-blue-200 text-blue-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(221,83%,72%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(221,83%,72%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(221,83%,72%)]',
     },
   },
 ] as const;
@@ -62,17 +47,13 @@ export default function SinglePlayPage() {
   const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
   const router = useRouter();
 
-  const { classicBestScore, normalBestSeconds, challengeBestStage } = useStatsStore();
+  const { classicBestScore, challengeBestStage } = useStatsStore();
 
   const bestLabel: Record<PlayMode, string | null> = {
     classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
     challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
-    normal: normalBestSeconds > 0 ? formatTime(normalBestSeconds) : null,
   };
 
-  if (activeMode === 'normal') {
-    return <NormalPlayGame onBack={() => setActiveMode(null)} autoStart />;
-  }
   if (activeMode === 'challenge') {
     return <ChallengePlayGame onBack={() => setActiveMode(null)} autoStart />;
   }
@@ -94,15 +75,17 @@ export default function SinglePlayPage() {
       </header>
 
       {/* Main */}
-      <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-0 mb-10 pb-8">
+      <main className="mb-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-8 pt-0">
         <div className="text-center">
           <h1 className="font-display text-3xl font-black tracking-tight text-foreground md:text-4xl">
             選擇模式
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">挑選適合你的遊戲方式</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            挑選適合你的遊戲方式
+          </p>
         </div>
 
-        <div className="w-full max-w-lg space-y-4 flex flex-col gap-4">
+        <div className="flex w-full max-w-lg flex-col gap-4 space-y-4">
           {MODE_CONFIG.map((mode, i) => {
             const best = bestLabel[mode.value];
             return (
@@ -110,7 +93,11 @@ export default function SinglePlayPage() {
                 key={mode.value}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                transition={{
+                  duration: 0.4,
+                  delay: i * 0.07,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
                 whileHover={{ y: -4 }}
                 whileTap={{ y: 2 }}
                 onClick={() => {
@@ -142,13 +129,10 @@ export default function SinglePlayPage() {
                       <span className="font-display text-xl font-black text-foreground">
                         {mode.label}
                       </span>
-                      {'badge' in mode && (
-                        <span className="flex items-center gap-0.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold leading-none text-rose-600 dark:bg-rose-900/40 dark:text-rose-400">
-                          {mode.badge}
-                        </span>
-                      )}
                     </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{mode.tagline}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {mode.tagline}
+                    </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {mode.chips.map(chip => (
                         <span
@@ -169,7 +153,9 @@ export default function SinglePlayPage() {
                 {best && (
                   <div className="mt-4 border-t border-zinc-100 pt-3.5 dark:border-zinc-800">
                     <p className="text-xs text-muted-foreground">個人最佳</p>
-                    <p className="font-display text-xl font-bold text-foreground">{best}</p>
+                    <p className="font-display text-xl font-bold text-foreground">
+                      {best}
+                    </p>
                   </div>
                 )}
               </motion.button>

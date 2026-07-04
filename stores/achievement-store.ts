@@ -24,8 +24,15 @@ export type Achievement = {
   name: string;
   description: string;
   category: AchievementCategory;
-  progressKey?: 'totalPlays' | 'consecutiveWins' | 'totalScore' | 'challengeBestStage' | 'dailyStreak';
+  progressKey?:
+    | 'totalPlays'
+    | 'consecutiveWins'
+    | 'totalScore'
+    | 'challengeBestStage'
+    | 'dailyStreak';
   progressTarget?: number;
+  /** 隱藏中（如關卡模式暫時下架）：不顯示、不計入完成度，資料保留 */
+  hidden?: boolean;
 };
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -47,6 +54,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     name: '關卡初體驗',
     description: '完成第一次關卡模式',
     category: 'beginner',
+    hidden: true, // 關卡模式暫時下架
   },
   {
     id: 'challenge_first',
@@ -109,6 +117,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     name: '完美通關',
     description: '關卡模式全程無錯誤完成',
     category: 'challenge',
+    hidden: true, // 關卡模式暫時下架
   },
   {
     id: 'challenge_stage_10',
@@ -128,16 +137,21 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
+/** 顯示用成就清單（過濾隱藏項；成就彈窗與完成度分母皆用此清單） */
+export const VISIBLE_ACHIEVEMENTS: Achievement[] = ACHIEVEMENTS.filter(
+  a => !a.hidden,
+);
+
 type AchievementStore = {
   unlockedIds: AchievementId[];
   unlockDates: Partial<Record<AchievementId, number>>; // 解鎖時間戳（ms）
-  totalPlays: number;          // 累計出牌成功次數
-  singleSkipCount: number;     // 本局跳過次數（單人）
-  lastPlayTime: number;        // 最近出牌時刻（用於 speed_win）
-  consecutiveWins: number;     // 連勝計數
-  totalScore: number;          // 累計得分
-  challengeBestStage: number;  // 挑戰模式最高連續答對題數（for progress display）
-  dailyStreak: number;         // 每日挑戰當前連續天數（for progress display）
+  totalPlays: number; // 累計出牌成功次數
+  singleSkipCount: number; // 本局跳過次數（單人）
+  lastPlayTime: number; // 最近出牌時刻（用於 speed_win）
+  consecutiveWins: number; // 連勝計數
+  totalScore: number; // 累計得分
+  challengeBestStage: number; // 挑戰模式最高連續答對題數（for progress display）
+  dailyStreak: number; // 每日挑戰當前連續天數（for progress display）
 
   /** 解鎖成就；若已解鎖則忽略。回傳是否為新解鎖 */
   unlock: (id: AchievementId) => boolean;

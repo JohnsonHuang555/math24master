@@ -1,40 +1,59 @@
-import { auth } from '@/auth';
-import { db } from '@/lib/firebase-admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { getTaipeiDateString } from '@/lib/date';
+import { db } from '@/lib/firebase-admin';
 
-type Mode = 'normal' | 'challenge' | 'classic';
+type Mode = 'normal' | 'challenge' | 'classic' | 'daily';
 
-const COLLECTION: Record<Mode, string> = {
+const COLLECTION: Record<Exclude<Mode, 'daily'>, string> = {
   normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
 };
 
-const ORDER_FIELD: Record<Mode, string> = {
+const ORDER_FIELD: Record<Exclude<Mode, 'daily'>, string> = {
   normal: 'rankingScore',
   challenge: 'stage',
   classic: 'score',
 };
 
-const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
+const ORDER_DIR: Record<
+  Exclude<Mode, 'daily'>,
+  FirebaseFirestore.OrderByDirection
+> = {
   normal: 'desc',
   challenge: 'desc',
   classic: 'desc',
 };
 
+// 每日排行榜：leaderboard_daily/{date}/entries/{userId}
+// 以 subcollection 按日隔離 = 天然每日重置，且單欄位排序免建 composite index
+function dailyEntriesRef(date: string) {
+  return db.collection('leaderboard_daily').doc(date).collection('entries');
+}
+
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') as Mode | null;
-  if (!mode || !COLLECTION[mode]) {
+  if (!mode || (mode !== 'daily' && !COLLECTION[mode])) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
   }
 
-  const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') ?? 100), 100);
+  const limit = Math.min(
+    Number(req.nextUrl.searchParams.get('limit') ?? 100),
+    100,
+  );
 
-  const snap = await db
-    .collection(COLLECTION[mode])
-    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
-    .limit(limit)
-    .get();
+  const snap =
+    mode === 'daily'
+      ? await dailyEntriesRef(getTaipeiDateString())
+          .orderBy('seconds', 'asc')
+          .limit(limit)
+          .get()
+      : await db
+          .collection(COLLECTION[mode])
+          .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
+          .limit(limit)
+          .get();
 
   const rows = snap.docs.map((doc, i) => ({
     rank: i + 1,
@@ -48,7 +67,8 @@ export async function GET(req: NextRequest) {
   });
 }
 
-const GUEST_ID_RE = /^guest_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const GUEST_ID_RE =
+  /^guest_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -91,8 +111,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  if (!mode || !COLLECTION[mode]) {
+  if (!mode || (mode !== 'daily' && !COLLECTION[mode])) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
+  }
+
+  // 每日模式：獨立處理（subcollection、當日更快才覆寫、無 email migration）
+  if (mode === 'daily') {
+    const seconds = Number(payload.seconds);
+    if (!Number.isFinite(seconds) || seconds < 10 || seconds > 86400) {
+      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
+    }
+    // 以 server 的台灣日期為準；client 日期不符（跨午夜或偽造）直接拒絕
+    const today = getTaipeiDateString();
+    if (payload.date !== today) {
+      return NextResponse.json({ error: 'expired' }, { status: 400 });
+    }
+
+    const ref = dailyEntriesRef(today).doc(userId);
+    const existing = await ref.get();
+    if (existing.exists && seconds >= Number(existing.data()!.seconds)) {
+      return NextResponse.json({ ok: true, updated: false });
+    }
+    await ref.set({
+      displayName,
+      photoURL,
+      ...(email ? { email } : {}),
+      seconds,
+      submittedAt: new Date(),
+    });
+    return NextResponse.json({ ok: true, updated: true });
   }
 
   // Sanity checks + compute rankingScore for normal mode
@@ -139,27 +186,45 @@ export async function POST(req: NextRequest) {
       await staleDoc.ref.delete();
 
       const isStaleWorse =
-        (mode === 'normal' && Number(payload.rankingScore) <= Number(staleData.rankingScore)) ||
-        (mode === 'challenge' && Number(payload.stage) <= Number(staleData.stage)) ||
-        (mode === 'classic' && Number(payload.score) <= Number(staleData.score));
+        (mode === 'normal' &&
+          Number(payload.rankingScore) <= Number(staleData.rankingScore)) ||
+        (mode === 'challenge' &&
+          Number(payload.stage) <= Number(staleData.stage)) ||
+        (mode === 'classic' &&
+          Number(payload.score) <= Number(staleData.score));
 
       const mergedPayload = isStaleWorse
-        ? { seconds: staleData.seconds, totalScore: staleData.totalScore, rankingScore: staleData.rankingScore, stage: staleData.stage, score: staleData.score }
+        ? {
+            seconds: staleData.seconds,
+            totalScore: staleData.totalScore,
+            rankingScore: staleData.rankingScore,
+            stage: staleData.stage,
+            score: staleData.score,
+          }
         : payload;
 
       const safeMerged =
         mode === 'normal'
-          ? { seconds: mergedPayload.seconds, totalScore: mergedPayload.totalScore, rankingScore: mergedPayload.rankingScore }
+          ? {
+              seconds: mergedPayload.seconds,
+              totalScore: mergedPayload.totalScore,
+              rankingScore: mergedPayload.rankingScore,
+            }
           : mode === 'challenge'
-          ? { stage: mergedPayload.stage, totalScore: mergedPayload.totalScore }
-          : { score: mergedPayload.score };
+            ? {
+                stage: mergedPayload.stage,
+                totalScore: mergedPayload.totalScore,
+              }
+            : { score: mergedPayload.score };
 
       await ref.set({
         displayName,
         photoURL,
         email,
         ...safeMerged,
-        submittedAt: isStaleWorse ? (staleData.submittedAt ?? new Date()) : new Date(),
+        submittedAt: isStaleWorse
+          ? (staleData.submittedAt ?? new Date())
+          : new Date(),
       });
 
       return NextResponse.json({ ok: true, updated: !isStaleWorse });
@@ -169,7 +234,8 @@ export async function POST(req: NextRequest) {
   if (existing.exists) {
     const old = existing.data()!;
     const isWorse =
-      (mode === 'normal' && Number(payload.rankingScore) <= Number(old.rankingScore)) ||
+      (mode === 'normal' &&
+        Number(payload.rankingScore) <= Number(old.rankingScore)) ||
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
       (mode === 'classic' && Number(payload.score) <= Number(old.score));
     if (isWorse) {
@@ -179,10 +245,14 @@ export async function POST(req: NextRequest) {
 
   const safePayload =
     mode === 'normal'
-      ? { seconds: payload.seconds, totalScore: payload.totalScore, rankingScore: payload.rankingScore }
+      ? {
+          seconds: payload.seconds,
+          totalScore: payload.totalScore,
+          rankingScore: payload.rankingScore,
+        }
       : mode === 'challenge'
-      ? { stage: payload.stage, totalScore: payload.totalScore }
-      : { score: payload.score };
+        ? { stage: payload.stage, totalScore: payload.totalScore }
+        : { score: payload.score };
 
   await ref.set({
     displayName,

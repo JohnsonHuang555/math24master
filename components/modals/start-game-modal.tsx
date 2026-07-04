@@ -1,7 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { Difficulty } from '@/models/Room';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { Difficulty } from '@/models/Room';
 
 type PlayMode = 'classic' | 'normal' | 'challenge';
 
@@ -24,14 +24,16 @@ const DIFFICULTY_OPTIONS = [
     value: Difficulty.Easy,
     label: '簡單',
     description: '牌值 1-6',
-    color: 'border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950',
+    color:
+      'border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950',
     activeColor: 'bg-green-500 text-white hover:bg-green-600',
   },
   {
     value: Difficulty.Normal,
     label: '普通',
     description: '牌值 1-10',
-    color: 'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
+    color:
+      'border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950',
     activeColor: 'bg-blue-500 text-white hover:bg-blue-600',
   },
   {
@@ -109,8 +111,8 @@ export function StartGameModal({
 
         {selectedMode === 'challenge' && (
           <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <p>倒數 5 分鐘，答對加 1 分鐘</p>
-            <p>跳過不加時・撐越多關越好</p>
+            <p>倒數 5 分鐘，答對加時（隨關卡遞減）</p>
+            <p>連續跳過懲罰加重・撐越多關越好</p>
           </div>
         )}
 

@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { unlockAchievement } from '@/lib/achievement-manager';
-import { calcRoundScore } from '@/lib/scoring';
-import { generateOnePuzzle } from '@/lib/puzzle-generator';
-import { calculateAnswer } from '@/lib/utils';
 import { useTimer } from '@/hooks/useTimer';
-import { SelectedCard } from '@/models/SelectedCard';
+import { unlockAchievement } from '@/lib/achievement-manager';
+import { generateOnePuzzle } from '@/lib/puzzle-generator';
+import { calcRoundScore } from '@/lib/scoring';
+import { calculateAnswer } from '@/lib/utils';
 import { NumberCard } from '@/models/Player';
+import { SelectedCard } from '@/models/SelectedCard';
 import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const INITIAL_SECONDS = 5 * 60; // 5 分鐘
-const CORRECT_BONUS_SECONDS = 60; // 答對 +1 分鐘
-const SKIP_PENALTY_SECONDS = 15; // 跳過 -15 秒
+// 答對加時隨關卡遞減：第 1 關 +60s，每關 -3s，下限 15s
+export function getStageBonus(stage: number): number {
+  return Math.max(15, 60 - (stage - 1) * 3);
+}
+// 跳過懲罰遞增：同一關內第 1 次 -15s、第 2 次 -30s、第 3 次起 -60s（答對後重置）
+const SKIP_PENALTIES = [15, 30] as const;
+const SKIP_PENALTY_MAX = 60;
+export function getSkipPenalty(skipsSinceCorrect: number): number {
+  return SKIP_PENALTIES[skipsSinceCorrect] ?? SKIP_PENALTY_MAX;
+}
 const LOCAL_STORAGE_KEY = 'math24_v2_challenge_best';
 
 export type ChallengePlayStatus = 'idle' | 'playing' | 'finished';
@@ -57,34 +65,54 @@ function generateNextPuzzle(nextStage: number): NumberCard[] {
 
 export function useChallengePlay() {
   const [status, setStatus] = useState<ChallengePlayStatus>('idle');
-  const [finishReason, setFinishReason] = useState<ChallengeFinishReason>('timeout');
+  const [finishReason, setFinishReason] =
+    useState<ChallengeFinishReason>('timeout');
   const [stage, setStage] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
   const [currentNumbers, setCurrentNumbers] = useState<NumberCard[]>([]);
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
   const [best, setBest] = useState<ChallengeBest | null>(null);
+  // 下一次跳過會扣的秒數（供 UI 顯示）
+  const [nextSkipPenalty, setNextSkipPenalty] = useState(getSkipPenalty(0));
 
   // Refs 讓 onExpire 閉包始終拿到最新值
   const stageRef = useRef(stage);
   const totalScoreRef = useRef(totalScore);
   // 跳過計數，僅用於產生唯一 card ID，不影響 stage
   const skipCountRef = useRef(0);
-  useEffect(() => { stageRef.current = stage; }, [stage]);
-  useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
+  // 同一關內連續跳過次數，決定遞增懲罰，答對後歸零
+  const skipsSinceCorrectRef = useRef(0);
+  useEffect(() => {
+    stageRef.current = stage;
+  }, [stage]);
+  useEffect(() => {
+    totalScoreRef.current = totalScore;
+  }, [totalScore]);
 
   // finishGame ref：onExpire 透過 ref 呼叫，避免 stale closure
   const finishGameRef = useRef<(s: number, sc: number) => void>(() => {});
 
-  const { seconds, isRunning, start, pause, reset: resetTimer, addSeconds } =
-    useTimer({
-      mode: 'countdown',
-      initialSeconds: INITIAL_SECONDS,
-      onExpire: () => finishGameRef.current(stageRef.current, totalScoreRef.current),
-    });
+  const {
+    seconds,
+    isRunning,
+    start,
+    pause,
+    reset: resetTimer,
+    addSeconds,
+  } = useTimer({
+    mode: 'countdown',
+    initialSeconds: INITIAL_SECONDS,
+    onExpire: () =>
+      finishGameRef.current(stageRef.current, totalScoreRef.current),
+  });
 
   // 定義 finishGame，並同步到 ref
   const finishGame = useCallback(
-    (finalStage: number, finalScore: number, reason: ChallengeFinishReason = 'timeout') => {
+    (
+      finalStage: number,
+      finalScore: number,
+      reason: ChallengeFinishReason = 'timeout',
+    ) => {
       pause();
       setFinishReason(reason);
       const record: ChallengeBest = {
@@ -119,6 +147,8 @@ export function useChallengePlay() {
     setStage(1);
     setTotalScore(0);
     setSelectedCards([]);
+    skipsSinceCorrectRef.current = 0;
+    setNextSkipPenalty(getSkipPenalty(0));
     resetTimer();
     setStatus('playing');
     requestAnimationFrame(() => start());
@@ -158,13 +188,16 @@ export function useChallengePlay() {
       return;
     }
 
-    // 答對：計分 + 加時 + 下一關
+    // 答對：計分 + 加時（隨關卡遞減）+ 下一關
     const symbolCards = selectedCards.filter(c => c.symbol);
     const roundScore = calcRoundScore(symbolCards);
-    toast.success(`答對！+${roundScore}pt +1分鐘`);
+    const bonus = getStageBonus(stageRef.current);
+    toast.success(`答對！+${roundScore}pt +${bonus}秒`);
     setTotalScore(prev => prev + roundScore);
     setSelectedCards([]);
-    addSeconds(CORRECT_BONUS_SECONDS);
+    addSeconds(bonus);
+    skipsSinceCorrectRef.current = 0;
+    setNextSkipPenalty(getSkipPenalty(0));
     setStage(prev => {
       const next = prev + 1;
       setCurrentNumbers(generateNextPuzzle(next));
@@ -172,9 +205,12 @@ export function useChallengePlay() {
     });
   }, [selectedCards, addSeconds]);
 
-  const skipPuzzle = useCallback(() => {
-    // 跳過扣時、不計關數，只換一組新牌
-    addSeconds(-SKIP_PENALTY_SECONDS);
+  const skipPuzzle = useCallback((): number => {
+    // 跳過扣時（懲罰遞增）、不計關數，只換一組新牌
+    const penalty = getSkipPenalty(skipsSinceCorrectRef.current);
+    addSeconds(-penalty);
+    skipsSinceCorrectRef.current += 1;
+    setNextSkipPenalty(getSkipPenalty(skipsSinceCorrectRef.current));
     skipCountRef.current += 1;
     const key = `skip${skipCountRef.current}`;
     let nums: number[];
@@ -185,6 +221,7 @@ export function useChallengePlay() {
     }
     setCurrentNumbers(nums.map((v, i) => ({ id: `${key}-${i}`, value: v })));
     setSelectedCards([]);
+    return penalty;
   }, [addSeconds]);
 
   const endGameEarly = useCallback(() => {
@@ -207,6 +244,7 @@ export function useChallengePlay() {
     seconds,
     isRunning,
     best,
+    nextSkipPenalty,
     startGame,
     selectCard,
     removeCard,

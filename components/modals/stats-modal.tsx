@@ -1,19 +1,13 @@
 'use client';
 
-import { BarChart2, Award } from 'lucide-react';
+import { Award, BarChart2 } from 'lucide-react';
 import {
-  ACHIEVEMENTS,
+  VISIBLE_ACHIEVEMENTS,
   useAchievementStore,
 } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
-import { formatTime } from '@/lib/utils';
 import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type StatsModalProps = {
   isOpen: boolean;
@@ -43,9 +37,6 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
     classicBestScore,
     classicFastestPlayMs,
     classicTotalSkips,
-    normalPlays,
-    normalBestSeconds,
-    normalPerfectRuns,
     challengePlays,
     challengeBestStage,
     dailyChallengeCompletes,
@@ -53,16 +44,13 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const unlockedIds = useAchievementStore(state => state.unlockedIds);
 
   const unlockedValidCount = unlockedIds.filter(id =>
-    ACHIEVEMENTS.some(a => a.id === id),
+    VISIBLE_ACHIEVEMENTS.some(a => a.id === id),
   ).length;
 
   const fastestPlayDisplay =
     classicFastestPlayMs > 0
       ? `${(classicFastestPlayMs / 1000).toFixed(1)}s`
       : '-';
-
-  const normalBestDisplay =
-    normalBestSeconds > 0 ? formatTime(normalBestSeconds) : '-';
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
@@ -88,16 +76,8 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
             </div>
           </div>
 
-          {/* 關卡模式 + 挑戰模式 */}
+          {/* 挑戰模式 + 每日挑戰 */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>關卡模式</SectionTitle>
-              <div className="flex flex-col gap-3">
-                <StatItem label="場次" value={normalPlays} />
-                <StatItem label="最速完成" value={normalBestDisplay} />
-                <StatItem label="零罰時次數" value={normalPerfectRuns} />
-              </div>
-            </div>
             <div className="rounded-lg border bg-muted/30 p-4">
               <SectionTitle>挑戰模式</SectionTitle>
               <div className="flex flex-col gap-3">
@@ -105,16 +85,16 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
                 <StatItem label="最高關卡" value={challengeBestStage || '-'} />
               </div>
             </div>
-          </div>
-
-          {/* 每日挑戰 + 成就解鎖進度 */}
-          <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
               <SectionTitle>每日挑戰</SectionTitle>
               <div className="flex justify-center">
                 <StatItem label="完成次數" value={dailyChallengeCompletes} />
               </div>
             </div>
+          </div>
+
+          {/* 成就解鎖進度 */}
+          <div className="grid grid-cols-1 gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
               <SectionTitle>成就解鎖</SectionTitle>
               <div className="flex flex-col items-center gap-1">
@@ -124,14 +104,14 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
                     {unlockedValidCount}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    / {ACHIEVEMENTS.length}
+                    / {VISIBLE_ACHIEVEMENTS.length}
                   </span>
                 </div>
                 <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-yellow-400 transition-all"
                     style={{
-                      width: `${Math.round((unlockedValidCount / ACHIEVEMENTS.length) * 100)}%`,
+                      width: `${Math.round((unlockedValidCount / VISIBLE_ACHIEVEMENTS.length) * 100)}%`,
                     }}
                   />
                 </div>

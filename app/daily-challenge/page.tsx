@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Play, Trophy } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
+import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
+import { useTimer } from '@/hooks/useTimer';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
   type FormulaItem,
@@ -14,15 +20,21 @@ import {
   calculateDailyScore,
   evaluateFormula,
   findAllSolutions,
-  getDailyCards,
+  getDailyPuzzles,
   getDailyRecord,
   getTodayDateString,
   saveDailyRecord,
 } from '@/lib/daily-seed';
 import { playSound } from '@/lib/sound-manager';
-import { cn } from '@/lib/utils';
+import { cn, formatTime } from '@/lib/utils';
 import { useAchievementStore } from '@/stores/achievement-store';
+import { useGuestStore } from '@/stores/guest-store';
+import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
 import { useStatsStore } from '@/stores/stats-store';
+
+const TOTAL_ROUNDS = 3;
+const WRONG_PENALTY_SECONDS = 10;
 
 const SYMBOLS = [
   { label: '+', value: '+' },
@@ -33,39 +45,108 @@ const SYMBOLS = [
   { label: ')', value: ')' },
 ] as const;
 
+type GameState = 'idle' | 'playing' | 'completed';
+
 export default function DailyChallengePage() {
   const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
   const [today, setToday] = useState('');
-  const [cards, setCards] = useState<number[]>([]);
+  const [puzzles, setPuzzles] = useState<number[][]>([]);
+  const [gameState, setGameState] = useState<GameState>('idle');
+  const [currentRound, setCurrentRound] = useState(0);
   const [formula, setFormula] = useState<FormulaItem[]>([]);
   const [usedCardIndices, setUsedCardIndices] = useState<Set<number>>(
     new Set(),
   );
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
-  const [allSolutions, setAllSolutions] = useState<Solution[]>([]);
+  const [solutionsPerPuzzle, setSolutionsPerPuzzle] = useState<Solution[][]>(
+    [],
+  );
+  const [userFormulas, setUserFormulas] = useState<string[]>([]);
+  // 本次 session 才完成（非重新整理讀回的舊紀錄）才提交排行榜
+  const [justFinished, setJustFinished] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isSubmitting = useRef(false);
+  const scoreSumRef = useRef(0);
+
+  const {
+    seconds,
+    start,
+    pause,
+    reset: resetTimer,
+    addSeconds,
+  } = useTimer({
+    mode: 'stopwatch',
+  });
+
+  const { status: sessionStatus } = useSession();
+  const { guestId } = useGuestStore();
+  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } =
+    useLoginPromptPreferenceStore();
+  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   useEffect(() => {
     const currentDay = getTodayDateString();
     setToday(currentDay);
-    const dailyCards = getDailyCards();
-    setCards(dailyCards);
+    const dailyPuzzles = getDailyPuzzles(TOTAL_ROUNDS);
+    setPuzzles(dailyPuzzles);
 
     const existing = getDailyRecord(currentDay);
     if (existing?.done) {
-      setIsCompleted(true);
-      setFinalScore(existing.score);
+      setGameState('completed');
+      setTotalSeconds(existing.totalSeconds ?? null);
       setStreak(existing.streak);
-      if (existing.formula?.length) setFormula(existing.formula);
       // defer solution computation to avoid blocking paint
-      setTimeout(() => setAllSolutions(findAllSolutions(dailyCards)), 0);
+      setTimeout(
+        () => setSolutionsPerPuzzle(dailyPuzzles.map(p => findAllSolutions(p))),
+        0,
+      );
     }
   }, []);
 
+  useLeaderboardSubmit(
+    'daily',
+    justFinished && isAuthenticated && totalSeconds !== null
+      ? { date: today, seconds: totalSeconds }
+      : null,
+    justFinished && isAuthenticated && totalSeconds !== null,
+  );
+
+  useEffect(() => {
+    if (
+      !justFinished ||
+      isAuthenticated ||
+      sessionStatus === 'loading' ||
+      skipLoginPrompt
+    )
+      return;
+    if (totalSeconds === null) return;
+    setPendingScore({
+      mode: 'daily',
+      payload: { date: today, seconds: totalSeconds },
+    });
+    const id = setTimeout(() => setShowLoginPrompt(true), 1000);
+    return () => clearTimeout(id);
+  }, [justFinished, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cards = puzzles[currentRound] ?? [];
+  const isPlaying = gameState === 'playing';
+
+  const startGame = () => {
+    setCurrentRound(0);
+    setFormula([]);
+    setUsedCardIndices(new Set());
+    scoreSumRef.current = 0;
+    setUserFormulas([]);
+    resetTimer();
+    setGameState('playing');
+    requestAnimationFrame(() => start());
+  };
+
   const handleAddNumber = (index: number) => {
-    if (isCompleted) return;
+    if (!isPlaying) return;
     if (usedCardIndices.has(index)) {
       setFormula(
         formula.filter(f => !(f.type === 'number' && f.cardIndex === index)),
@@ -86,13 +167,13 @@ export default function DailyChallengePage() {
   };
 
   const handleAddSymbol = (value: string) => {
-    if (isCompleted) return;
+    if (!isPlaying) return;
     playSound('select');
     setFormula(prev => [...prev, { type: 'symbol', value }]);
   };
 
   const handleBack = () => {
-    if (isCompleted || formula.length === 0) return;
+    if (!isPlaying || formula.length === 0) return;
     const last = formula[formula.length - 1];
     setFormula(formula.slice(0, -1));
     if (last.type === 'number') {
@@ -105,13 +186,19 @@ export default function DailyChallengePage() {
   };
 
   const handleClear = () => {
-    if (isCompleted) return;
+    if (!isPlaying) return;
     setFormula([]);
     setUsedCardIndices(new Set());
   };
 
+  const applyPenalty = (message: string) => {
+    playSound('wrong');
+    addSeconds(WRONG_PENALTY_SECONDS);
+    toast.error(`${message}，+${WRONG_PENALTY_SECONDS} 秒`);
+  };
+
   const handleSubmit = () => {
-    if (isCompleted || isSubmitting.current) return;
+    if (!isPlaying || isSubmitting.current) return;
     isSubmitting.current = true;
 
     if (usedCardIndices.size !== 4) {
@@ -122,30 +209,54 @@ export default function DailyChallengePage() {
 
     const value = evaluateFormula(formula);
     if (value === null) {
-      toast.error('算式有誤');
-      playSound('wrong');
+      applyPenalty('算式有誤');
       isSubmitting.current = false;
       return;
     }
 
-    if (Math.abs(value - 24) < 1e-6) {
-      const score = calculateDailyScore(formula);
-      const { streak: s } = saveDailyRecord(today, score, formula);
-      setFinalScore(score);
-      setStreak(s);
-      setIsCompleted(true);
-      playSound('correct');
-      toast.success(`正確！得 ${score} 分`);
-      unlockAchievement('daily_done');
-      incrementDailyChallenge();
-      useAchievementStore.getState().updateDailyStreak(s);
-      if (s >= 7) unlockAchievement('daily_streak_7');
-      setTimeout(() => setAllSolutions(findAllSolutions(cards)), 0);
-    } else {
-      playSound('wrong');
+    if (Math.abs(value - 24) >= 1e-6) {
+      applyPenalty(`結果是 ${Math.round(value * 100) / 100}，不等於 24`);
       isSubmitting.current = false;
-      toast.error(`結果是 ${Math.round(value * 100) / 100}，不等於 24`);
+      return;
     }
+
+    // 本題答對
+    scoreSumRef.current += calculateDailyScore(formula);
+    setUserFormulas(prev => [...prev, formulaDisplay]);
+    playSound('correct');
+
+    const nextRound = currentRound + 1;
+    if (nextRound < TOTAL_ROUNDS) {
+      toast.success(`第 ${currentRound + 1} 題完成！`);
+      setCurrentRound(nextRound);
+      setFormula([]);
+      setUsedCardIndices(new Set());
+      isSubmitting.current = false;
+      return;
+    }
+
+    // 全部完成
+    pause();
+    const finalSeconds = seconds + 1; // +1 因為這一秒還未 tick
+    const { streak: s } = saveDailyRecord(
+      today,
+      scoreSumRef.current,
+      formula,
+      finalSeconds,
+    );
+    setTotalSeconds(finalSeconds);
+    setStreak(s);
+    setJustFinished(true);
+    setGameState('completed');
+    toast.success(`完成！總時間 ${formatTime(finalSeconds)}`);
+    unlockAchievement('daily_done');
+    incrementDailyChallenge();
+    useAchievementStore.getState().updateDailyStreak(s);
+    if (s >= 7) unlockAchievement('daily_streak_7');
+    setTimeout(
+      () => setSolutionsPerPuzzle(puzzles.map(p => findAllSolutions(p))),
+      0,
+    );
   };
 
   const formulaDisplay = formula
@@ -160,12 +271,12 @@ export default function DailyChallengePage() {
   const streakText =
     streak === 1 ? '🔥 連續 1 天，好的開始！' : `🔥 連續 ${streak} 天`;
 
-  const formulaLine = formulaDisplay || '（算式未記錄）';
+  const timeLine =
+    totalSeconds !== null ? `完成時間：${formatTime(totalSeconds)}` : '已完成';
 
   const sharePreviewText =
     `Math24 每日挑戰 ${today}\n` +
-    `${streakText} | 得分：${finalScore} 分\n\n` +
-    `算式：${formulaLine} = 24\n\n` +
+    `${streakText} | ${timeLine}\n\n` +
     `🧮 #Math24Master math24master.com`;
 
   const handleShare = async () => {
@@ -177,16 +288,55 @@ export default function DailyChallengePage() {
     }
   };
 
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
-      {/* 標題區 */}
-      <div className="flex flex-col items-center gap-1">
-        <h1 className="text-2xl font-bold">每日挑戰</h1>
-        <p className="text-sm text-muted-foreground">{today}</p>
+  // ── 開始畫面 ──
+  if (gameState === 'idle') {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-2xl font-bold">每日挑戰</h1>
+          <p className="text-sm text-muted-foreground">{today}</p>
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
+          <p>每天 {TOTAL_ROUNDS} 題，全球玩家一同競賽</p>
+          <p>答錯 +{WRONG_PENALTY_SECONDS} 秒 · 最快完成者登上排行榜</p>
+          <p className="text-xs">每天 00:00（台灣時間）更新題目與排行榜</p>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => setShowLeaderboard(true)}
+          >
+            <Trophy className="h-4 w-4" />
+            排行榜
+          </Button>
+          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
+            <Play className="h-4 w-4" />
+            開始挑戰
+          </Button>
+        </div>
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          回首頁
+        </Link>
+        <LeaderboardModal
+          isOpen={showLeaderboard}
+          onClose={() => setShowLeaderboard(false)}
+        />
       </div>
+    );
+  }
 
-      {/* 結算畫面 */}
-      {isCompleted && (
+  // ── 結算畫面 ──
+  if (gameState === 'completed') {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto p-4">
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-2xl font-bold">每日挑戰</h1>
+          <p className="text-sm text-muted-foreground">{today}</p>
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -195,10 +345,13 @@ export default function DailyChallengePage() {
         >
           {/* 結算卡片 */}
           <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-            <div className="font-display text-5xl font-black text-primary sm:text-6xl">{finalScore}</div>
-            <div className="text-sm text-muted-foreground">分</div>
-            <div className="mt-2 text-lg font-semibold">{formulaLine} = 24</div>
-            <div className="mt-1 text-sm font-semibold">{streakText}</div>
+            <div className="font-display text-5xl font-black text-primary sm:text-6xl">
+              {totalSeconds !== null ? formatTime(totalSeconds) : '完成'}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {TOTAL_ROUNDS} 題完成時間
+            </div>
+            <div className="mt-2 text-sm font-semibold">{streakText}</div>
           </div>
 
           {/* 分享預覽 */}
@@ -206,21 +359,37 @@ export default function DailyChallengePage() {
             {sharePreviewText}
           </pre>
 
-          {/* 複製分享按鈕 */}
-          <Button
-            variant="tactile"
-            className="w-full"
-            onClick={handleShare}
-            aria-label="複製分享文字到剪貼簿"
-          >
-            複製分享
-          </Button>
+          <div className="flex w-full gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 gap-1.5"
+              onClick={() => setShowLeaderboard(true)}
+            >
+              <Trophy className="h-4 w-4" />
+              排行榜
+            </Button>
+            <Button
+              variant="tactile"
+              className="flex-1"
+              onClick={handleShare}
+              aria-label="複製分享文字到剪貼簿"
+            >
+              複製分享
+            </Button>
+          </div>
 
-          {/* 解法面板 */}
-          <SolutionsPanel
-            solutions={allSolutions}
-            userFormula={formulaDisplay}
-          />
+          {/* 各題解法面板 */}
+          {solutionsPerPuzzle.map((solutions, i) => (
+            <div key={i} className="flex w-full flex-col gap-1">
+              <p className="text-xs font-semibold text-muted-foreground">
+                第 {i + 1} 題（{puzzles[i]?.join('、')}）
+              </p>
+              <SolutionsPanel
+                solutions={solutions}
+                userFormula={userFormulas[i] ?? ''}
+              />
+            </div>
+          ))}
 
           {/* CTA */}
           <div className="flex w-full gap-3">
@@ -236,21 +405,62 @@ export default function DailyChallengePage() {
             </Link>
           </div>
         </motion.div>
-      )}
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          回首頁
+        </Link>
+        <LeaderboardModal
+          isOpen={showLeaderboard}
+          onClose={() => setShowLeaderboard(false)}
+        />
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => {
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+          onSkipForever={() => {
+            setSkipLoginPrompt(true);
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ── 遊戲中 ──
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
+      {/* 標題區 + HUD */}
+      <div className="flex flex-col items-center gap-1">
+        <h1 className="text-2xl font-bold">每日挑戰</h1>
+        <p className="text-sm text-muted-foreground">{today}</p>
+        <div className="mt-2 flex items-baseline gap-3">
+          <span className="font-display text-4xl font-bold tabular-nums text-primary">
+            {formatTime(seconds)}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            第 <b className="font-bold text-foreground">{currentRound + 1}</b> /{' '}
+            {TOTAL_ROUNDS} 題
+          </span>
+        </div>
+      </div>
 
       {/* 牌組顯示 */}
       <div className="flex gap-4">
         {cards.map((card, index) => (
           <button
-            key={index}
+            key={`${currentRound}-${index}`}
             onClick={() => handleAddNumber(index)}
-            disabled={isCompleted}
             className={cn(
               'flex h-20 w-14 items-center justify-center rounded-2xl border-2 font-display text-2xl font-bold transition-all',
               usedCardIndices.has(index)
                 ? 'scale-95 border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)]'
                 : 'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:scale-105 hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
-              isCompleted && 'cursor-not-allowed opacity-60',
             )}
           >
             {card}
@@ -272,7 +482,6 @@ export default function DailyChallengePage() {
             key={value}
             variant="outline"
             className="h-12 w-16 rounded-2xl border-2 border-zinc-200 bg-white font-display text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:border-primary/40 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800"
-            disabled={isCompleted}
             onClick={() => handleAddSymbol(value)}
           >
             {label}
@@ -284,7 +493,7 @@ export default function DailyChallengePage() {
       <div className="flex gap-3">
         <Button
           variant="outline"
-          disabled={isCompleted || formula.length === 0}
+          disabled={formula.length === 0}
           onClick={handleBack}
         >
           <Image
@@ -299,7 +508,7 @@ export default function DailyChallengePage() {
         </Button>
         <Button
           variant="outline"
-          disabled={isCompleted || formula.length === 0}
+          disabled={formula.length === 0}
           onClick={handleClear}
         >
           <Image
@@ -314,7 +523,7 @@ export default function DailyChallengePage() {
         </Button>
         <Button
           variant="tactile"
-          disabled={isCompleted || formula.length === 0}
+          disabled={formula.length === 0}
           onClick={handleSubmit}
         >
           <Image
