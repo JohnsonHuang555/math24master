@@ -3,10 +3,17 @@ export type CardColor = 'red' | 'blue' | 'yellow' | 'black';
 export type NumberCard = {
   id: string;
   value: number;
-  color?: CardColor;             // 拉密模式使用
-  isJoker?: boolean;             // true = 百搭牌
-  jokerDeclaredValue?: number;   // Joker 上桌後宣告的值
+  color?: CardColor; // 拉密模式使用
+  isJoker?: boolean; // true = 百搭牌
+  jokerDeclaredValue?: number; // Joker 上桌後宣告的值
   jokerDeclaredColor?: CardColor; // Joker 上桌後宣告的顏色
+};
+
+/** 單人經典模式：每手結算回饋（本手最高分、是否完美手） */
+export type HandResult = {
+  roundScore: number; // 本手實得符號分（不含完美手 bonus）
+  maxScore: number; // 本手理論最高符號分
+  isPerfect: boolean; // 拿滿最高分（獲得完美手 bonus）
 };
 
 export type Player = {
@@ -14,6 +21,8 @@ export type Player = {
   name: string; // 名稱
   handCard: NumberCard[]; // 手牌
   score: number; // 分數
+  perfectHands?: number; // 完美手次數（單人經典模式）
+  theoreticalMax?: number; // 已出牌手數的理論最高總分（含完美手 bonus，單人經典模式）
   playerOrder?: number; // 玩家順序 from 1
   isMaster: boolean; // 房主
   isLastRoundPlayer: boolean; // 是否為最後一回合最後一位玩家

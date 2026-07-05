@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { io } from 'socket.io-client';
+import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameActions } from '@/hooks/useGameActions';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
-import { NumberCard } from '@/models/Player';
+import { HandResult, NumberCard } from '@/models/Player';
 import { Difficulty, Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -22,6 +22,8 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
   );
 
   const [roomInfo, setRoomInfo] = useState<Room>();
+  // 上一手結算回饋（本手最高分、是否完美手）
+  const [lastHandResult, setLastHandResult] = useState<HandResult | null>(null);
   const hasStartedRef = useRef(false);
   const reconnectTokenRef = useRef<string | null>(null);
 
@@ -81,11 +83,14 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
         extra,
       }: {
         room: Room;
-        extra?: { event: SocketEvent; data: boolean };
+        extra?: { event: SocketEvent; data?: boolean | HandResult };
       }) => {
         setRoomInfo(room);
         if (extra?.event === SocketEvent.PlayCardResponse) {
-          handlePlayCardResponse(extra.data);
+          handlePlayCardResponse(extra.data as boolean);
+        }
+        if (extra?.event === SocketEvent.UpdateScore && extra.data) {
+          setLastHandResult(extra.data as HandResult);
         }
       },
     );
@@ -98,13 +103,18 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     // 手機切換 App 後 socket 重連，自動恢復遊戲狀態
     socket.on('connect', () => {
       if (reconnectTokenRef.current) {
-        socket.emit(SocketEvent.PlayerReconnect, { reconnectToken: reconnectTokenRef.current });
+        socket.emit(SocketEvent.PlayerReconnect, {
+          reconnectToken: reconnectTokenRef.current,
+        });
       }
     });
 
-    socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
-      setRoomInfo(room);
-    });
+    socket.on(
+      SocketEvent.PlayerReconnectSuccess,
+      ({ room }: { room: Room }) => {
+        setRoomInfo(room);
+      },
+    );
 
     socket.on(SocketEvent.PlayerReconnectFailed, () => {
       reconnectTokenRef.current = null;
@@ -255,6 +265,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     onFinishedSymbolScoreAnimation,
     onBack,
     isLastRound,
+    lastHandResult,
   };
 };
 

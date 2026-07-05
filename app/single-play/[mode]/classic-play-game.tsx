@@ -1,42 +1,81 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
-import { BookOpen, Layers, Play, RotateCcw, Trophy } from 'lucide-react';
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useTransform,
+} from 'framer-motion';
+import {
+  BookOpen,
+  Layers,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
-import { RuleModal } from '@/components/modals/rule-modal';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
+import { HandResult } from '@/models/Player';
 import { Difficulty } from '@/models/Room';
-import { useStatsStore } from '@/stores/stats-store';
 import { Symbol } from '@/models/Symbol';
 import { useGuestStore } from '@/stores/guest-store';
-import { usePendingScoreStore } from '@/stores/pending-score-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 type ClassicStatus = 'idle' | 'playing' | 'finished';
+
+/** 解法效率 → 評級（總分 / 理論上限） */
+function gradeOf(efficiency: number): string {
+  if (efficiency >= 0.95) return 'S';
+  if (efficiency >= 0.8) return 'A';
+  if (efficiency >= 0.6) return 'B';
+  return 'C';
+}
+
+function cnGrade(efficiency: number): string {
+  const base = 'font-display text-3xl font-black leading-none';
+  if (efficiency >= 0.95) return `${base} text-amber-500`;
+  if (efficiency >= 0.8) return `${base} text-primary`;
+  if (efficiency >= 0.6) return `${base} text-blue-500`;
+  return `${base} text-muted-foreground`;
+}
 
 interface ClassicPlayGameProps {
   onBack: () => void;
   autoStart?: boolean;
 }
 
-export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGameProps) {
-  const [status, setStatus] = useState<ClassicStatus>(autoStart ? 'playing' : 'idle');
-  const [difficulty, setDifficulty] = useState<Difficulty | null>(autoStart ? Difficulty.Hard : null);
+export default function ClassicPlayGame({
+  onBack,
+  autoStart,
+}: ClassicPlayGameProps) {
+  const [status, setStatus] = useState<ClassicStatus>(
+    autoStart ? 'playing' : 'idle',
+  );
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(
+    autoStart ? Difficulty.Hard : null,
+  );
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
+  const [handFeedback, setHandFeedback] = useState<HandResult | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const prevScoreRef = useRef(0);
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
   const { setPendingScore, clearPendingScore } = usePendingScoreStore();
-  const { skipLoginPrompt, setSkipLoginPrompt } = useLoginPromptPreferenceStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } =
+    useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const {
@@ -53,18 +92,24 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
     onFinishedSymbolScoreAnimation,
     onBack: onBackCard,
     isLastRound,
+    lastHandResult,
   } = useSinglePlay(difficulty);
 
   const currentPlayer = roomInfo?.players[0];
   const handCard = currentPlayer?.handCard || [];
   const currentScore = roomInfo?.players[0]?.score ?? 0;
+  const perfectHands = currentPlayer?.perfectHands ?? 0;
+  const theoreticalMax = currentPlayer?.theoreticalMax ?? 0;
   const remainCards = roomInfo?.deck.length ?? 0;
   const selectedCards = roomInfo?.selectedCards ?? [];
 
   const count = useMotionValue(currentScore);
   const rounded = useTransform(count, Math.round);
 
-  const { classicBestScore: bestScore, updateClassicBestScore: updateBestScore } = useStatsStore();
+  const {
+    classicBestScore: bestScore,
+    updateClassicBestScore: updateBestScore,
+  } = useStatsStore();
 
   const disabledActions = checkAnswerCorrect === true || !!isGameOver;
 
@@ -114,7 +159,16 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
     return () => clearTimeout(id);
   }, [isSymbolScoreAnimationFinished]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isNewBestScore = status === 'finished' && currentScore > 0 && currentScore >= bestScore;
+  // 每手結算回饋：顯示 3.2 秒後淡出
+  useEffect(() => {
+    if (!lastHandResult) return;
+    setHandFeedback(lastHandResult);
+    const id = setTimeout(() => setHandFeedback(null), 3200);
+    return () => clearTimeout(id);
+  }, [lastHandResult]);
+
+  const isNewBestScore =
+    status === 'finished' && currentScore > 0 && currentScore >= bestScore;
 
   useLeaderboardSubmit(
     'classic',
@@ -123,7 +177,13 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
   );
 
   useEffect(() => {
-    if (!isGameOver || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
+    if (
+      !isGameOver ||
+      isAuthenticated ||
+      sessionStatus === 'loading' ||
+      skipLoginPrompt
+    )
+      return;
     setPendingScore({ mode: 'classic', payload: { score: currentScore } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
@@ -138,21 +198,36 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
             <Layers className="h-8 w-8" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-black text-foreground">經典模式</h1>
-            <p className="mt-1 text-sm text-muted-foreground">牌值 1–13 · 累積最高分</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">答對得分 · 跳過換牌 · 牌盡結束</p>
+            <h1 className="font-display text-2xl font-black text-foreground">
+              經典模式
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              牌值 1–13 · 累積最高分
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              答對得分 · 跳過換牌 · 牌盡結束
+            </p>
+            <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-amber-500">
+              <Sparkles className="h-3.5 w-3.5" />
+              拿滿該手最高分 = 完美手，額外 +1
+            </p>
           </div>
         </div>
         {bestScore > 0 && (
           <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
             <p className="text-xs text-muted-foreground">個人最高</p>
-            <p className="font-display text-3xl font-bold text-foreground">{bestScore} 分</p>
+            <p className="font-display text-3xl font-bold text-foreground">
+              {bestScore} 分
+            </p>
           </div>
         )}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={onBack}>返回</Button>
+          <Button variant="outline" onClick={onBack}>
+            返回
+          </Button>
           <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />開始遊戲
+            <Play className="h-4 w-4" />
+            開始遊戲
           </Button>
         </div>
       </div>
@@ -166,30 +241,84 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
         <LoginPromptModal
           isOpen={showLoginPrompt}
           onClose={() => setShowLoginPrompt(false)}
-          onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
-          onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
+          onSkip={() => {
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+          onSkipForever={() => {
+            setSkipLoginPrompt(true);
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
         />
         <div className="flex h-full flex-col items-center justify-center px-4">
           <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(175,84%,78%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(175,84%,20%)]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/30">
               <Trophy className="h-7 w-7 text-teal-500" />
             </div>
-            <h2 className="font-display text-xl font-black text-foreground">遊戲結束</h2>
+            <h2 className="font-display text-xl font-black text-foreground">
+              遊戲結束
+            </h2>
             <div className="mt-4">
-              <p className="font-display text-5xl font-bold text-primary">{currentScore}</p>
+              <p className="font-display text-5xl font-bold text-primary">
+                {currentScore}
+              </p>
               <p className="mt-0.5 text-sm text-muted-foreground">最終得分</p>
             </div>
+            {theoreticalMax > 0 && (
+              <div className="mt-4 flex items-center justify-center gap-6 rounded-2xl border-2 border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40">
+                <div>
+                  <p className={cnGrade(currentScore / theoreticalMax)}>
+                    {gradeOf(currentScore / theoreticalMax)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    解法評級
+                  </p>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div>
+                  <p className="font-display text-xl font-bold text-foreground">
+                    {Math.round((currentScore / theoreticalMax) * 100)}%
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    解法效率
+                  </p>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div>
+                  <p className="flex items-center justify-center gap-1 font-display text-xl font-bold text-amber-500">
+                    <Sparkles className="h-4 w-4" />
+                    {perfectHands}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    完美手
+                  </p>
+                </div>
+              </div>
+            )}
             {isNewBestScore && (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">新紀錄！</p>
+                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                  新紀錄！
+                </p>
               </div>
             )}
             {!isNewBestScore && bestScore > 0 && (
-              <p className="mt-3 text-sm text-muted-foreground">個人最高：{bestScore} 分</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                個人最高：{bestScore} 分
+              </p>
             )}
             <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={onBack}>返回選單</Button>
-              <Button variant="tactile" className="flex-1" onClick={() => window.location.reload()}>再來一局</Button>
+              <Button variant="outline" className="flex-1" onClick={onBack}>
+                返回選單
+              </Button>
+              <Button
+                variant="tactile"
+                className="flex-1"
+                onClick={() => window.location.reload()}
+              >
+                再來一局
+              </Button>
             </div>
           </div>
         </div>
@@ -225,9 +354,13 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
           </motion.div>
         </div>
         <div className="text-center">
-          <p className="text-xs font-semibold text-muted-foreground">經典模式</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            經典模式
+          </p>
           {isLastRound && (
-            <p className="animate-pulse text-xs font-bold text-red-500">最後一輪！</p>
+            <p className="animate-pulse text-xs font-bold text-red-500">
+              最後一輪！
+            </p>
           )}
         </div>
         <div className="text-right">
@@ -239,32 +372,61 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
       </div>
 
       {/* Bonus + nav row */}
-      <div className="max-w-sm flex w-full items-center justify-between px-1">
-        <AnimatePresence>
-          {isSymbolScoreAnimationFinished && (
+      <div className="flex w-full max-w-sm items-center justify-between px-1">
+        <AnimatePresence mode="wait">
+          {isSymbolScoreAnimationFinished ? (
             <motion.div
+              key="symbol-bonus"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               className="flex gap-3 text-xs font-semibold text-primary"
             >
-              {selectedCardSymbols.filter(c => c.symbol === Symbol.Times).length >= 2 && (
-                <span>2 張乘 +1</span>
-              )}
-              {selectedCardSymbols.filter(c => c.symbol === Symbol.Divide).length >= 2 && (
-                <span>2 張除 +1</span>
+              {selectedCardSymbols.filter(c => c.symbol === Symbol.Times)
+                .length >= 2 && <span>2 張乘 +1</span>}
+              {selectedCardSymbols.filter(c => c.symbol === Symbol.Divide)
+                .length >= 2 && <span>2 張除 +1</span>}
+            </motion.div>
+          ) : handFeedback ? (
+            <motion.div
+              key="hand-feedback"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="text-xs font-semibold"
+            >
+              {handFeedback.isPerfect ? (
+                <span className="inline-flex items-center gap-1 text-amber-500">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  完美手，拿滿 {handFeedback.maxScore} 分 · 額外 +1
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  本手最高 {handFeedback.maxScore} 分 · 拿下{' '}
+                  {handFeedback.roundScore} 分
+                </span>
               )}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
         <div className="ml-auto flex items-center gap-1">
           {isGameOver && (
-            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-              <RotateCcw className="mr-1 h-4 w-4" />再來一局
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              再來一局
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setIsOpenRuleModal(true)}>
-            <BookOpen className="mr-1 h-4 w-4" />規則
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpenRuleModal(true)}
+          >
+            <BookOpen className="mr-1 h-4 w-4" />
+            規則
           </Button>
         </div>
       </div>
@@ -287,8 +449,15 @@ export default function ClassicPlayGame({ onBack, autoStart }: ClassicPlayGamePr
       <LoginPromptModal
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
-        onSkip={() => { clearPendingScore(); setShowLoginPrompt(false); }}
-        onSkipForever={() => { setSkipLoginPrompt(true); clearPendingScore(); setShowLoginPrompt(false); }}
+        onSkip={() => {
+          clearPendingScore();
+          setShowLoginPrompt(false);
+        }}
+        onSkipForever={() => {
+          setSkipLoginPrompt(true);
+          clearPendingScore();
+          setShowLoginPrompt(false);
+        }}
       />
       <PuzzlePlayArea
         currentNumbers={handCard}

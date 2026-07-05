@@ -2,9 +2,19 @@ import { createServer } from 'http';
 import next from 'next';
 import { Server } from 'socket.io';
 import { Room } from '@/models/Room';
-import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { Message } from '../models/Message';
+import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { SocketEvent } from '../models/SocketEvent';
+import {
+  applyRoundTimeout,
+  processBuzzIn,
+  processBuzzerAnswer,
+  processBuzzerAnswerTimeout,
+  processNoSolutionVote,
+  startBuzzerRound,
+  unlockPlayer,
+} from './buzzer';
+import { triggerBuzzerBot } from './buzzer-bot';
 import {
   addBotToRoom,
   applyBuzzerRoomUpdate,
@@ -14,6 +24,7 @@ import {
   drawCard,
   editRoom,
   editRoomSettings,
+  endBuzzerGame,
   getCurrentBotPlayer,
   getCurrentRoom,
   getCurrentRoomId,
@@ -28,7 +39,6 @@ import {
   removePlayer,
   reselectCard,
   rummyBotPlay,
-  endBuzzerGame,
   rummyDeclareJoker,
   rummyDrawCard,
   rummyStartGame,
@@ -39,16 +49,6 @@ import {
   startGame,
   updateScore,
 } from './game';
-import {
-  applyRoundTimeout,
-  processBuzzIn,
-  processBuzzerAnswer,
-  processBuzzerAnswerTimeout,
-  processNoSolutionVote,
-  startBuzzerRound,
-  unlockPlayer,
-} from './buzzer';
-import { triggerBuzzerBot } from './buzzer-bot';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const hostname = process.env.HOSTNAME || 'localhost';
@@ -66,12 +66,12 @@ const disconnectGraceTimerMap: Map<string, NodeJS.Timeout> = new Map();
 // ── Buzzer Mode Timers ────────────────────────────────────────────────────────
 type BuzzerRoundTimer = {
   timer: NodeJS.Timeout | null;
-  elapsed: number;  // 已過秒數
-  total: number;    // 總秒數（roundSeconds）
+  elapsed: number; // 已過秒數
+  total: number; // 總秒數（roundSeconds）
 };
 const buzzerRoundTimerMap: Map<string, BuzzerRoundTimer> = new Map();
-const buzzerAnswerTimerMap: Map<string, NodeJS.Timeout> = new Map();   // key = roomId
-const buzzerLockTimerMap: Map<string, NodeJS.Timeout> = new Map();     // key = playerId
+const buzzerAnswerTimerMap: Map<string, NodeJS.Timeout> = new Map(); // key = roomId
+const buzzerLockTimerMap: Map<string, NodeJS.Timeout> = new Map(); // key = playerId
 const startCountdownMap = new Map<string, ReturnType<typeof setTimeout>[]>(); // key = roomId
 
 app.prepare().then(() => {
@@ -98,7 +98,9 @@ app.prepare().then(() => {
 
       if (winner || penaltyWinner) {
         const w = winner ?? penaltyWinner!;
-        const rankedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        const rankedPlayers = [...room.players].sort(
+          (a, b) => b.score - a.score,
+        );
         io.to(roomId).emit(SocketEvent.GameOver, {
           name: w.name,
           score: w.score,
@@ -115,12 +117,17 @@ app.prepare().then(() => {
 
   const _clearBuzzerAnswerTimer = (roomId: string) => {
     const t = buzzerAnswerTimerMap.get(roomId);
-    if (t) { clearTimeout(t); buzzerAnswerTimerMap.delete(roomId); }
+    if (t) {
+      clearTimeout(t);
+      buzzerAnswerTimerMap.delete(roomId);
+    }
   };
 
   const _clearBuzzerRoundTimer = (roomId: string) => {
     const entry = buzzerRoundTimerMap.get(roomId);
-    if (entry?.timer) { clearInterval(entry.timer); }
+    if (entry?.timer) {
+      clearInterval(entry.timer);
+    }
     buzzerRoundTimerMap.delete(roomId);
   };
 
@@ -130,14 +137,18 @@ app.prepare().then(() => {
     clearInterval(entry.timer);
     entry.timer = null;
     buzzerRoundTimerMap.set(roomId, entry);
-    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerPaused, { elapsedSeconds: entry.elapsed });
+    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerPaused, {
+      elapsedSeconds: entry.elapsed,
+    });
   };
 
   const _resumeBuzzerRoundTimer = (roomId: string) => {
     const entry = buzzerRoundTimerMap.get(roomId);
     if (!entry) return;
     const remaining = entry.total - entry.elapsed;
-    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, { remainingSeconds: remaining });
+    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, {
+      remainingSeconds: remaining,
+    });
     entry.timer = setInterval(() => {
       entry.elapsed += 1;
       if (entry.elapsed >= entry.total) {
@@ -149,7 +160,8 @@ app.prepare().then(() => {
           const updated = applyBuzzerRoomUpdate(result.room);
           if (updated) {
             io.to(roomId).emit(SocketEvent.BuzzerRoundTimeout, {
-              penaltyPoints: updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
+              penaltyPoints:
+                updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
               players: updated.players,
             });
             io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
@@ -188,13 +200,17 @@ app.prepare().then(() => {
       if (count < 0) {
         clearInterval(countdown);
         io.to(roomId).emit(SocketEvent.BuzzerOpen);
-        triggerBuzzerBot(roomId, io, (rid) => {
+        triggerBuzzerBot(roomId, io, rid => {
           _clearBuzzerRoundTimer(rid);
           setTimeout(() => _startBuzzerRoundWithCountdown(rid), 1500);
         });
 
         if (settings.roundSeconds !== null) {
-          const entry: BuzzerRoundTimer = { timer: null, elapsed: 0, total: settings.roundSeconds };
+          const entry: BuzzerRoundTimer = {
+            timer: null,
+            elapsed: 0,
+            total: settings.roundSeconds,
+          };
           buzzerRoundTimerMap.set(roomId, entry);
           _resumeBuzzerRoundTimer(roomId);
         }
@@ -202,7 +218,11 @@ app.prepare().then(() => {
     }, 1000);
   };
 
-  const _startAnswerTimer = (roomId: string, playerId: string, answerSeconds: number) => {
+  const _startAnswerTimer = (
+    roomId: string,
+    playerId: string,
+    answerSeconds: number,
+  ) => {
     _clearBuzzerAnswerTimer(roomId);
     const t = setTimeout(() => {
       buzzerAnswerTimerMap.delete(roomId);
@@ -230,19 +250,28 @@ app.prepare().then(() => {
           lockSeconds: updated.settings.buzzerSettings?.lockSeconds ?? 15,
           lockUntil: ps.lockUntil,
         });
-        _scheduleLockExpiry(roomId, playerId, updated.settings.buzzerSettings?.lockSeconds ?? 15);
+        _scheduleLockExpiry(
+          roomId,
+          playerId,
+          updated.settings.buzzerSettings?.lockSeconds ?? 15,
+        );
       }
 
       // 1.5 秒緩衝後恢復回合計時
       setTimeout(() => {
-        const settings = updated.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+        const settings =
+          updated.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
         if (settings.roundSeconds !== null) _resumeBuzzerRoundTimer(roomId);
       }, 1500);
     }, answerSeconds * 1000);
     buzzerAnswerTimerMap.set(roomId, t);
   };
 
-  const _scheduleLockExpiry = (roomId: string, playerId: string, lockSeconds: number) => {
+  const _scheduleLockExpiry = (
+    roomId: string,
+    playerId: string,
+    lockSeconds: number,
+  ) => {
     const existing = buzzerLockTimerMap.get(playerId);
     if (existing) clearTimeout(existing);
     const t = setTimeout(() => {
@@ -250,7 +279,8 @@ app.prepare().then(() => {
       const room = getCurrentRoom(roomId);
       if (!room) return;
       const updated = applyBuzzerRoomUpdate(unlockPlayer(room, playerId));
-      if (updated) io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, { playerId });
+      if (updated)
+        io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, { playerId });
     }, lockSeconds * 1000);
     buzzerLockTimerMap.set(playerId, t);
   };
@@ -315,7 +345,10 @@ app.prepare().then(() => {
     const { room } = result;
     io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
     if (room.settings.remainSeconds !== null) {
-      timerMap[roomId] = { countdownTime: room.settings.remainSeconds, timer: null };
+      timerMap[roomId] = {
+        countdownTime: room.settings.remainSeconds,
+        timer: null,
+      };
       _clearAndCreateTimer(roomId, room);
     } else {
       io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, undefined);
@@ -379,16 +412,33 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.JoinRoom,
-      ({ roomId, maxPlayers, playerName, roomName, password, mode, difficulty, gameType, remainSeconds }) => {
+      ({
+        roomId,
+        maxPlayers,
+        playerName,
+        roomName,
+        password,
+        mode,
+        difficulty,
+        gameType,
+        remainSeconds,
+      }) => {
         // 若玩家已在另一個房間，先自動離開舊房間（防止幽靈玩家/幽靈房間）
         const prevRoomId = getCurrentRoomId(playerId);
         if (prevRoomId && prevRoomId !== roomId) {
           socket.leave(prevRoomId);
           const autoLeave = leaveRoom(playerId);
           if (autoLeave) {
-            const { room: prevRoom, playerName: pName, wasPlaying: wp, remainingCount: rc } = autoLeave;
+            const {
+              room: prevRoom,
+              playerName: pName,
+              wasPlaying: wp,
+              remainingCount: rc,
+            } = autoLeave;
             if (!wp) _cancelGameCountdown(prevRoomId);
-            io.sockets.to(prevRoomId).emit(SocketEvent.RoomUpdate, { room: prevRoom });
+            io.sockets
+              .to(prevRoomId)
+              .emit(SocketEvent.RoomUpdate, { room: prevRoom });
             if (wp && rc <= 1) {
               io.sockets.to(prevRoomId).emit(SocketEvent.GameAborted, pName);
               if (timerMap[prevRoomId]?.timer !== null) {
@@ -396,7 +446,10 @@ app.prepare().then(() => {
                 delete timerMap[prevRoomId];
               }
             } else if (wp && rc >= 2) {
-              if (timerMap[prevRoomId] && prevRoom.settings.remainSeconds !== null) {
+              if (
+                timerMap[prevRoomId] &&
+                prevRoom.settings.remainSeconds !== null
+              ) {
                 _clearAndCreateTimer(prevRoomId, prevRoom);
               }
             }
@@ -407,14 +460,24 @@ app.prepare().then(() => {
         if (canJoin) {
           socket.join(roomId);
           const result = joinRoom(
-            { roomId, maxPlayers, roomName, password, difficulty, gameType, remainSeconds },
+            {
+              roomId,
+              maxPlayers,
+              roomName,
+              password,
+              difficulty,
+              gameType,
+              remainSeconds,
+            },
             playerId,
             playerName,
             mode,
           );
 
           if (result.success) {
-            io.sockets.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
+            io.sockets
+              .to(roomId)
+              .emit(SocketEvent.JoinRoomSuccess, result.room);
             socket.emit(SocketEvent.GetPlayerId, playerId);
             socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
           } else if (result.needPassword) {
@@ -461,7 +524,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.DiscardCard, ({ roomId, cardId }) => {
       const result = discardCard(roomId, playerId, cardId);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -470,7 +535,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.SelectCard, ({ roomId, number, symbol }) => {
       const result = selectCard(roomId, number, symbol);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -479,7 +546,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.ReselectCard, ({ roomId }) => {
       const result = reselectCard(roomId);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -524,7 +593,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.BackCard, ({ roomId }) => {
       const result = backCard(roomId);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -533,10 +604,10 @@ app.prepare().then(() => {
     socket.on(SocketEvent.UpdateScore, ({ roomId }) => {
       const result = updateScore(roomId, playerId);
       if (result.success) {
-        const { room, winner } = result;
+        const { room, winner, handResult } = result;
         io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, {
           room,
-          extra: { event: SocketEvent.UpdateScore },
+          extra: { event: SocketEvent.UpdateScore, data: handResult },
         });
         _resetRoundTimer(roomId, room);
         if (winner) {
@@ -562,7 +633,9 @@ app.prepare().then(() => {
         if (player && !player.isReady) {
           _cancelGameCountdown(roomId);
         }
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -589,7 +662,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.EditRoomName, ({ roomId, roomName, password }) => {
       const result = editRoom(roomId, roomName, password);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -597,10 +672,28 @@ app.prepare().then(() => {
 
     socket.on(
       SocketEvent.EditRoomSettings,
-      ({ roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType, buzzerSettings }) => {
-        const result = editRoomSettings(roomId, maxPlayers, deckType, remainSeconds, difficulty, gameType, buzzerSettings);
+      ({
+        roomId,
+        maxPlayers,
+        deckType,
+        remainSeconds,
+        difficulty,
+        gameType,
+        buzzerSettings,
+      }) => {
+        const result = editRoomSettings(
+          roomId,
+          maxPlayers,
+          deckType,
+          remainSeconds,
+          difficulty,
+          gameType,
+          buzzerSettings,
+        );
         if (result.success) {
-          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          io.sockets
+            .to(roomId)
+            .emit(SocketEvent.RoomUpdate, { room: result.room });
         } else {
           socket.emit(SocketEvent.ErrorMessage, result.error);
         }
@@ -610,7 +703,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.RemovePlayer, ({ roomId, playerId }) => {
       const result = removePlayer(roomId, playerId);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
         io.sockets.to(roomId).emit(SocketEvent.RemovePlayerResponse, playerId);
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
@@ -708,7 +803,12 @@ app.prepare().then(() => {
     socket.on(
       SocketEvent.RummySwapJoker,
       ({ roomId, handCardId, jokerCardId }) => {
-        const result = rummySwapJoker(roomId, playerId, handCardId, jokerCardId);
+        const result = rummySwapJoker(
+          roomId,
+          playerId,
+          handCardId,
+          jokerCardId,
+        );
         if (result.success) {
           io.sockets
             .to(roomId)
@@ -722,7 +822,9 @@ app.prepare().then(() => {
     socket.on(SocketEvent.AddBotToRoom, ({ roomId, difficulty }) => {
       const result = addBotToRoom(roomId, difficulty);
       if (result.success) {
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        io.sockets
+          .to(roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
       } else {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
@@ -779,7 +881,9 @@ app.prepare().then(() => {
         io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
 
         if (result.winner) {
-          const rankedPlayers = [...updated.players].sort((a, b) => b.score - a.score);
+          const rankedPlayers = [...updated.players].sort(
+            (a, b) => b.score - a.score,
+          );
           _clearBuzzerRoundTimer(roomId);
           _clearBuzzerAnswerTimer(roomId);
           io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
@@ -789,7 +893,8 @@ app.prepare().then(() => {
           // 3 秒後將房間重設為 Idle，讓玩家可以回大廳等待下一局
           setTimeout(() => {
             const idleRoom = endBuzzerGame(roomId);
-            if (idleRoom) io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
+            if (idleRoom)
+              io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
           }, 3000);
           return;
         }
@@ -797,7 +902,6 @@ app.prepare().then(() => {
         // 答題成功：清除舊回合計時，1.5 秒後換新題
         _clearBuzzerRoundTimer(roomId);
         setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 1500);
-
       } else {
         // processBuzzerAnswer 失敗帶有 room（_handleAnswerFail 已處理）
         const failResult = result as import('./buzzer').BuzzerAnswerFailed;
@@ -858,15 +962,21 @@ app.prepare().then(() => {
     });
 
     // 搶答選牌進度廣播（原封不動 relay 給房間其他人）
-    socket.on(SocketEvent.BuzzerSelectionUpdate, ({ roomId, selectedCards }) => {
-      socket.to(roomId).emit(SocketEvent.BuzzerSelectionUpdate, { selectedCards });
-    });
+    socket.on(
+      SocketEvent.BuzzerSelectionUpdate,
+      ({ roomId, selectedCards }) => {
+        socket
+          .to(roomId)
+          .emit(SocketEvent.BuzzerSelectionUpdate, { selectedCards });
+      },
+    );
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', reason => {
       // 用戶主動斷線（切換頁面、關閉分頁）→ 立即移除
       // 非主動斷線（Mac 待機、網路中斷）→ 30 秒寬限期
       const isIntentional =
-        reason === 'client namespace disconnect' || reason === 'server namespace disconnect';
+        reason === 'client namespace disconnect' ||
+        reason === 'server namespace disconnect';
 
       if (isIntentional) {
         const leaveResult = leaveRoom(playerId);
@@ -911,9 +1021,16 @@ app.prepare().then(() => {
 
           const leaveResult = leaveRoom(playerId);
           if (leaveResult) {
-            const { room: updatedRoom, playerName, wasPlaying, remainingCount } = leaveResult;
+            const {
+              room: updatedRoom,
+              playerName,
+              wasPlaying,
+              remainingCount,
+            } = leaveResult;
 
-            io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: updatedRoom });
+            io.sockets
+              .to(roomId)
+              .emit(SocketEvent.RoomUpdate, { room: updatedRoom });
 
             if (wasPlaying && remainingCount <= 1) {
               io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
@@ -922,10 +1039,15 @@ app.prepare().then(() => {
                 delete timerMap[roomId];
               }
             } else {
-              io.sockets.to(roomId).emit(SocketEvent.PlayerLeaveRoom, playerName);
+              io.sockets
+                .to(roomId)
+                .emit(SocketEvent.PlayerLeaveRoom, playerName);
 
               if (wasPlaying && remainingCount >= 2) {
-                if (timerMap[roomId] && updatedRoom.settings.remainSeconds !== null) {
+                if (
+                  timerMap[roomId] &&
+                  updatedRoom.settings.remainSeconds !== null
+                ) {
                   _clearAndCreateTimer(roomId, updatedRoom);
                 }
               } else {
@@ -973,24 +1095,31 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on(SocketEvent.PlayerReconnect, ({ reconnectToken }: { reconnectToken: string }) => {
-      // 取消寬限期計時器
-      const graceTimer = disconnectGraceTimerMap.get(reconnectToken);
-      if (graceTimer) {
-        clearTimeout(graceTimer);
-        disconnectGraceTimerMap.delete(reconnectToken);
-      }
+    socket.on(
+      SocketEvent.PlayerReconnect,
+      ({ reconnectToken }: { reconnectToken: string }) => {
+        // 取消寬限期計時器
+        const graceTimer = disconnectGraceTimerMap.get(reconnectToken);
+        if (graceTimer) {
+          clearTimeout(graceTimer);
+          disconnectGraceTimerMap.delete(reconnectToken);
+        }
 
-      const result = reconnectPlayer(playerId, reconnectToken);
-      if (!result.success) {
-        socket.emit(SocketEvent.PlayerReconnectFailed, { error: result.error });
-        return;
-      }
+        const result = reconnectPlayer(playerId, reconnectToken);
+        if (!result.success) {
+          socket.emit(SocketEvent.PlayerReconnectFailed, {
+            error: result.error,
+          });
+          return;
+        }
 
-      socket.join(result.room.roomId);
-      socket.emit(SocketEvent.PlayerReconnectSuccess, { room: result.room });
-      io.sockets.to(result.room.roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
-    });
+        socket.join(result.room.roomId);
+        socket.emit(SocketEvent.PlayerReconnectSuccess, { room: result.room });
+        io.sockets
+          .to(result.room.roomId)
+          .emit(SocketEvent.RoomUpdate, { room: result.room });
+      },
+    );
   });
 
   httpServer

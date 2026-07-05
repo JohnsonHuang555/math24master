@@ -17,7 +17,7 @@ const MODE_CONFIG = [
     value: 'classic' as const,
     label: '經典模式',
     tagline: '牌值 1–13 · 累積最高分',
-    chips: ['答對得分', '跳過換牌', '牌庫抽完即遊戲結束'],
+    chips: ['答對得分', '找尋最佳解', '牌庫抽完即遊戲結束'],
     Icon: Layers,
     color: {
       icon: 'bg-teal-500',
