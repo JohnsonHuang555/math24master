@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getTaipeiDateString } from '@/lib/date';
+import { getTaipeiDateString, isValidDailyLeaderboardDate } from '@/lib/date';
 import { db } from '@/lib/firebase-admin';
 
 type Mode = 'normal' | 'challenge' | 'classic' | 'daily';
@@ -43,9 +43,20 @@ export async function GET(req: NextRequest) {
     100,
   );
 
+  let dailyDate = getTaipeiDateString();
+  if (mode === 'daily') {
+    const rawDate = req.nextUrl.searchParams.get('date');
+    if (rawDate) {
+      if (!isValidDailyLeaderboardDate(rawDate)) {
+        return NextResponse.json({ error: 'invalid date' }, { status: 400 });
+      }
+      dailyDate = rawDate;
+    }
+  }
+
   const snap =
     mode === 'daily'
-      ? await dailyEntriesRef(getTaipeiDateString())
+      ? await dailyEntriesRef(dailyDate)
           .orderBy('seconds', 'asc')
           .limit(limit)
           .get()

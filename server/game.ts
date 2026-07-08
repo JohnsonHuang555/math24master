@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { calculateAnswer } from '../lib/utils';
-import { ColorRule, validateBoard } from '../lib/rummy-validator';
+import { canMake24, findAllSolutions } from '../lib/daily-seed';
 import { BotDifficulty, findPlayableGroups } from '../lib/rummy-ai';
+import { ColorRule, validateBoard } from '../lib/rummy-validator';
+import { calculateAnswer } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
-import { CardColor, NumberCard, Player } from '../models/Player';
+import { CardColor, HandResult, NumberCard, Player } from '../models/Player';
 import { GameResponse } from '../models/Response';
 import {
   BuzzerSettings,
@@ -20,7 +21,6 @@ import {
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
-import { canMake24 } from '../lib/daily-seed';
 import {
   createDeckByRandomMode,
   createDeckByStandardMode,
@@ -42,8 +42,11 @@ type PlayCardResult =
   | { success: false; error: string };
 
 type UpdateScoreResult =
-  | { success: true; room: Room; winner?: Player }
+  | { success: true; room: Room; winner?: Player; handResult?: HandResult }
   | { success: false; error: string };
+
+// 單人經典模式：拿滿該手理論最高分的額外獎勵
+const PERFECT_HAND_BONUS = 1;
 
 type SkipHandResult =
   | { success: true; room: Room; winner?: Player }
@@ -54,7 +57,8 @@ let _rooms: Room[] = [];
 // 玩家在房間資訊
 const _playerInRoomMap: { [key: string]: string } = {};
 // reconnectToken → { playerId, roomId } 的映射（重連時用）
-const _tokenToPlayerMap: Map<string, { playerId: string; roomId: string }> = new Map();
+const _tokenToPlayerMap: Map<string, { playerId: string; roomId: string }> =
+  new Map();
 
 // 取得當前房間 需濾掉單人遊戲
 export function getCurrentRooms(payload?: {
@@ -234,10 +238,18 @@ export function joinRoom(
       );
       const isMaster = _rooms[roomIndex].players[playerIndex]?.isMaster;
       if (isMaster) {
-        const masterToken = _rooms[roomIndex].players[playerIndex].reconnectToken ?? uuidv4();
+        const masterToken =
+          _rooms[roomIndex].players[playerIndex].reconnectToken ?? uuidv4();
         _rooms[roomIndex].players[playerIndex].reconnectToken = masterToken;
-        _tokenToPlayerMap.set(masterToken, { playerId, roomId: payload.roomId });
-        return { success: true, room: _rooms[roomIndex], reconnectToken: masterToken };
+        _tokenToPlayerMap.set(masterToken, {
+          playerId,
+          roomId: payload.roomId,
+        });
+        return {
+          success: true,
+          room: _rooms[roomIndex],
+          reconnectToken: masterToken,
+        };
       }
 
       // 當房間有設密碼且不是房主需要回傳密碼輸入事件
@@ -263,9 +275,16 @@ export function joinRoom(
         hasMelded: false,
         reconnectToken: newPlayerToken,
       });
-      _tokenToPlayerMap.set(newPlayerToken, { playerId, roomId: payload.roomId });
+      _tokenToPlayerMap.set(newPlayerToken, {
+        playerId,
+        roomId: payload.roomId,
+      });
 
-      return { success: true, room: _rooms[roomIndex], reconnectToken: newPlayerToken };
+      return {
+        success: true,
+        room: _rooms[roomIndex],
+        reconnectToken: newPlayerToken,
+      };
     } else {
       // 沒有房間名稱，表示房間已經被刪除剛好有玩家加入時
       if (mode === GameMode.Multiple && !payload.roomName) {
@@ -293,12 +312,14 @@ export function joinRoom(
         status: GameStatus.Idle,
         settings: {
           deckType: DeckType.Standard,
-          remainSeconds: payload.remainSeconds === undefined ? 60 : payload.remainSeconds,
+          remainSeconds:
+            payload.remainSeconds === undefined ? 60 : payload.remainSeconds,
           difficulty: payload.difficulty ?? Difficulty.Normal,
           gameType: payload.gameType ?? 'classic',
-          buzzerSettings: payload.gameType === 'buzzer'
-            ? (payload.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS)
-            : undefined,
+          buzzerSettings:
+            payload.gameType === 'buzzer'
+              ? (payload.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS)
+              : undefined,
         },
         players: [
           {
@@ -327,7 +348,14 @@ export function joinRoom(
 // 離開房間
 export function leaveRoom(
   playerId: string,
-): { room: Room; playerName: string; wasPlaying: boolean; remainingCount: number } | undefined {
+):
+  | {
+      room: Room;
+      playerName: string;
+      wasPlaying: boolean;
+      remainingCount: number;
+    }
+  | undefined {
   const roomId = _playerInRoomMap[playerId];
   const room = _getCurrentRoom(roomId);
   // 房間不存在
@@ -398,7 +426,9 @@ export function leaveRoom(
 }
 
 // 將玩家標記為暫時斷線（寬限期中，不立即移除）
-export function markPlayerDisconnected(playerId: string):
+export function markPlayerDisconnected(
+  playerId: string,
+):
   | { roomId: string; room: Room; playerName: string; reconnectToken: string }
   | undefined {
   const roomId = _playerInRoomMap[playerId];
@@ -411,14 +441,21 @@ export function markPlayerDisconnected(playerId: string):
   player.isDisconnected = true;
   player.disconnectedAt = Date.now();
 
-  return { roomId, room, playerName: player.name, reconnectToken: player.reconnectToken };
+  return {
+    roomId,
+    room,
+    playerName: player.name,
+    reconnectToken: player.reconnectToken,
+  };
 }
 
 // 玩家重連：以新 socket.id 恢復舊玩家狀態
 export function reconnectPlayer(
   newSocketId: string,
   reconnectToken: string,
-): { success: true; room: Room; playerName: string } | { success: false; error: string } {
+):
+  | { success: true; room: Room; playerName: string }
+  | { success: false; error: string } {
   const entry = _tokenToPlayerMap.get(reconnectToken);
   if (!entry) return { success: false, error: '重連令牌無效或已過期' };
 
@@ -642,10 +679,7 @@ export function discardCard(
 }
 
 // 出牌
-export function playCard(
-  roomId: string,
-  playerId: string,
-): PlayCardResult {
+export function playCard(roomId: string, playerId: string): PlayCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
     if (roomIndex === -1) return { success: false, error: '房間不存在' };
@@ -665,7 +699,8 @@ export function playCard(
       .map(c => c.number?.id);
 
     // 經典模式：必須用完所有手牌
-    const handCardCount = _rooms[roomIndex].players[playerIndex].handCard.length;
+    const handCardCount =
+      _rooms[roomIndex].players[playerIndex].handCard.length;
     if (answer === 24 && numberCards.length === handCardCount) {
       // 移除數字牌
       const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
@@ -747,6 +782,25 @@ export function updateScore(
       score += 1;
     }
 
+    // 單人經典模式：計算本手理論最高分，拿滿給完美手 bonus
+    let handResult: HandResult | undefined;
+    if (_rooms[roomIndex].maxPlayers === 1) {
+      const values = selectedCards
+        .filter(c => c.number)
+        .map(c => c.number!.value);
+      const solutions = findAllSolutions(values);
+      const maxScore = solutions.length > 0 ? solutions[0].score : score;
+      const isPerfect = score >= maxScore;
+      handResult = { roundScore: score, maxScore, isPerfect };
+      if (isPerfect) {
+        score += PERFECT_HAND_BONUS;
+      }
+      const player = _rooms[roomIndex].players[playerIndex];
+      player.perfectHands = (player.perfectHands ?? 0) + (isPerfect ? 1 : 0);
+      player.theoreticalMax =
+        (player.theoreticalMax ?? 0) + maxScore + PERFECT_HAND_BONUS;
+    }
+
     // 寫入分數
     _rooms[roomIndex].players[playerIndex].score += score;
     _rooms[roomIndex].selectedCards = [];
@@ -755,7 +809,12 @@ export function updateScore(
     if (!drawResult.success) {
       return { success: false, error: drawResult.error };
     }
-    return { success: true, room: drawResult.room, winner: drawResult.winner };
+    return {
+      success: true,
+      room: drawResult.room,
+      winner: drawResult.winner,
+      handResult,
+    };
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (update score)' };
   }
@@ -908,7 +967,10 @@ export function editRoomSettings(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (edit room settings)' };
+    return {
+      success: false,
+      error: '發生錯誤，請稍後再試 (edit room settings)',
+    };
   }
 }
 
@@ -945,7 +1007,9 @@ export function skipHand(roomId: string, playerId: string): SkipHandResult {
       // 牌庫不足，拿走剩餘牌
       _rooms[roomIndex].players[playerIndex].handCard = _rooms[roomIndex].deck;
       _rooms[roomIndex].deck = [];
-      const hasLastTag = _rooms[roomIndex].players.find(p => p.isLastRoundPlayer);
+      const hasLastTag = _rooms[roomIndex].players.find(
+        p => p.isLastRoundPlayer,
+      );
       if (!hasLastTag) {
         _rooms[roomIndex].players[playerIndex].isLastRoundPlayer = true;
       }
@@ -1001,10 +1065,12 @@ export function rummyStartGame(roomId: string): GameResponse {
     ).map(i => i + 1);
     const shuffledPlayerOrder = shuffleArray(playerOrders);
 
-    const difficulty = _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
-    const handCount = difficulty === Difficulty.Easy
-      ? RUMMY_HAND_CARD_COUNT_EASY
-      : RUMMY_HAND_CARD_COUNT;
+    const difficulty =
+      _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
+    const handCount =
+      difficulty === Difficulty.Easy
+        ? RUMMY_HAND_CARD_COUNT_EASY
+        : RUMMY_HAND_CARD_COUNT;
 
     let remainingDeck = rummyDeck;
     shuffledPlayerOrder.forEach((order, index) => {
@@ -1094,7 +1160,8 @@ export function rummyDrawCard(
       _rooms[roomIndex].deck.length === 0 &&
       _rooms[roomIndex].rummyFinalRoundStartOrder === undefined
     ) {
-      _rooms[roomIndex].rummyFinalRoundStartOrder = _rooms[roomIndex].currentOrder;
+      _rooms[roomIndex].rummyFinalRoundStartOrder =
+        _rooms[roomIndex].currentOrder;
     }
 
     return { success: true, room: _rooms[roomIndex] };
@@ -1136,8 +1203,10 @@ export function rummySubmitTurn(
       return { success: false, error: '至少需打出 1 張牌' };
     }
 
-    const difficulty = _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
-    const colorRule: ColorRule = difficulty === Difficulty.Easy ? 'none' : 'standard';
+    const difficulty =
+      _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
+    const colorRule: ColorRule =
+      difficulty === Difficulty.Easy ? 'none' : 'standard';
     const penaltyCount = difficulty === Difficulty.Easy ? 2 : 3;
 
     // 取得本輪前手牌 id 集合 + 提交前桌面所有 card id
@@ -1146,25 +1215,34 @@ export function rummySubmitTurn(
     );
     const boardCardIds = new Set(
       _rooms[roomIndex].board.flatMap(g =>
-        g.tiles.filter(t => t.type === 'number').map(t => (t as { type: 'number'; card: NumberCard }).card.id),
+        g.tiles
+          .filter(t => t.type === 'number')
+          .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
       ),
     );
     const allowedIds = new Set([...handCardIds, ...boardCardIds]);
 
     // 卡牌守恆：submittedBoard 中所有 card.id 必須屬於 allowedIds
     const submittedCardIds = submittedBoard.flatMap(g =>
-      g.tiles.filter(t => t.type === 'number').map(t => (t as { type: 'number'; card: NumberCard }).card.id),
+      g.tiles
+        .filter(t => t.type === 'number')
+        .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
     );
     const invalidCard = submittedCardIds.find(id => !allowedIds.has(id));
     if (invalidCard) {
-      return { success: false, error: '提交牌組包含不合法的牌（非手牌也非原桌面牌）' };
+      return {
+        success: false,
+        error: '提交牌組包含不合法的牌（非手牌也非原桌面牌）',
+      };
     }
 
     // 若未破冰：舊 board 中所有牌組必須原樣保留在 submittedBoard 中
     if (!_rooms[roomIndex].players[playerIndex].hasMelded) {
       const oldBoardIds = new Set(
         _rooms[roomIndex].board.flatMap(g =>
-          g.tiles.filter(t => t.type === 'number').map(t => (t as { type: 'number'; card: NumberCard }).card.id),
+          g.tiles
+            .filter(t => t.type === 'number')
+            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
         ),
       );
       const submittedSet = new Set(submittedCardIds);
@@ -1227,7 +1305,10 @@ export function rummySubmitTurn(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (rummy submit turn)' };
+    return {
+      success: false,
+      error: '發生錯誤，請稍後再試 (rummy submit turn)',
+    };
   }
 }
 
@@ -1275,7 +1356,10 @@ export function rummyDeclareJoker(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (rummy declare joker)' };
+    return {
+      success: false,
+      error: '發生錯誤，請稍後再試 (rummy declare joker)',
+    };
   }
 }
 
@@ -1325,7 +1409,10 @@ export type BotPlayResult =
   | { success: false; error: string };
 
 /** Bot 自動行動（出牌或抽牌） */
-export function rummyBotPlay(roomId: string, botPlayerId: string): BotPlayResult {
+export function rummyBotPlay(
+  roomId: string,
+  botPlayerId: string,
+): BotPlayResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
     if (roomIndex === -1) return { success: false, error: '房間不存在' };
@@ -1365,7 +1452,12 @@ export function rummyBotPlay(roomId: string, botPlayerId: string): BotPlayResult
         )
         .filter(id => !boardCardIds.has(id));
 
-      return rummySubmitTurn(roomId, botPlayerId, submittedBoard, playedCardIds);
+      return rummySubmitTurn(
+        roomId,
+        botPlayerId,
+        submittedBoard,
+        playedCardIds,
+      );
     } else {
       const drawResult = rummyDrawCard(roomId, botPlayerId);
       if (!drawResult.success) return drawResult;
@@ -1384,7 +1476,10 @@ export function rummyBotPlay(roomId: string, botPlayerId: string): BotPlayResult
 export function getCurrentBotPlayer(roomId: string): Player | null {
   const room = _getCurrentRoom(roomId);
   if (!room || room.status !== GameStatus.Playing) return null;
-  return room.players.find(p => p.playerOrder === room.currentOrder && p.isBot) ?? null;
+  return (
+    room.players.find(p => p.playerOrder === room.currentOrder && p.isBot) ??
+    null
+  );
 }
 
 /** 拉密：用手牌換取桌面上的 Joker */
@@ -1405,15 +1500,16 @@ export function rummySwapJoker(
     if (playerIndex === -1) return { success: false, error: '玩家不存在' };
 
     // 找到手牌
-    const handCardIndex = _rooms[roomIndex].players[playerIndex].handCard.findIndex(
-      c => c.id === handCardId,
-    );
+    const handCardIndex = _rooms[roomIndex].players[
+      playerIndex
+    ].handCard.findIndex(c => c.id === handCardId);
     if (handCardIndex === -1) return { success: false, error: '手牌不存在' };
 
-    const handCard = _rooms[roomIndex].players[playerIndex].handCard[handCardIndex];
+    const handCard =
+      _rooms[roomIndex].players[playerIndex].handCard[handCardIndex];
 
     // 找到桌面上的 Joker
-    let jokerTile: (typeof _rooms[0]['board'][0]['tiles'][0]) | null = null;
+    let jokerTile: (typeof _rooms)[0]['board'][0]['tiles'][0] | null = null;
     let groupIdx = -1;
     let tileIdx = -1;
 

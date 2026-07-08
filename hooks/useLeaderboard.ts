@@ -17,7 +17,11 @@ export interface LeaderboardRow {
   submittedAt: string | null;
 }
 
-export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
+export function useLeaderboard(
+  mode: LeaderboardMode,
+  enabled: boolean,
+  date?: string,
+) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +30,9 @@ export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
     setLoading(true);
     setError(null);
     try {
-      const res = await window.fetch(`/api/leaderboard?mode=${mode}&limit=100`);
+      const params = new URLSearchParams({ mode, limit: '100' });
+      if (mode === 'daily' && date) params.set('date', date);
+      const res = await window.fetch(`/api/leaderboard?${params.toString()}`);
       if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       setRows(data);
@@ -35,7 +41,7 @@ export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [mode]);
+  }, [mode, date]);
 
   useEffect(() => {
     if (enabled) loadRows();

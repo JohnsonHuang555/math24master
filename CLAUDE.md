@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 總是用繁體中文回覆。
 
+## UI 文案規範
+
+不要在程式碼、UI 文案（按鈕、提示、toast、chips 等）中使用 emoji。需要視覺強調時改用 `lucide-react` 圖示元件，與現有設計系統（Radix UI + lucide-react）保持一致。
+
 ## Commands
 
 ```bash
