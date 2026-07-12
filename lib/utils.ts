@@ -13,6 +13,13 @@ export function formatTime(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// 0.1 秒精度顯示（心算快答競速用），例：75.3 → "1:15.3"
+export function formatTimePrecise(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds - m * 60;
+  return `${m}:${s.toFixed(1).padStart(4, '0')}`;
+}
+
 export function calculateAnswer(selectedCards: SelectedCard[]) {
   const expression = selectedCards.map(s => {
     if (s.number) {

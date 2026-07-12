@@ -1,6 +1,7 @@
 'use client';
 
 import { Award, BarChart2 } from 'lucide-react';
+import { formatTimePrecise } from '@/lib/utils';
 import {
   VISIBLE_ACHIEVEMENTS,
   useAchievementStore,
@@ -40,6 +41,8 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
     challengePlays,
     challengeBestStage,
     dailyChallengeCompletes,
+    quickMathPlays,
+    quickMathBestSeconds,
   } = useStatsStore();
   const unlockedIds = useAchievementStore(state => state.unlockedIds);
 
@@ -90,6 +93,22 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
               <div className="flex justify-center">
                 <StatItem label="完成次數" value={dailyChallengeCompletes} />
               </div>
+            </div>
+          </div>
+
+          {/* 心算快答 */}
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <SectionTitle>心算快答</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <StatItem label="完賽場次" value={quickMathPlays} />
+              <StatItem
+                label="最速完成"
+                value={
+                  quickMathBestSeconds > 0
+                    ? formatTimePrecise(quickMathBestSeconds)
+                    : '-'
+                }
+              />
             </div>
           </div>
 
