@@ -26,6 +26,12 @@ export const usePendingScoreStore = create<PendingScoreStore>()(
       setPendingScore: (s: PendingScore) => set({ pendingScore: s }),
       clearPendingScore: () => set({ pendingScore: null }),
     }),
-    { name: 'pending-leaderboard-score' },
+    {
+      name: 'pending-leaderboard-score',
+      // 2026-07 挑戰模式再平衡並清空 leaderboard_challenge，
+      // 舊版 pending 成績不可比，靠 version bump 讓 migrate 直接作廢
+      version: 1,
+      migrate: () => ({ pendingScore: null }),
+    },
   ),
 );
