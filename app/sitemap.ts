@@ -27,5 +27,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: 'https://math24master.com/quick-math',
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 }

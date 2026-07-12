@@ -3,18 +3,20 @@ import { auth } from '@/auth';
 import { getTaipeiDateString, isValidDailyLeaderboardDate } from '@/lib/date';
 import { db } from '@/lib/firebase-admin';
 
-type Mode = 'normal' | 'challenge' | 'classic' | 'daily';
+type Mode = 'normal' | 'challenge' | 'classic' | 'daily' | 'quickmath';
 
 const COLLECTION: Record<Exclude<Mode, 'daily'>, string> = {
   normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
+  quickmath: 'leaderboard_quickmath',
 };
 
 const ORDER_FIELD: Record<Exclude<Mode, 'daily'>, string> = {
   normal: 'rankingScore',
   challenge: 'stage',
   classic: 'score',
+  quickmath: 'seconds',
 };
 
 const ORDER_DIR: Record<
@@ -24,6 +26,7 @@ const ORDER_DIR: Record<
   normal: 'desc',
   challenge: 'desc',
   classic: 'desc',
+  quickmath: 'asc',
 };
 
 // 每日排行榜：leaderboard_daily/{date}/entries/{userId}
@@ -177,6 +180,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
   }
+  if (mode === 'quickmath') {
+    const seconds = Number(payload.seconds);
+    if (!Number.isFinite(seconds) || seconds < 10 || seconds > 300) {
+      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
+    }
+    payload.seconds = Math.round(seconds * 10) / 10;
+  }
 
   let ref = db.collection(COLLECTION[mode]).doc(userId);
   let existing = await ref.get();
@@ -202,7 +212,10 @@ export async function POST(req: NextRequest) {
         (mode === 'challenge' &&
           Number(payload.stage) <= Number(staleData.stage)) ||
         (mode === 'classic' &&
-          Number(payload.score) <= Number(staleData.score));
+          Number(payload.score) <= Number(staleData.score)) ||
+        // 快答比完成秒數，越小越好，方向與其他模式相反
+        (mode === 'quickmath' &&
+          Number(payload.seconds) >= Number(staleData.seconds));
 
       const mergedPayload = isStaleWorse
         ? {
@@ -226,7 +239,9 @@ export async function POST(req: NextRequest) {
                 stage: mergedPayload.stage,
                 totalScore: mergedPayload.totalScore,
               }
-            : { score: mergedPayload.score };
+            : mode === 'quickmath'
+              ? { seconds: mergedPayload.seconds }
+              : { score: mergedPayload.score };
 
       await ref.set({
         displayName,
@@ -248,7 +263,9 @@ export async function POST(req: NextRequest) {
       (mode === 'normal' &&
         Number(payload.rankingScore) <= Number(old.rankingScore)) ||
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
-      (mode === 'classic' && Number(payload.score) <= Number(old.score));
+      (mode === 'classic' && Number(payload.score) <= Number(old.score)) ||
+      // 快答比完成秒數，越小越好
+      (mode === 'quickmath' && Number(payload.seconds) >= Number(old.seconds));
     if (isWorse) {
       return NextResponse.json({ ok: true, updated: false });
     }
@@ -263,7 +280,9 @@ export async function POST(req: NextRequest) {
         }
       : mode === 'challenge'
         ? { stage: payload.stage, totalScore: payload.totalScore }
-        : { score: payload.score };
+        : mode === 'quickmath'
+          ? { seconds: payload.seconds }
+          : { score: payload.score };
 
   await ref.set({
     displayName,

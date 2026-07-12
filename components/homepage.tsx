@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronRight,
   Search,
+  Timer,
   Trophy,
   Users,
 } from 'lucide-react';
@@ -320,37 +321,6 @@ const Homepage = () => {
             <h2 className="mb-6 text-2xl font-black tracking-tight text-foreground md:text-3xl">
               更多遊戲模式
             </h2>
-            <div className="grid gap-4 md:gap-6">
-              {/* 多人連線 — 全寬 */}
-              <motion.button
-                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ root: scrollRef, once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={reduceMotion ? undefined : { y: -4 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-                className="flex w-full items-center gap-4 rounded-2xl border-2 border-primary/25 bg-primary/5 p-5 text-left shadow-[0_6px_0_0_hsl(175_84%_72%/0.4)] transition-colors hover:bg-primary/10 active:translate-y-1 active:shadow-none dark:border-teal-700 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_theme(colors.teal.800)] dark:hover:bg-teal-900/30 md:p-6"
-                onClick={() => (window.location.href = '/multiple-play')}
-              >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
-                  <Users className="h-7 w-7" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-black text-teal-800 dark:text-teal-300">
-                      多人連線
-                    </span>
-                    <span className="rounded-full bg-primary px-2 py-0.5 font-display text-[10px] font-black text-white">
-                      NEW
-                    </span>
-                  </div>
-                  <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
-                    即時房間對戰，全新搶答模式
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-primary/50" />
-              </motion.button>
-            </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2 md:gap-6">
               {/* 每日挑戰 */}
               <motion.button
@@ -371,7 +341,7 @@ const Homepage = () => {
                     每日挑戰
                   </div>
                   <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
-                    每天 3 題 · 全球競速
+                    每天 3 題 · 全球排行榜
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-teal-400" />
@@ -409,6 +379,40 @@ const Homepage = () => {
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-amber-400" />
+              </motion.button>
+
+              {/* 心算快答 */}
+              <motion.button
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ root: scrollRef, once: true, amount: 0.3 }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.16,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                whileHover={reduceMotion ? undefined : { y: -4 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                className="flex w-full items-center gap-4 rounded-2xl border-2 border-violet-200 bg-violet-50 p-5 text-left shadow-[0_6px_0_0_theme(colors.violet.200)] transition-colors hover:bg-violet-100/70 active:translate-y-1 active:shadow-none dark:border-violet-800 dark:bg-violet-900/20 dark:shadow-[0_6px_0_0_theme(colors.violet.800)] dark:hover:bg-violet-900/30 md:p-6"
+                onClick={() => (window.location.href = '/quick-math')}
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-400 text-white">
+                  <Timer className="h-7 w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-violet-800 dark:text-violet-300">
+                      心算快答
+                    </span>
+                    <span className="rounded-full bg-violet-400 px-2 py-0.5 font-display text-[10px] font-black text-white">
+                      NEW
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-sm text-violet-600 dark:text-violet-400/80">
+                    10 題限時心算 · 全球排行榜
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-violet-400" />
               </motion.button>
             </div>
           </div>

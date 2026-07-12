@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type LeaderboardMode = 'normal' | 'challenge' | 'classic' | 'daily';
+export type LeaderboardMode =
+  | 'normal'
+  | 'challenge'
+  | 'classic'
+  | 'daily'
+  | 'quickmath';
 
 export interface LeaderboardRow {
   rank: number;

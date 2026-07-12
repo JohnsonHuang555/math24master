@@ -11,7 +11,7 @@ import {
   useLeaderboard,
 } from '@/hooks/useLeaderboard';
 import { getTaipeiDateString, getTaipeiDayLabel } from '@/lib/date';
-import { formatTime } from '@/lib/utils';
+import { formatTime, formatTimePrecise } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -21,12 +21,14 @@ import { GuestLoginModal } from './guest-login-modal';
 type LeaderboardModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: LeaderboardMode;
 };
 
 const TABS: { mode: LeaderboardMode; label: string }[] = [
   { mode: 'daily', label: '每日' },
   { mode: 'classic', label: '經典' },
   { mode: 'challenge', label: '挑戰' },
+  { mode: 'quickmath', label: '快答' },
 ];
 
 const DAILY_DAY_OFFSETS = [0, -1, -2, -3, -4, -5, -6] as const;
@@ -36,6 +38,7 @@ const SCORE_HEADER: Record<LeaderboardMode, string> = {
   normal: '得分 / 時間',
   challenge: '關卡',
   classic: '分數',
+  quickmath: '完成時間',
 };
 
 function ScoreCell({
@@ -49,6 +52,15 @@ function ScoreCell({
     return (
       <div className="min-w-[72px] text-right text-xs">
         <div className="font-semibold">{formatTime(row.seconds ?? 0)}</div>
+      </div>
+    );
+  }
+  if (mode === 'quickmath') {
+    return (
+      <div className="min-w-[72px] text-right text-xs">
+        <div className="font-semibold">
+          {formatTimePrecise(row.seconds ?? 0)}
+        </div>
       </div>
     );
   }
@@ -122,7 +134,13 @@ function LeaderboardTable({
               成為第一個上榜的玩家！
             </p>
             <Link
-              href={mode === 'daily' ? '/daily-challenge' : '/single-play'}
+              href={
+                mode === 'daily'
+                  ? '/daily-challenge'
+                  : mode === 'quickmath'
+                    ? '/quick-math'
+                    : '/single-play'
+              }
               className="mt-1 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
             >
               開始遊戲 →
@@ -208,10 +226,14 @@ function TabPanel({
   );
 }
 
-export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
+export function LeaderboardModal({
+  isOpen,
+  onClose,
+  defaultTab = 'daily',
+}: LeaderboardModalProps) {
   const { data: session, status } = useSession();
   const { guestId, guestName, setGuest, clearGuest } = useGuestStore();
-  const [activeTab, setActiveTab] = useState<LeaderboardMode>('daily');
+  const [activeTab, setActiveTab] = useState<LeaderboardMode>(defaultTab);
   const [showGuestLogin, setShowGuestLogin] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => getTaipeiDateString());
 
@@ -229,7 +251,7 @@ export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              全球排行榜
+              全球排行榜榜
             </DialogTitle>
           </DialogHeader>
 
