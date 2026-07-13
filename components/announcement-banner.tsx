@@ -41,7 +41,7 @@ const AnnouncementBanner = () => {
               新模式「心算快答」上線！
             </span>
             <span className="hidden text-sm text-white/75 sm:inline">
-              10 題限時心算連續快答・答錯罰時、比拚總秒數・全球排行榜榜競速
+              10 題限時心算連續快答・答錯罰時、比拚總秒數・全球排行榜競速
             </span>
             <Link
               href="/quick-math"
