@@ -15,7 +15,12 @@ export function useLeaderboardSubmit(
   const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !payload || submittedRef.current) return;
+    if (!enabled || !payload) {
+      // 開新局（回到未完賽狀態）時重置，下次完賽才能再提交
+      submittedRef.current = false;
+      return;
+    }
+    if (submittedRef.current) return;
 
     const hasGoogle = !!session?.user;
     const hasGuest = !!guestId && !!guestName;

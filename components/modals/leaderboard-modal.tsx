@@ -251,7 +251,7 @@ export function LeaderboardModal({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              全球排行榜榜
+              全球排行榜
             </DialogTitle>
           </DialogHeader>
 
