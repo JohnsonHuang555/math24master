@@ -181,7 +181,8 @@ export default function ClassicPlayGame({
       !isGameOver ||
       isAuthenticated ||
       sessionStatus === 'loading' ||
-      skipLoginPrompt
+      skipLoginPrompt ||
+      currentScore <= 0
     )
       return;
     setPendingScore({ mode: 'classic', payload: { score: currentScore } });

@@ -80,7 +80,8 @@ export default function ChallengePlayGame({
       !isFinished ||
       isAuthenticated ||
       sessionStatus === 'loading' ||
-      skipLoginPrompt
+      skipLoginPrompt ||
+      totalScore <= 0
     )
       return;
     setPendingScore({ mode: 'challenge', payload: { stage, totalScore } });

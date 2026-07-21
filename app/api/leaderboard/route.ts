@@ -29,6 +29,14 @@ const ORDER_DIR: Record<
   quickmath: 'asc',
 };
 
+// 分數為 0 視同沒有實質成績，排行榜顯示時濾掉（資料庫仍正常寫入）
+// quickmath/daily 是完成時間制，沒有「0 分」的概念，不列入
+const ZERO_FILTER_FIELD: Partial<Record<Exclude<Mode, 'daily'>, string>> = {
+  classic: 'score',
+  normal: 'totalScore',
+  challenge: 'totalScore',
+};
+
 // 每日排行榜：leaderboard_daily/{date}/entries/{userId}
 // 以 subcollection 按日隔離 = 天然每日重置，且單欄位排序免建 composite index
 function dailyEntriesRef(date: string) {
@@ -69,12 +77,29 @@ export async function GET(req: NextRequest) {
           .limit(limit)
           .get();
 
-  const rows = snap.docs.map((doc, i) => ({
-    rank: i + 1,
-    userId: doc.id,
-    ...doc.data(),
-    submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() ?? null,
-  }));
+  const valueField = mode === 'daily' ? 'seconds' : ORDER_FIELD[mode];
+  const zeroField = mode === 'daily' ? undefined : ZERO_FILTER_FIELD[mode];
+
+  const docs = snap.docs.filter(doc => {
+    if (!zeroField) return true;
+    return Number(doc.data()[zeroField] ?? 0) !== 0;
+  });
+
+  // 1224 標準競賽排名：同分並列名次，下一位直接跳號
+  let rank = 0;
+  let prevValue: unknown;
+  const rows = docs.map((doc, i) => {
+    const data = doc.data();
+    const value = data[valueField];
+    if (i === 0 || value !== prevValue) rank = i + 1;
+    prevValue = value;
+    return {
+      rank,
+      userId: doc.id,
+      ...data,
+      submittedAt: data.submittedAt?.toDate?.()?.toISOString() ?? null,
+    };
+  });
 
   return NextResponse.json(rows, {
     headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=30' },
