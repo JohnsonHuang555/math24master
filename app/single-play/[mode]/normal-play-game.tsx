@@ -58,7 +58,14 @@ export default function NormalPlayGame({ onBack, autoStart }: NormalPlayGameProp
   );
 
   useEffect(() => {
-    if (!isFinished || isAuthenticated || sessionStatus === 'loading' || skipLoginPrompt) return;
+    if (
+      !isFinished ||
+      isAuthenticated ||
+      sessionStatus === 'loading' ||
+      skipLoginPrompt ||
+      totalScore <= 0
+    )
+      return;
     setPendingScore({ mode: 'normal', payload: { seconds, totalScore } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
