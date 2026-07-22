@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { canMake24, findAllSolutions } from '../lib/daily-seed';
+import {
+  createDeckByRandomMode,
+  createDeckByStandardMode,
+  createRummyDeck,
+  draw,
+  shuffleArray,
+} from '../lib/deck';
 import { BotDifficulty, findPlayableGroups } from '../lib/rummy-ai';
 import { ColorRule, validateBoard } from '../lib/rummy-validator';
 import { calculateAnswer } from '../lib/utils';
@@ -21,13 +28,6 @@ import {
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
-import {
-  createDeckByRandomMode,
-  createDeckByStandardMode,
-  createRummyDeck,
-  draw,
-  shuffleArray,
-} from './utils';
 
 type JoinRoomResult =
   | { success: true; room: Room; reconnectToken: string }
@@ -346,9 +346,7 @@ export function joinRoom(
 }
 
 // 離開房間
-export function leaveRoom(
-  playerId: string,
-):
+export function leaveRoom(playerId: string):
   | {
       room: Room;
       playerName: string;

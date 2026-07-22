@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 import { useGameActions } from '@/hooks/useGameActions';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import {
+  backCard,
+  createInitialRoom,
+  playCard,
+  reselectCard,
+  selectCard,
+  skipHand,
+  updateScore,
+} from '@/lib/classic-single-play-engine';
 import { playSound } from '@/lib/sound-manager';
-import { GameMode } from '@/models/GameMode';
 import { HandResult, NumberCard } from '@/models/Player';
 import { Difficulty, Room } from '@/models/Room';
-import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
-
-const socket = io();
 
 const useSinglePlay = (difficulty: Difficulty | null) => {
   // 答案是否正確
@@ -25,7 +28,6 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
   // 上一手結算回饋（本手最高分、是否完美手）
   const [lastHandResult, setLastHandResult] = useState<HandResult | null>(null);
   const hasStartedRef = useRef(false);
-  const reconnectTokenRef = useRef<string | null>(null);
 
   const {
     selectedCardSymbols,
@@ -52,86 +54,8 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     if (!difficulty || hasStartedRef.current) return;
     hasStartedRef.current = true;
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const roomId = uuidv4();
-
-    socket.emit(SocketEvent.JoinRoom, {
-      roomId,
-      maxPlayers: 1,
-      playerName: 'single',
-      mode: GameMode.Single,
-      difficulty,
-    });
-
-    socket.on(SocketEvent.JoinRoomSuccess, () => {
-      // 遊戲開始
-      socket.emit(SocketEvent.StartGame, { roomId });
-    });
-
-    socket.on(SocketEvent.ErrorMessage, message => {
-      toast.error(message);
-    });
-
-    // 房間更新
-    socket.on(
-      SocketEvent.RoomUpdate,
-      ({
-        room,
-        extra,
-      }: {
-        room: Room;
-        extra?: { event: SocketEvent; data?: boolean | HandResult };
-      }) => {
-        setRoomInfo(room);
-        if (extra?.event === SocketEvent.PlayCardResponse) {
-          handlePlayCardResponse(extra.data as boolean);
-        }
-        if (extra?.event === SocketEvent.UpdateScore && extra.data) {
-          setLastHandResult(extra.data as HandResult);
-        }
-      },
-    );
-
-    // 儲存重連 token，供手機切換 App 後恢復遊戲
-    socket.on(SocketEvent.GetReconnectToken, (token: string) => {
-      reconnectTokenRef.current = token;
-    });
-
-    // 手機切換 App 後 socket 重連，自動恢復遊戲狀態
-    socket.on('connect', () => {
-      if (reconnectTokenRef.current) {
-        socket.emit(SocketEvent.PlayerReconnect, {
-          reconnectToken: reconnectTokenRef.current,
-        });
-      }
-    });
-
-    socket.on(
-      SocketEvent.PlayerReconnectSuccess,
-      ({ room }: { room: Room }) => {
-        setRoomInfo(room);
-      },
-    );
-
-    socket.on(SocketEvent.PlayerReconnectFailed, () => {
-      reconnectTokenRef.current = null;
-      toast.error('連線已中斷，請重新整理頁面');
-    });
-
-    return () => {
-      socket.off(SocketEvent.JoinRoomSuccess);
-      socket.off(SocketEvent.ErrorMessage);
-      socket.off(SocketEvent.RoomUpdate);
-      socket.off(SocketEvent.GetReconnectToken);
-      socket.off('connect');
-      socket.off(SocketEvent.PlayerReconnectSuccess);
-      socket.off(SocketEvent.PlayerReconnectFailed);
-      socket.disconnect();
-    };
-  }, [difficulty]); // eslint-disable-line react-hooks/exhaustive-deps
+    setRoomInfo(createInitialRoom(difficulty));
+  }, [difficulty]);
 
   useEffect(() => {
     if (isLastRound) {
@@ -159,93 +83,91 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     number?: NumberCard;
     symbol?: Symbol;
   }) => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo) return;
 
     playSound('select');
-    if (socket) {
-      socket.emit(SocketEvent.SelectCard, {
-        roomId: roomInfo?.roomId,
-        number,
-        symbol,
-      });
+    const result = selectCard(roomInfo, number, symbol);
+    if (result.success) {
+      setRoomInfo(result.room);
+    } else {
+      toast.error(result.error);
     }
   };
 
   // 重選
   const onReselect = () => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo) return;
 
-    if (socket) {
-      socket.emit(SocketEvent.ReselectCard, {
-        roomId: roomInfo?.roomId,
-      });
+    const result = reselectCard(roomInfo);
+    if (result.success) {
+      setRoomInfo(result.room);
     }
   };
 
-  // 抽牌
+  // 抽牌（目前經典模式 UI 未使用，保留介面相容）
   const onDrawCard = () => {
-    if (isGameOver || checkAnswerCorrect !== null) return;
-
-    if (socket) {
-      // 沒出過牌抽 1 張，反之抽出過牌的數量
-      socket.emit(SocketEvent.DrawCard, {
-        roomId: roomInfo?.roomId,
-      });
-    }
+    if (isGameOver || checkAnswerCorrect !== null || !roomInfo) return;
   };
 
   // 跳過（換 4 張新牌）
   const onSkipHand = () => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo) return;
 
     playSound('skip');
     useAchievementStore.getState().incrementSkip();
     useStatsStore.getState().incrementClassicSkips();
-    if (socket) {
-      socket.emit(SocketEvent.SkipHand, {
-        roomId: roomInfo?.roomId,
-      });
+
+    const result = skipHand(roomInfo);
+    if (result.success) {
+      setRoomInfo(result.room);
+    } else {
+      toast.error(result.error);
     }
   };
 
   // 出牌
   const onPlayCard = () => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo) return;
 
-    if (roomInfo?.selectedCards.length === 0) {
+    if (roomInfo.selectedCards.length === 0) {
       toast.warning('請組合算式');
       return;
     }
 
-    if (socket) {
-      socket.emit(SocketEvent.PlayCard, {
-        roomId: roomInfo?.roomId,
-      });
+    const result = playCard(roomInfo);
+    if (result.success) {
+      setRoomInfo(result.room);
+      handlePlayCardResponse(result.isCorrect);
+    } else {
+      toast.error(result.error);
     }
   };
 
   // 更新分數並抽牌
   const onUpdateScore = () => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo) return;
 
-    if (socket) {
-      // 重置狀態
-      setCheckAnswerCorrect(null);
-      resetAnimations();
+    // 重置狀態
+    setCheckAnswerCorrect(null);
+    resetAnimations();
 
-      socket.emit(SocketEvent.UpdateScore, {
-        roomId: roomInfo?.roomId,
-      });
+    const result = updateScore(roomInfo);
+    if (result.success) {
+      setRoomInfo(result.room);
+      if (result.handResult) {
+        setLastHandResult(result.handResult);
+      }
+    } else {
+      toast.error(result.error);
     }
   };
 
   const onBack = () => {
-    if (isGameOver) return;
+    if (isGameOver || !roomInfo?.selectedCards.length) return;
 
-    if (socket && roomInfo?.selectedCards.length) {
-      socket.emit(SocketEvent.BackCard, {
-        roomId: roomInfo?.roomId,
-      });
+    const result = backCard(roomInfo);
+    if (result.success) {
+      setRoomInfo(result.room);
     }
   };
 
