@@ -2,7 +2,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import SoundToggle from '@/components/sound-toggle';
 import { SessionProvider } from '@/components/session-provider';
 import { GoogleAnalytics } from '@/components/analytics';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
