@@ -62,6 +62,16 @@ Defines all client↔server events. Client emits: `JoinRoom`, `PlayCard`, `DrawC
 - Deck exhaustion triggers the final round; game ends after all players complete it
 - Turn timers are managed server-side per room
 
+## Agent skills
+
+### Issue tracker
+
+Issues 記錄在 GitHub Issues（`JohnsonHuang555/math24master`），使用 `gh` CLI 操作。詳見 `docs/agents/issue-tracker.md`。
+
+### Domain docs
+
+Single-context：`CONTEXT.md` + `docs/adr/` 位於 repo 根目錄。詳見 `docs/agents/domain.md`。
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill

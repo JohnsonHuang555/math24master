@@ -89,7 +89,7 @@ export default function RootLayout({
         />
         <Script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7786092773254630"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8612373668638236"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
