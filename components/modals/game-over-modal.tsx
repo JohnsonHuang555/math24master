@@ -1,15 +1,11 @@
 'use client';
 
 import { Trophy } from 'lucide-react';
+import { AdUnit } from '@/components/ad-unit';
 import { cn } from '@/lib/utils';
 import { Player } from '@/models/Player';
 import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type GameOverModalProps = {
   isOpen: boolean;
@@ -47,10 +43,15 @@ export function GameOverModal({
   isMultiplePlay,
 }: GameOverModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={isMultiplePlay ? () => {} : v => !v && onClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={isMultiplePlay ? () => {} : v => !v && onClose()}
+    >
       <DialogContent
         className="sm:max-w-sm"
-        onPointerDownOutside={isMultiplePlay ? e => e.preventDefault() : undefined}
+        onPointerDownOutside={
+          isMultiplePlay ? e => e.preventDefault() : undefined
+        }
         onEscapeKeyDown={isMultiplePlay ? e => e.preventDefault() : undefined}
       >
         <DialogHeader>
@@ -80,7 +81,7 @@ export function GameOverModal({
         )}
 
         {!isSinglePlay && players.length > 0 && (
-          <div className="flex flex-col gap-2 py-2">
+          <div className="flex max-h-[260px] flex-col gap-2 overflow-y-auto py-2">
             {players.map((player, index) => (
               <div
                 key={player.id}
@@ -133,6 +134,10 @@ export function GameOverModal({
               </Button>
             </>
           )}
+        </div>
+
+        <div className="flex justify-center">
+          <AdUnit slot="3374528946" width={320} height={50} className="mt-1" />
         </div>
       </DialogContent>
     </Dialog>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trophy, User } from 'lucide-react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { AdUnit } from '@/components/ad-unit';
 import {
   LeaderboardMode,
   LeaderboardRow,
@@ -25,7 +26,8 @@ type LeaderboardModalProps = {
 };
 
 const TABS: { mode: LeaderboardMode; label: string }[] = [
-  { mode: 'daily', label: '每日' },
+  // 暫時影藏
+  // { mode: 'daily', label: '每日' },
   { mode: 'classic', label: '經典' },
   { mode: 'challenge', label: '挑戰' },
   { mode: 'quickmath', label: '快答' },
@@ -229,7 +231,7 @@ function TabPanel({
 export function LeaderboardModal({
   isOpen,
   onClose,
-  defaultTab = 'daily',
+  defaultTab = 'classic',
 }: LeaderboardModalProps) {
   const { data: session, status } = useSession();
   const { guestId, guestName, setGuest, clearGuest } = useGuestStore();
@@ -376,6 +378,10 @@ export function LeaderboardModal({
               </TabsContent>
             ))}
           </Tabs>
+
+          <div className="flex justify-center">
+            <AdUnit slot="4112895549" width={320} height={50} />
+          </div>
 
           <Button variant="outline" onClick={onClose}>
             關閉
