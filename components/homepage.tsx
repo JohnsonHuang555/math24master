@@ -13,6 +13,7 @@ import {
   Trophy,
   Users,
 } from 'lucide-react';
+import { AdUnit } from '@/components/ad-unit';
 import AnnouncementBanner from '@/components/announcement-banner';
 import { AchievementModal } from '@/components/modals/achievement-modal';
 import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
@@ -310,6 +311,15 @@ const Homepage = () => {
                 </motion.div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════
+            廣告
+        ════════════════════════════════ */}
+        <section className="px-4 py-6 md:px-10">
+          <div className="mx-auto max-w-4xl">
+            <AdUnit slot="5070753993" />
           </div>
         </section>
 
