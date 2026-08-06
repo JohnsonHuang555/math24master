@@ -379,9 +379,9 @@ export function LeaderboardModal({
             ))}
           </Tabs>
 
-          <div className="flex justify-center">
+          {/* <div className="flex justify-center">
             <AdUnit slot="4112895549" width={320} height={50} />
-          </div>
+          </div> */}
 
           <Button variant="outline" onClick={onClose}>
             關閉
