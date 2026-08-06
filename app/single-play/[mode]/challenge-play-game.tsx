@@ -191,9 +191,9 @@ export default function ChallengePlayGame({
                 <p className="mt-0.5 text-xs text-muted-foreground">總分</p>
               </div>
             </div>
-            <div className="mt-2 flex justify-center">
+            {/* <div className="mt-2 flex justify-center">
               <AdUnit slot="3374528946" width={320} height={50} />
-            </div>
+            </div> */}
             {isNewBest && (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
                 <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
