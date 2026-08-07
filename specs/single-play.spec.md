@@ -14,7 +14,7 @@
 
 | 模式 | 顏色標記 | 說明 |
 |------|---------|------|
-| 經典模式 | 紫色 | 無時限，連線到伺服器單人房 |
+| 經典模式 | 紫色 | 無時限，client-side 純函式引擎，固定 Hard 難度 |
 | 關卡模式 | 藍色 | 10 題計時挑戰 |
 | 挑戰模式 | 橙色 | 5 分鐘倒數連續答題 |
 
@@ -27,9 +27,10 @@
 
 ### 遊戲規則
 - 遵循[經典 24 點核心規格](./game-classic.spec.md)
-- 單人房（`maxPlayers: 1`），連線伺服器
+- 單人房（`maxPlayers: 1`），**純 client-side 執行**（`lib/classic-single-play-engine.ts` 純函式重寫版，不透過 Socket.IO 連線伺服器；`hooks/useSinglePlay.ts` 只是薄的 React 層）
 - **無時限**（`remainSeconds: null`）
-- 牌庫耗盡後遊戲結束
+- **難度固定為 `Difficulty.Hard`（牌值 1~13），為刻意決定**——UI 沒有難度選擇畫面，`Easy`/`Normal` 僅存在於 `Difficulty` enum 定義中，經典模式的 UI 路徑不會用到
+- 牌庫耗盡後進入最後一輪，該輪結束才真正 `isGameOver`（見 `_checkGameOver`）
 
 ### 狀態機
 
@@ -42,9 +43,12 @@ idle → playing → finished（game-over）
 - 紀錄最高分（`updateClassicBestScore`）
 - 紀錄最快出牌時間（`updateClassicFastestPlay`，以毫秒計）
 - 成就檢查：`no_skip`（一局未跳過完成）
+- **完美手加成（單人經典模式獨有）**：每手用 `findAllSolutions()` 算出該手牌理論最高符號分 `maxScore`，若本手得分 `score >= maxScore` 視為「完美手」，額外 +1 分（`PERFECT_HAND_BONUS`），累計於 `Player.perfectHands`；`Player.theoreticalMax` 為已出牌手數的理論最高總分累計
+- **結算畫面解法評級（S/A/B/C）**：依 `currentScore / theoreticalMax` 效率換算，只存在於 `classic-play-game.tsx` 的 UI 呈現，未納入排行榜或統計儲存
 
 ### 原始碼
 - [hooks/useSinglePlay.ts](../hooks/useSinglePlay.ts)
+- [lib/classic-single-play-engine.ts](../lib/classic-single-play-engine.ts)
 - [app/single-play/[mode]/classic-play-game.tsx](../app/single-play/[mode]/classic-play-game.tsx)
 
 ---

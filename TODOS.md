@@ -34,4 +34,6 @@ Items identified during engineering review but deferred from current implementat
 
 **Depends on:** 無前置條件，但建議在多人模式和單人模式都穩定後再評估。
 
+**Resolution (2026-08-07, classic-mode-review)：** 針對單人經典模式已定案關閉——手牌固定 4 張（無 5 張牌情境），張數不作為計分維度，不會恢復此規則。多人 / 拉密模式若未來有變動手牌上限的需求，可重新評估，本次結論不涵蓋。詳見 [docs/adr/0001-classic-mode-review.md](docs/adr/0001-classic-mode-review.md)。
+
 ---

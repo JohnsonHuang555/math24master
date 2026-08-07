@@ -107,8 +107,9 @@
 
 ## 原始碼對應
 
-- 遊戲邏輯：[server/game.ts](../server/game.ts)
-- 牌庫生成：[server/utils.ts](../server/utils.ts)
+- 遊戲邏輯（多人）：[server/game.ts](../server/game.ts)
+- 遊戲邏輯（單人，純函式重寫版）：[lib/classic-single-play-engine.ts](../lib/classic-single-play-engine.ts)
+- 牌庫生成：[lib/deck.ts](../lib/deck.ts) → `createDeckByStandardMode()`
 - 房間/常數定義：[models/Room.ts](../models/Room.ts)
 - 計算驗算：[lib/utils.ts](../lib/utils.ts) → `calculateAnswer()`
 - 計分：[lib/scoring.ts](../lib/scoring.ts) → `calcRoundScore()`
