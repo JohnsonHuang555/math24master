@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getTaipeiDateString, isValidDailyLeaderboardDate } from '@/lib/date';
 import { db } from '@/lib/firebase-admin';
 
-type Mode = 'normal' | 'challenge' | 'classic' | 'daily' | 'quickmath';
+type Mode = 'normal' | 'challenge' | 'classic' | 'quickmath';
 
-const COLLECTION: Record<Exclude<Mode, 'daily'>, string> = {
+const COLLECTION: Record<Mode, string> = {
   normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
   quickmath: 'leaderboard_quickmath',
 };
 
-const ORDER_FIELD: Record<Exclude<Mode, 'daily'>, string> = {
+const ORDER_FIELD: Record<Mode, string> = {
   normal: 'rankingScore',
   challenge: 'stage',
   classic: 'score',
   quickmath: 'seconds',
 };
 
-const ORDER_DIR: Record<
-  Exclude<Mode, 'daily'>,
-  FirebaseFirestore.OrderByDirection
-> = {
+const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
   normal: 'desc',
   challenge: 'desc',
   classic: 'desc',
@@ -33,22 +29,16 @@ const ORDER_DIR: Record<
 const CLASSIC_MAX_SCORE = 66;
 
 // 分數為 0 視同沒有實質成績，排行榜顯示時濾掉（資料庫仍正常寫入）
-// quickmath/daily 是完成時間制，沒有「0 分」的概念，不列入
-const ZERO_FILTER_FIELD: Partial<Record<Exclude<Mode, 'daily'>, string>> = {
+// quickmath 是完成時間制，沒有「0 分」的概念，不列入
+const ZERO_FILTER_FIELD: Partial<Record<Mode, string>> = {
   classic: 'score',
   normal: 'totalScore',
   challenge: 'totalScore',
 };
 
-// 每日排行榜：leaderboard_daily/{date}/entries/{userId}
-// 以 subcollection 按日隔離 = 天然每日重置，且單欄位排序免建 composite index
-function dailyEntriesRef(date: string) {
-  return db.collection('leaderboard_daily').doc(date).collection('entries');
-}
-
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') as Mode | null;
-  if (!mode || (mode !== 'daily' && !COLLECTION[mode])) {
+  if (!mode || !COLLECTION[mode]) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
   }
 
@@ -57,31 +47,14 @@ export async function GET(req: NextRequest) {
     100,
   );
 
-  let dailyDate = getTaipeiDateString();
-  if (mode === 'daily') {
-    const rawDate = req.nextUrl.searchParams.get('date');
-    if (rawDate) {
-      if (!isValidDailyLeaderboardDate(rawDate)) {
-        return NextResponse.json({ error: 'invalid date' }, { status: 400 });
-      }
-      dailyDate = rawDate;
-    }
-  }
+  const snap = await db
+    .collection(COLLECTION[mode])
+    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
+    .limit(limit)
+    .get();
 
-  const snap =
-    mode === 'daily'
-      ? await dailyEntriesRef(dailyDate)
-          .orderBy('seconds', 'asc')
-          .limit(limit)
-          .get()
-      : await db
-          .collection(COLLECTION[mode])
-          .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
-          .limit(limit)
-          .get();
-
-  const valueField = mode === 'daily' ? 'seconds' : ORDER_FIELD[mode];
-  const zeroField = mode === 'daily' ? undefined : ZERO_FILTER_FIELD[mode];
+  const valueField = ORDER_FIELD[mode];
+  const zeroField = ZERO_FILTER_FIELD[mode];
 
   const docs = snap.docs.filter(doc => {
     if (!zeroField) return true;
@@ -153,35 +126,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  if (!mode || (mode !== 'daily' && !COLLECTION[mode])) {
+  if (!mode || !COLLECTION[mode]) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
-  }
-
-  // 每日模式：獨立處理（subcollection、當日更快才覆寫、無 email migration）
-  if (mode === 'daily') {
-    const seconds = Number(payload.seconds);
-    if (!Number.isFinite(seconds) || seconds < 10 || seconds > 86400) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
-    // 以 server 的台灣日期為準；client 日期不符（跨午夜或偽造）直接拒絕
-    const today = getTaipeiDateString();
-    if (payload.date !== today) {
-      return NextResponse.json({ error: 'expired' }, { status: 400 });
-    }
-
-    const ref = dailyEntriesRef(today).doc(userId);
-    const existing = await ref.get();
-    if (existing.exists && seconds >= Number(existing.data()!.seconds)) {
-      return NextResponse.json({ ok: true, updated: false });
-    }
-    await ref.set({
-      displayName,
-      photoURL,
-      ...(email ? { email } : {}),
-      seconds,
-      submittedAt: new Date(),
-    });
-    return NextResponse.json({ ok: true, updated: true });
   }
 
   // Sanity checks + compute rankingScore for normal mode
