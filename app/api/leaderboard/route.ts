@@ -29,6 +29,9 @@ const ORDER_DIR: Record<
   quickmath: 'asc',
 };
 
+// 經典模式單局理論最高分：6 手 * 每手最高 11 分
+const CLASSIC_MAX_SCORE = 66;
+
 // 分數為 0 視同沒有實質成績，排行榜顯示時濾掉（資料庫仍正常寫入）
 // quickmath/daily 是完成時間制，沒有「0 分」的概念，不列入
 const ZERO_FILTER_FIELD: Partial<Record<Exclude<Mode, 'daily'>, string>> = {
@@ -201,7 +204,10 @@ export async function POST(req: NextRequest) {
   }
   if (mode === 'classic') {
     const score = Number(payload.score);
-    if (!Number.isFinite(score) || score < 0 || score > 5000) {
+    // 經典模式單局理論上限：牌庫 24 張 / 每手 4 張 = 6 手，
+    // 每手最高 11 分（全除法 3*3=9 ＋ 2 個以上除法加成 1 ＋ 完美手 bonus 1）
+    // 詳見 lib/classic-single-play-engine.ts 的 updateScore。
+    if (!Number.isFinite(score) || score < 0 || score > CLASSIC_MAX_SCORE) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
   }
