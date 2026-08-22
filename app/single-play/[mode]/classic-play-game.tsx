@@ -13,6 +13,7 @@ import {
   Layers,
   Play,
   RotateCcw,
+  Share2,
   Sparkles,
   Trophy,
 } from 'lucide-react';
@@ -25,6 +26,8 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
+import { renderClassicResultCard } from '@/lib/classic-result-card';
+import { shareImage } from '@/lib/share';
 import { HandResult } from '@/models/Player';
 import { Difficulty } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
@@ -70,6 +73,8 @@ export default function ClassicPlayGame({
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
   const [handFeedback, setHandFeedback] = useState<HandResult | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [handHistory, setHandHistory] = useState<HandResult[]>([]);
+  const [isSharing, setIsSharing] = useState(false);
   const prevScoreRef = useRef(0);
 
   const { status: sessionStatus } = useSession();
@@ -118,6 +123,7 @@ export default function ClassicPlayGame({
     setDifficulty(Difficulty.Hard);
     setStatus('playing');
     prevScoreRef.current = 0;
+    setHandHistory([]);
   };
 
   useEffect(() => {
@@ -160,16 +166,53 @@ export default function ClassicPlayGame({
     return () => clearTimeout(id);
   }, [isSymbolScoreAnimationFinished]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 每手結算回饋：顯示 3.2 秒後淡出
+  // 每手結算回饋：顯示 3.2 秒後淡出；同時累積六手戰績供分享圖卡使用
   useEffect(() => {
     if (!lastHandResult) return;
     setHandFeedback(lastHandResult);
+    setHandHistory(prev => [...prev, lastHandResult]);
     const id = setTimeout(() => setHandFeedback(null), 3200);
     return () => clearTimeout(id);
   }, [lastHandResult]);
 
   const isNewBestScore =
     status === 'finished' && currentScore > 0 && currentScore >= bestScore;
+
+  const efficiency = theoreticalMax > 0 ? currentScore / theoreticalMax : 0;
+  const grade = gradeOf(efficiency);
+
+  const handleShareResult = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      const blob = await renderClassicResultCard({
+        score: currentScore,
+        grade,
+        efficiency,
+        perfectHands,
+        handHistory,
+        isNewBestScore,
+      });
+      if (!blob) {
+        toast.error('圖卡產生失敗，請稍後再試');
+        return;
+      }
+      const file = new File([blob], 'math24-classic-result.png', {
+        type: 'image/png',
+      });
+      const outcome = await shareImage(file, {
+        title: 'Math24 經典模式',
+        text: `Math24 經典模式挑戰結果：${currentScore} 分（評級 ${grade}）\n來 math24master.com 挑戰看看`,
+      });
+      if (outcome === 'downloaded') {
+        toast.success('圖卡已下載，快分享到限動或聊天吧！');
+      } else if (outcome === 'failed') {
+        toast.error('分享失敗，請稍後再試');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   useLeaderboardSubmit(
     'classic',
@@ -270,9 +313,7 @@ export default function ClassicPlayGame({
             {theoreticalMax > 0 && (
               <div className="mt-4 flex items-center justify-center gap-6 rounded-2xl border-2 border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40">
                 <div>
-                  <p className={cnGrade(currentScore / theoreticalMax)}>
-                    {gradeOf(currentScore / theoreticalMax)}
-                  </p>
+                  <p className={cnGrade(efficiency)}>{grade}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
                     解法評級
                   </p>
@@ -280,7 +321,7 @@ export default function ClassicPlayGame({
                 <div className="h-8 w-px bg-border" />
                 <div>
                   <p className="font-display text-xl font-bold text-foreground">
-                    {Math.round((currentScore / theoreticalMax) * 100)}%
+                    {Math.round(efficiency * 100)}%
                   </p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
                     解法效率
@@ -313,7 +354,16 @@ export default function ClassicPlayGame({
                 個人最高：{bestScore} 分
               </p>
             )}
-            <div className="mt-6 flex gap-2">
+            <Button
+              variant="outline"
+              className="mt-6 w-full gap-1.5"
+              onClick={handleShareResult}
+              disabled={isSharing}
+            >
+              <Share2 className="h-4 w-4" />
+              {isSharing ? '圖卡產生中...' : '分享成績'}
+            </Button>
+            <div className="mt-3 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={onBack}>
                 返回選單
               </Button>
