@@ -351,7 +351,7 @@ const Homepage = () => {
                     每日挑戰
                   </div>
                   <div className="mt-0.5 text-sm text-teal-600 dark:text-teal-400/80">
-                    每天 3 題 · 全球排行榜
+                    每天 3 題 · 連續挑戰紀錄
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-teal-400" />

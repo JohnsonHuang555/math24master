@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type LeaderboardMode =
-  | 'normal'
-  | 'challenge'
-  | 'classic'
-  | 'daily'
-  | 'quickmath';
+export type LeaderboardMode = 'normal' | 'challenge' | 'classic' | 'quickmath';
 
 export interface LeaderboardRow {
   rank: number;
@@ -22,11 +17,7 @@ export interface LeaderboardRow {
   submittedAt: string | null;
 }
 
-export function useLeaderboard(
-  mode: LeaderboardMode,
-  enabled: boolean,
-  date?: string,
-) {
+export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +27,6 @@ export function useLeaderboard(
     setError(null);
     try {
       const params = new URLSearchParams({ mode, limit: '100' });
-      if (mode === 'daily' && date) params.set('date', date);
       const res = await window.fetch(`/api/leaderboard?${params.toString()}`);
       if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
@@ -46,7 +36,7 @@ export function useLeaderboard(
     } finally {
       setLoading(false);
     }
-  }, [mode, date]);
+  }, [mode]);
 
   useEffect(() => {
     if (enabled) loadRows();

@@ -4,14 +4,14 @@ import MainLayout from '@/components/layouts/main-layout';
 export const metadata: Metadata = {
   title: '每日挑戰 - 24點大師',
   description:
-    '每天3題24點謎題，全球玩家一同競賽，比誰最快完成，登上每日排行榜。',
+    '每天3題24點謎題，累積你的連續挑戰紀錄。',
   alternates: {
     canonical: 'https://math24master.com/daily-challenge',
   },
   openGraph: {
     title: '每日挑戰 - 24點大師',
     description:
-      '每天3題24點謎題，全球玩家一同競賽，比誰最快完成，登上每日排行榜。',
+      '每天3題24點謎題，累積你的連續挑戰紀錄。',
     url: 'https://math24master.com/daily-challenge',
   },
   twitter: {

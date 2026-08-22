@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trophy, User } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
   LeaderboardRow,
   useLeaderboard,
 } from '@/hooks/useLeaderboard';
-import { getTaipeiDateString, getTaipeiDayLabel } from '@/lib/date';
 import { formatTime, formatTimePrecise } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
 import { Button } from '../ui/button';
@@ -26,17 +25,12 @@ type LeaderboardModalProps = {
 };
 
 const TABS: { mode: LeaderboardMode; label: string }[] = [
-  // 暫時影藏
-  // { mode: 'daily', label: '每日' },
   { mode: 'classic', label: '經典' },
   { mode: 'challenge', label: '挑戰' },
   { mode: 'quickmath', label: '快答' },
 ];
 
-const DAILY_DAY_OFFSETS = [0, -1, -2, -3, -4, -5, -6] as const;
-
 const SCORE_HEADER: Record<LeaderboardMode, string> = {
-  daily: '完成時間',
   normal: '得分 / 時間',
   challenge: '關卡',
   classic: '分數',
@@ -50,13 +44,6 @@ function ScoreCell({
   row: LeaderboardRow;
   mode: LeaderboardMode;
 }) {
-  if (mode === 'daily') {
-    return (
-      <div className="min-w-[72px] text-right text-xs">
-        <div className="font-semibold">{formatTime(row.seconds ?? 0)}</div>
-      </div>
-    );
-  }
   if (mode === 'quickmath') {
     return (
       <div className="min-w-[72px] text-right text-xs">
@@ -96,14 +83,12 @@ function LeaderboardTable({
   error,
   mode,
   myId,
-  date,
 }: {
   rows: LeaderboardRow[];
   loading: boolean;
   error: string | null;
   mode: LeaderboardMode;
   myId?: string;
-  date?: string;
 }) {
   if (loading) {
     return (
@@ -120,35 +105,19 @@ function LeaderboardTable({
     );
   }
   if (rows.length === 0) {
-    const isPastDailyDay =
-      mode === 'daily' && date !== undefined && date !== getTaipeiDateString();
     return (
       <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
         <span className="text-3xl" aria-hidden="true">
           🏆
         </span>
         <p className="text-sm font-semibold text-foreground">榜單還是空的</p>
-        {isPastDailyDay ? (
-          <p className="text-xs text-muted-foreground">這天沒有玩家留下紀錄</p>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground">
-              成為第一個上榜的玩家！
-            </p>
-            <Link
-              href={
-                mode === 'daily'
-                  ? '/daily-challenge'
-                  : mode === 'quickmath'
-                    ? '/quick-math'
-                    : '/single-play'
-              }
-              className="mt-1 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
-            >
-              開始遊戲 →
-            </Link>
-          </>
-        )}
+        <p className="text-xs text-muted-foreground">成為第一個上榜的玩家！</p>
+        <Link
+          href={mode === 'quickmath' ? '/quick-math' : '/single-play'}
+          className="mt-1 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+        >
+          開始遊戲 →
+        </Link>
       </div>
     );
   }
@@ -208,14 +177,12 @@ function TabPanel({
   mode,
   myId,
   active,
-  date,
 }: {
   mode: LeaderboardMode;
   myId?: string;
   active: boolean;
-  date?: string;
 }) {
-  const { rows, loading, error } = useLeaderboard(mode, active, date);
+  const { rows, loading, error } = useLeaderboard(mode, active);
   return (
     <LeaderboardTable
       rows={rows}
@@ -223,7 +190,6 @@ function TabPanel({
       error={error}
       mode={mode}
       myId={myId}
-      date={date}
     />
   );
 }
@@ -237,11 +203,6 @@ export function LeaderboardModal({
   const { guestId, guestName, setGuest, clearGuest } = useGuestStore();
   const [activeTab, setActiveTab] = useState<LeaderboardMode>(defaultTab);
   const [showGuestLogin, setShowGuestLogin] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => getTaipeiDateString());
-
-  useEffect(() => {
-    if (isOpen) setSelectedDate(getTaipeiDateString());
-  }, [isOpen]);
 
   const googleId = (session?.user as { id?: string })?.id;
   const myId = googleId ?? guestId ?? undefined;
@@ -346,34 +307,10 @@ export function LeaderboardModal({
                 value={t.mode}
                 className="mt-3 max-h-[360px] overflow-y-auto"
               >
-                {t.mode === 'daily' && (
-                  <>
-                    <p className="mb-2 text-center text-[11px] text-muted-foreground">
-                      每天 00:00（台灣時間）重置
-                    </p>
-                    <div className="mb-2 flex flex-wrap justify-center gap-1.5">
-                      {DAILY_DAY_OFFSETS.map(offset => {
-                        const d = getTaipeiDateString(offset);
-                        return (
-                          <Button
-                            key={d}
-                            size="sm"
-                            variant={d === selectedDate ? 'default' : 'outline'}
-                            className="h-7 text-xs"
-                            onClick={() => setSelectedDate(d)}
-                          >
-                            {getTaipeiDayLabel(offset)}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
                 <TabPanel
                   mode={t.mode}
                   myId={myId}
                   active={activeTab === t.mode}
-                  date={t.mode === 'daily' ? selectedDate : undefined}
                 />
               </TabsContent>
             ))}

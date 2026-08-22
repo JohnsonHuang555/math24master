@@ -4,14 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Play, Trophy } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
-import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
-import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
-import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useTimer } from '@/hooks/useTimer';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
@@ -28,9 +24,6 @@ import {
 import { playSound } from '@/lib/sound-manager';
 import { cn, formatTime } from '@/lib/utils';
 import { useAchievementStore } from '@/stores/achievement-store';
-import { useGuestStore } from '@/stores/guest-store';
-import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
-import { usePendingScoreStore } from '@/stores/pending-score-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 3;
@@ -63,10 +56,6 @@ export default function DailyChallengePage() {
     [],
   );
   const [userFormulas, setUserFormulas] = useState<string[]>([]);
-  // 本次 session 才完成（非重新整理讀回的舊紀錄）才提交排行榜
-  const [justFinished, setJustFinished] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isSubmitting = useRef(false);
   const scoreSumRef = useRef(0);
 
@@ -79,13 +68,6 @@ export default function DailyChallengePage() {
   } = useTimer({
     mode: 'stopwatch',
   });
-
-  const { status: sessionStatus } = useSession();
-  const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
-  const { skipLoginPrompt, setSkipLoginPrompt } =
-    useLoginPromptPreferenceStore();
-  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   useEffect(() => {
     const currentDay = getTodayDateString();
@@ -105,31 +87,6 @@ export default function DailyChallengePage() {
       );
     }
   }, []);
-
-  useLeaderboardSubmit(
-    'daily',
-    justFinished && isAuthenticated && totalSeconds !== null
-      ? { date: today, seconds: totalSeconds }
-      : null,
-    justFinished && isAuthenticated && totalSeconds !== null,
-  );
-
-  useEffect(() => {
-    if (
-      !justFinished ||
-      isAuthenticated ||
-      sessionStatus === 'loading' ||
-      skipLoginPrompt
-    )
-      return;
-    if (totalSeconds === null) return;
-    setPendingScore({
-      mode: 'daily',
-      payload: { date: today, seconds: totalSeconds },
-    });
-    const id = setTimeout(() => setShowLoginPrompt(true), 1000);
-    return () => clearTimeout(id);
-  }, [justFinished, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cards = puzzles[currentRound] ?? [];
   const isPlaying = gameState === 'playing';
@@ -246,7 +203,6 @@ export default function DailyChallengePage() {
     );
     setTotalSeconds(finalSeconds);
     setStreak(s);
-    setJustFinished(true);
     setGameState('completed');
     toast.success(`完成！總時間 ${formatTime(finalSeconds)}`);
     unlockAchievement('daily_done');
@@ -297,34 +253,20 @@ export default function DailyChallengePage() {
           <p className="text-sm text-muted-foreground">{today}</p>
         </div>
         <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
-          <p>每天 {TOTAL_ROUNDS} 題，全球玩家一同競賽</p>
-          <p>答錯 +{WRONG_PENALTY_SECONDS} 秒 · 最快完成者登上排行榜</p>
-          <p className="text-xs">每天 00:00（台灣時間）更新題目與排行榜</p>
+          <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
+          <p>答錯 +{WRONG_PENALTY_SECONDS} 秒</p>
+          <p className="text-xs">每天 00:00（台灣時間）更新題目</p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => setShowLeaderboard(true)}
-          >
-            <Trophy className="h-4 w-4" />
-            排行榜
-          </Button>
-          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />
-            開始挑戰
-          </Button>
-        </div>
+        <Button variant="tactile" className="gap-1.5" onClick={startGame}>
+          <Play className="h-4 w-4" />
+          開始挑戰
+        </Button>
         <Link
           href="/"
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           回首頁
         </Link>
-        <LeaderboardModal
-          isOpen={showLeaderboard}
-          onClose={() => setShowLeaderboard(false)}
-        />
       </div>
     );
   }
@@ -359,24 +301,14 @@ export default function DailyChallengePage() {
             {sharePreviewText}
           </pre>
 
-          <div className="flex w-full gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 gap-1.5"
-              onClick={() => setShowLeaderboard(true)}
-            >
-              <Trophy className="h-4 w-4" />
-              排行榜
-            </Button>
-            <Button
-              variant="tactile"
-              className="flex-1"
-              onClick={handleShare}
-              aria-label="複製分享文字到剪貼簿"
-            >
-              複製分享
-            </Button>
-          </div>
+          <Button
+            variant="tactile"
+            className="w-full"
+            onClick={handleShare}
+            aria-label="複製分享文字到剪貼簿"
+          >
+            複製分享
+          </Button>
 
           {/* 各題解法面板 */}
           {solutionsPerPuzzle.map((solutions, i) => (
@@ -411,23 +343,6 @@ export default function DailyChallengePage() {
         >
           回首頁
         </Link>
-        <LeaderboardModal
-          isOpen={showLeaderboard}
-          onClose={() => setShowLeaderboard(false)}
-        />
-        <LoginPromptModal
-          isOpen={showLoginPrompt}
-          onClose={() => setShowLoginPrompt(false)}
-          onSkip={() => {
-            clearPendingScore();
-            setShowLoginPrompt(false);
-          }}
-          onSkipForever={() => {
-            setSkipLoginPrompt(true);
-            clearPendingScore();
-            setShowLoginPrompt(false);
-          }}
-        />
       </div>
     );
   }
