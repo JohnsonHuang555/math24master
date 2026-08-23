@@ -409,7 +409,7 @@ export default function ClassicPlayGame({
           </motion.div>
         </div>
         <div className="text-center">
-          <p className="text-xs font-semibold text-muted-foreground">
+          <p className="text-base font-semibold text-muted-foreground">
             經典模式
           </p>
           {isLastRound && (
@@ -500,7 +500,11 @@ export default function ClassicPlayGame({
 
   return (
     <>
-      <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
+      <RuleModal
+        isOpen={isOpenRuleModal}
+        onOpenChange={setIsOpenRuleModal}
+        mode="classic"
+      />
       <LoginPromptModal
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
