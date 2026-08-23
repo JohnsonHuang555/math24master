@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Play, Timer } from 'lucide-react';
+import { BookOpen, Play, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { AdUnit } from '@/components/ad-unit';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,7 @@ export default function ChallengePlayGame({
   } = useChallengePlay();
 
   const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+  const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -227,6 +229,11 @@ export default function ChallengePlayGame({
 
   return (
     <>
+      <RuleModal
+        isOpen={isOpenRuleModal}
+        onOpenChange={setIsOpenRuleModal}
+        mode="challenge"
+      />
       <PuzzlePlayArea
         currentNumbers={currentNumbers}
         selectedCards={selectedCards}
@@ -246,15 +253,24 @@ export default function ChallengePlayGame({
         {/* HUD */}
         <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pb-3 pt-2.5 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">
+            <span className="text-base font-semibold text-muted-foreground">
               挑戰模式
             </span>
-            <button
-              className="text-xs font-semibold text-amber-500 hover:text-amber-600 dark:text-amber-400"
-              onClick={() => setShowEarlyEndConfirm(true)}
-            >
-              提前結算
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                onClick={() => setIsOpenRuleModal(true)}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                規則
+              </button>
+              <button
+                className="text-xs font-semibold text-amber-500 hover:text-amber-600 dark:text-amber-400"
+                onClick={() => setShowEarlyEndConfirm(true)}
+              >
+                提前結算
+              </button>
+            </div>
           </div>
           {/* Big timer */}
           <div className="flex items-baseline justify-center gap-2">
