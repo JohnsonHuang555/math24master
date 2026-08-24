@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1a1a2e",
+  "theme_color": "#0d9488",
   "orientation": "any",
   "lang": "zh-TW",
   "categories": ["games", "education"],

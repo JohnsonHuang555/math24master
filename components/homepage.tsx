@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { AdUnit } from '@/components/ad-unit';
+import { AddToHomeScreenPrompt } from '@/components/add-to-home-screen-prompt';
 import AnnouncementBanner from '@/components/announcement-banner';
 import { AchievementModal } from '@/components/modals/achievement-modal';
 import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
@@ -64,6 +65,7 @@ const Homepage = () => {
 
   return (
     <>
+      <AddToHomeScreenPrompt />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
       <LeaderboardModal
         isOpen={isOpenLeaderboardModal}
