@@ -103,7 +103,7 @@ function ClassicRules() {
         <li>算式含<strong>除</strong>符號各得 <strong>3 分</strong></li>
         <li>使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個<strong>除</strong>額外 <strong>+1 分</strong></li>
         <li className="pt-0.5 text-xs">
-          範例：<span className="font-mono font-bold">6 × 4 × (3 − 2) = 24</span> → <strong>5 分</strong>（乘 2 + 乘 2 + 雙乘 1）
+          範例：<span className="font-mono font-bold">6 × 4 × (3 − 2) = 24</span> → <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 + 兩個乘號額外加 1 分 + 減號 1 分）
         </li>
       </RuleSection>
 

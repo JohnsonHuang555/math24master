@@ -11,6 +11,7 @@ import {
 import {
   BookOpen,
   Layers,
+  ListChecks,
   Play,
   RotateCcw,
   Share2,
@@ -22,13 +23,15 @@ import { toast } from 'sonner';
 import { AdUnit } from '@/components/ad-unit';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
+import { RoundHistoryModal } from '@/components/modals/round-history-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
 import { renderClassicResultCard } from '@/lib/classic-result-card';
 import { shareImage } from '@/lib/share';
-import { HandResult } from '@/models/Player';
+import { cn } from '@/lib/utils';
+import { HandResult, RoundRecord } from '@/models/Player';
 import { Difficulty } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
 import { useGuestStore } from '@/stores/guest-store';
@@ -74,6 +77,8 @@ export default function ClassicPlayGame({
   const [handFeedback, setHandFeedback] = useState<HandResult | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [handHistory, setHandHistory] = useState<HandResult[]>([]);
+  const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([]);
+  const [showRoundHistory, setShowRoundHistory] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const prevScoreRef = useRef(0);
 
@@ -99,6 +104,7 @@ export default function ClassicPlayGame({
     onBack: onBackCard,
     isLastRound,
     lastHandResult,
+    lastRoundResult,
   } = useSinglePlay(difficulty);
 
   const currentPlayer = roomInfo?.players[0];
@@ -124,6 +130,7 @@ export default function ClassicPlayGame({
     setStatus('playing');
     prevScoreRef.current = 0;
     setHandHistory([]);
+    setRoundHistory([]);
   };
 
   useEffect(() => {
@@ -174,6 +181,15 @@ export default function ClassicPlayGame({
     const id = setTimeout(() => setHandFeedback(null), 3200);
     return () => clearTimeout(id);
   }, [lastHandResult]);
+
+  // 累積本局逐題作答紀錄（含玩家算式與最佳解），供結算後查看用
+  useEffect(() => {
+    if (!lastRoundResult) return;
+    setRoundHistory(prev => [
+      ...prev,
+      { ...lastRoundResult, round: prev.length + 1 },
+    ]);
+  }, [lastRoundResult]);
 
   const isNewBestScore =
     status === 'finished' && currentScore > 0 && currentScore >= bestScore;
@@ -296,6 +312,11 @@ export default function ClassicPlayGame({
             setShowLoginPrompt(false);
           }}
         />
+        <RoundHistoryModal
+          isOpen={showRoundHistory}
+          onOpenChange={setShowRoundHistory}
+          roundHistory={roundHistory}
+        />
         <div className="flex h-full flex-col items-center justify-center px-4">
           <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(175,84%,78%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(175,84%,20%)]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/30">
@@ -354,9 +375,22 @@ export default function ClassicPlayGame({
                 個人最高：{bestScore} 分
               </p>
             )}
+            {roundHistory.length > 0 && (
+              <Button
+                variant="outline"
+                className="mt-6 w-full gap-1.5"
+                onClick={() => setShowRoundHistory(true)}
+              >
+                <ListChecks className="h-4 w-4" />
+                查看作答紀錄
+              </Button>
+            )}
             <Button
               variant="outline"
-              className="mt-6 w-full gap-1.5"
+              className={cn(
+                'w-full gap-1.5',
+                roundHistory.length > 0 ? 'mt-3' : 'mt-6',
+              )}
               onClick={handleShareResult}
               disabled={isSharing}
             >

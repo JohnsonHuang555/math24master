@@ -12,8 +12,6 @@ export type DailyChallengeRecord = {
   done: boolean;
   streak: number;
   maxStreak: number;
-  /** 完成 3 題的總秒數（改版後新增；舊紀錄無此欄位） */
-  totalSeconds?: number;
 };
 
 type DailyRecordsMap = Record<string, DailyChallengeRecord>;
@@ -154,7 +152,6 @@ export function saveDailyRecord(
   date: string,
   score: number,
   formula: FormulaItem[],
-  totalSeconds?: number,
 ): { streak: number; maxStreak: number } {
   if (typeof window === 'undefined') return { streak: 1, maxStreak: 1 };
   try {
@@ -167,7 +164,6 @@ export function saveDailyRecord(
         ...map[date],
         score,
         formula,
-        totalSeconds: totalSeconds ?? map[date].totalSeconds,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
       return { streak: map[date].streak, maxStreak: map[date].maxStreak };
@@ -195,7 +191,6 @@ export function saveDailyRecord(
       done: true,
       streak,
       maxStreak,
-      totalSeconds,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     return { streak, maxStreak };

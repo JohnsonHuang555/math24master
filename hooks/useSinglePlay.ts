@@ -12,7 +12,7 @@ import {
   updateScore,
 } from '@/lib/classic-single-play-engine';
 import { playSound } from '@/lib/sound-manager';
-import { HandResult, NumberCard } from '@/models/Player';
+import { HandResult, NumberCard, RoundResult } from '@/models/Player';
 import { Difficulty, Room } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
@@ -27,6 +27,10 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
   const [roomInfo, setRoomInfo] = useState<Room>();
   // 上一手結算回饋（本手最高分、是否完美手）
   const [lastHandResult, setLastHandResult] = useState<HandResult | null>(null);
+  // 上一手完整作答紀錄（含玩家算式與最佳解），供結算後查看用
+  const [lastRoundResult, setLastRoundResult] = useState<RoundResult | null>(
+    null,
+  );
   const hasStartedRef = useRef(false);
 
   const {
@@ -157,6 +161,9 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
       if (result.handResult) {
         setLastHandResult(result.handResult);
       }
+      if (result.roundResult) {
+        setLastRoundResult(result.roundResult);
+      }
     } else {
       toast.error(result.error);
     }
@@ -188,6 +195,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     onBack,
     isLastRound,
     lastHandResult,
+    lastRoundResult,
   };
 };
 

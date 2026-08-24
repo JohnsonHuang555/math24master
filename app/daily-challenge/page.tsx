@@ -8,7 +8,6 @@ import { Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
 import { Button } from '@/components/ui/button';
-import { useTimer } from '@/hooks/useTimer';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
   type FormulaItem,
@@ -22,12 +21,11 @@ import {
   saveDailyRecord,
 } from '@/lib/daily-seed';
 import { playSound } from '@/lib/sound-manager';
-import { cn, formatTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 3;
-const WRONG_PENALTY_SECONDS = 10;
 
 const SYMBOLS = [
   { label: '+', value: '+' },
@@ -50,7 +48,7 @@ export default function DailyChallengePage() {
   const [usedCardIndices, setUsedCardIndices] = useState<Set<number>>(
     new Set(),
   );
-  const [totalSeconds, setTotalSeconds] = useState<number | null>(null);
+  const [score, setScore] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
   const [solutionsPerPuzzle, setSolutionsPerPuzzle] = useState<Solution[][]>(
     [],
@@ -58,16 +56,6 @@ export default function DailyChallengePage() {
   const [userFormulas, setUserFormulas] = useState<string[]>([]);
   const isSubmitting = useRef(false);
   const scoreSumRef = useRef(0);
-
-  const {
-    seconds,
-    start,
-    pause,
-    reset: resetTimer,
-    addSeconds,
-  } = useTimer({
-    mode: 'stopwatch',
-  });
 
   useEffect(() => {
     const currentDay = getTodayDateString();
@@ -78,7 +66,7 @@ export default function DailyChallengePage() {
     const existing = getDailyRecord(currentDay);
     if (existing?.done) {
       setGameState('completed');
-      setTotalSeconds(existing.totalSeconds ?? null);
+      setScore(existing.score);
       setStreak(existing.streak);
       // defer solution computation to avoid blocking paint
       setTimeout(
@@ -97,9 +85,7 @@ export default function DailyChallengePage() {
     setUsedCardIndices(new Set());
     scoreSumRef.current = 0;
     setUserFormulas([]);
-    resetTimer();
     setGameState('playing');
-    requestAnimationFrame(() => start());
   };
 
   const handleAddNumber = (index: number) => {
@@ -150,8 +136,7 @@ export default function DailyChallengePage() {
 
   const applyPenalty = (message: string) => {
     playSound('wrong');
-    addSeconds(WRONG_PENALTY_SECONDS);
-    toast.error(`${message}，+${WRONG_PENALTY_SECONDS} 秒`);
+    toast.error(message);
   };
 
   const handleSubmit = () => {
@@ -193,18 +178,11 @@ export default function DailyChallengePage() {
     }
 
     // 全部完成
-    pause();
-    const finalSeconds = seconds + 1; // +1 因為這一秒還未 tick
-    const { streak: s } = saveDailyRecord(
-      today,
-      scoreSumRef.current,
-      formula,
-      finalSeconds,
-    );
-    setTotalSeconds(finalSeconds);
+    const { streak: s } = saveDailyRecord(today, scoreSumRef.current, formula);
+    setScore(scoreSumRef.current);
     setStreak(s);
     setGameState('completed');
-    toast.success(`完成！總時間 ${formatTime(finalSeconds)}`);
+    toast.success(`完成！本日總分 ${scoreSumRef.current} 分`);
     unlockAchievement('daily_done');
     incrementDailyChallenge();
     useAchievementStore.getState().updateDailyStreak(s);
@@ -227,12 +205,11 @@ export default function DailyChallengePage() {
   const streakText =
     streak === 1 ? '🔥 連續 1 天，好的開始！' : `🔥 連續 ${streak} 天`;
 
-  const timeLine =
-    totalSeconds !== null ? `完成時間：${formatTime(totalSeconds)}` : '已完成';
+  const scoreLine = score !== null ? `本日總分：${score} 分` : '已完成';
 
   const sharePreviewText =
     `Math24 每日挑戰 ${today}\n` +
-    `${streakText} | ${timeLine}\n\n` +
+    `${streakText} | ${scoreLine}\n\n` +
     `🧮 #Math24Master math24master.com`;
 
   const handleShare = async () => {
@@ -254,7 +231,6 @@ export default function DailyChallengePage() {
         </div>
         <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
           <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
-          <p>答錯 +{WRONG_PENALTY_SECONDS} 秒</p>
           <p className="text-xs">每天 00:00（台灣時間）更新題目</p>
         </div>
         <Button variant="tactile" className="gap-1.5" onClick={startGame}>
@@ -288,10 +264,10 @@ export default function DailyChallengePage() {
           {/* 結算卡片 */}
           <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
             <div className="font-display text-5xl font-black text-primary sm:text-6xl">
-              {totalSeconds !== null ? formatTime(totalSeconds) : '完成'}
+              {score !== null ? score : '完成'}
             </div>
             <div className="text-sm text-muted-foreground">
-              {TOTAL_ROUNDS} 題完成時間
+              本日總分（共 {TOTAL_ROUNDS} 題）
             </div>
             <div className="mt-2 text-sm font-semibold">{streakText}</div>
           </div>
@@ -355,11 +331,8 @@ export default function DailyChallengePage() {
         <h1 className="text-2xl font-bold">每日挑戰</h1>
         <p className="text-sm text-muted-foreground">{today}</p>
         <div className="mt-2 flex items-baseline gap-3">
-          <span className="font-display text-4xl font-bold tabular-nums text-primary">
-            {formatTime(seconds)}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            第 <b className="font-bold text-foreground">{currentRound + 1}</b> /{' '}
+          <span className="font-display text-2xl font-bold text-foreground">
+            第 <span className="text-primary">{currentRound + 1}</span> /{' '}
             {TOTAL_ROUNDS} 題
           </span>
         </div>

@@ -16,13 +16,26 @@ export type HandResult = {
   isPerfect: boolean; // 拿滿最高分（獲得完美手 bonus）
 };
 
+/** 單人經典模式：單題結算明細（不含題號，題號由呼叫端組裝時附加） */
+export type RoundResult = {
+  cardValues: number[]; // 該題 4 張牌數值
+  playerFormula: string; // 玩家實際算式（顯示用字串，× ÷ 為全形符號）
+  playerScore: number; // 玩家本手得分（不含完美手 bonus，對齊 roundScore）
+  bestFormula: string; // 該題分數最高解法算式
+  bestScore: number; // 該題最高分（對齊 maxScore）
+  isPerfect: boolean;
+};
+
+/** 單人經典模式：附加題號後的完整單題紀錄，供結算後查看用 */
+export type RoundRecord = RoundResult & { round: number };
+
 export type Player = {
   id: string;
   name: string; // 名稱
   handCard: NumberCard[]; // 手牌
   score: number; // 分數
   perfectHands?: number; // 完美手次數（單人經典模式）
-  theoreticalMax?: number; // 已出牌手數的理論最高總分（含完美手 bonus，單人經典模式）
+  theoreticalMax?: number; // 已作答或已放棄（跳過）手數的理論最高總分合計（含完美手 bonus，單人經典模式）
   playerOrder?: number; // 玩家順序 from 1
   isMaster: boolean; // 房主
   isLastRoundPlayer: boolean; // 是否為最後一回合最後一位玩家

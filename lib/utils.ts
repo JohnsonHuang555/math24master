@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { evaluate } from 'mathjs';
 import { twMerge } from 'tailwind-merge';
 import { SelectedCard } from '@/models/SelectedCard';
+import { Symbol } from '@/models/Symbol';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -36,4 +37,16 @@ export function calculateAnswer(selectedCards: SelectedCard[]) {
   } catch (error) {
     throw Error('算式有誤');
   }
+}
+
+// 將選牌轉為顯示用中綴算式字串（乘除以全形符號呈現），供結算後的作答紀錄比較用
+export function formatEquation(selectedCards: SelectedCard[]): string {
+  return selectedCards
+    .map(s => {
+      if (s.number) return String(s.number.value);
+      if (s.symbol === Symbol.Times) return '×';
+      if (s.symbol === Symbol.Divide) return '÷';
+      return s.symbol ?? '';
+    })
+    .join('');
 }
