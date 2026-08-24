@@ -79,7 +79,6 @@ export interface PuzzlePlayAreaProps {
   onBackStep?: () => void;
   hideExitButton?: boolean;
   footerSlot?: React.ReactNode;
-  compact?: boolean;
 }
 
 export function PuzzlePlayArea({
@@ -99,7 +98,6 @@ export function PuzzlePlayArea({
   onBackStep,
   hideExitButton = false,
   footerSlot,
-  compact = false,
 }: PuzzlePlayAreaProps) {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
@@ -126,9 +124,7 @@ export function PuzzlePlayArea({
   const isCorrect = livePreview !== null && Math.abs(livePreview - 24) < 1e-9;
 
   // Card size classes
-  const cardSizeClass = compact
-    ? 'w-[60px] h-[84px] sm:w-[68px] sm:h-[95px]'
-    : 'w-[72px] h-[100px] sm:w-[80px] sm:h-[112px]';
+  const cardSizeClass = 'w-[72px] h-[100px] sm:w-[80px] sm:h-[112px]';
 
   // When onBackStep is provided, chips are display-only (no per-chip remove)
   const chipsClickable = !onBackStep;

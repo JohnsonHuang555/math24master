@@ -35,7 +35,11 @@ export function AddToHomeScreenModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[380px]">
+      <DialogContent
+        className="sm:max-w-[380px]"
+        // 背景遮罩鎖定：點擊遮罩不能關閉，只能透過下方按鈕明確選擇
+        onPointerDownOutside={e => e.preventDefault()}
+      >
         <DialogHeader>
           <div className="mb-2 flex items-center justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/30">
@@ -48,7 +52,9 @@ export function AddToHomeScreenModal({
         {isIOS ? (
           <div className="space-y-2 text-sm">
             <p className="text-center text-muted-foreground">
-              兩步就能把 24 點大師加到主畫面<br />下次可以像 App 一樣開啟遊戲，不用再找網址
+              兩步就能把 24 點大師加到主畫面
+              <br />
+              下次可以像 App 一樣開啟遊戲，不用再找網址
             </p>
             <div className="flex items-center gap-3 rounded-xl border-2 border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-teal-500 text-xs font-bold text-white">
