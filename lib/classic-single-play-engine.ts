@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { canMake24, findAllSolutions } from '@/lib/daily-seed';
 import { createDeckByStandardMode, draw, shuffleArray } from '@/lib/deck';
-import { calculateAnswer } from '@/lib/utils';
+import { calculateAnswer, formatEquation } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
-import { HandResult, NumberCard, Player } from '@/models/Player';
+import { HandResult, NumberCard, Player, RoundResult } from '@/models/Player';
 import { DeckType, Difficulty, HAND_CARD_COUNT, Room } from '@/models/Room';
 import { Symbol } from '@/models/Symbol';
 
@@ -19,7 +19,12 @@ type PlayCardResult =
   | { success: false; error: string };
 
 type UpdateScoreResult =
-  | { success: true; room: Room; handResult?: HandResult }
+  | {
+      success: true;
+      room: Room;
+      handResult?: HandResult;
+      roundResult?: RoundResult;
+    }
   | { success: false; error: string };
 
 function _maxValueFor(difficulty: Difficulty): number {
@@ -306,6 +311,18 @@ export function updateScore(room: Room): UpdateScoreResult {
     const maxScore = solutions.length > 0 ? solutions[0].score : score;
     const isPerfect = score >= maxScore;
     const handResult: HandResult = { roundScore: score, maxScore, isPerfect };
+
+    // 單題完整作答紀錄：供結算後查看「我的算式 vs 最佳解」用
+    const playerFormula = formatEquation(selectedCards);
+    const roundResult: RoundResult = {
+      cardValues: values,
+      playerFormula,
+      playerScore: score,
+      bestFormula: solutions[0]?.formula ?? playerFormula,
+      bestScore: maxScore,
+      isPerfect,
+    };
+
     if (isPerfect) {
       score += PERFECT_HAND_BONUS;
     }
@@ -329,7 +346,7 @@ export function updateScore(room: Room): UpdateScoreResult {
     if (!drawResult.success) {
       return { success: false, error: drawResult.error };
     }
-    return { success: true, room: drawResult.room, handResult };
+    return { success: true, room: drawResult.room, handResult, roundResult };
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (update score)' };
   }
@@ -337,16 +354,35 @@ export function updateScore(room: Room): UpdateScoreResult {
 
 export function skipHand(room: Room): EngineResult {
   try {
-    const gameOverRoom = _checkGameOver(room);
+    const player = room.players[0];
+
+    // 跳過（含最後一輪按「結算」放棄作答）視為放棄該手：
+    // 將該手理論最高分計入理論總分（含完美手 bonus），但不加得分，
+    // 讓「解法評級 / 效率」如實反映放棄作答造成的損失
+    const skippedValues = player.handCard.map(c => c.value);
+    const skippedSolutions = findAllSolutions(skippedValues);
+    const skippedMaxScore =
+      skippedSolutions.length > 0 ? skippedSolutions[0].score : 0;
+    const playerAfterGiveUp: Player = {
+      ...player,
+      theoreticalMax:
+        (player.theoreticalMax ?? 0) + skippedMaxScore + PERFECT_HAND_BONUS,
+    };
+
+    // 先把理論總分的更新併入 room 再檢查是否結束，
+    // 這樣「最後一手直接按結算放棄」也會被正確計入（而不是被提前 return 略過）
+    const gameOverRoom = _checkGameOver({
+      ...room,
+      players: [playerAfterGiveUp],
+    });
     if (gameOverRoom) {
       return { success: true, room: gameOverRoom };
     }
 
-    const player = room.players[0];
     const deckCount = room.deck.length;
     let newHandCard: NumberCard[];
     let newDeck: NumberCard[];
-    let newIsLastRoundPlayer = player.isLastRoundPlayer;
+    let newIsLastRoundPlayer = playerAfterGiveUp.isLastRoundPlayer;
 
     if (deckCount <= HAND_CARD_COUNT) {
       newHandCard = room.deck;
@@ -366,7 +402,7 @@ export function skipHand(room: Room): EngineResult {
         selectedCards: [],
         players: [
           {
-            ...player,
+            ...playerAfterGiveUp,
             handCard: newHandCard,
             isLastRoundPlayer: newIsLastRoundPlayer,
           },
