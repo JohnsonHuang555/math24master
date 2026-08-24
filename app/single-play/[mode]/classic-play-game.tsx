@@ -546,7 +546,6 @@ export default function ClassicPlayGame({
         hideExitButton={false}
         footerSlot={classicFooter}
         showSkipButton={false}
-        compact={true}
       >
         {classicHud}
       </PuzzlePlayArea>
