@@ -20,7 +20,7 @@ const MODE_CONFIG = [
     label: '經典模式',
     badge: undefined as string | undefined,
     tagline: '牌值 1–13 · 累積最高分',
-    chips: ['解題獲得得分', '找尋最佳解答', '牌庫抽完即遊戲結束'],
+    chips: ['解題獲得分數', '尋找 最佳解答', '牌庫抽完即遊戲結束'],
     Icon: Layers,
     color: {
       icon: 'bg-teal-500',
