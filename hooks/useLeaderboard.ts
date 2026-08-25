@@ -19,7 +19,6 @@ export interface LeaderboardRow {
   rankingScore?: number;
   stage?: number;
   score?: number;
-  elapsedSeconds?: number;
   submittedAt: string | null;
 }
 

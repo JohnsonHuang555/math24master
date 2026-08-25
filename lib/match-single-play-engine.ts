@@ -34,7 +34,6 @@ export function createInitialBoard(rng?: () => number): MatchBoardState {
     selectedCards: [],
     score: 0,
     status: 'playing',
-    startedAt: Date.now(),
   };
 }
 

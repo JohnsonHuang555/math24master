@@ -15,7 +15,6 @@ export type MatchBoardState = {
   selectedCards: SelectedCard[]; // 複用經典模式的選牌型別
   score: number;
   status: MatchStatus;
-  startedAt: number; // Date.now()，用於排行榜次要排序（花費時間）
 };
 
 export const MATCH_BOARD_SIZE = 16;

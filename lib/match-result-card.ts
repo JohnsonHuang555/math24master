@@ -1,8 +1,5 @@
-import { formatTimePrecise } from '@/lib/utils';
-
 export interface MatchResultCardData {
   score: number;
-  elapsedSeconds: number;
   isNewBestScore: boolean;
 }
 
@@ -21,12 +18,9 @@ const COLORS = {
   primary: 'hsl(175, 84%, 32%)',
   tealDark: '#115e59', // teal-800
   tealText: '#0f766e', // teal-700
-  amber: '#f59e0b', // amber-500
   amberBg: '#fffbeb', // amber-50
   amberBorder: '#fde68a', // amber-200
   muted: '#71717a', // zinc-500
-  statBg: 'rgba(250,250,250,0.8)', // zinc-50/80
-  statBorder: '#f4f4f5', // zinc-100
 };
 
 function roundedRectPath(
@@ -140,7 +134,7 @@ export async function renderMatchResultCard(
   const cardX = 64;
   const cardY = 160;
   const cardW = WIDTH - cardX * 2;
-  const cardH = data.isNewBestScore ? 900 : 800;
+  const cardH = data.isNewBestScore ? 620 : 520;
   const cardR = 56;
 
   fillRoundedRect(
@@ -194,30 +188,6 @@ export async function renderMatchResultCard(
   ctx.fillText('最終得分', cx, y);
 
   y += 90;
-  const statBoxW = 700;
-  const statBoxH = 130;
-  fillRoundedRect(
-    ctx,
-    cx - statBoxW / 2,
-    y,
-    statBoxW,
-    statBoxH,
-    32,
-    COLORS.statBg,
-    COLORS.statBorder,
-  );
-  ctx.font = `900 56px ${fonts.display}`;
-  ctx.fillStyle = COLORS.primary;
-  ctx.fillText(
-    formatTimePrecise(data.elapsedSeconds),
-    cx,
-    y + statBoxH / 2 - 18,
-  );
-  ctx.font = `500 24px ${fonts.body}`;
-  ctx.fillStyle = COLORS.muted;
-  ctx.fillText('花費時間', cx, y + statBoxH / 2 + 44);
-
-  y += statBoxH + 70;
   if (data.isNewBestScore) {
     ctx.font = `700 32px ${fonts.body}`;
     const text = '新紀錄！';

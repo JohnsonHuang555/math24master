@@ -35,7 +35,7 @@ const SCORE_HEADER: Record<LeaderboardMode, string> = {
   challenge: '關卡',
   classic: '分數',
   quickmath: '完成時間',
-  match: '分數 / 時間',
+  match: '分數',
 };
 
 function ScoreCell({
@@ -68,16 +68,6 @@ function ScoreCell({
     return (
       <div className="min-w-[72px] text-right text-xs">
         <div className="font-semibold">第 {row.stage} 關</div>
-      </div>
-    );
-  }
-  if (mode === 'match') {
-    return (
-      <div className="min-w-[72px] text-right text-xs">
-        <div className="font-semibold">{row.score} 分</div>
-        <div className="text-muted-foreground">
-          {formatTimePrecise(row.elapsedSeconds ?? 0)}
-        </div>
       </div>
     );
   }
