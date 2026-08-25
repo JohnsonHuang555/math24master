@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { X, Zap } from 'lucide-react';
+import { LayoutGrid, X } from 'lucide-react';
 
-const BANNER_KEY = 'announcement-quick-math-v1';
+const BANNER_KEY = 'announcement-match-mode-v1';
 
 const AnnouncementBanner = () => {
   const [isDismissed, setIsDismissed] = useState(true);
@@ -32,19 +32,22 @@ const AnnouncementBanner = () => {
         >
           {/* Icon */}
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/20">
-            <Zap className="h-4 w-4 text-white" />
+            <LayoutGrid className="h-4 w-4 text-white" />
           </div>
 
           {/* Text */}
           <div className="flex flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-sm font-bold text-white">
-              新模式「心算快答」上線！
+              新模式「消消樂模式」上線！
+            </span>
+            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              Beta
             </span>
             <span className="hidden text-sm text-white/75 sm:inline">
-              10 題限時心算連續快答・答錯罰時、比拚總秒數・全球排行榜競速
+              16 張牌自由配對消除・任選 2~4 張湊 24・全部清除才計分上榜
             </span>
             <Link
-              href="/quick-math"
+              href="/single-play"
               className="text-sm font-bold text-white/90 underline underline-offset-2 transition-colors hover:text-white"
             >
               立即體驗 →

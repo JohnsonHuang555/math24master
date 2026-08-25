@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trophy, User } from 'lucide-react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { AdUnit } from '@/components/ad-unit';
 import {
   LeaderboardMode,
   LeaderboardRow,
@@ -27,6 +26,7 @@ type LeaderboardModalProps = {
 const TABS: { mode: LeaderboardMode; label: string }[] = [
   { mode: 'classic', label: '經典' },
   { mode: 'challenge', label: '挑戰' },
+  { mode: 'match', label: '消消樂' },
   { mode: 'quickmath', label: '快答' },
 ];
 
@@ -35,6 +35,7 @@ const SCORE_HEADER: Record<LeaderboardMode, string> = {
   challenge: '關卡',
   classic: '分數',
   quickmath: '完成時間',
+  match: '分數 / 時間',
 };
 
 function ScoreCell({
@@ -67,6 +68,16 @@ function ScoreCell({
     return (
       <div className="min-w-[72px] text-right text-xs">
         <div className="font-semibold">第 {row.stage} 關</div>
+      </div>
+    );
+  }
+  if (mode === 'match') {
+    return (
+      <div className="min-w-[72px] text-right text-xs">
+        <div className="font-semibold">{row.score} 分</div>
+        <div className="text-muted-foreground">
+          {formatTimePrecise(row.elapsedSeconds ?? 0)}
+        </div>
       </div>
     );
   }
@@ -315,10 +326,6 @@ export function LeaderboardModal({
               </TabsContent>
             ))}
           </Tabs>
-
-          {/* <div className="flex justify-center">
-            <AdUnit slot="4112895549" width={320} height={50} />
-          </div> */}
 
           <Button variant="outline" onClick={onClose}>
             關閉

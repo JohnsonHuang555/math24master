@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ListChecks, Play } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { AdUnit } from '@/components/ad-unit';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
@@ -178,9 +177,6 @@ export default function NormalPlayGame({
                 <p className="mt-0.5 text-xs text-muted-foreground">總分</p>
               </div>
             </div>
-            {/* <div className="mt-2 flex justify-center">
-              <AdUnit slot="3374528946" width={320} height={50} />
-            </div> */}
             <div className="mt-6 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={onBack}>
                 返回選單

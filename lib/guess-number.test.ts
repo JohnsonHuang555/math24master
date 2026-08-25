@@ -23,17 +23,17 @@ describe('applyClue — 空陣列 guard', () => {
 });
 
 describe('applyClue — 半壁江山', () => {
-  it('yes → keep >50 (49 numbers)', () => {
+  it('yes → keep >=55 (45 numbers)', () => {
     const result = applyClue(all, card('half'), 'yes');
-    expect(result).toHaveLength(49);
-    expect(result.every(n => n > 50)).toBe(true);
+    expect(result).toHaveLength(45);
+    expect(result.every(n => n >= 55)).toBe(true);
   });
 
-  it('no → keep <=50, boundary 50 included (41 numbers)', () => {
+  it('no → keep <55, boundary 54 included (45 numbers)', () => {
     const result = applyClue(all, card('half'), 'no');
-    expect(result).toHaveLength(41);
-    expect(result).toContain(50);
-    expect(result.every(n => n <= 50)).toBe(true);
+    expect(result).toHaveLength(45);
+    expect(result).toContain(54);
+    expect(result.every(n => n < 55)).toBe(true);
   });
 });
 
@@ -153,7 +153,9 @@ describe('applyClue — 數位加總', () => {
   it('yes → digit sum is odd (45 numbers)', () => {
     const result = applyClue(all, card('digit-sum-odd'), 'yes');
     expect(result).toHaveLength(45);
-    expect(result.every(n => (Math.floor(n / 10) + n % 10) % 2 !== 0)).toBe(true);
+    expect(result.every(n => (Math.floor(n / 10) + (n % 10)) % 2 !== 0)).toBe(
+      true,
+    );
     expect(result).toContain(10); // 1+0=1, odd
     expect(result).toContain(29); // 2+9=11, odd
   });
@@ -161,7 +163,9 @@ describe('applyClue — 數位加總', () => {
   it('no → digit sum is even (45 numbers)', () => {
     const result = applyClue(all, card('digit-sum-odd'), 'no');
     expect(result).toHaveLength(45);
-    expect(result.every(n => (Math.floor(n / 10) + n % 10) % 2 === 0)).toBe(true);
+    expect(result.every(n => (Math.floor(n / 10) + (n % 10)) % 2 === 0)).toBe(
+      true,
+    );
     expect(result).toContain(11); // 1+1=2, even
     expect(result).toContain(19); // 1+9=10, even
   });
@@ -223,13 +227,17 @@ describe('applyClue — 數位之積', () => {
 
 describe('applyClue — 高低雷達 (dynamic)', () => {
   it('yes → keep numbers > lastGuess', () => {
-    const result = applyClue(all, card('higher-than-last'), 'yes', { lastGuess: 50 });
+    const result = applyClue(all, card('higher-than-last'), 'yes', {
+      lastGuess: 50,
+    });
     expect(result.every(n => n > 50)).toBe(true);
     expect(result).toHaveLength(49);
   });
 
   it('no → keep numbers <= lastGuess', () => {
-    const result = applyClue(all, card('higher-than-last'), 'no', { lastGuess: 50 });
+    const result = applyClue(all, card('higher-than-last'), 'no', {
+      lastGuess: 50,
+    });
     expect(result.every(n => n <= 50)).toBe(true);
     expect(result).toHaveLength(41);
   });
@@ -299,11 +307,11 @@ describe('applyClue — 幸運之星', () => {
 });
 
 describe('applyClue — 多條線索交集', () => {
-  it('odd-even(yes) + half(yes) → odd AND >50 (25 numbers)', () => {
+  it('odd-even(yes) + half(yes) → odd AND >=55 (23 numbers)', () => {
     const afterOdd = applyClue(all, card('odd-even'), 'yes');
     const result = applyClue(afterOdd, card('half'), 'yes');
-    expect(result).toHaveLength(25);
-    expect(result.every(n => n % 2 !== 0 && n > 50)).toBe(true);
+    expect(result).toHaveLength(23);
+    expect(result.every(n => n % 2 !== 0 && n >= 55)).toBe(true);
   });
 
   it('triple(yes) + last-digit-gt5(no) → multiple of 3 AND ones <=5 (18 numbers)', () => {
@@ -318,20 +326,32 @@ const SMALL_REMAINING = Array.from({ length: 10 }, (_, i) => i + 10);
 
 describe('drawCards', () => {
   it('always returns exactly 3 cards', () => {
-    expect(drawCards([], false, false, true, getInitialRemaining())).toHaveLength(3);
-    expect(drawCards([], true, true, false, getInitialRemaining())).toHaveLength(3);
+    expect(
+      drawCards([], false, false, true, getInitialRemaining()),
+    ).toHaveLength(3);
+    expect(
+      drawCards([], true, true, false, getInitialRemaining()),
+    ).toHaveLength(3);
   });
 
   it('peekUsed=true → no peek card in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
-      expect(drawCards([], true, false, false, SMALL_REMAINING).every(c => c.id !== 'peek')).toBe(true);
+      expect(
+        drawCards([], true, false, false, SMALL_REMAINING).every(
+          c => c.id !== 'peek',
+        ),
+      ).toBe(true);
     }
   });
 
   it('peekUsed=false, remaining<30 → peek can appear in 500 draws', () => {
     let peekFound = false;
     for (let i = 0; i < 500; i++) {
-      if (drawCards([], false, false, false, SMALL_REMAINING).some(c => c.id === 'peek')) {
+      if (
+        drawCards([], false, false, false, SMALL_REMAINING).some(
+          c => c.id === 'peek',
+        )
+      ) {
         peekFound = true;
         break;
       }
@@ -341,20 +361,32 @@ describe('drawCards', () => {
 
   it('remaining>=30 → peek never appears', () => {
     for (let i = 0; i < 200; i++) {
-      expect(drawCards([], false, false, false, getInitialRemaining()).every(c => c.id !== 'peek')).toBe(true);
+      expect(
+        drawCards([], false, false, false, getInitialRemaining()).every(
+          c => c.id !== 'peek',
+        ),
+      ).toBe(true);
     }
   });
 
   it('redrawUsed=true → no redraw card in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
-      expect(drawCards([], false, true, false, getInitialRemaining()).every(c => c.id !== 'redraw')).toBe(true);
+      expect(
+        drawCards([], false, true, false, getInitialRemaining()).every(
+          c => c.id !== 'redraw',
+        ),
+      ).toBe(true);
     }
   });
 
   it('redrawUsed=false → redraw can appear in 500 draws', () => {
     let found = false;
     for (let i = 0; i < 500; i++) {
-      if (drawCards([], false, false, false, getInitialRemaining()).some(c => c.id === 'redraw')) {
+      if (
+        drawCards([], false, false, false, getInitialRemaining()).some(
+          c => c.id === 'redraw',
+        )
+      ) {
         found = true;
         break;
       }
@@ -365,7 +397,9 @@ describe('drawCards', () => {
   it('isFirstRound=true → dynamic cards never appear in 200 draws', () => {
     for (let i = 0; i < 200; i++) {
       const drawn = drawCards([], true, true, true, getInitialRemaining());
-      expect(drawn.every(c => c.id !== 'higher-than-last' && c.id !== 'within-ten')).toBe(true);
+      expect(
+        drawn.every(c => c.id !== 'higher-than-last' && c.id !== 'within-ten'),
+      ).toBe(true);
     }
   });
 
@@ -385,9 +419,21 @@ describe('drawCards', () => {
   });
 
   it('usedIds excludes those cards from pool in 200 draws', () => {
-    const usedIds = ['odd-even', 'half', 'triple', 'repeat', 'multiple-5'] as const;
+    const usedIds = [
+      'odd-even',
+      'half',
+      'triple',
+      'repeat',
+      'multiple-5',
+    ] as const;
     for (let i = 0; i < 200; i++) {
-      const drawn = drawCards([...usedIds], true, true, false, getInitialRemaining());
+      const drawn = drawCards(
+        [...usedIds],
+        true,
+        true,
+        false,
+        getInitialRemaining(),
+      );
       drawn.forEach(c => {
         expect(usedIds).not.toContain(c.id);
       });
@@ -422,9 +468,9 @@ describe('drawCards', () => {
 });
 
 describe('calcClueResult', () => {
-  it('half: >50 → yes, <=50 → no (boundary 50)', () => {
-    expect(calcClueResult(51, card('half'))).toBe('yes');
-    expect(calcClueResult(50, card('half'))).toBe('no');
+  it('half: >=55 → yes, <55 → no (boundary 54/55)', () => {
+    expect(calcClueResult(55, card('half'))).toBe('yes');
+    expect(calcClueResult(54, card('half'))).toBe('no');
   });
 
   it('odd-even: odd answer → yes', () => {
@@ -493,16 +539,30 @@ describe('calcClueResult', () => {
   });
 
   it('higher-than-last: answer > lastGuess → yes', () => {
-    expect(calcClueResult(60, card('higher-than-last'), { lastGuess: 50 })).toBe('yes');
-    expect(calcClueResult(50, card('higher-than-last'), { lastGuess: 50 })).toBe('no');
-    expect(calcClueResult(40, card('higher-than-last'), { lastGuess: 50 })).toBe('no');
+    expect(
+      calcClueResult(60, card('higher-than-last'), { lastGuess: 50 }),
+    ).toBe('yes');
+    expect(
+      calcClueResult(50, card('higher-than-last'), { lastGuess: 50 }),
+    ).toBe('no');
+    expect(
+      calcClueResult(40, card('higher-than-last'), { lastGuess: 50 }),
+    ).toBe('no');
   });
 
   it('within-ten: |answer - lastGuess| <=10 → yes (boundary inclusive)', () => {
-    expect(calcClueResult(60, card('within-ten'), { lastGuess: 50 })).toBe('yes');
-    expect(calcClueResult(40, card('within-ten'), { lastGuess: 50 })).toBe('yes');
-    expect(calcClueResult(61, card('within-ten'), { lastGuess: 50 })).toBe('no');
-    expect(calcClueResult(39, card('within-ten'), { lastGuess: 50 })).toBe('no');
+    expect(calcClueResult(60, card('within-ten'), { lastGuess: 50 })).toBe(
+      'yes',
+    );
+    expect(calcClueResult(40, card('within-ten'), { lastGuess: 50 })).toBe(
+      'yes',
+    );
+    expect(calcClueResult(61, card('within-ten'), { lastGuess: 50 })).toBe(
+      'no',
+    );
+    expect(calcClueResult(39, card('within-ten'), { lastGuess: 50 })).toBe(
+      'no',
+    );
   });
 
   it('perfect-square: perfect square → yes', () => {
