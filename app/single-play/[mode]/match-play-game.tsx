@@ -48,7 +48,6 @@ export default function MatchPlayGame({
     remainingCount,
     status,
     isGameOver,
-    elapsedSeconds,
     onSelectCardOrSymbol,
     onReselect,
     onBack: onBackStep,
@@ -70,7 +69,7 @@ export default function MatchPlayGame({
 
   useLeaderboardSubmit(
     'match',
-    isAuthenticated && isCleared ? { score, elapsedSeconds } : null,
+    isAuthenticated && isCleared ? { score } : null,
     isAuthenticated && isCleared,
   );
 
@@ -83,7 +82,7 @@ export default function MatchPlayGame({
       score <= 0
     )
       return;
-    setPendingScore({ mode: 'match', payload: { score, elapsedSeconds } });
+    setPendingScore({ mode: 'match', payload: { score } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isCleared, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,7 +93,6 @@ export default function MatchPlayGame({
     try {
       const blob = await renderMatchResultCard({
         score,
-        elapsedSeconds,
         // v1 不做 stats-store 整合，暫不追蹤個人最佳分數
         isNewBestScore: false,
       });
@@ -190,9 +188,6 @@ export default function MatchPlayGame({
                     最終得分
                   </p>
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  花費時間 {elapsedSeconds.toFixed(1)} 秒
-                </p>
                 <Button
                   variant="outline"
                   className="mt-6 w-full gap-1.5"

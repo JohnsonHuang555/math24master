@@ -20,7 +20,6 @@ function makeBoard(withCards: NumberCard[]): MatchBoardState {
     selectedCards: [],
     score: 0,
     status: 'playing',
-    startedAt: 0,
   };
 }
 

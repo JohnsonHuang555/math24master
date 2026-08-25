@@ -109,9 +109,6 @@ const useMatchPlay = () => {
 
   const remainingCount =
     board?.cells.filter(c => c.card).length ?? MATCH_BOARD_SIZE;
-  const elapsedSeconds = board
-    ? Math.round((Date.now() - board.startedAt) / 100) / 10
-    : 0;
 
   return {
     cells: board?.cells ?? [],
@@ -120,7 +117,6 @@ const useMatchPlay = () => {
     remainingCount,
     status: board?.status ?? 'playing',
     isGameOver: board?.status === 'cleared' || board?.status === 'stuck',
-    elapsedSeconds,
     selectedCardNumbers,
     selectedCardSymbols,
     onSelectCardOrSymbol,

@@ -28,16 +28,6 @@ const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
   match: 'desc',
 };
 
-// 消消樂模式是「分數 desc，同分再比花費時間 asc」的複合排序，目前只有這個模式需要次要排序欄位
-const SECONDARY_ORDER_FIELD: Partial<Record<Mode, string>> = {
-  match: 'elapsedSeconds',
-};
-const SECONDARY_ORDER_DIR: Partial<
-  Record<Mode, FirebaseFirestore.OrderByDirection>
-> = {
-  match: 'asc',
-};
-
 // 經典模式單局理論最高分：6 手 * 每手最高 11 分
 const CLASSIC_MAX_SCORE = 66;
 
@@ -66,14 +56,11 @@ export async function GET(req: NextRequest) {
     100,
   );
 
-  let query: FirebaseFirestore.Query = db
+  const snap = await db
     .collection(COLLECTION[mode])
-    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode]);
-  const secondaryField = SECONDARY_ORDER_FIELD[mode];
-  if (secondaryField) {
-    query = query.orderBy(secondaryField, SECONDARY_ORDER_DIR[mode]);
-  }
-  const snap = await query.limit(limit).get();
+    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
+    .limit(limit)
+    .get();
 
   const valueField = ORDER_FIELD[mode];
   const zeroField = ZERO_FILTER_FIELD[mode];
@@ -188,14 +175,9 @@ export async function POST(req: NextRequest) {
   }
   if (mode === 'match') {
     const score = Number(payload.score);
-    const elapsedSeconds = Number(payload.elapsedSeconds);
     if (!Number.isFinite(score) || score < 0 || score > MATCH_MAX_SCORE) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
-    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
-    payload.elapsedSeconds = Math.round(elapsedSeconds * 10) / 10;
   }
 
   let ref = db.collection(COLLECTION[mode]).doc(userId);
@@ -221,17 +203,11 @@ export async function POST(req: NextRequest) {
           Number(payload.rankingScore) <= Number(staleData.rankingScore)) ||
         (mode === 'challenge' &&
           Number(payload.stage) <= Number(staleData.stage)) ||
-        (mode === 'classic' &&
+        ((mode === 'classic' || mode === 'match') &&
           Number(payload.score) <= Number(staleData.score)) ||
         // 快答比完成秒數，越小越好，方向與其他模式相反
         (mode === 'quickmath' &&
-          Number(payload.seconds) >= Number(staleData.seconds)) ||
-        // 消消樂比分數，同分再比花費時間（越小越好）
-        (mode === 'match' &&
-          (Number(payload.score) < Number(staleData.score) ||
-            (Number(payload.score) === Number(staleData.score) &&
-              Number(payload.elapsedSeconds) >=
-                Number(staleData.elapsedSeconds))));
+          Number(payload.seconds) >= Number(staleData.seconds));
 
       const mergedPayload = isStaleWorse
         ? {
@@ -240,7 +216,6 @@ export async function POST(req: NextRequest) {
             rankingScore: staleData.rankingScore,
             stage: staleData.stage,
             score: staleData.score,
-            elapsedSeconds: staleData.elapsedSeconds,
           }
         : payload;
 
@@ -258,12 +233,7 @@ export async function POST(req: NextRequest) {
               }
             : mode === 'quickmath'
               ? { seconds: mergedPayload.seconds }
-              : mode === 'match'
-                ? {
-                    score: mergedPayload.score,
-                    elapsedSeconds: mergedPayload.elapsedSeconds,
-                  }
-                : { score: mergedPayload.score };
+              : { score: mergedPayload.score };
 
       await ref.set({
         displayName,
@@ -285,15 +255,10 @@ export async function POST(req: NextRequest) {
       (mode === 'normal' &&
         Number(payload.rankingScore) <= Number(old.rankingScore)) ||
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
-      (mode === 'classic' && Number(payload.score) <= Number(old.score)) ||
+      ((mode === 'classic' || mode === 'match') &&
+        Number(payload.score) <= Number(old.score)) ||
       // 快答比完成秒數，越小越好
-      (mode === 'quickmath' &&
-        Number(payload.seconds) >= Number(old.seconds)) ||
-      // 消消樂比分數，同分再比花費時間（越小越好）
-      (mode === 'match' &&
-        (Number(payload.score) < Number(old.score) ||
-          (Number(payload.score) === Number(old.score) &&
-            Number(payload.elapsedSeconds) >= Number(old.elapsedSeconds))));
+      (mode === 'quickmath' && Number(payload.seconds) >= Number(old.seconds));
     if (isWorse) {
       return NextResponse.json({ ok: true, updated: false });
     }
@@ -310,9 +275,7 @@ export async function POST(req: NextRequest) {
         ? { stage: payload.stage, totalScore: payload.totalScore }
         : mode === 'quickmath'
           ? { seconds: payload.seconds }
-          : mode === 'match'
-            ? { score: payload.score, elapsedSeconds: payload.elapsedSeconds }
-            : { score: payload.score };
+          : { score: payload.score };
 
   await ref.set({
     displayName,
