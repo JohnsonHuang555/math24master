@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/firebase-admin';
 
-type Mode = 'normal' | 'challenge' | 'classic' | 'quickmath';
+type Mode = 'normal' | 'challenge' | 'classic' | 'quickmath' | 'match';
 
 const COLLECTION: Record<Mode, string> = {
   normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
   quickmath: 'leaderboard_quickmath',
+  match: 'leaderboard_matching',
 };
 
 const ORDER_FIELD: Record<Mode, string> = {
@@ -16,6 +17,7 @@ const ORDER_FIELD: Record<Mode, string> = {
   challenge: 'stage',
   classic: 'score',
   quickmath: 'seconds',
+  match: 'score',
 };
 
 const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
@@ -23,10 +25,26 @@ const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
   challenge: 'desc',
   classic: 'desc',
   quickmath: 'asc',
+  match: 'desc',
+};
+
+// 消消樂模式是「分數 desc，同分再比花費時間 asc」的複合排序，目前只有這個模式需要次要排序欄位
+const SECONDARY_ORDER_FIELD: Partial<Record<Mode, string>> = {
+  match: 'elapsedSeconds',
+};
+const SECONDARY_ORDER_DIR: Partial<
+  Record<Mode, FirebaseFirestore.OrderByDirection>
+> = {
+  match: 'asc',
 };
 
 // 經典模式單局理論最高分：6 手 * 每手最高 11 分
 const CLASSIC_MAX_SCORE = 66;
+
+// 消消樂模式單局理論最高分：16 張拆成 4 組各 4 張時分數/張數比最高，
+// 每組理論最高 10 分（連三個除號：3+3+3+1），4 組 * 10 分 = 40。
+// 詳見 lib/match-single-play-engine.ts 的 submitSelection（沿用 lib/scoring.ts 的 calcRoundScore）。
+const MATCH_MAX_SCORE = 40;
 
 // 分數為 0 視同沒有實質成績，排行榜顯示時濾掉（資料庫仍正常寫入）
 // quickmath 是完成時間制，沒有「0 分」的概念，不列入
@@ -34,6 +52,7 @@ const ZERO_FILTER_FIELD: Partial<Record<Mode, string>> = {
   classic: 'score',
   normal: 'totalScore',
   challenge: 'totalScore',
+  match: 'score',
 };
 
 export async function GET(req: NextRequest) {
@@ -47,11 +66,14 @@ export async function GET(req: NextRequest) {
     100,
   );
 
-  const snap = await db
+  let query: FirebaseFirestore.Query = db
     .collection(COLLECTION[mode])
-    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode])
-    .limit(limit)
-    .get();
+    .orderBy(ORDER_FIELD[mode], ORDER_DIR[mode]);
+  const secondaryField = SECONDARY_ORDER_FIELD[mode];
+  if (secondaryField) {
+    query = query.orderBy(secondaryField, SECONDARY_ORDER_DIR[mode]);
+  }
+  const snap = await query.limit(limit).get();
 
   const valueField = ORDER_FIELD[mode];
   const zeroField = ZERO_FILTER_FIELD[mode];
@@ -164,6 +186,17 @@ export async function POST(req: NextRequest) {
     }
     payload.seconds = Math.round(seconds * 10) / 10;
   }
+  if (mode === 'match') {
+    const score = Number(payload.score);
+    const elapsedSeconds = Number(payload.elapsedSeconds);
+    if (!Number.isFinite(score) || score < 0 || score > MATCH_MAX_SCORE) {
+      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
+    }
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) {
+      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
+    }
+    payload.elapsedSeconds = Math.round(elapsedSeconds * 10) / 10;
+  }
 
   let ref = db.collection(COLLECTION[mode]).doc(userId);
   let existing = await ref.get();
@@ -192,7 +225,13 @@ export async function POST(req: NextRequest) {
           Number(payload.score) <= Number(staleData.score)) ||
         // 快答比完成秒數，越小越好，方向與其他模式相反
         (mode === 'quickmath' &&
-          Number(payload.seconds) >= Number(staleData.seconds));
+          Number(payload.seconds) >= Number(staleData.seconds)) ||
+        // 消消樂比分數，同分再比花費時間（越小越好）
+        (mode === 'match' &&
+          (Number(payload.score) < Number(staleData.score) ||
+            (Number(payload.score) === Number(staleData.score) &&
+              Number(payload.elapsedSeconds) >=
+                Number(staleData.elapsedSeconds))));
 
       const mergedPayload = isStaleWorse
         ? {
@@ -201,6 +240,7 @@ export async function POST(req: NextRequest) {
             rankingScore: staleData.rankingScore,
             stage: staleData.stage,
             score: staleData.score,
+            elapsedSeconds: staleData.elapsedSeconds,
           }
         : payload;
 
@@ -218,7 +258,12 @@ export async function POST(req: NextRequest) {
               }
             : mode === 'quickmath'
               ? { seconds: mergedPayload.seconds }
-              : { score: mergedPayload.score };
+              : mode === 'match'
+                ? {
+                    score: mergedPayload.score,
+                    elapsedSeconds: mergedPayload.elapsedSeconds,
+                  }
+                : { score: mergedPayload.score };
 
       await ref.set({
         displayName,
@@ -242,7 +287,13 @@ export async function POST(req: NextRequest) {
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
       (mode === 'classic' && Number(payload.score) <= Number(old.score)) ||
       // 快答比完成秒數，越小越好
-      (mode === 'quickmath' && Number(payload.seconds) >= Number(old.seconds));
+      (mode === 'quickmath' &&
+        Number(payload.seconds) >= Number(old.seconds)) ||
+      // 消消樂比分數，同分再比花費時間（越小越好）
+      (mode === 'match' &&
+        (Number(payload.score) < Number(old.score) ||
+          (Number(payload.score) === Number(old.score) &&
+            Number(payload.elapsedSeconds) >= Number(old.elapsedSeconds))));
     if (isWorse) {
       return NextResponse.json({ ok: true, updated: false });
     }
@@ -259,7 +310,9 @@ export async function POST(req: NextRequest) {
         ? { stage: payload.stage, totalScore: payload.totalScore }
         : mode === 'quickmath'
           ? { seconds: payload.seconds }
-          : { score: payload.score };
+          : mode === 'match'
+            ? { score: payload.score, elapsedSeconds: payload.elapsedSeconds }
+            : { score: payload.score };
 
   await ref.set({
     displayName,

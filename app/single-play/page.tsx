@@ -1,21 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Layers, Timer } from 'lucide-react';
+import { ArrowLeft, Layers, LayoutGrid, Timer } from 'lucide-react';
 import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
 import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
+import MatchPlayGame from '@/app/single-play/[mode]/match-play-game';
+import { prewarmMatchGenerator } from '@/lib/match-board-generator';
 import { cn } from '@/lib/utils';
 import { useStatsStore } from '@/stores/stats-store';
 
 // 關卡模式（normal）暫時下架，改版為固定題庫後再回歸
-type PlayMode = 'classic' | 'challenge';
+type PlayMode = 'classic' | 'challenge' | 'match';
 
 const MODE_CONFIG = [
   {
     value: 'classic' as const,
     label: '經典模式',
+    badge: undefined as string | undefined,
     tagline: '牌值 1–13 · 累積最高分',
     chips: ['解題獲得得分', '找尋最佳解答', '牌庫抽完即遊戲結束'],
     Icon: Layers,
@@ -30,6 +33,7 @@ const MODE_CONFIG = [
   {
     value: 'challenge' as const,
     label: '挑戰模式',
+    badge: undefined as string | undefined,
     tagline: '倒數 5 分鐘 · 無限關卡',
     chips: ['答對加秒數', '跳過會懲罰', '挑戰通過最多關卡數'],
     Icon: Timer,
@@ -41,6 +45,21 @@ const MODE_CONFIG = [
       activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
     },
   },
+  {
+    value: 'match' as const,
+    label: '消消樂模式',
+    badge: 'Beta' as string | undefined,
+    tagline: '16 張牌 · 自由配對消除',
+    chips: ['任選 2-4 張湊 24', '無時間限制', '全部清除才計分上榜'],
+    Icon: LayoutGrid,
+    color: {
+      icon: 'bg-primary',
+      chip: 'bg-zinc-50 border-zinc-200 text-zinc-700',
+      shadow: 'shadow-[0_8px_0_0_rgba(0,0,0,0.10)]',
+      hoverShadow: 'hover:shadow-[0_10px_0_0_rgba(0,0,0,0.10)]',
+      activeShadow: 'active:shadow-[0_3px_0_0_rgba(0,0,0,0.10)]',
+    },
+  },
 ] as const;
 
 export default function SinglePlayPage() {
@@ -49,9 +68,17 @@ export default function SinglePlayPage() {
 
   const { classicBestScore, challengeBestStage } = useStatsStore();
 
+  // 消消樂模式牌局的反向構造需要先窮舉可解組合，趁玩家瀏覽模式選單的空檔背景預熱，
+  // 避免點「開始遊戲」時卡頓（詳見 lib/match-board-generator.ts）
+  useEffect(() => {
+    prewarmMatchGenerator();
+  }, []);
+
   const bestLabel: Record<PlayMode, string | null> = {
     classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
     challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
+    // v1 消消樂模式不做 stats-store 整合，磁磚不顯示個人最佳
+    match: null,
   };
 
   if (activeMode === 'challenge') {
@@ -59,6 +86,9 @@ export default function SinglePlayPage() {
   }
   if (activeMode === 'classic') {
     return <ClassicPlayGame onBack={() => setActiveMode(null)} autoStart />;
+  }
+  if (activeMode === 'match') {
+    return <MatchPlayGame onBack={() => setActiveMode(null)} autoStart />;
   }
 
   return (
@@ -129,6 +159,11 @@ export default function SinglePlayPage() {
                       <span className="font-display text-xl font-black text-foreground">
                         {mode.label}
                       </span>
+                      {mode.badge && (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                          {mode.badge}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {mode.tagline}
