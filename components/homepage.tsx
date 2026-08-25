@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Award,
@@ -56,6 +57,7 @@ const STEPS = [
 ];
 
 const Homepage = () => {
+  const router = useRouter();
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isOpenAchievementModal, setIsOpenAchievementModal] = useState(false);
   const [isOpenStatsModal, setIsOpenStatsModal] = useState(false);
@@ -246,7 +248,7 @@ const Homepage = () => {
                   <Button
                     variant="tactile"
                     className="h-14 px-12 text-xl"
-                    onClick={() => (window.location.href = '/single-play')}
+                    onClick={() => router.push('/single-play')}
                   >
                     立即開始
                   </Button>
@@ -258,7 +260,7 @@ const Homepage = () => {
                   <Button
                     variant="tactileOutline"
                     className="h-14 gap-2 px-8 text-xl"
-                    onClick={() => (window.location.href = '/multiple-play')}
+                    onClick={() => router.push('/multiple-play')}
                   >
                     <Users className="h-5 w-5" />
                     多人對戰
@@ -343,7 +345,7 @@ const Homepage = () => {
                 whileHover={reduceMotion ? undefined : { y: -4 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 className="flex w-full items-center gap-4 rounded-2xl border-2 border-teal-200 bg-teal-50 p-5 text-left shadow-[0_6px_0_0_theme(colors.teal.200)] transition-colors hover:bg-teal-100/70 active:translate-y-1 active:shadow-none dark:border-teal-800 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_theme(colors.teal.800)] dark:hover:bg-teal-900/30 md:p-6"
-                onClick={() => (window.location.href = '/daily-challenge')}
+                onClick={() => router.push('/daily-challenge')}
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-500 text-white">
                   <CalendarDays className="h-7 w-7" />
@@ -372,7 +374,7 @@ const Homepage = () => {
                 whileHover={reduceMotion ? undefined : { y: -4 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 className="flex w-full items-center gap-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 text-left shadow-[0_6px_0_0_theme(colors.amber.200)] transition-colors hover:bg-amber-100/70 active:translate-y-1 active:shadow-none dark:border-amber-800 dark:bg-amber-900/20 dark:shadow-[0_6px_0_0_theme(colors.amber.800)] dark:hover:bg-amber-900/30 md:p-6"
-                onClick={() => (window.location.href = '/guess-number')}
+                onClick={() => router.push('/guess-number')}
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-white">
                   <Search className="h-7 w-7" />
@@ -406,7 +408,7 @@ const Homepage = () => {
                 whileHover={reduceMotion ? undefined : { y: -4 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 className="flex w-full items-center gap-4 rounded-2xl border-2 border-violet-200 bg-violet-50 p-5 text-left shadow-[0_6px_0_0_theme(colors.violet.200)] transition-colors hover:bg-violet-100/70 active:translate-y-1 active:shadow-none dark:border-violet-800 dark:bg-violet-900/20 dark:shadow-[0_6px_0_0_theme(colors.violet.800)] dark:hover:bg-violet-900/30 md:p-6"
-                onClick={() => (window.location.href = '/quick-math')}
+                onClick={() => router.push('/quick-math')}
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-400 text-white">
                   <Timer className="h-7 w-7" />

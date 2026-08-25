@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from 'framer-motion';
 import { BookOpen, LayoutGrid, Play, Share2, Trophy } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -33,6 +41,9 @@ export default function MatchPlayGame({
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [scoreFlash, setScoreFlash] = useState<number | null>(null);
+  const prevScoreRef = useRef(0);
+  const reduceMotion = useReducedMotion();
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
@@ -57,6 +68,12 @@ export default function MatchPlayGame({
 
   const startGame = () => setScreenStatus('playing');
 
+  const handleRestart = () => {
+    prevScoreRef.current = 0;
+    setScoreFlash(null);
+    onRestart();
+  };
+
   useEffect(() => {
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,6 +83,29 @@ export default function MatchPlayGame({
   }, [isGameOver]);
 
   const isCleared = status === 'cleared';
+
+  // 得分數字滾動動畫
+  const count = useMotionValue(score);
+  const rounded = useTransform(count, Math.round);
+  useEffect(() => {
+    if (reduceMotion) {
+      count.set(score);
+      return;
+    }
+    animate(count, score, { duration: 0.3 });
+  }, [count, score, reduceMotion]);
+
+  // 消除成功時全螢幕「+N分！」彈出提示
+  useEffect(() => {
+    if (screenStatus !== 'playing') return;
+    if (score > prevScoreRef.current) {
+      const gained = score - prevScoreRef.current;
+      prevScoreRef.current = score;
+      setScoreFlash(gained);
+      const id = setTimeout(() => setScoreFlash(null), 950);
+      return () => clearTimeout(id);
+    }
+  }, [score, screenStatus]);
 
   useLeaderboardSubmit(
     'match',
@@ -228,7 +268,7 @@ export default function MatchPlayGame({
                 className="flex-1"
                 onClick={() => {
                   setScreenStatus('playing');
-                  onRestart();
+                  handleRestart();
                 }}
               >
                 再來一局
@@ -243,12 +283,30 @@ export default function MatchPlayGame({
   // ── 遊戲中 ──
   const matchHud = (
     <>
+      <AnimatePresence>
+        {scoreFlash !== null && (
+          <motion.div
+            className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={
+              reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.4, y: -24 }
+            }
+            transition={{ duration: reduceMotion ? 0 : 0.25 }}
+          >
+            <span className="font-display text-6xl font-black text-primary drop-shadow-lg">
+              +{scoreFlash}分！
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white/95 px-5 py-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
         <div>
           <p className="text-[10px] font-medium text-muted-foreground">得分</p>
-          <p className="font-display text-2xl font-bold tabular-nums text-primary">
-            {score}
-          </p>
+          <motion.div className="font-display text-2xl font-bold tabular-nums text-primary">
+            {rounded}
+          </motion.div>
         </div>
         <div className="text-center">
           <p className="text-base font-semibold text-muted-foreground">
@@ -304,7 +362,7 @@ export default function MatchPlayGame({
         onClearSelection={onReselect}
         onBackStep={onBackStep}
         onSubmit={onSubmit}
-        onRestart={onRestart}
+        onRestart={handleRestart}
         onExit={onBack}
       >
         {matchHud}

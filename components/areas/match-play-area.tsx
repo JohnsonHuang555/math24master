@@ -103,7 +103,7 @@ export function MatchPlayArea({
       </div>
 
       {/* 4x4 牌面 */}
-      <div className="grid w-full max-w-sm grid-cols-4 gap-3 sm:gap-3">
+      <div className="grid w-full max-w-sm grid-cols-4 gap-3">
         <AnimatePresence mode="popLayout">
           {cells.map(cell =>
             cell.card ? (
