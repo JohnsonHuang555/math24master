@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  QuickMathMode,
   QuickMathQuestion,
   TOTAL_QUESTIONS,
   generateQuestionSet,
@@ -14,12 +15,18 @@ const MAX_INPUT_LENGTH = 3;
 const COUNTDOWN_START = 3;
 const WRONG_FLASH_MS = 600;
 
-export type QuickMathState = 'idle' | 'countdown' | 'playing' | 'completed';
+export type QuickMathState =
+  | 'mode-select'
+  | 'idle'
+  | 'countdown'
+  | 'playing'
+  | 'completed';
 
 const round10 = (x: number) => Math.round(x * 10) / 10;
 
 export function useQuickMath() {
-  const [gameState, setGameState] = useState<QuickMathState>('idle');
+  const [gameState, setGameState] = useState<QuickMathState>('mode-select');
+  const [mode, setMode] = useState<QuickMathMode>('basic');
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
   const [questions, setQuestions] = useState<QuickMathQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,8 +75,17 @@ export function useQuickMath() {
     };
   }, []);
 
+  const selectMode = useCallback((selected: QuickMathMode) => {
+    setMode(selected);
+    setGameState('idle');
+  }, []);
+
+  const changeMode = useCallback(() => {
+    setGameState('mode-select');
+  }, []);
+
   const startGame = useCallback(() => {
-    setQuestions(generateQuestionSet());
+    setQuestions(generateQuestionSet(mode));
     setCurrentIndex(0);
     setInputValue('');
     setDisplaySeconds(0);
@@ -97,7 +113,7 @@ export function useQuickMath() {
         return prev - 1;
       });
     }, 1000);
-  }, []);
+  }, [mode]);
 
   const pressDigit = useCallback(
     (digit: number) => {
@@ -173,6 +189,9 @@ export function useQuickMath() {
 
   return {
     gameState,
+    mode,
+    selectMode,
+    changeMode,
     countdownValue,
     questions,
     currentIndex,

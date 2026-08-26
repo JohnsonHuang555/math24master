@@ -23,6 +23,7 @@ import { shareImage } from '@/lib/share';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 type MatchScreenStatus = 'idle' | 'playing' | 'finished';
 
@@ -53,6 +54,12 @@ export default function MatchPlayGame({
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
 
   const {
+    matchBestScore: bestScore,
+    updateMatchBestScore: updateBestScore,
+    incrementMatchPlays,
+  } = useStatsStore();
+
+  const {
     cells,
     selectedCards,
     score,
@@ -78,11 +85,21 @@ export default function MatchPlayGame({
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (isGameOver) setScreenStatus('finished');
-  }, [isGameOver]);
-
   const isCleared = status === 'cleared';
+
+  useEffect(() => {
+    if (!isGameOver) return;
+    setScreenStatus('finished');
+    incrementMatchPlays();
+    // 未全清的分數不算數（規則：全部清除才計分上榜），不列入個人最佳
+    if (isCleared) updateBestScore(score);
+  }, [isGameOver]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isNewBestScore =
+    screenStatus === 'finished' &&
+    isCleared &&
+    score > 0 &&
+    score >= bestScore;
 
   // 得分數字滾動動畫
   const count = useMotionValue(score);
@@ -133,8 +150,7 @@ export default function MatchPlayGame({
     try {
       const blob = await renderMatchResultCard({
         score,
-        // v1 不做 stats-store 整合，暫不追蹤個人最佳分數
-        isNewBestScore: false,
+        isNewBestScore,
       });
       if (!blob) {
         toast.error('圖卡產生失敗，請稍後再試');
@@ -168,9 +184,6 @@ export default function MatchPlayGame({
           <div>
             <h1 className="flex items-center justify-center gap-2 font-display text-2xl font-black text-foreground">
               消消樂模式
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-                Beta
-              </span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               16 張牌 · 任選 2~4 張湊 24
@@ -180,6 +193,14 @@ export default function MatchPlayGame({
             </p>
           </div>
         </div>
+        {bestScore > 0 && (
+          <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
+            <p className="text-xs text-muted-foreground">個人最佳</p>
+            <p className="font-display text-3xl font-bold text-foreground">
+              {bestScore} 分
+            </p>
+          </div>
+        )}
         <div className="flex gap-3">
           <Button variant="outline" onClick={onBack}>
             返回
@@ -228,6 +249,18 @@ export default function MatchPlayGame({
                     最終得分
                   </p>
                 </div>
+                {isNewBestScore && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                      新紀錄！
+                    </p>
+                  </div>
+                )}
+                {!isNewBestScore && bestScore > 0 && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    個人最佳：{bestScore} 分
+                  </p>
+                )}
                 <Button
                   variant="outline"
                   className="mt-6 w-full gap-1.5"

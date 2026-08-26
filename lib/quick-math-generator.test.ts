@@ -8,6 +8,8 @@ import {
   getTierForIndex,
 } from './quick-math-generator';
 
+const FACTORIALS = [1, 1, 2, 6, 24];
+
 describe('getTierForIndex', () => {
   it('maps question index to increasing tiers', () => {
     expect([0, 1, 2].map(getTierForIndex)).toEqual([1, 1, 1]);
@@ -78,5 +80,68 @@ describe('generateQuestionSet', () => {
     expect(q.display).not.toMatch(/[*/]/);
     const parts = q.display.split(' ');
     expect(parts).toHaveLength(q.operands.length + q.operators.length);
+  });
+
+  it('basic mode never applies an Advanced Operator', () => {
+    for (let run = 0; run < 100; run++) {
+      generateQuestionSet('basic').forEach(q => expect(q.unary).toBeNull());
+    }
+  });
+});
+
+describe('generateQuestionSet — advanced mode', () => {
+  const RUNS = 500;
+
+  it('generates valid questions with at most one Advanced Operator per question', () => {
+    let unaryCount = 0;
+    let total = 0;
+
+    for (let run = 0; run < RUNS; run++) {
+      const questions = generateQuestionSet('advanced');
+      expect(questions).toHaveLength(TOTAL_QUESTIONS);
+
+      questions.forEach((q, i) => {
+        total++;
+        // 基本約束（範圍、整數、與獨立求值一致）在 basic/advanced 皆須維持
+        expect(Number.isInteger(q.answer)).toBe(true);
+        expect(q.answer).toBeGreaterThanOrEqual(0);
+        expect(q.answer).toBeLessThanOrEqual(100);
+        expect(evaluateWithConstraints(q.operands, q.operators)).toBe(q.answer);
+
+        const tier = getTierForIndex(i);
+        expect(q.operands).toHaveLength(tier + 1);
+        expect(q.operators).toHaveLength(tier);
+
+        if (q.unary) {
+          unaryCount++;
+          const { operandIndex, op, base } = q.unary;
+          const value = q.operands[operandIndex];
+
+          expect(operandIndex).toBeGreaterThanOrEqual(0);
+          expect(operandIndex).toBeLessThan(q.operands.length);
+
+          if (op === 'square') {
+            expect(base).toBeGreaterThanOrEqual(0);
+            expect(base).toBeLessThanOrEqual(10);
+            expect(value).toBe(base * base);
+            expect(q.display).toContain(`${base}²`);
+          } else if (op === 'factorial') {
+            expect(base).toBeGreaterThanOrEqual(0);
+            expect(base).toBeLessThanOrEqual(4);
+            expect(value).toBe(FACTORIALS[base]);
+            expect(q.display).toContain(`${base}!`);
+          } else {
+            // sqrt：base 是完全平方數，value 是開根後的整數
+            expect(value * value).toBe(base);
+            expect(q.display).toContain(`√${base}`);
+          }
+        }
+      });
+    }
+
+    // 機率是軟性的（找不到合適操作數位置時會跳過），
+    // 但 500 局 × 10 題下來一定會出現不少次，不該是 0
+    expect(unaryCount).toBeGreaterThan(0);
+    expect(unaryCount).toBeLessThan(total);
   });
 });

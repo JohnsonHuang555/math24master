@@ -4,21 +4,52 @@
 // - 除法保證整除
 // - 所有中間值（乘除連段逐步值、加減 running sum）與答案皆為 0-100 整數
 // - 乘法相鄰運算元 ≤ 12
+//
+// Advanced Mode 額外混入 Advanced Operator（平方／階乘／根號），
+// 詳見 CONTEXT.md 與 docs/adr/0001-advanced-operator-single-operand-only.md：
+// 只套用在單一原始操作數上，不產生巢狀括號。
 
 export type Op = '+' | '-' | '*' | '/';
 export type Tier = 1 | 2 | 3;
+export type QuickMathMode = 'basic' | 'advanced';
+export type UnaryOp = 'square' | 'factorial' | 'sqrt';
+
+// Advanced Operator 套用紀錄：operandIndex 對應 operands[] 的位置，
+// base 是顯示用的原始數字（square/factorial 是底數，sqrt 是被開方數），
+// operands[operandIndex] 存的則是套用後、實際參與四則運算的數值。
+export interface UnaryApplication {
+  operandIndex: number;
+  op: UnaryOp;
+  base: number;
+}
 
 export interface QuickMathQuestion {
   operands: number[];
   operators: Op[];
   answer: number;
-  display: string; // 例："5 + 10 × 2 − 8"
+  display: string; // 例："5 + 10 × 2 − 8" 或 "3² + 5"
+  unary: UnaryApplication | null;
 }
 
 export const TOTAL_QUESTIONS = 10;
 
 const MAX_VALUE = 100;
 const MAX_ATTEMPTS = 100;
+
+// Advanced Mode 各 Tier 混入 Advanced Operator 的機率。
+// 套用位置僅限「前後都不是 ×÷」的操作數（見 findEligibleUnaryIndexes），越多運算元、
+// 越常強制出現乘除（Tier2/3 的 requireMulDiv），符合套用條件的位置比例就越低，
+// 這裡設定的是「意圖機率」，不是實際顯示機率，兩者有落差、且落差隨 Tier 加大。
+// 玩家實測回饋「前三題明顯偏簡單」後，依實測顯示機率（見下方每個 Tier 的註解）
+// 反推調整，讓三個 Tier 的實際顯示機率呈現 ~56% → ~68% → ~73% 的遞增曲線
+const ADVANCED_TIER_PROBABILITY: Record<Tier, number> = {
+  1: 0.75, // 意圖機率 0.75 → 實測顯示機率 ~56%（原 0.2 只有 ~16%）
+  2: 0.85, // 意圖機率 0.85 → 實測顯示機率 ~68%（原 0.4 只有 ~31%）
+  3: 0.9, // 意圖機率 0.9 → 實測顯示機率 ~73%（原 0.6 只有 ~48%）
+};
+
+const ADVANCED_OPS: UnaryOp[] = ['square', 'factorial', 'sqrt'];
+const FACTORIALS = [1, 1, 2, 6, 24]; // 0!..4!
 
 type TierConfig = {
   operandCount: number;
@@ -96,6 +127,23 @@ function smallDivisors(value: number): number[] {
   return result;
 }
 
+// 依 Advanced Operator 產生底數與套用後的實際運算值
+// square: 底數 0-10 → 值 0-100；factorial: 底數 0-4 → 值 1-24；
+// sqrt: 只允許完全平方數，底數（被開方數）= 開根後的值²
+function generateUnaryValue(op: UnaryOp): { value: number; base: number } {
+  if (op === 'square') {
+    const base = randInt(0, 10);
+    return { value: base * base, base };
+  }
+  if (op === 'factorial') {
+    const base = randInt(0, 4);
+    return { value: FACTORIALS[base], base };
+  }
+  // sqrt：base 是顯示用的被開方數，value 是開根後參與運算的值
+  const root = randInt(1, 10);
+  return { value: root, base: root * root };
+}
+
 // 獨立的兩階段求值 + 逐步約束檢查（與建構過程無關，供複驗與測試用）
 // 違反任一約束回傳 null
 export function evaluateWithConstraints(
@@ -138,22 +186,63 @@ export function evaluateWithConstraints(
   return sum;
 }
 
-function buildDisplay(operands: number[], operators: Op[]): string {
+function renderOperand(
+  operands: number[],
+  index: number,
+  unary: UnaryApplication | null,
+): string {
+  if (unary && unary.operandIndex === index) {
+    if (unary.op === 'square') return `${unary.base}²`;
+    if (unary.op === 'factorial') return `${unary.base}!`;
+    return `√${unary.base}`;
+  }
+  return String(operands[index]);
+}
+
+function buildDisplay(
+  operands: number[],
+  operators: Op[],
+  unary: UnaryApplication | null,
+): string {
   const symbolMap: Record<Op, string> = {
     '+': '+',
     '-': '−',
     '*': '×',
     '/': '÷',
   };
-  const parts: string[] = [String(operands[0])];
+  const parts: string[] = [renderOperand(operands, 0, unary)];
   operators.forEach((op, i) => {
-    parts.push(symbolMap[op], String(operands[i + 1]));
+    parts.push(symbolMap[op], renderOperand(operands, i + 1, unary));
   });
   return parts.join(' ');
 }
 
+// 找出可以套用 Advanced Operator 的操作數位置：
+// 必須是「單獨一個 term」（前後都不是 ×÷），才不會影響乘除連段的整除／範圍約束
+function findEligibleUnaryIndexes(
+  operandCount: number,
+  operators: Op[],
+): number[] {
+  const opCount = operators.length;
+  const eligible: number[] = [];
+  for (let i = 0; i < operandCount; i++) {
+    const prevOp: Op | null = i === 0 ? null : operators[i - 1];
+    const nextOp: Op | null = i < opCount ? operators[i] : null;
+    const isConnectorStart =
+      prevOp === null || prevOp === '+' || prevOp === '-';
+    const isStandalone = nextOp === null || nextOp === '+' || nextOp === '-';
+    if (isConnectorStart && isStandalone) eligible.push(i);
+  }
+  return eligible;
+}
+
 // 建構式生成一次嘗試：運算子先定，運算元沿途取（除數只挑因數），失敗回 null
-function tryGenerate(config: TierConfig): QuickMathQuestion | null {
+// wantUnary：Advanced Mode 依機率決定「這題想不想混入 Advanced Operator」；
+// 若找不到合適的操作數位置，就當作一般題目生成（機率是軟性的，不強制保證）
+function tryGenerate(
+  config: TierConfig,
+  wantUnary: boolean,
+): QuickMathQuestion | null {
   const opCount = config.operandCount - 1;
   const operators: Op[] = [];
   for (let i = 0; i < opCount; i++) {
@@ -163,8 +252,19 @@ function tryGenerate(config: TierConfig): QuickMathQuestion | null {
     operators[randInt(0, opCount - 1)] = Math.random() < 0.5 ? '*' : '/';
   }
 
+  let unaryPlan: { index: number; op: UnaryOp } | null = null;
+  if (wantUnary) {
+    const eligible = findEligibleUnaryIndexes(config.operandCount, operators);
+    if (eligible.length > 0) {
+      const index = eligible[randInt(0, eligible.length - 1)];
+      const op = ADVANCED_OPS[randInt(0, ADVANCED_OPS.length - 1)];
+      unaryPlan = { index, op };
+    }
+  }
+
   const operands: number[] = [];
   let runValue = 0;
+  let appliedUnary: UnaryApplication | null = null;
 
   for (let i = 0; i < config.operandCount; i++) {
     const prevOp: Op | null = i === 0 ? null : operators[i - 1];
@@ -173,7 +273,11 @@ function tryGenerate(config: TierConfig): QuickMathQuestion | null {
     if (prevOp === null || prevOp === '+' || prevOp === '-') {
       // 連段開頭
       let value: number;
-      if (nextOp === '*') {
+      if (unaryPlan && unaryPlan.index === i) {
+        const { value: unaryValue, base } = generateUnaryValue(unaryPlan.op);
+        value = unaryValue;
+        appliedUnary = { operandIndex: i, op: unaryPlan.op, base };
+      } else if (nextOp === '*') {
         value = randInt(config.mulRange[0], config.mulRange[1]);
       } else if (nextOp === '/') {
         // 先挑除數 d 與商 q，開頭值 = d*q，保證之後有因數可挑
@@ -223,11 +327,12 @@ function tryGenerate(config: TierConfig): QuickMathQuestion | null {
     operands,
     operators,
     answer,
-    display: buildDisplay(operands, operators),
+    display: buildDisplay(operands, operators, appliedUnary),
+    unary: appliedUnary,
   };
 }
 
-// retry 耗盡時的固定模板題（按同約束直接建構，永不失敗）
+// retry 耗盡時的固定模板題（按同約束直接建構，永不失敗；不含 Advanced Operator）
 function fallbackQuestion(tier: Tier): QuickMathQuestion {
   let operands: number[];
   let operators: Op[];
@@ -252,21 +357,29 @@ function fallbackQuestion(tier: Tier): QuickMathQuestion {
     operands,
     operators,
     answer: answer ?? 0,
-    display: buildDisplay(operands, operators),
+    display: buildDisplay(operands, operators, null),
+    unary: null,
   };
 }
 
-export function generateQuestion(tier: Tier): QuickMathQuestion {
+export function generateQuestion(
+  tier: Tier,
+  mode: QuickMathMode = 'basic',
+): QuickMathQuestion {
   const config = TIER_CONFIG[tier];
+  const wantUnary =
+    mode === 'advanced' && Math.random() < ADVANCED_TIER_PROBABILITY[tier];
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const question = tryGenerate(config);
+    const question = tryGenerate(config, wantUnary);
     if (question) return question;
   }
   return fallbackQuestion(tier);
 }
 
-export function generateQuestionSet(): QuickMathQuestion[] {
+export function generateQuestionSet(
+  mode: QuickMathMode = 'basic',
+): QuickMathQuestion[] {
   return Array.from({ length: TOTAL_QUESTIONS }, (_, i) =>
-    generateQuestion(getTierForIndex(i)),
+    generateQuestion(getTierForIndex(i), mode),
   );
 }

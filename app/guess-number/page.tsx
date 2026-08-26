@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { BackToHomeButton } from '@/components/back-to-home-button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -379,12 +380,7 @@ export default function GuessNumberPage() {
     <div className="flex min-h-full flex-col items-center gap-5 px-4 py-6">
       {/* 標題列 */}
       <div className="flex w-full max-w-lg items-center justify-between">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← 回首頁
-        </Link>
+        <BackToHomeButton />
         <h1 className="text-xl font-bold">猜數字</h1>
         <div className="flex items-center gap-3">
           <button

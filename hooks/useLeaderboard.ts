@@ -7,6 +7,7 @@ export type LeaderboardMode =
   | 'challenge'
   | 'classic'
   | 'quickmath'
+  | 'quickmath_advanced'
   | 'match';
 
 export interface LeaderboardRow {
