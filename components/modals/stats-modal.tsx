@@ -40,9 +40,13 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
     classicTotalSkips,
     challengePlays,
     challengeBestStage,
+    matchPlays,
+    matchBestScore,
     dailyChallengeCompletes,
     quickMathPlays,
     quickMathBestSeconds,
+    quickMathAdvancedPlays,
+    quickMathAdvancedBestSeconds,
   } = useStatsStore();
   const unlockedIds = useAchievementStore(state => state.unlockedIds);
 
@@ -96,19 +100,44 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
             </div>
           </div>
 
-          {/* 心算快答 */}
+          {/* 消消樂模式 */}
           <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>心算快答</SectionTitle>
+            <SectionTitle>消消樂模式</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
-              <StatItem label="完賽場次" value={quickMathPlays} />
-              <StatItem
-                label="最速完成"
-                value={
-                  quickMathBestSeconds > 0
-                    ? formatTimePrecise(quickMathBestSeconds)
-                    : '-'
-                }
-              />
+              <StatItem label="完賽場次" value={matchPlays} />
+              <StatItem label="最高分" value={matchBestScore || '-'} />
+            </div>
+          </div>
+
+          {/* 心算快答 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>心算快答．初階</SectionTitle>
+              <div className="flex flex-col gap-3">
+                <StatItem label="完賽場次" value={quickMathPlays} />
+                <StatItem
+                  label="最速完成"
+                  value={
+                    quickMathBestSeconds > 0
+                      ? formatTimePrecise(quickMathBestSeconds)
+                      : '-'
+                  }
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <SectionTitle>心算快答．進階</SectionTitle>
+              <div className="flex flex-col gap-3">
+                <StatItem label="完賽場次" value={quickMathAdvancedPlays} />
+                <StatItem
+                  label="最速完成"
+                  value={
+                    quickMathAdvancedBestSeconds > 0
+                      ? formatTimePrecise(quickMathAdvancedBestSeconds)
+                      : '-'
+                  }
+                />
+              </div>
             </div>
           </div>
 

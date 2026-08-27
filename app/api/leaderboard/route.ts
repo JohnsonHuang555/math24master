@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/firebase-admin';
 
-type Mode = 'normal' | 'challenge' | 'classic' | 'quickmath' | 'match';
+type Mode =
+  | 'normal'
+  | 'challenge'
+  | 'classic'
+  | 'quickmath'
+  | 'quickmath_advanced'
+  | 'match';
 
 const COLLECTION: Record<Mode, string> = {
   normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
   quickmath: 'leaderboard_quickmath',
+  // 進階模式獨立 collection，理由見 docs/adr/0002-advanced-mode-separate-leaderboard-collection.md
+  quickmath_advanced: 'leaderboard_quickmath_advanced',
   match: 'leaderboard_matching',
 };
 
@@ -17,6 +25,7 @@ const ORDER_FIELD: Record<Mode, string> = {
   challenge: 'stage',
   classic: 'score',
   quickmath: 'seconds',
+  quickmath_advanced: 'seconds',
   match: 'score',
 };
 
@@ -25,6 +34,7 @@ const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
   challenge: 'desc',
   classic: 'desc',
   quickmath: 'asc',
+  quickmath_advanced: 'asc',
   match: 'desc',
 };
 
@@ -37,13 +47,19 @@ const CLASSIC_MAX_SCORE = 66;
 const MATCH_MAX_SCORE = 40;
 
 // 分數為 0 視同沒有實質成績，排行榜顯示時濾掉（資料庫仍正常寫入）
-// quickmath 是完成時間制，沒有「0 分」的概念，不列入
+// quickmath / quickmath_advanced 是完成時間制，沒有「0 分」的概念，不列入
 const ZERO_FILTER_FIELD: Partial<Record<Mode, string>> = {
   classic: 'score',
   normal: 'totalScore',
   challenge: 'totalScore',
   match: 'score',
 };
+
+// quickmath 與 quickmath_advanced 除了寫入的 collection 不同外，
+// 驗證/排序/覆寫規則完全相同（詳見 CONTEXT.md 的 Mode 定義）
+function isQuickMathMode(mode: Mode): boolean {
+  return mode === 'quickmath' || mode === 'quickmath_advanced';
+}
 
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') as Mode | null;
@@ -166,7 +182,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
   }
-  if (mode === 'quickmath') {
+  if (isQuickMathMode(mode)) {
     const seconds = Number(payload.seconds);
     if (!Number.isFinite(seconds) || seconds < 10 || seconds > 300) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
@@ -206,7 +222,7 @@ export async function POST(req: NextRequest) {
         ((mode === 'classic' || mode === 'match') &&
           Number(payload.score) <= Number(staleData.score)) ||
         // 快答比完成秒數，越小越好，方向與其他模式相反
-        (mode === 'quickmath' &&
+        (isQuickMathMode(mode) &&
           Number(payload.seconds) >= Number(staleData.seconds));
 
       const mergedPayload = isStaleWorse
@@ -231,7 +247,7 @@ export async function POST(req: NextRequest) {
                 stage: mergedPayload.stage,
                 totalScore: mergedPayload.totalScore,
               }
-            : mode === 'quickmath'
+            : isQuickMathMode(mode)
               ? { seconds: mergedPayload.seconds }
               : { score: mergedPayload.score };
 
@@ -258,7 +274,7 @@ export async function POST(req: NextRequest) {
       ((mode === 'classic' || mode === 'match') &&
         Number(payload.score) <= Number(old.score)) ||
       // 快答比完成秒數，越小越好
-      (mode === 'quickmath' && Number(payload.seconds) >= Number(old.seconds));
+      (isQuickMathMode(mode) && Number(payload.seconds) >= Number(old.seconds));
     if (isWorse) {
       return NextResponse.json({ ok: true, updated: false });
     }
@@ -273,7 +289,7 @@ export async function POST(req: NextRequest) {
         }
       : mode === 'challenge'
         ? { stage: payload.stage, totalScore: payload.totalScore }
-        : mode === 'quickmath'
+        : isQuickMathMode(mode)
           ? { seconds: payload.seconds }
           : { score: payload.score };
 

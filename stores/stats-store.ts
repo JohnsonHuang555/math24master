@@ -17,12 +17,20 @@ type StatsStore = {
   challengePlays: number; // 場次
   challengeBestStage: number; // 最高連續答對題數
 
+  // 消消樂模式
+  matchPlays: number; // 完賽場次
+  matchBestScore: number; // 最高分（全清才計分）
+
   // 每日挑戰
   dailyChallengeCompletes: number;
 
-  // 心算快答
+  // 心算快答（初階）
   quickMathPlays: number; // 完賽場次
   quickMathBestSeconds: number; // 最速完成秒數（0.1s 精度，0=未設定）
+
+  // 心算快答（進階）
+  quickMathAdvancedPlays: number; // 完賽場次
+  quickMathAdvancedBestSeconds: number; // 最速完成秒數（0.1s 精度，0=未設定）
 
   incrementClassicPlays: () => void;
   updateClassicBestScore: (score: number) => void;
@@ -36,10 +44,16 @@ type StatsStore = {
   incrementChallengePlays: () => void;
   updateChallengeBestStage: (count: number) => void;
 
+  incrementMatchPlays: () => void;
+  updateMatchBestScore: (score: number) => void;
+
   incrementDailyChallenge: () => void;
 
   incrementQuickMathPlays: () => void;
   updateQuickMathBest: (seconds: number) => void;
+
+  incrementQuickMathAdvancedPlays: () => void;
+  updateQuickMathAdvancedBest: (seconds: number) => void;
 };
 
 export const useStatsStore = create<StatsStore>()(
@@ -57,10 +71,16 @@ export const useStatsStore = create<StatsStore>()(
       challengePlays: 0,
       challengeBestStage: 0,
 
+      matchPlays: 0,
+      matchBestScore: 0,
+
       dailyChallengeCompletes: 0,
 
       quickMathPlays: 0,
       quickMathBestSeconds: 0,
+
+      quickMathAdvancedPlays: 0,
+      quickMathAdvancedBestSeconds: 0,
 
       incrementClassicPlays: () =>
         set(state => ({ classicPlays: state.classicPlays + 1 })),
@@ -102,6 +122,15 @@ export const useStatsStore = create<StatsStore>()(
           challengeBestStage: Math.max(state.challengeBestStage, count),
         })),
 
+      incrementMatchPlays: () =>
+        set(state => ({ matchPlays: state.matchPlays + 1 })),
+
+      updateMatchBestScore: (score: number) => {
+        if (score > get().matchBestScore) {
+          set({ matchBestScore: score });
+        }
+      },
+
       incrementDailyChallenge: () =>
         set(state => ({
           dailyChallengeCompletes: state.dailyChallengeCompletes + 1,
@@ -116,10 +145,22 @@ export const useStatsStore = create<StatsStore>()(
           set({ quickMathBestSeconds: seconds });
         }
       },
+
+      incrementQuickMathAdvancedPlays: () =>
+        set(state => ({
+          quickMathAdvancedPlays: state.quickMathAdvancedPlays + 1,
+        })),
+
+      updateQuickMathAdvancedBest: (seconds: number) => {
+        const current = get().quickMathAdvancedBestSeconds;
+        if (current === 0 || seconds < current) {
+          set({ quickMathAdvancedBestSeconds: seconds });
+        }
+      },
     }),
     {
       name: 'player-stats',
-      version: 3,
+      version: 5,
       migrate: persistedState => ({
         classicPlays: 0,
         classicBestScore: 0,
@@ -130,9 +171,13 @@ export const useStatsStore = create<StatsStore>()(
         normalPerfectRuns: 0,
         challengePlays: 0,
         challengeBestStage: 0,
+        matchPlays: 0,
+        matchBestScore: 0,
         dailyChallengeCompletes: 0,
         quickMathPlays: 0,
         quickMathBestSeconds: 0,
+        quickMathAdvancedPlays: 0,
+        quickMathAdvancedBestSeconds: 0,
         ...(persistedState as Partial<StatsStore> | undefined),
       }),
     },

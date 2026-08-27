@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Layers, LayoutGrid, Timer } from 'lucide-react';
+import { Layers, LayoutGrid, Timer } from 'lucide-react';
 import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
 import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
 import MatchPlayGame from '@/app/single-play/[mode]/match-play-game';
+import { BackToHomeButton } from '@/components/back-to-home-button';
 import { prewarmMatchGenerator } from '@/lib/match-board-generator';
 import { cn } from '@/lib/utils';
 import { useStatsStore } from '@/stores/stats-store';
@@ -48,7 +48,7 @@ const MODE_CONFIG = [
   {
     value: 'match' as const,
     label: '消消樂模式',
-    badge: 'Beta' as string | undefined,
+    badge: undefined as string | undefined,
     tagline: '16 張牌 · 自由配對消除',
     chips: ['任選 2-4 張湊 24', '無時間限制', '全部清除才計分上榜'],
     Icon: LayoutGrid,
@@ -64,9 +64,9 @@ const MODE_CONFIG = [
 
 export default function SinglePlayPage() {
   const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
-  const router = useRouter();
 
-  const { classicBestScore, challengeBestStage } = useStatsStore();
+  const { classicBestScore, challengeBestStage, matchBestScore } =
+    useStatsStore();
 
   // 消消樂模式牌局的反向構造需要先窮舉可解組合，趁玩家瀏覽模式選單的空檔背景預熱，
   // 避免點「開始遊戲」時卡頓（詳見 lib/match-board-generator.ts）
@@ -77,8 +77,7 @@ export default function SinglePlayPage() {
   const bestLabel: Record<PlayMode, string | null> = {
     classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
     challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
-    // v1 消消樂模式不做 stats-store 整合，磁磚不顯示個人最佳
-    match: null,
+    match: matchBestScore > 0 ? `${matchBestScore} 分` : null,
   };
 
   if (activeMode === 'challenge') {
@@ -95,13 +94,7 @@ export default function SinglePlayPage() {
     <div className="flex h-full flex-col overflow-y-auto">
       {/* Header */}
       <header className="flex h-14 shrink-0 items-center px-4">
-        <button
-          onClick={() => router.push('/')}
-          className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          首頁
-        </button>
+        <BackToHomeButton />
       </header>
 
       {/* Main */}

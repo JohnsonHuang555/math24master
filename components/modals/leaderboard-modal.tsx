@@ -28,6 +28,7 @@ const TABS: { mode: LeaderboardMode; label: string }[] = [
   { mode: 'challenge', label: '挑戰' },
   { mode: 'match', label: '消消樂' },
   { mode: 'quickmath', label: '快答' },
+  { mode: 'quickmath_advanced', label: '快答-進階' },
 ];
 
 const SCORE_HEADER: Record<LeaderboardMode, string> = {
@@ -35,8 +36,13 @@ const SCORE_HEADER: Record<LeaderboardMode, string> = {
   challenge: '關卡',
   classic: '分數',
   quickmath: '完成時間',
+  quickmath_advanced: '完成時間',
   match: '分數',
 };
+
+function isQuickMathMode(mode: LeaderboardMode): boolean {
+  return mode === 'quickmath' || mode === 'quickmath_advanced';
+}
 
 function ScoreCell({
   row,
@@ -45,7 +51,7 @@ function ScoreCell({
   row: LeaderboardRow;
   mode: LeaderboardMode;
 }) {
-  if (mode === 'quickmath') {
+  if (isQuickMathMode(mode)) {
     return (
       <div className="min-w-[72px] text-right text-xs">
         <div className="font-semibold">
@@ -114,7 +120,7 @@ function LeaderboardTable({
         <p className="text-sm font-semibold text-foreground">榜單還是空的</p>
         <p className="text-xs text-muted-foreground">成為第一個上榜的玩家！</p>
         <Link
-          href={mode === 'quickmath' ? '/quick-math' : '/single-play'}
+          href={isQuickMathMode(mode) ? '/quick-math' : '/single-play'}
           className="mt-1 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
         >
           開始遊戲 →

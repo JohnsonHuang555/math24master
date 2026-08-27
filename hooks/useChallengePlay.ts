@@ -72,6 +72,7 @@ export function useChallengePlay() {
   const [currentNumbers, setCurrentNumbers] = useState<NumberCard[]>([]);
   const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
   const [best, setBest] = useState<ChallengeBest | null>(null);
+  const [isNewBest, setIsNewBest] = useState(false);
   // 下一次跳過會扣的秒數（供 UI 顯示）
   const [nextSkipPenalty, setNextSkipPenalty] = useState(getSkipPenalty(0));
 
@@ -115,16 +116,25 @@ export function useChallengePlay() {
     ) => {
       pause();
       setFinishReason(reason);
+      // 「關卡數」統一採用「已答對題數」，避免和選單卡片／玩家統計的
+      // challengeBestStage（同樣是已答對題數）產生 off-by-one 落差
+      const answeredCount = Math.max(0, finalStage - 1);
+      // 必須在覆寫 localStorage 前先讀出舊紀錄，否則 isNewBest 會拿
+      // 「剛存進去、已經等於這局成績」的新紀錄比對，導致永遠判定不是新紀錄
+      const prevBest = loadBest();
       const record: ChallengeBest = {
-        stage: finalStage,
+        stage: answeredCount,
         totalScore: finalScore,
         date: new Date().toISOString(),
       };
       saveBest(record);
       setBest(loadBest());
+      // 一題都沒答對就不算紀錄，避免第一次遊玩就顯示「新紀錄！」
+      setIsNewBest(
+        answeredCount > 0 && (!prevBest || answeredCount > prevBest.stage),
+      );
 
       // 統計與成就
-      const answeredCount = Math.max(0, finalStage - 1);
       const statsStore = useStatsStore.getState();
       statsStore.incrementChallengePlays();
       statsStore.updateChallengeBestStage(answeredCount);
@@ -147,6 +157,7 @@ export function useChallengePlay() {
     setStage(1);
     setTotalScore(0);
     setSelectedCards([]);
+    setIsNewBest(false);
     skipsSinceCorrectRef.current = 0;
     setNextSkipPenalty(getSkipPenalty(0));
     resetTimer();
@@ -244,6 +255,7 @@ export function useChallengePlay() {
     seconds,
     isRunning,
     best,
+    isNewBest,
     nextSkipPenalty,
     startGame,
     selectCard,

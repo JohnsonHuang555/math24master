@@ -6,6 +6,7 @@ export type PendingScoreMode =
   | 'normal'
   | 'challenge'
   | 'quickmath'
+  | 'quickmath_advanced'
   | 'match';
 
 type PendingScore = {

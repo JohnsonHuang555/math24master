@@ -43,6 +43,7 @@ export default function ChallengePlayGame({
     selectedCards,
     seconds,
     best,
+    isNewBest,
     nextSkipPenalty,
     startGame,
     selectCard,
@@ -153,7 +154,6 @@ export default function ChallengePlayGame({
 
   // ── 結算畫面 ──
   if (status === 'finished') {
-    const isNewBest = best && stage > best.stage;
     return (
       <>
         <LoginPromptModal

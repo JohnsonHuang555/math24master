@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { BackToHomeButton } from '@/components/back-to-home-button';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
 import { Button } from '@/components/ui/button';
 import { unlockAchievement } from '@/lib/achievement-manager';
@@ -224,25 +225,24 @@ export default function DailyChallengePage() {
   // ── 開始畫面 ──
   if (gameState === 'idle') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl font-bold">每日挑戰</h1>
-          <p className="text-sm text-muted-foreground">{today}</p>
-        </div>
-        <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
-          <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
-          <p className="text-xs">每天 00:00（台灣時間）更新題目</p>
-        </div>
-        <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-          <Play className="h-4 w-4" />
-          開始挑戰
-        </Button>
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          回首頁
-        </Link>
+      <div className="flex h-full flex-col overflow-y-auto">
+        <header className="flex h-14 shrink-0 items-center px-4">
+          <BackToHomeButton />
+        </header>
+        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-2xl font-bold">每日挑戰</h1>
+            <p className="text-sm text-muted-foreground">{today}</p>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
+            <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
+            <p className="text-xs">每天 00:00（台灣時間）更新題目</p>
+          </div>
+          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
+            <Play className="h-4 w-4" />
+            開始挑戰
+          </Button>
+        </main>
       </div>
     );
   }
@@ -250,189 +250,185 @@ export default function DailyChallengePage() {
   // ── 結算畫面 ──
   if (gameState === 'completed') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto p-4">
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl font-bold">每日挑戰</h1>
-          <p className="text-sm text-muted-foreground">{today}</p>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex w-full max-w-sm flex-col items-center gap-4"
-        >
-          {/* 結算卡片 */}
-          <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-            <div className="font-display text-5xl font-black text-primary sm:text-6xl">
-              {score !== null ? score : '完成'}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              本日總分（共 {TOTAL_ROUNDS} 題）
-            </div>
-            <div className="mt-2 text-sm font-semibold">{streakText}</div>
+      <div className="flex h-full flex-col overflow-y-auto">
+        <header className="flex h-14 shrink-0 items-center px-4">
+          <BackToHomeButton />
+        </header>
+        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-2xl font-bold">每日挑戰</h1>
+            <p className="text-sm text-muted-foreground">{today}</p>
           </div>
-
-          {/* 分享預覽 */}
-          <pre className="w-full whitespace-pre-wrap border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
-            {sharePreviewText}
-          </pre>
-
-          <Button
-            variant="tactile"
-            className="w-full"
-            onClick={handleShare}
-            aria-label="複製分享文字到剪貼簿"
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex w-full max-w-sm flex-col items-center gap-4"
           >
-            複製分享
-          </Button>
-
-          {/* 各題解法面板 */}
-          {solutionsPerPuzzle.map((solutions, i) => (
-            <div key={i} className="flex w-full flex-col gap-1">
-              <p className="text-xs font-semibold text-muted-foreground">
-                第 {i + 1} 題（{puzzles[i]?.join('、')}）
-              </p>
-              <SolutionsPanel
-                solutions={solutions}
-                userFormula={userFormulas[i] ?? ''}
-              />
+            {/* 結算卡片 */}
+            <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
+              <div className="font-display text-5xl font-black text-primary sm:text-6xl">
+                {score !== null ? score : '完成'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                本日總分（共 {TOTAL_ROUNDS} 題）
+              </div>
+              <div className="mt-2 text-sm font-semibold">{streakText}</div>
             </div>
-          ))}
 
-          {/* CTA */}
-          <div className="flex w-full gap-3">
-            <Link href="/single-play" className="flex-1">
-              <Button variant="outline" className="w-full">
-                繼續練習
-              </Button>
-            </Link>
-            <Link href="/multiple-play" className="flex-1">
-              <Button variant="outline" className="w-full">
-                挑戰朋友
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          回首頁
-        </Link>
+            {/* 分享預覽 */}
+            <pre className="w-full whitespace-pre-wrap border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
+              {sharePreviewText}
+            </pre>
+
+            <Button
+              variant="tactile"
+              className="w-full"
+              onClick={handleShare}
+              aria-label="複製分享文字到剪貼簿"
+            >
+              複製分享
+            </Button>
+
+            {/* 各題解法面板 */}
+            {solutionsPerPuzzle.map((solutions, i) => (
+              <div key={i} className="flex w-full flex-col gap-1">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  第 {i + 1} 題（{puzzles[i]?.join('、')}）
+                </p>
+                <SolutionsPanel
+                  solutions={solutions}
+                  userFormula={userFormulas[i] ?? ''}
+                />
+              </div>
+            ))}
+
+            {/* CTA */}
+            <div className="flex w-full gap-3">
+              <Link href="/single-play" className="flex-1">
+                <Button variant="outline" className="w-full">
+                  繼續練習
+                </Button>
+              </Link>
+              <Link href="/multiple-play" className="flex-1">
+                <Button variant="outline" className="w-full">
+                  挑戰朋友
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </main>
       </div>
     );
   }
 
   // ── 遊戲中 ──
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-4">
-      {/* 標題區 + HUD */}
-      <div className="flex flex-col items-center gap-1">
-        <h1 className="text-2xl font-bold">每日挑戰</h1>
-        <p className="text-sm text-muted-foreground">{today}</p>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span className="font-display text-2xl font-bold text-foreground">
-            第 <span className="text-primary">{currentRound + 1}</span> /{' '}
-            {TOTAL_ROUNDS} 題
-          </span>
+    <div className="flex h-full flex-col overflow-y-auto">
+      <header className="flex h-14 shrink-0 items-center px-4">
+        <BackToHomeButton />
+      </header>
+      <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
+        {/* 標題區 + HUD */}
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-2xl font-bold">每日挑戰</h1>
+          <p className="text-sm text-muted-foreground">{today}</p>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="font-display text-2xl font-bold text-foreground">
+              第 <span className="text-primary">{currentRound + 1}</span> /{' '}
+              {TOTAL_ROUNDS} 題
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* 牌組顯示 */}
-      <div className="flex gap-4">
-        {cards.map((card, index) => (
-          <button
-            key={`${currentRound}-${index}`}
-            onClick={() => handleAddNumber(index)}
-            className={cn(
-              'flex h-20 w-14 items-center justify-center rounded-2xl border-2 font-display text-2xl font-bold transition-all',
-              usedCardIndices.has(index)
-                ? 'scale-95 border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)]'
-                : 'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:scale-105 hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
-            )}
-          >
-            {card}
-          </button>
-        ))}
-      </div>
+        {/* 牌組顯示 */}
+        <div className="flex gap-4">
+          {cards.map((card, index) => (
+            <button
+              key={`${currentRound}-${index}`}
+              onClick={() => handleAddNumber(index)}
+              className={cn(
+                'flex h-20 w-14 items-center justify-center rounded-2xl border-2 font-display text-2xl font-bold transition-all',
+                usedCardIndices.has(index)
+                  ? 'scale-95 border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)]'
+                  : 'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:scale-105 hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
+              )}
+            >
+              {card}
+            </button>
+          ))}
+        </div>
 
-      {/* 公式顯示框 */}
-      <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white px-4 font-display text-lg font-medium shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-        {formulaDisplay || (
-          <span className="text-sm text-muted-foreground">組合你的算式</span>
-        )}
-      </div>
+        {/* 公式顯示框 */}
+        <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white px-4 font-display text-lg font-medium shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
+          {formulaDisplay || (
+            <span className="text-sm text-muted-foreground">組合你的算式</span>
+          )}
+        </div>
 
-      {/* 符號按鈕 */}
-      <div className="grid grid-cols-3 gap-2">
-        {SYMBOLS.map(({ label, value }) => (
+        {/* 符號按鈕 */}
+        <div className="grid grid-cols-3 gap-2">
+          {SYMBOLS.map(({ label, value }) => (
+            <Button
+              key={value}
+              variant="outline"
+              className="h-12 w-16 rounded-2xl border-2 border-zinc-200 bg-white font-display text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:border-primary/40 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800"
+              onClick={() => handleAddSymbol(value)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {/* 操作按鈕 */}
+        <div className="flex gap-3">
           <Button
-            key={value}
             variant="outline"
-            className="h-12 w-16 rounded-2xl border-2 border-zinc-200 bg-white font-display text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:border-primary/40 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800"
-            onClick={() => handleAddSymbol(value)}
+            disabled={formula.length === 0}
+            onClick={handleBack}
           >
-            {label}
+            <Image
+              src="/backspace.svg"
+              alt="backspace"
+              width={18}
+              height={18}
+              priority
+              className="mr-1"
+            />
+            倒退
           </Button>
-        ))}
-      </div>
-
-      {/* 操作按鈕 */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          disabled={formula.length === 0}
-          onClick={handleBack}
-        >
-          <Image
-            src="/backspace.svg"
-            alt="backspace"
-            width={18}
-            height={18}
-            priority
-            className="mr-1"
-          />
-          倒退
-        </Button>
-        <Button
-          variant="outline"
-          disabled={formula.length === 0}
-          onClick={handleClear}
-        >
-          <Image
-            src="/reset.svg"
-            alt="reset"
-            width={20}
-            height={20}
-            priority
-            className="mr-1"
-          />
-          清除
-        </Button>
-        <Button
-          variant="tactile"
-          disabled={formula.length === 0}
-          onClick={handleSubmit}
-        >
-          <Image
-            src="/card-play.svg"
-            alt="submit"
-            width={16}
-            height={16}
-            priority
-            className="mr-1"
-          />
-          出牌
-        </Button>
-      </div>
-
-      {/* 返回首頁 */}
-      <Link
-        href="/"
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        回首頁
-      </Link>
+          <Button
+            variant="outline"
+            disabled={formula.length === 0}
+            onClick={handleClear}
+          >
+            <Image
+              src="/reset.svg"
+              alt="reset"
+              width={20}
+              height={20}
+              priority
+              className="mr-1"
+            />
+            清除
+          </Button>
+          <Button
+            variant="tactile"
+            disabled={formula.length === 0}
+            onClick={handleSubmit}
+          >
+            <Image
+              src="/card-play.svg"
+              alt="submit"
+              width={16}
+              height={16}
+              priority
+              className="mr-1"
+            />
+            出牌
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }

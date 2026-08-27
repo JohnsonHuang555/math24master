@@ -23,7 +23,8 @@ export function AddToHomeScreenPrompt() {
       s.normalPlays > 0 ||
       s.challengePlays > 0 ||
       s.dailyChallengeCompletes > 0 ||
-      s.quickMathPlays > 0,
+      s.quickMathPlays > 0 ||
+      s.quickMathAdvancedPlays > 0,
   );
 
   const [isOpen, setIsOpen] = useState(false);
