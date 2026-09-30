@@ -1,9 +1,19 @@
-name: Deploy Webapp
+name: Deploy Socket Server
 
+# 前端由 Vercel 部署；這裡只建置 Socket.IO 服務，僅在其相依檔案變動時觸發
 on:
   push:
     branches:
       - main
+    paths:
+      - 'server/**'
+      - 'models/**'
+      - 'lib/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'Dockerfile'
+      - '.github/workflows/cloud-run.yml'
 
 jobs:
   deploy:

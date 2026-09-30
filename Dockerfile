@@ -1,80 +1,28 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
 
-# Install dependencies only when needed
-FROM base AS deps
+# Socket.IO 服務專用映像檔；Next.js 前端改部署於 Vercel，不在此建置
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED 1
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 1001 socket
 
-COPY --from=builder /app/public ./public
+# server 僅依賴 server/、models/、lib/，以 tsx 直接執行 TS（需 tsconfig.json 解析 @/ 路徑）
+COPY --chown=socket:nodejs server ./server
+COPY --chown=socket:nodejs models ./models
+COPY --chown=socket:nodejs lib ./lib
+COPY --chown=socket:nodejs tsconfig.json ./tsconfig.json
 
-# Copy Next.js build output (exclude cache to reduce image size)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/BUILD_ID ./.next/BUILD_ID
-COPY --from=builder --chown=nextjs:nodejs /app/.next/app-build-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/app-path-routes-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/build-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/package.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/prerender-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/react-loadable-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/required-server-files.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/routes-manifest.json ./.next/
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/server ./server
-COPY --from=builder --chown=nextjs:nodejs /app/models ./models
-COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
-
-USER nextjs
+USER socket
 
 EXPOSE 3000
 
 ENV PORT=3000
-# set hostname to localhost
-ENV HOSTNAME="0.0.0.0"
 
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD ["npm", "start"]
+CMD ["npm", "run", "start:socket"]

@@ -22,7 +22,10 @@ import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
 
-const socket = io();
+// Socket.IO 服務獨立部署，未設定時連至本機開發用的 socket server
+const socket = io(
+  process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001',
+);
 
 /**
  * 1. 建立 Context
