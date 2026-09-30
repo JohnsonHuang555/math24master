@@ -13,10 +13,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start dev server (Next.js + Socket.IO via nodemon, watches /server)
-npm run build    # Build Next.js app then compile server TS (tsc --project tsconfig.server.json)
-npm start        # Run production build
+npm run dev           # Start Next.js (:3000) + Socket.IO server (:3001, nodemon watches /server) together
+npm run build         # Build Next.js app
+npm start             # Run Next.js production build
+npm run start:socket  # Run Socket.IO server in production mode (tsx server/index.ts)
 ```
+
+### Deployment
+
+- **Frontend (Next.js)** → Vercel. Set `NEXT_PUBLIC_SOCKET_URL` to the socket server URL.
+- **Socket.IO server** → Cloud Run via `Dockerfile` (image contains only `server/`, `models/`, `lib/`). Set `ALLOWED_ORIGINS` (comma-separated frontend origins). Must run as a **single instance** since room state is in memory.
 
 No test framework is configured.
 
@@ -24,7 +30,7 @@ Linting uses ESLint (`next/core-web-vitals` + prettier). Prettier handles import
 
 ## Architecture
 
-This is a **Math24 puzzle game** (make 24 from number cards using math operations) with both single-player and multiplayer modes. The repo is a unified Next.js + Socket.IO monorepo — one `npm run dev` starts both.
+This is a **Math24 puzzle game** (make 24 from number cards using math operations) with both single-player and multiplayer modes. The repo is a unified Next.js + Socket.IO monorepo — one `npm run dev` starts both (Next.js on :3000, Socket.IO on :3001); in production they deploy separately.
 
 ### Two TypeScript configs
 
@@ -36,7 +42,7 @@ This is a **Math24 puzzle game** (make 24 from number cards using math operation
 | Path | Purpose |
 |------|---------|
 | `app/` | Next.js App Router pages (`/`, `/single-play`, `/multiple-play/[roomId]`) |
-| `server/` | Socket.IO server (`index.ts` = HTTP + socket setup, `game.ts` = all game logic, `utils.ts` = deck generation) |
+| `server/` | Standalone Socket.IO server (`index.ts` = HTTP + socket setup, `game.ts` = all game logic, `utils.ts` = deck generation) |
 | `components/areas/` | Game board UI split into area components (hand, action, players, chat, etc.) |
 | `components/ui/` | Radix UI primitives (shadcn/ui pattern) |
 | `models/` | Shared TypeScript types used by both client and server |

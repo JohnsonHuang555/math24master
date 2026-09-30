@@ -236,7 +236,6 @@ export default function DailyChallengePage() {
           </div>
           <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
             <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
-            <p className="text-xs">每天 00:00（台灣時間）更新題目</p>
           </div>
           <Button variant="tactile" className="gap-1.5" onClick={startGame}>
             <Play className="h-4 w-4" />

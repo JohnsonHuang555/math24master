@@ -3,9 +3,12 @@
   "version": "1.0.5",
   "private": true,
   "scripts": {
-    "dev": "nodemon",
+    "dev": "concurrently -n web,socket -c cyan,magenta \"npm:dev:web\" \"npm:dev:socket\"",
+    "dev:web": "next dev",
+    "dev:socket": "nodemon",
     "build": "next build",
-    "start": "cross-env NODE_ENV=production tsx server/index.ts",
+    "start": "next start",
+    "start:socket": "cross-env NODE_ENV=production tsx server/index.ts",
     "test": "vitest"
   },
   "dependencies": {
@@ -53,6 +56,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^4.1.3",
+    "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "^15.0.0",
     "eslint-plugin-prettier": "^5.1.3",
