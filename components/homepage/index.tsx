@@ -7,7 +7,6 @@ import { AchievementModal } from '@/components/modals/achievement-modal';
 import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { StatsModal } from '@/components/modals/stats-modal';
-import AdSection from './ad-section';
 import Footer from './footer';
 import HeroSection from './hero-section';
 import MoreModesSection from './more-modes-section';
@@ -48,7 +47,6 @@ const Homepage = () => {
           onOpenAchievementModal={() => setIsOpenAchievementModal(true)}
         />
         <MoreModesSection scrollRef={scrollRef} />
-        <AdSection />
         <StepsSection scrollRef={scrollRef} />
         <Footer />
       </div>
