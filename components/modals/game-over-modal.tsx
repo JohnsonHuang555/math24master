@@ -1,7 +1,6 @@
 'use client';
 
 import { Trophy } from 'lucide-react';
-import { AdUnit } from '@/components/ad-unit';
 import { cn } from '@/lib/utils';
 import { Player } from '@/models/Player';
 import { Button } from '../ui/button';
@@ -134,10 +133,6 @@ export function GameOverModal({
               </Button>
             </>
           )}
-        </div>
-
-        <div className="flex justify-center">
-          <AdUnit slot="3374528946" width={320} height={50} className="mt-1" />
         </div>
       </DialogContent>
     </Dialog>

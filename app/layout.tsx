@@ -1,7 +1,6 @@
 import { Toaster } from '@/components/ui/sonner';
 import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import { SessionProvider } from '@/components/session-provider';
 import { GoogleAnalytics } from '@/components/analytics';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
@@ -85,12 +84,6 @@ export default function RootLayout({
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 -z-10 bg-[url('/b2.webp')] bg-cover bg-center opacity-[0.18] dark:opacity-[0.07]"
-        />
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8612373668638236"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
         />
         <GoogleAnalytics measurementId="G-HWFWE6ED59" />
         <SessionProvider>
