@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:24.22.1-alpine
 
 # Socket.IO 服務專用映像檔；Next.js 前端改部署於 Vercel，不在此建置
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
