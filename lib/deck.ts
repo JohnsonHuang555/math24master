@@ -46,8 +46,8 @@ export function shuffleArray<T>(array: T[]) {
   return shuffledArray;
 }
 
-/** 產生拉密牌庫：4 色 × 13 值 × 2 份 = 104 張 + 2 Jokers，已洗牌 */
-export function createRummyDeck() {
+/** 產生牌桌模式牌庫：4 色 × 13 值 × 2 份 = 104 張 + 2 Jokers，已洗牌 */
+export function createTabletopDeck() {
   const colors = ['red', 'blue', 'yellow', 'black'] as const;
   const cards: NumberCard[] = [];
 

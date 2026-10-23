@@ -24,11 +24,7 @@ export enum SocketEvent {
   ReselectCard = 'reselect-card',
   BackCard = 'back-card',
 
-  // rummy events (f2e emit)
-  RummyDrawCard = 'rummy-draw-card',
-  RummySubmitTurn = 'rummy-submit-turn',
-  RummyDeclareJoker = 'rummy-declare-joker',
-  RummySwapJoker = 'rummy-swap-joker',
+  // bot events (f2e emit)：搶答模式加入電腦玩家
   AddBotToRoom = 'add-bot-to-room',
 
   // b2e emit

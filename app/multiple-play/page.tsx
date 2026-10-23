@@ -33,11 +33,10 @@ import {
 const RELOAD_ROOMS_TIMER = 1000;
 const roomId = uuidv4();
 
-type GameTypeFilter = 'all' | 'classic' | 'rummy' | 'buzzer';
+type GameTypeFilter = 'all' | 'classic' | 'buzzer';
 
 const GAME_TYPE_LABELS: Record<string, string> = {
   classic: '傳統',
-  rummy: '拉密',
   buzzer: '搶答',
 };
 
@@ -54,16 +53,6 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
       hover: 'hover:bg-teal-100/70 dark:hover:bg-teal-900/30',
       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
       icon: 'bg-teal-500',
-      name: 'text-teal-800 dark:text-teal-200',
-      count: 'text-teal-600 dark:text-teal-400',
-    },
-    rummy: {
-      border: 'border-teal-200 dark:border-teal-800',
-      bg: 'bg-teal-50/60 dark:bg-teal-900/10',
-      shadow: 'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
-      hover: 'hover:bg-teal-100/50 dark:hover:bg-teal-900/20',
-      badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
-      icon: 'bg-teal-400',
       name: 'text-teal-800 dark:text-teal-200',
       count: 'text-teal-600 dark:text-teal-400',
     },
@@ -200,7 +189,6 @@ export default function MultiplePlayPage() {
   // const FILTERS: { value: GameTypeFilter; label: string }[] = [
   //   { value: 'all', label: '全部' },
   //   { value: 'classic', label: '傳統' },
-  //   { value: 'rummy', label: '拉密' },
   //   { value: 'buzzer', label: '搶答' },
   // ];
 

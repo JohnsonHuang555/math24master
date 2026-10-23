@@ -17,7 +17,7 @@ import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
 import { NumberCard, Player } from '@/models/Player';
-import { BuzzerSettings, EquationGroup, GameType, Room, RoomSettings } from '@/models/Room';
+import { BuzzerSettings, GameType, Room, RoomSettings } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -64,10 +64,6 @@ type MultiplePlayContextData = {
   editRoomSettings: (
     settings: Partial<RoomSettings> & { maxPlayers?: number },
   ) => void;
-  // 拉密模式
-  onRummyDraw: () => void;
-  onRummySubmit: (submittedBoard: EquationGroup[], playedCardIds: string[]) => void;
-  onSwapJoker: (handCardId: string, jokerCardId: string) => void;
   removePlayer: (playerId: string) => void;
   checkAnswerCorrect: boolean | null;
   isSymbolScoreAnimationFinished: boolean;
@@ -544,25 +540,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     setGameAbortedData(null);
   }, []);
 
-  // 拉密：抽 1 張牌
-  const onRummyDraw = useCallback(() => {
-    if (roomInfo?.isGameOver || !isYourTurn) return;
-    socket.emit(SocketEvent.RummyDrawCard, { roomId: roomInfo?.roomId });
-  }, [isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId]);
-
-  // 拉密：提交桌面
-  const onRummySubmit = useCallback(
-    (submittedBoard: EquationGroup[], playedCardIds: string[]) => {
-      if (roomInfo?.isGameOver || !isYourTurn) return;
-      socket.emit(SocketEvent.RummySubmitTurn, {
-        roomId: roomInfo?.roomId,
-        submittedBoard,
-        playedCardIds,
-      });
-    },
-    [isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId],
-  );
-
   const addBot = useCallback(
     (difficulty: 'easy' | 'normal' | 'hard') => {
       if (!roomInfo?.roomId) return;
@@ -571,32 +548,15 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     [roomInfo?.roomId],
   );
 
-  // 拉密：換取桌面 Joker
-  const onSwapJoker = useCallback(
-    (handCardId: string, jokerCardId: string) => {
-      if (roomInfo?.isGameOver || !isYourTurn) return;
-      socket.emit(SocketEvent.RummySwapJoker, {
-        roomId: roomInfo?.roomId,
-        handCardId,
-        jokerCardId,
-      });
-    },
-    [isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId],
-  );
-
   useEffect(() => {
     if (
       remainRoundTime?.countdown === 0 &&
       remainRoundTime.needDrawPlayerId === playerId
     ) {
-      if (roomInfo?.settings.gameType === 'rummy') {
-        onRummyDraw();
-      } else {
-        onDrawCard();
-      }
+      onDrawCard();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDrawCard, onRummyDraw, playerId, remainRoundTime?.countdown, roomInfo?.settings.gameType]);
+  }, [onDrawCard, playerId, remainRoundTime?.countdown]);
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
@@ -632,9 +592,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       onCloseGameOver,
       gameAbortedData,
       clearGameAbortedData,
-      onRummyDraw,
-      onRummySubmit,
-      onSwapJoker,
       addBot,
       connectionStatus,
     };
@@ -661,11 +618,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     onReadyGame,
     onReselect,
     addBot,
-    onRummyDraw,
-    onRummySubmit,
     onSelectCardOrSymbol,
     onStartGame,
-    onSwapJoker,
     onUpdateScore,
     playerId,
     remainRoundTime?.countdown,

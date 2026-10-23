@@ -1,5 +1,5 @@
 import { evaluate } from 'mathjs';
-import { createRummyDeck, draw } from '@/lib/deck';
+import { createTabletopDeck, draw } from '@/lib/deck';
 import { NumberCard } from '@/models/Player';
 import {
   TABLETOP_HAND_SIZE,
@@ -19,7 +19,7 @@ const GAME_ENDED = '這局已經結束';
 export function createTabletopGame(
   difficulty: TabletopDifficulty,
 ): TabletopGameState {
-  let deck = createRummyDeck();
+  let deck = createTabletopDeck();
   const seats: TabletopSeat[] = SEAT_NAMES.map((name, i) => {
     const { drawn, remaining } = draw(deck, TABLETOP_HAND_SIZE);
     deck = remaining;

@@ -104,7 +104,6 @@ export function createInitialRoom(difficulty: Difficulty): Room {
     isMaster: true,
     isLastRoundPlayer: false,
     isReady: true,
-    hasMelded: false,
   };
 
   return {
@@ -122,7 +121,6 @@ export function createInitialRoom(difficulty: Difficulty): Room {
       difficulty,
       gameType: 'classic',
     },
-    board: [],
   };
 }
 
