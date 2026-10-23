@@ -1,27 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { LeaderboardMode, LeaderboardRow } from '@/lib/leaderboard';
 
-export type LeaderboardMode =
-  | 'normal'
-  | 'challenge'
-  | 'classic'
-  | 'quickmath'
-  | 'quickmath_advanced'
-  | 'match';
-
-export interface LeaderboardRow {
-  rank: number;
-  userId: string;
-  displayName: string;
-  photoURL: string | null;
-  seconds?: number;
-  totalScore?: number;
-  rankingScore?: number;
-  stage?: number;
-  score?: number;
-  submittedAt: string | null;
-}
+export type { LeaderboardMode, LeaderboardRow };
 
 export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);

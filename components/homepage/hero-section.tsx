@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Award, BarChart2, Trophy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,13 +14,11 @@ const HERO_CARDS = [
 ];
 
 type HeroSectionProps = {
-  onOpenLeaderboardModal: () => void;
   onOpenStatsModal: () => void;
   onOpenAchievementModal: () => void;
 };
 
 const HeroSection = ({
-  onOpenLeaderboardModal,
   onOpenStatsModal,
   onOpenAchievementModal,
 }: HeroSectionProps) => {
@@ -49,9 +48,9 @@ const HeroSection = ({
             variant="ghost"
             size="sm"
             className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
-            onClick={onOpenLeaderboardModal}
+            asChild
           >
-            排行榜
+            <Link href="/leaderboard">排行榜</Link>
           </Button>
           <Button
             variant="ghost"
@@ -75,10 +74,11 @@ const HeroSection = ({
             variant="ghost"
             size="icon"
             className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
-            onClick={onOpenLeaderboardModal}
-            aria-label="排行榜"
+            asChild
           >
-            <Trophy className="h-5 w-5" />
+            <Link href="/leaderboard" aria-label="排行榜">
+              <Trophy className="h-5 w-5" />
+            </Link>
           </Button>
           <Button
             variant="ghost"
@@ -102,7 +102,7 @@ const HeroSection = ({
       </header>
 
       {/* Hero 中心內容 */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-16 pt-4 text-center md:gap-8 md:pb-24">
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-16 text-center md:gap-8 md:pb-24">
         {/* 牌面扇形 */}
         <div className="flex items-end justify-center" aria-hidden>
           {HERO_CARDS.map(card => (
@@ -123,7 +123,7 @@ const HeroSection = ({
                 damping: 16,
                 // delay: reduceMotion ? 0 : 0.08 + i * 0.1,
               }}
-              className="-mx-2 flex aspect-5/7 w-[88px] items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-5xl font-bold text-zinc-800 shadow-[0_8px_0_0_rgba(0,0,0,0.10)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 md:-mx-3 md:w-[120px] md:rounded-3xl md:text-6xl lg:w-[130px] lg:text-6xl"
+              className="-mx-2 flex aspect-5/7 w-[88px] items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-5xl font-bold text-zinc-800 shadow-[0_8px_0_0_rgba(0,0,0,0.10)] md:-mx-3 md:w-[120px] md:rounded-3xl md:text-6xl lg:w-[130px] lg:text-6xl dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             >
               {card.value}
             </motion.div>
@@ -139,7 +139,7 @@ const HeroSection = ({
             duration: 0.45,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="rounded-full border border-primary/25 bg-white/80 px-5 py-2 font-display text-sm font-semibold text-primary shadow-xs backdrop-blur-xs dark:bg-zinc-900/80 md:text-base"
+          className="rounded-full border border-primary/25 bg-white/80 px-5 py-2 font-display text-sm font-semibold text-primary shadow-xs backdrop-blur-xs md:text-base dark:bg-zinc-900/80"
         >
           6 × 4 × (3 - 2) = 24
         </motion.div>
@@ -155,7 +155,7 @@ const HeroSection = ({
           }}
           className="space-y-3"
         >
-          <h1 className="font-display text-3xl font-black leading-none tracking-tight text-foreground md:text-6xl lg:text-6xl">
+          <h1 className="font-display text-3xl leading-none font-black tracking-tight text-foreground md:text-6xl lg:text-6xl">
             你能用 4 張牌
             <br />
             算出 <span className="text-primary">24</span> 嗎？

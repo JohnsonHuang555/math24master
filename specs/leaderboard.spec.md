@@ -2,112 +2,106 @@
 
 ## 概覽
 
-排行榜功能讓玩家在完成各遊戲模式後提交成績，與全球玩家比較排名。需要登入才能提交與查看個人排名。
+玩家完成各遊戲模式後提交成績，與全球玩家比較排名。每位玩家在每個難度只保留**最佳成績**。術語定義見 [CONTEXT.md](../CONTEXT.md) 的「排行榜」與「難度」。
 
 ---
 
-## 支援模式
+## 排行榜與難度
 
-| 模式 | 評比指標 | 說明 |
-|------|---------|------|
-| `classic` | 總分（score）| 數值越高排名越前 |
-| `normal` | 完成秒數（seconds）| 數值越低排名越前 |
-| `challenge` | 連續答對題數（stage）| 數值越高排名越前 |
+**排行榜 = 一個遊戲模式**；同一模式底下的**難度**各自獨立排名。API 的 `mode` 參數以「難度」為單位，一個難度對應一個 Firestore collection（見 [ADR 0003](../docs/adr/0003-advanced-mode-separate-leaderboard-collection.md)）。
+
+| 排行榜 | 難度 | API `mode` | Collection | 評比欄位 | 排序 |
+|--------|------|-----------|------------|---------|------|
+| 經典 | - | `classic` | `leaderboard_classic` | `score` | 高到低 |
+| 挑戰 | - | `challenge` | `leaderboard_challenge` | `stage` | 高到低 |
+| 消消樂 | - | `match` | `leaderboard_matching` | `score` | 高到低 |
+| 快答 | 基礎 | `quickmath` | `leaderboard_quickmath` | `seconds` | 低到高 |
+| 快答 | 進階 | `quickmath_advanced` | `leaderboard_quickmath_advanced` | `seconds` | 低到高 |
+
+排行榜與難度的對照、URL 參數解析、成績格式化集中在 [lib/leaderboard.ts](../lib/leaderboard.ts)。
+
+- 名次採 **1224 標準競賽排名**：同分並列，下一位跳號
+- 分數為 0 的紀錄（經典、消消樂的 `score`；挑戰的 `totalScore`）不上榜，資料庫仍會寫入
+- 關卡模式（normal）已下架，排行榜一併移除；回歸時以新 collection 重開
 
 ---
 
-## 登入需求
+## 身分
 
-- 使用 **NextAuth.js + Google OAuth** 進行身份驗證
-- 未登入狀態：可查看排行榜，但無法提交成績
-- 登入後自動帶入玩家名稱
+- **Google 登入**（Auth.js）：`userId` 為 session 的 user id，附帶頭像
+- **訪客登入**：本機產生 `guest_<uuid>` 與 2~12 字暱稱，無頭像
+- 未登入可查看排行榜，但無法提交成績；結算時未登入的成績會暫存（`pending-score-store`），登入後由 `PendingScoreSubmitter` 補送
 
 ---
 
-## 成績提交
+## API
 
-### 觸發時機
-- 遊戲結束後自動嘗試提交（`useLeaderboardSubmit` hook）
-- 需有有效登入 session
+### `POST /api/leaderboard`：提交成績
 
-### API 規格
-
-**Endpoint**：`POST /api/leaderboard`
-
-**Request Body**：
 ```typescript
 {
-  mode: 'classic' | 'normal' | 'challenge';
-  score?: number;    // classic 模式
-  seconds?: number;  // normal 模式
-  stage?: number;    // challenge 模式
+  mode: LeaderboardMode;
+  payload: { score } | { stage, totalScore } | { seconds };
+  guestId?: string;   // 訪客
+  guestName?: string; // 訪客
 }
 ```
 
-**Response**：
-- `200 OK`：提交成功
-- `401 Unauthorized`：未登入
-- `400 Bad Request`：資料格式錯誤
+- 伺服器端驗證成績上限（經典 66 分、消消樂 40 分、挑戰 500 關、快答 10~300 秒）
+- 只有優於舊紀錄才覆寫，回傳 `{ ok: true, updated: boolean }`
+- `401`：無身分；`400`：mode 或成績不合法
+
+### `GET /api/leaderboard?mode={mode}`：前 100 名
+
+回傳 `LeaderboardRow[]`（含 `rank`、`userId`、`displayName`、`photoURL` 與該模式的成績欄位）。設定 `s-maxage=60` CDN 快取，所以新成績最多晚 60 秒出現在列表中。
+
+### `GET /api/leaderboard/rank?mode={mode}[&guestId=]`：我的名次
+
+- 依 session（或 `guestId`）找出本人紀錄，名次 = `count(成績嚴格優於我) + 1`，與列表的並列規則一致，**不受前 100 名限制**
+- 無紀錄或 0 分回傳 `null`；無身分回傳 `401`
+- `Cache-Control: private, no-store`：個人資料絕不可進 CDN 快取
 
 ---
 
-## 排行榜查詢
+## 排行榜頁（`/leaderboard`）
 
-### API 規格
-
-**Endpoint**：`GET /api/leaderboard?mode={mode}`
-
-**Response**：
-```typescript
-{
-  entries: {
-    rank: number;
-    playerName: string;
-    score: number;      // 依模式對應不同意義
-    createdAt: number;  // 時間戳（ms）
-  }[];
-}
-```
+- 網址：`/leaderboard?mode={排行榜}&level={難度}`，沒帶參數時預設經典；單一難度的排行榜不帶 `level`
+- 首頁的「排行榜」按鈕連到此頁
+- **模式選擇**：chip 列，手機可橫向捲動
+- **難度切換**：segmented control，只在該排行榜有多個難度時出現
+- **頒獎台**：前三名（金 amber、銀 zinc、銅深 amber 的 `Medal` 圖示），並列時依實際名次上色
+- **列表**：第 4~100 名，不分頁；本人那一列高亮並標示「我」
+- **我的名次**（固定於頁面底部）：
+  - 未登入：「登入後即可上榜」+ Google／訪客登入
+  - 尚無紀錄或 0 分：「尚無紀錄」+ 開始遊戲
+  - 有紀錄：「第 N 名」+ 成績
+- **右上角**：登入身分（頭像、名字、訪客標籤）與登出
 
 ---
 
-## 資料庫結構（Firebase Firestore）
+## 結算畫面
 
-### Collection：`leaderboard`
+經典、挑戰、消消樂（全清時）、快答的結算畫面各有一顆「第 N 名 · 查看排行榜」按鈕（尚無名次時顯示「查看排行榜」），點開精簡 modal：
 
-```
-leaderboard/
-├── classic/
-│   └── {docId}: { userId, playerName, score, createdAt }
-├── normal/
-│   └── {docId}: { userId, playerName, seconds, createdAt }
-└── challenge/
-    └── {docId}: { userId, playerName, stage, createdAt }
-```
+- **我的名次**：狀態同排行榜頁；這次刷新個人最佳時附「新紀錄」標籤（取自 `useLeaderboardSubmit` 回傳的 `updated`）
+- **前 3 名**
+- **查看完整排行榜**：連到 `/leaderboard?mode=…&level=…`
 
-- 每位玩家每種模式只保留**最佳成績**（提交時若優於舊記錄則更新）
+時序：
 
----
-
-## 排行榜 UI（LeaderboardModal）
-
-### 入口
-- 首頁點擊「排行榜」按鈕 → 開啟 `LeaderboardModal`
-
-### 顯示內容
-- 頂部 Tab 切換三種模式
-- 列表顯示排名、玩家名稱、成績數值
-- 目前登入玩家的記錄以高亮顯示
-- 載入中顯示 Skeleton
-- 未登入提示登入按鈕
+- 結算時已登入：`useLeaderboardSubmit` 回傳 `{ status, updated }`，送分中暫停查名次，送完自動重查
+- 結算後才登入：`PendingScoreSubmitter` 補送完會清空 `pendingScore`，此時重查名次；這條路徑不顯示「新紀錄」
+- `useMyRank` 只採用最後一次請求的回應，避免送分前的舊名次覆蓋新名次
 
 ---
 
 ## 原始碼對應
 
-- API 路由：[app/api/leaderboard/route.ts](../app/api/leaderboard/route.ts)
-- 資料查詢 Hook：[hooks/useLeaderboard.ts](../hooks/useLeaderboard.ts)
+- 排行榜與難度設定：[lib/leaderboard.ts](../lib/leaderboard.ts)
+- API 路由：[app/api/leaderboard/route.ts](../app/api/leaderboard/route.ts)、[app/api/leaderboard/rank/route.ts](../app/api/leaderboard/rank/route.ts)、[app/api/leaderboard/config.ts](../app/api/leaderboard/config.ts)
+- 排行榜頁：[app/leaderboard/leaderboard-view.tsx](../app/leaderboard/leaderboard-view.tsx)
+- 共用元件：[components/leaderboard/](../components/leaderboard/)（結算畫面入口為 `result-rank.tsx`）
+- 前 100 名 Hook：[hooks/useLeaderboard.ts](../hooks/useLeaderboard.ts)
+- 我的名次 Hook：[hooks/useMyRank.ts](../hooks/useMyRank.ts)
 - 成績提交 Hook：[hooks/useLeaderboardSubmit.ts](../hooks/useLeaderboardSubmit.ts)
-- 排行榜 Modal：[components/modals/leaderboard-modal.tsx](../components/modals/leaderboard-modal.tsx)
 - Firebase 初始化：[lib/firebase-admin.ts](../lib/firebase-admin.ts)
-- NextAuth 路由：[app/api/auth/[...nextauth]/route.ts](../app/api/auth/[...nextauth]/route.ts)

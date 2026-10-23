@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Calculator,
@@ -13,12 +14,13 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { BackToHomeButton } from '@/components/back-to-home-button';
-import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
+import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
 import { LeaderboardMode } from '@/hooks/useLeaderboard';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { WRONG_PENALTY_SECONDS, useQuickMath } from '@/hooks/useQuickMath';
+import { leaderboardHref } from '@/lib/leaderboard';
 import { TOTAL_QUESTIONS } from '@/lib/quick-math-generator';
 import { cn, formatTimePrecise } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
@@ -82,7 +84,6 @@ export default function QuickMathPage() {
     restart,
   } = useQuickMath();
 
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const { status: sessionStatus } = useSession();
@@ -128,7 +129,7 @@ export default function QuickMathPage() {
   }, [justFinished]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 完賽：已登入直接提交排行榜
-  useLeaderboardSubmit(
+  const leaderboardSubmit = useLeaderboardSubmit(
     leaderboardMode,
     justFinished && isAuthenticated && finalSeconds !== null
       ? { seconds: finalSeconds }
@@ -302,13 +303,11 @@ export default function QuickMathPage() {
             </div>
           )}
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => setShowLeaderboard(true)}
-            >
-              <Trophy className="h-4 w-4" />
-              排行榜
+            <Button variant="outline" className="gap-1.5" asChild>
+              <Link href={leaderboardHref(leaderboardMode)}>
+                <Trophy className="h-4 w-4" />
+                排行榜
+              </Link>
             </Button>
             <Button variant="tactile" className="gap-1.5" onClick={startGame}>
               <Play className="h-4 w-4" />
@@ -321,11 +320,6 @@ export default function QuickMathPage() {
           >
             切換模式
           </button>
-          <LeaderboardModal
-            isOpen={showLeaderboard}
-            onClose={() => setShowLeaderboard(false)}
-            defaultTab={leaderboardMode}
-          />
         </main>
       </div>
     );
@@ -351,7 +345,7 @@ export default function QuickMathPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={reduceMotion ? undefined : { scale: 0.7, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 280, damping: 18 }}
-                className="font-display text-[120px] font-black leading-none text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+                className="font-display text-[120px] leading-none font-black text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
               >
                 {countdownValue}
               </motion.span>
@@ -415,33 +409,19 @@ export default function QuickMathPage() {
                 )}
             </div>
 
-            <div className="flex w-full gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 gap-1.5"
-                onClick={() => setShowLeaderboard(true)}
-              >
-                <Trophy className="h-4 w-4" />
-                排行榜
-              </Button>
-              <Button
-                variant="tactile"
-                className="flex-1 gap-1.5"
-                onClick={() => {
-                  restart();
-                  startGame();
-                }}
-              >
-                <RotateCcw className="h-4 w-4" />
-                再玩一次
-              </Button>
-            </div>
+            <ResultRank mode={leaderboardMode} submit={leaderboardSubmit} />
+            <Button
+              variant="tactile"
+              className="w-full gap-1.5"
+              onClick={() => {
+                restart();
+                startGame();
+              }}
+            >
+              <RotateCcw className="h-4 w-4" />
+              再玩一次
+            </Button>
           </motion.div>
-          <LeaderboardModal
-            isOpen={showLeaderboard}
-            onClose={() => setShowLeaderboard(false)}
-            defaultTab={leaderboardMode}
-          />
           <LoginPromptModal
             isOpen={showLoginPrompt}
             onClose={() => setShowLoginPrompt(false)}
@@ -466,7 +446,7 @@ export default function QuickMathPage() {
       {/* HUD */}
       <div className="flex flex-col items-center gap-1">
         <div className="relative flex items-baseline gap-3">
-          <span className="font-display text-4xl font-bold tabular-nums text-primary">
+          <span className="font-display text-4xl font-bold text-primary tabular-nums">
             {formatTimePrecise(displaySeconds)}
           </span>
           <span className="text-sm text-muted-foreground">
@@ -482,7 +462,7 @@ export default function QuickMathPage() {
                 animate={{ opacity: 1, y: -8 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4 }}
-                className="absolute -right-12 top-0 font-display text-lg font-black text-red-500"
+                className="absolute top-0 -right-12 font-display text-lg font-black text-red-500"
               >
                 +{WRONG_PENALTY_SECONDS}s
               </motion.span>

@@ -79,4 +79,4 @@
 
 - Store 定義：[stores/stats-store.ts](../stores/stats-store.ts)
 - 統計 Modal：[components/modals/stats-modal.tsx](../components/modals/stats-modal.tsx)
-- 更新觸發：[hooks/useGameActions.ts](../hooks/useGameActions.ts), [hooks/useSinglePlay.ts](../hooks/useSinglePlay.ts), [hooks/useNormalPlay.ts](../hooks/useNormalPlay.ts), [hooks/useChallengePlay.ts](../hooks/useChallengePlay.ts)
+- 更新觸發：[hooks/useGameActions.ts](../hooks/useGameActions.ts), [hooks/useSinglePlay.ts](../hooks/useSinglePlay.ts), [hooks/useChallengePlay.ts](../hooks/useChallengePlay.ts)

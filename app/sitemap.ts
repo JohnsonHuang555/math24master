@@ -32,5 +32,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: 'https://math24master.com/leaderboard',
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
   ];
 }

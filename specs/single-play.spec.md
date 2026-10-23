@@ -15,7 +15,6 @@
 | 模式 | 顏色標記 | 說明 |
 |------|---------|------|
 | 經典模式 | 紫色 | 無時限，連線到伺服器單人房 |
-| 關卡模式 | 藍色 | 10 題計時挑戰 |
 | 挑戰模式 | 橙色 | 5 分鐘倒數連續答題 |
 
 ---
@@ -51,36 +50,7 @@ idle → playing → finished（game-over）
 
 ## 2. 關卡模式（Normal）
 
-### 路由
-`/single-play/normal`
-
-### 遊戲規則
-- 共 **10 題**，每題為一組隨機 4 張牌（保證有解）
-- 使用碼錶計時（stopwatch），從 0 開始累計
-- 答錯一次：**+10 秒**懲罰
-- 10 題全部完成後遊戲結束，記錄完成時間
-
-### 狀態機
-
-```
-idle → playing → finished
-```
-
-### 成績記錄
-- 本地儲存最多 **100 筆**歷史紀錄
-- 每筆記錄包含：完成秒數、是否完美（零懲罰）、日期
-- 最佳紀錄（`normalBestSeconds`）儲存於 stats store
-
-### 特殊行為
-- 遊戲結束後觸發統計更新（`incrementNormalPlays`, `updateNormalBest`）
-- 完美完成（無懲罰）：觸發 `incrementNormalPerfectRuns`
-- 成就解鎖：`normal_first`（首次完成）、`normal_perfect`（完美通關）
-
-### 原始碼
-- [hooks/useNormalPlay.ts](../hooks/useNormalPlay.ts)
-- [hooks/useTimer.ts](../hooks/useTimer.ts)
-- [lib/puzzle-generator.ts](../lib/puzzle-generator.ts)
-- [app/single-play/[mode]/normal-play-game.tsx](../app/single-play/[mode]/normal-play-game.tsx)
+已下架，遊戲程式碼與排行榜一併移除，改版為固定題庫後再以全新排行榜回歸。玩家既有的 `normal*` 統計欄位與 `normal_first` / `normal_perfect` 成就保留不動。
 
 ---
 

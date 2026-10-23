@@ -2,12 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type PendingScoreMode =
-  | 'classic'
-  | 'normal'
-  | 'challenge'
-  | 'quickmath'
-  | 'quickmath_advanced'
-  | 'match';
+  'classic' | 'challenge' | 'quickmath' | 'quickmath_advanced' | 'match';
 
 type PendingScore = {
   mode: PendingScoreMode;
