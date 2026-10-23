@@ -33,6 +33,7 @@ const Symbols = ({ onClick }: SymbolsProps) => {
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           onClick={() => onClick(config.symbol)}
+          data-testid={`symbol-${config.symbol}`}
           className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border-2 border-zinc-200 bg-white shadow-[0_3px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-primary/40 hover:bg-zinc-50 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
         >
           {config.type === 'image' ? (
