@@ -17,6 +17,7 @@ npm run dev           # Start Next.js (:3000) + Socket.IO server (:3001, nodemon
 npm run build         # Build Next.js app
 npm start             # Run Next.js production build
 npm run start:socket  # Run Socket.IO server in production mode (tsx server/index.ts)
+npm run lint          # ESLint CLI (flat config: eslint.config.mjs)
 ```
 
 ### Deployment
@@ -30,7 +31,7 @@ npm run start:socket  # Run Socket.IO server in production mode (tsx server/inde
 - `npm run test:e2e` — Playwright E2E (`e2e/`). Starts Firestore Emulator (:8180), Socket.IO server (:3101) and a separate Next.js build in `.next-e2e` (:3100) automatically, so it does not clash with `npm run dev`. Requires **Java 21+** for the emulator; first run also needs `npx playwright install chromium`.
 - E2E skips the real Google OAuth screen by writing an Auth.js session cookie signed with a test-only `AUTH_SECRET` (`e2e/helpers/auth.ts`); leaderboard writes go to the emulator (`demo-math24` project), never production.
 
-Linting uses ESLint (`next/core-web-vitals` + prettier). Prettier handles import sorting (`@trivago/prettier-plugin-sort-imports`) and Tailwind class sorting (`prettier-plugin-tailwindcss`).
+Linting uses ESLint flat config (`eslint.config.mjs`: `eslint-config-next/core-web-vitals` + prettier); `next lint` was removed in Next.js 16. Prettier handles import sorting (`@trivago/prettier-plugin-sort-imports`) and Tailwind class sorting (`prettier-plugin-tailwindcss`).
 
 ## Architecture
 
