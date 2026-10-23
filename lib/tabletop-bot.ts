@@ -1,24 +1,24 @@
 import { v4 as uuidv4 } from 'uuid';
-import { colorPattern, scoreSet } from '@/lib/rummy-engine';
+import { colorPattern, scoreSet } from '@/lib/tabletop-engine';
 import { CardColor, NumberCard } from '@/models/Player';
 import {
-  RUMMY_MAX_SET_SIZE,
-  RUMMY_MIN_SET_SIZE,
-  RummyDifficulty,
-  RummyGameState,
-  RummyOperator,
-  RummySet,
-  RummyTile,
-} from '@/models/Rummy';
+  TABLETOP_MAX_SET_SIZE,
+  TABLETOP_MIN_SET_SIZE,
+  TabletopDifficulty,
+  TabletopGameState,
+  TabletopOperator,
+  TabletopSet,
+  TabletopTile,
+} from '@/models/Tabletop';
 
 type Expr =
   | { kind: 'leaf'; index: number }
-  | { kind: 'op'; op: RummyOperator; left: Expr; right: Expr };
+  | { kind: 'op'; op: TabletopOperator; left: Expr; right: Expr };
 
 // times / divide 記錄用了幾個 × 與 ÷（+ − 的數量 = 牌數 − 1 − 兩者），用來算符號分
 type Entry = { value: number; times: number; divide: number; expr: Expr };
 
-const PRECEDENCE: Record<RummyOperator, number> = {
+const PRECEDENCE: Record<TabletopOperator, number> = {
   '+': 1,
   '-': 1,
   '*': 2,
@@ -30,7 +30,7 @@ function entryKey(value: number, times: number, divide: number): number {
   return Math.round(value * 1e6) * 100 + times * 10 + divide;
 }
 
-const OPS: RummyOperator[] = ['+', '*', '-', '/'];
+const OPS: TabletopOperator[] = ['+', '*', '-', '/'];
 
 const ALL_COLORS: CardColor[] = ['red', 'blue', 'yellow', 'black'];
 
@@ -115,7 +115,7 @@ function solveValues(values: number[]): Expr | null {
   return (best as Entry | null)?.expr ?? null;
 }
 
-function apply(op: RummyOperator, a: number, b: number): number {
+function apply(op: TabletopOperator, a: number, b: number): number {
   if (op === '+') return a + b;
   if (op === '-') return a - b;
   if (op === '*') return a * b;
@@ -123,11 +123,11 @@ function apply(op: RummyOperator, a: number, b: number): number {
 }
 
 /** 依運算優先順序只在必要時加括號 */
-function toTiles(expr: Expr, cards: NumberCard[]): RummyTile[] {
+function toTiles(expr: Expr, cards: NumberCard[]): TabletopTile[] {
   if (expr.kind === 'leaf')
     return [{ type: 'number', card: cards[expr.index] }];
 
-  const wrap = (child: Expr, isRight: boolean): RummyTile[] => {
+  const wrap = (child: Expr, isRight: boolean): TabletopTile[] => {
     const tiles = toTiles(child, cards);
     if (child.kind === 'leaf') return tiles;
     const childPrec = PRECEDENCE[child.op];
@@ -192,7 +192,7 @@ function bestJokerColor(others: NumberCard[]): CardColor | null {
   return null;
 }
 
-function solveDeclared(cards: NumberCard[]): RummySet | null {
+function solveDeclared(cards: NumberCard[]): TabletopSet | null {
   // 顏色不合法就不必解算式
   if (!colorPattern(cards)) return null;
   const sorted = [...cards].sort((a, b) => valueOf(a) - valueOf(b));
@@ -205,7 +205,7 @@ function solveDeclared(cards: NumberCard[]): RummySet | null {
  * 用完給定的每一張牌組成等於 24 的牌組；無解時回傳 null。
  * 已宣告的 Joker 維持原宣告；未宣告的 Joker（最多 1 張）挑分數最高的宣告值與倍率最高的顏色。
  */
-export function solveSet(cards: NumberCard[]): RummySet | null {
+export function solveSet(cards: NumberCard[]): TabletopSet | null {
   const undeclared = cards.filter(isUndeclaredJoker);
   if (undeclared.length === 0) return solveDeclared(cards);
   if (undeclared.length > 1) return null;
@@ -214,7 +214,7 @@ export function solveSet(cards: NumberCard[]): RummySet | null {
   const others = cards.filter(c => c !== joker);
   const color = bestJokerColor(others);
   if (!color) return null;
-  let best: RummySet | null = null;
+  let best: TabletopSet | null = null;
   for (let value = 1; value <= 13; value++) {
     const declared = {
       ...joker,
@@ -237,15 +237,15 @@ export function solveSet(cards: NumberCard[]): RummySet | null {
 export type BotAction = {
   kind: 'newSet' | 'extend' | 'regroup';
   fromSetIds: string[];
-  sets: RummySet[];
+  sets: TabletopSet[];
   handCardsUsed: number;
   score: number;
 };
 
 export type BotMove =
-  { type: 'draw' } | { type: 'play'; table: RummySet[]; action: BotAction };
+  { type: 'draw' } | { type: 'play'; table: TabletopSet[]; action: BotAction };
 
-type Candidate = { action: BotAction; table: RummySet[] };
+type Candidate = { action: BotAction; table: TabletopSet[] };
 
 type BotConfig = {
   maxExtendCards: number; // 接牌時最多接幾張手牌
@@ -254,7 +254,7 @@ type BotConfig = {
   maxSolves: number; // 每次思考最多解幾次算式（搜尋上限）
 };
 
-const BOT_CONFIG: Record<RummyDifficulty, BotConfig> = {
+const BOT_CONFIG: Record<TabletopDifficulty, BotConfig> = {
   easy: {
     maxExtendCards: 1,
     maxRegroupSets: 0,
@@ -275,7 +275,7 @@ const BOT_CONFIG: Record<RummyDifficulty, BotConfig> = {
   },
 };
 
-function cardsOf(set: RummySet): NumberCard[] {
+function cardsOf(set: TabletopSet): NumberCard[] {
   return set.tiles.flatMap(t => (t.type === 'number' ? [t.card] : []));
 }
 
@@ -296,7 +296,7 @@ function subsets<T>(items: T[], size: number): T[][] {
 
 /** 決定 Bot 這回合怎麼走（每回合只完成一組牌組）；回傳的 table 直接交給 submitTurn */
 export function chooseBotMove(
-  state: RummyGameState,
+  state: TabletopGameState,
   rng: () => number = Math.random,
 ): BotMove {
   const config = BOT_CONFIG[state.difficulty];
@@ -318,7 +318,7 @@ export function chooseBotMove(
   return { type: 'play', table: chosen.table, action: chosen.action };
 }
 
-type Solver = (cards: NumberCard[]) => RummySet | null;
+type Solver = (cards: NumberCard[]) => TabletopSet | null;
 
 /**
  * 有額度的 solveSet：每次思考最多解 config.maxSolves 次，用次數而非時間限制，結果可重現。
@@ -338,7 +338,7 @@ function budgetedSolver(maxSolves: number) {
 
 /** 依 新組 → 接牌 → 拆組 → 合組 的順序產生候選；額度用完時，最先被犧牲的是最深的搜尋 */
 function generateCandidates(
-  table: RummySet[],
+  table: TabletopSet[],
   hand: NumberCard[],
   config: BotConfig,
 ): Candidate[] {
@@ -346,7 +346,11 @@ function generateCandidates(
   const { solve, exhausted } = budgetedSolver(config.maxSolves);
 
   // 新組：只用手牌
-  for (let size = RUMMY_MIN_SET_SIZE; size <= RUMMY_MAX_SET_SIZE; size++) {
+  for (
+    let size = TABLETOP_MIN_SET_SIZE;
+    size <= TABLETOP_MAX_SET_SIZE;
+    size++
+  ) {
     for (const used of subsets(hand, size)) {
       if (exhausted()) return candidates;
       const set = solve(used);
@@ -368,7 +372,7 @@ function generateCandidates(
   table.forEach((target, index) => {
     const targetCards = cardsOf(target);
     for (let k = 1; k <= config.maxExtendCards; k++) {
-      if (targetCards.length + k > RUMMY_MAX_SET_SIZE) break;
+      if (targetCards.length + k > TABLETOP_MAX_SET_SIZE) break;
       for (const used of subsets(hand, k)) {
         if (exhausted()) return;
         const set = solve([...targetCards, ...used]);
@@ -423,7 +427,7 @@ function generateCandidates(
 }
 
 /** 與規則引擎一致：只有用到本回合手牌的牌組計分 */
-function scoreSets(sets: RummySet[], used: NumberCard[]): number {
+function scoreSets(sets: TabletopSet[], used: NumberCard[]): number {
   const usedIds = new Set(used.map(c => c.id));
   return sets
     .filter(s => cardsOf(s).some(c => usedIds.has(c.id)))
@@ -431,11 +435,15 @@ function scoreSets(sets: RummySet[], used: NumberCard[]): number {
 }
 
 /** 把所有牌切成每組 3～5 張、每組都等於 24 的牌組；切不完時回傳 null */
-function partition(pool: NumberCard[], solve: Solver): RummySet[] | null {
+function partition(pool: NumberCard[], solve: Solver): TabletopSet[] | null {
   if (pool.length === 0) return [];
-  if (pool.length < RUMMY_MIN_SET_SIZE) return null;
+  if (pool.length < TABLETOP_MIN_SET_SIZE) return null;
   const [first, ...rest] = pool;
-  for (let size = RUMMY_MIN_SET_SIZE; size <= RUMMY_MAX_SET_SIZE; size++) {
+  for (
+    let size = TABLETOP_MIN_SET_SIZE;
+    size <= TABLETOP_MAX_SET_SIZE;
+    size++
+  ) {
     for (const companions of subsets(rest, size - 1)) {
       const set = solve([first, ...companions]);
       if (!set) continue;

@@ -2,24 +2,26 @@ import { evaluate } from 'mathjs';
 import { createRummyDeck, draw } from '@/lib/deck';
 import { NumberCard } from '@/models/Player';
 import {
-  RUMMY_HAND_SIZE,
-  RUMMY_MAX_SET_SIZE,
-  RUMMY_MIN_SET_SIZE,
-  RUMMY_TURNS_PER_SEAT,
-  RummyDifficulty,
-  RummyGameState,
-  RummySeat,
-  RummySet,
-} from '@/models/Rummy';
+  TABLETOP_HAND_SIZE,
+  TABLETOP_MAX_SET_SIZE,
+  TABLETOP_MIN_SET_SIZE,
+  TABLETOP_TURNS_PER_SEAT,
+  TabletopDifficulty,
+  TabletopGameState,
+  TabletopSeat,
+  TabletopSet,
+} from '@/models/Tabletop';
 
 const SEAT_NAMES = ['你', 'Bot A', 'Bot B'];
 const GAME_ENDED = '這局已經結束';
 
-/** 開新的一局：玩家與 2 個 Bot 各發 RUMMY_HAND_SIZE 張，玩家先手 */
-export function createRummyGame(difficulty: RummyDifficulty): RummyGameState {
+/** 開新的一局：玩家與 2 個 Bot 各發 TABLETOP_HAND_SIZE 張，玩家先手 */
+export function createTabletopGame(
+  difficulty: TabletopDifficulty,
+): TabletopGameState {
   let deck = createRummyDeck();
-  const seats: RummySeat[] = SEAT_NAMES.map((name, i) => {
-    const { drawn, remaining } = draw(deck, RUMMY_HAND_SIZE);
+  const seats: TabletopSeat[] = SEAT_NAMES.map((name, i) => {
+    const { drawn, remaining } = draw(deck, TABLETOP_HAND_SIZE);
     deck = remaining;
     return { id: `seat-${i}`, name, isBot: i > 0, hand: drawn, score: 0 };
   });
@@ -36,7 +38,7 @@ export function createRummyGame(difficulty: RummyDifficulty): RummyGameState {
 
 export type SetValidation = { valid: true } | { valid: false; reason: string };
 
-function numberCards(set: RummySet): NumberCard[] {
+function numberCards(set: TabletopSet): NumberCard[] {
   return set.tiles.flatMap(t => (t.type === 'number' ? [t.card] : []));
 }
 
@@ -58,7 +60,7 @@ function isDeclared(card: NumberCard) {
   );
 }
 
-function toExpression(set: RummySet): string {
+function toExpression(set: TabletopSet): string {
   return set.tiles
     .map(t => {
       if (t.type === 'number') return String(effectiveValue(t.card));
@@ -69,7 +71,7 @@ function toExpression(set: RummySet): string {
 }
 
 /** 檢查數字與運算符號交替出現、括號平衡；避免 mathjs 把相鄰數字當成隱式乘法 */
-function isWellFormed(set: RummySet): boolean {
+function isWellFormed(set: TabletopSet): boolean {
   let expectOperand = true;
   let depth = 0;
   for (const t of set.tiles) {
@@ -108,12 +110,15 @@ const COLOR_RULE_REASON: Record<number, string> = {
 };
 
 /** 驗證單一牌組是否成立；reason 直接用於 UI 即時提示 */
-export function validateSet(set: RummySet): SetValidation {
+export function validateSet(set: TabletopSet): SetValidation {
   const cards = numberCards(set);
-  if (cards.length < RUMMY_MIN_SET_SIZE || cards.length > RUMMY_MAX_SET_SIZE) {
+  if (
+    cards.length < TABLETOP_MIN_SET_SIZE ||
+    cards.length > TABLETOP_MAX_SET_SIZE
+  ) {
     return {
       valid: false,
-      reason: `需要 ${RUMMY_MIN_SET_SIZE}～${RUMMY_MAX_SET_SIZE} 張數字牌（目前 ${cards.length} 張）`,
+      reason: `需要 ${TABLETOP_MIN_SET_SIZE}～${TABLETOP_MAX_SET_SIZE} 張數字牌（目前 ${cards.length} 張）`,
     };
   }
 
@@ -145,8 +150,8 @@ const CARD_COUNT_BONUS: Record<number, number> = { 3: 0, 4: 1, 5: 2 };
 // 同色比全異色難湊（隨機 3 張：同色約 6%、全異色約 38%），倍率較高；none 只會出現在不成立的牌組
 const COLOR_MULTIPLIER = { same: 2, rainbow: 1.5, none: 1 };
 
-/** 單組分數 = (符號分 + 張數分) × 顏色倍率（見 specs/game-rummy.spec.md「計分」） */
-export function scoreSet(set: RummySet): number {
+/** 單組分數 = (符號分 + 張數分) × 顏色倍率（見 specs/game-tabletop.spec.md「計分」） */
+export function scoreSet(set: TabletopSet): number {
   const ops = set.tiles.flatMap(t => (t.type === 'operator' ? [t.op] : []));
   const plusMinus = ops.filter(o => o === '+' || o === '-').length;
   const times = ops.filter(o => o === '*').length;
@@ -165,7 +170,7 @@ export function scoreSet(set: RummySet): number {
 }
 
 export type SubmitTurnResult =
-  | { success: true; state: RummyGameState; scoreGained: number }
+  | { success: true; state: TabletopGameState; scoreGained: number }
   | { success: false; error: string };
 
 /**
@@ -173,8 +178,8 @@ export type SubmitTurnResult =
  * 引擎只比對新舊桌面，判斷最終結果是否合法。
  */
 export function submitTurn(
-  state: RummyGameState,
-  proposedTable: RummySet[],
+  state: TabletopGameState,
+  proposedTable: TabletopSet[],
 ): SubmitTurnResult {
   if (state.status === 'ended') {
     return { success: false, error: GAME_ENDED };
@@ -239,9 +244,9 @@ export function submitTurn(
   }
   const scoreGained = scoreSet(completedSets[0]);
 
-  // 出牌後補到 RUMMY_HAND_SIZE 張，牌庫不夠就補到用完
+  // 出牌後補到 TABLETOP_HAND_SIZE 張，牌庫不夠就補到用完
   const remainingHand = seat.hand.filter(c => !playedIds.has(c.id));
-  const refillCount = Math.max(RUMMY_HAND_SIZE - remainingHand.length, 0);
+  const refillCount = Math.max(TABLETOP_HAND_SIZE - remainingHand.length, 0);
   const { drawn, remaining } = draw(state.deck, refillCount);
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat
@@ -266,10 +271,11 @@ export function submitTurn(
 }
 
 export type DrawCardResult =
-  { success: true; state: RummyGameState } | { success: false; error: string };
+  | { success: true; state: TabletopGameState }
+  | { success: false; error: string };
 
 /** 不出牌，從牌庫抽 1 張（牌庫已空就等同跳過），換下一位 */
-export function drawCard(state: RummyGameState): DrawCardResult {
+export function drawCard(state: TabletopGameState): DrawCardResult {
   if (state.status === 'ended') {
     return { success: false, error: GAME_ENDED };
   }
@@ -284,20 +290,20 @@ export function drawCard(state: RummyGameState): DrawCardResult {
   };
 }
 
-/** 換下一位；所有人都打滿 RUMMY_TURNS_PER_SEAT 回合就結算 */
-function advanceTurn(state: RummyGameState): RummyGameState {
+/** 換下一位；所有人都打滿 TABLETOP_TURNS_PER_SEAT 回合就結算 */
+function advanceTurn(state: TabletopGameState): TabletopGameState {
   const next = {
     ...state,
     currentSeat: (state.currentSeat + 1) % state.seats.length,
     turnsTaken: state.turnsTaken + 1,
   };
-  return next.turnsTaken >= RUMMY_TURNS_PER_SEAT * state.seats.length
+  return next.turnsTaken >= TABLETOP_TURNS_PER_SEAT * state.seats.length
     ? endGame(next)
     : next;
 }
 
 /** 結算：依牌組得分總和排名，同分並列同一名次，下一名跳過並列的人數（1, 1, 3） */
-function endGame(state: RummyGameState): RummyGameState {
+function endGame(state: TabletopGameState): TabletopGameState {
   const standings = state.seats
     .map(s => ({ seatId: s.id, score: s.score }))
     .sort((a, b) => b.score - a.score)

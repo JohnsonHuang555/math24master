@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createRummyGame,
+  createTabletopGame,
   drawCard,
   scoreSet,
   submitTurn,
   validateSet,
-} from '@/lib/rummy-engine';
+} from '@/lib/tabletop-engine';
 import { CardColor, NumberCard } from '@/models/Player';
 import {
-  RummyGameState,
-  RummyOperator,
-  RummySet,
-  RummyTile,
-} from '@/models/Rummy';
+  TabletopGameState,
+  TabletopOperator,
+  TabletopSet,
+  TabletopTile,
+} from '@/models/Tabletop';
 
 function card(id: string, value: number, color: CardColor): NumberCard {
   return { id, value, color };
@@ -28,12 +28,12 @@ function joker(id: string, value?: number, color?: CardColor): NumberCard {
   };
 }
 
-const n = (c: NumberCard): RummyTile => ({ type: 'number', card: c });
-const op = (o: RummyOperator): RummyTile => ({ type: 'operator', op: o });
-const L: RummyTile = { type: 'bracket', bracket: '(' };
-const R: RummyTile = { type: 'bracket', bracket: ')' };
+const n = (c: NumberCard): TabletopTile => ({ type: 'number', card: c });
+const op = (o: TabletopOperator): TabletopTile => ({ type: 'operator', op: o });
+const L: TabletopTile = { type: 'bracket', bracket: '(' };
+const R: TabletopTile = { type: 'bracket', bracket: ')' };
 
-function set(id: string, tiles: RummyTile[]): RummySet {
+function set(id: string, tiles: TabletopTile[]): TabletopSet {
   return { id, tiles };
 }
 
@@ -46,12 +46,12 @@ function deckOf(count: number): NumberCard[] {
 /** 建立指定手牌、桌面、牌庫的一局；未指定的座位手牌留一張不相干的牌 */
 function makeGame(opts: {
   hands: NumberCard[][];
-  table?: RummySet[];
+  table?: TabletopSet[];
   deck?: NumberCard[];
   currentSeat?: number;
   turnsTaken?: number;
   scores?: number[];
-}): RummyGameState {
+}): TabletopGameState {
   return {
     difficulty: 'normal',
     deck: opts.deck ?? deckOf(20),
@@ -284,8 +284,8 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
   const tableSet = set('t1', [n(r8), op('*'), n(b2), op('+'), n(k8)]);
 
   function expectRejected(
-    game: RummyGameState,
-    table: RummySet[],
+    game: TabletopGameState,
+    table: TabletopSet[],
     error: string,
   ) {
     expect(submitTurn(game, table)).toEqual({ success: false, error });
@@ -406,7 +406,7 @@ describe('drawCard', () => {
 describe('一局結束後', () => {
   it('不能再出牌或抽牌', () => {
     const { cards, set: s } = redSet();
-    const ended: RummyGameState = {
+    const ended: TabletopGameState = {
       ...makeGame({ hands: [cards] }),
       status: 'ended',
     };
@@ -419,9 +419,9 @@ describe('一局結束後', () => {
   });
 });
 
-describe('createRummyGame', () => {
+describe('createTabletopGame', () => {
   it('1 位玩家與 2 個 Bot 各發 10 張，其餘 76 張留在牌庫，玩家先手', () => {
-    const game = createRummyGame('normal');
+    const game = createTabletopGame('normal');
 
     expect(game.seats.map(s => s.isBot)).toEqual([false, true, true]);
     expect(game.seats.map(s => s.hand.length)).toEqual([10, 10, 10]);
@@ -525,7 +525,7 @@ describe('validateSet', () => {
   });
 
   it('多於 5 張牌時不成立', () => {
-    const tiles: RummyTile[] = [n(card('a', 4, 'red'))];
+    const tiles: TabletopTile[] = [n(card('a', 4, 'red'))];
     ['b', 'c', 'd', 'e', 'f'].forEach(id =>
       tiles.push(op('+'), n(card(id, 4, 'red'))),
     );

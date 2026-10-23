@@ -1,4 +1,4 @@
-# 拉密模式規格書
+# 牌桌模式規格書
 
 > 決策背景見 [ADR 0005](../docs/adr/0005-rummy-single-player-replaces-multiplayer.md)（單人對 AI）與 [ADR 0006](../docs/adr/0006-rummy-score-race-and-color-rule.md)（得分賽與顏色限制），詞彙定義見 [CONTEXT.md](../CONTEXT.md)。
 
@@ -6,9 +6,9 @@
 
 單人模式。玩家與 2 個 AI 對手輪流行動，每回合完成一組等於 24 的牌組，過程中可以拆解、重組桌面上既有的牌組。每人打滿 **6 回合**後，比牌組得分總和，以玩家總分上榜。比的是得分，不是誰先出完手牌。
 
-- 路由：`/single-play/rummy`
+- 入口：`/single-play` 的模式選單（和其他單人模式一樣在頁面內切換，沒有獨立路由）
 - 整局在 client 端執行，不經過 Socket.IO server
-- 規則引擎：[lib/rummy-engine.ts](../lib/rummy-engine.ts)；AI：[lib/rummy-bot.ts](../lib/rummy-bot.ts)
+- 規則引擎：[lib/tabletop-engine.ts](../lib/tabletop-engine.ts)；AI：[lib/tabletop-bot.ts](../lib/tabletop-bot.ts)
 
 ---
 
@@ -138,6 +138,6 @@ Joker 以宣告的顏色計算。
 
 ## 排行榜
 
-- 排行榜：拉密，底下三個難度各自排名
-- Collection：`rummy_easy` / `rummy_normal` / `rummy_hard`（依 ADR 0003 的慣例）
+- 排行榜：牌桌，底下三個難度各自排名
+- Collection：`tabletop_easy` / `tabletop_normal` / `tabletop_hard`（依 ADR 0003 的慣例）
 - 記錄方式：歷史單局最高分

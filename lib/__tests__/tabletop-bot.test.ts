@@ -1,16 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { canMake24 } from '@/lib/daily-seed';
-import { BotMove, chooseBotMove, solveSet } from '@/lib/rummy-bot';
+import { BotMove, chooseBotMove, solveSet } from '@/lib/tabletop-bot';
 import {
   colorPattern,
-  createRummyGame,
+  createTabletopGame,
   drawCard,
   scoreSet,
   submitTurn,
   validateSet,
-} from '@/lib/rummy-engine';
+} from '@/lib/tabletop-engine';
 import { CardColor, NumberCard } from '@/models/Player';
-import { RummyDifficulty, RummyGameState, RummySet } from '@/models/Rummy';
+import {
+  TabletopDifficulty,
+  TabletopGameState,
+  TabletopSet,
+} from '@/models/Tabletop';
 
 function card(id: string, value: number, color: CardColor = 'red'): NumberCard {
   return { id, value, color };
@@ -24,7 +28,7 @@ function seededRng(seed: number): () => number {
   };
 }
 
-function cardIdsOfTable(table: RummySet[]): string[] {
+function cardIdsOfTable(table: TabletopSet[]): string[] {
   return table.flatMap(cardIds).sort();
 }
 
@@ -38,13 +42,13 @@ function joker(id: string, value?: number, color?: CardColor): NumberCard {
   };
 }
 
-function findCard(set: RummySet, id: string): NumberCard {
+function findCard(set: TabletopSet, id: string): NumberCard {
   const tile = set.tiles.find(t => t.type === 'number' && t.card.id === id);
   if (!tile || tile.type !== 'number') throw new Error(`牌組中沒有 ${id}`);
   return tile.card;
 }
 
-function cardIds(set: RummySet): string[] {
+function cardIds(set: TabletopSet): string[] {
   return set.tiles
     .flatMap(t => (t.type === 'number' ? [t.card.id] : []))
     .sort();
@@ -53,9 +57,9 @@ function cardIds(set: RummySet): string[] {
 /** 輪到 Bot A（座位 1）的一局；其他座位手牌放一張不相干的牌 */
 function botTurn(opts: {
   hand: NumberCard[];
-  table?: RummySet[];
-  difficulty?: RummyDifficulty;
-}): RummyGameState {
+  table?: TabletopSet[];
+  difficulty?: TabletopDifficulty;
+}): TabletopGameState {
   return {
     difficulty: opts.difficulty ?? 'normal',
     deck: [card('deck-1', 13, 'black')],
@@ -74,7 +78,7 @@ function botTurn(opts: {
 }
 
 /** 把 Bot 的決定交給規則引擎執行；規則引擎是合法性的獨立檢查標準 */
-function applyMove(state: RummyGameState, move: BotMove) {
+function applyMove(state: TabletopGameState, move: BotMove) {
   return move.type === 'draw' ? drawCard(state) : submitTurn(state, move.table);
 }
 
@@ -111,7 +115,7 @@ const n = (c: NumberCard) => ({ type: 'number' as const, card: c });
 const op = (o: '+' | '-' | '*' | '/') => ({ type: 'operator' as const, op: o });
 
 /** 桌上的紅8 × 紅2 + 紅8 */
-function tableSet824(): RummySet {
+function tableSet824(): TabletopSet {
   return {
     id: 't1',
     tiles: [
@@ -153,7 +157,7 @@ function tableSetOf(
   id: string,
   values: number[],
   colors: CardColor[],
-): RummySet {
+): TabletopSet {
   const cards = values.map((v, i) =>
     card(`${id}-${i}`, v, colors[i % colors.length]),
   );
@@ -165,7 +169,7 @@ function tableSetOf(
 describe('chooseBotMove - 拆組（拆 1 組和手牌重組）', () => {
   // 桌上 5 張的牌組不能再接牌，手牌只有 1 張也組不成新組；
   // 唯一的出路是拆開重組：{1, 5, 4} 與 {2, 3, 4}
-  function scenario(difficulty: RummyDifficulty) {
+  function scenario(difficulty: TabletopDifficulty) {
     const table = [tableSetOf('t1', [1, 2, 3, 4, 5], ['red'])];
     return botTurn({ hand: [card('h4', 4, 'red')], table, difficulty });
   }
@@ -196,7 +200,7 @@ describe('chooseBotMove - 拆組（拆 1 組和手牌重組）', () => {
 
 describe('chooseBotMove - 合組（拆 2 組和手牌重組）', () => {
   // 單獨拆 A 或 B 加上手牌 6 都無法重組，兩組合起來才行
-  function scenario(difficulty: RummyDifficulty) {
+  function scenario(difficulty: TabletopDifficulty) {
     const table = [
       tableSetOf('A', [3, 4, 11, 12, 13], ['red']),
       tableSetOf('B', [1, 2, 7, 12, 13], ['red']),
@@ -297,7 +301,7 @@ describe('chooseBotMove - 完整牌局', () => {
     difficulty => {
       for (let seed = 1; seed <= 5; seed++) {
         vi.spyOn(Math, 'random').mockImplementation(seededRng(seed));
-        let state = createRummyGame(difficulty);
+        let state = createTabletopGame(difficulty);
         let turns = 0;
         while (state.status === 'playing') {
           const move = chooseBotMove(state);
