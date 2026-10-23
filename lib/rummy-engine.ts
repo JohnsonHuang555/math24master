@@ -1,13 +1,11 @@
 import { evaluate } from 'mathjs';
-import { createRummyDeck, draw } from '@/lib/deck';
+import { createRummyDeck } from '@/lib/deck';
 import { NumberCard } from '@/models/Player';
 import {
   RUMMY_HAND_SIZE,
-  RUMMY_LEFTOVER_CARD_PENALTY,
-  RUMMY_LEFTOVER_JOKER_PENALTY,
   RUMMY_MAX_SET_SIZE,
   RUMMY_MIN_SET_SIZE,
-  RUMMY_WENT_OUT_BONUS,
+  RUMMY_TURNS_PER_SEAT,
   RummyDifficulty,
   RummyGameState,
   RummySeat,
@@ -21,7 +19,7 @@ const GAME_ENDED = '這局已經結束';
 export function createRummyGame(difficulty: RummyDifficulty): RummyGameState {
   let deck = createRummyDeck();
   const seats: RummySeat[] = SEAT_NAMES.map((name, i) => {
-    const { drawn, remaining } = draw(deck, RUMMY_HAND_SIZE);
+    const { drawn, remaining } = takeFromDeck(deck, RUMMY_HAND_SIZE);
     deck = remaining;
     return { id: `seat-${i}`, name, isBot: i > 0, hand: drawn, score: 0 };
   });
@@ -31,6 +29,7 @@ export function createRummyGame(difficulty: RummyDifficulty): RummyGameState {
     table: [],
     seats,
     currentSeat: 0,
+    turnsTaken: 0,
     status: 'playing',
   };
 }
@@ -91,6 +90,23 @@ function isWellFormed(set: RummySet): boolean {
   return !expectOperand && depth === 0;
 }
 
+/**
+ * 牌組的顏色型態（Joker 以宣告的顏色計算）：
+ * same = 全部同色；rainbow = 3～4 張全部不同色；null = 不符合顏色限制（5 張只能同色）
+ */
+export function colorPattern(cards: NumberCard[]): 'same' | 'rainbow' | null {
+  const colors = new Set(cards.map(effectiveColor));
+  if (colors.size === 1) return 'same';
+  if (cards.length <= 4 && colors.size === cards.length) return 'rainbow';
+  return null;
+}
+
+const COLOR_RULE_REASON: Record<number, string> = {
+  3: '3 張的牌組必須同色，或三種不同顏色',
+  4: '4 張的牌組必須同色，或紅藍黃黑各一張',
+  5: '5 張的牌組必須同色',
+};
+
 /** 驗證單一牌組是否成立；reason 直接用於 UI 即時提示 */
 export function validateSet(set: RummySet): SetValidation {
   const cards = numberCards(set);
@@ -103,6 +119,10 @@ export function validateSet(set: RummySet): SetValidation {
 
   if (!cards.every(isDeclared)) {
     return { valid: false, reason: 'Joker 尚未宣告數值與顏色' };
+  }
+
+  if (!colorPattern(cards)) {
+    return { valid: false, reason: COLOR_RULE_REASON[cards.length] };
   }
 
   if (!isWellFormed(set)) {
@@ -122,6 +142,9 @@ export function validateSet(set: RummySet): SetValidation {
 // 3 張 +0、4 張 +1、5 張 +2
 const CARD_COUNT_BONUS: Record<number, number> = { 3: 0, 4: 1, 5: 2 };
 
+// none 只會出現在不成立的牌組（倍率對應待確認，見 specs/game-rummy.spec.md）
+const COLOR_MULTIPLIER = { rainbow: 2, same: 1.5, none: 1 };
+
 /** 單組分數 = (符號分 + 張數分) × 顏色倍率（見 specs/game-rummy.spec.md「計分」） */
 export function scoreSet(set: RummySet): number {
   const ops = set.tiles.flatMap(t => (t.type === 'operator' ? [t.op] : []));
@@ -133,12 +156,9 @@ export function scoreSet(set: RummySet): number {
   if (divide >= 2) symbolScore += 1;
 
   const cards = numberCards(set);
-  const colors = new Set(cards.map(effectiveColor));
-  let multiplier = 1;
-  if (colors.size === 1) multiplier = 2;
-  else if (colors.size === cards.length) multiplier = 1.5;
+  const multiplier = COLOR_MULTIPLIER[colorPattern(cards) ?? 'none'];
 
-  // 全異色 ×1.5 可能產生 .5，四捨五入成整數
+  // 同色 ×1.5 可能產生 .5，四捨五入成整數
   return Math.round(
     (symbolScore + (CARD_COUNT_BONUS[cards.length] ?? 0)) * multiplier,
   );
@@ -207,97 +227,93 @@ export function submitTurn(
     return { success: false, error: '本回合至少要從手牌打出 1 張牌' };
   }
 
-  const scoreGained = proposedTable
-    .filter(s => numberCards(s).some(c => playedIds.has(c.id)))
-    .reduce((sum, s) => sum + scoreSet(s), 0);
+  // 每回合只完成一組：本回合打出的手牌必須全部在同一組；其他牌組可以重排
+  const completedSets = proposedTable.filter(s =>
+    numberCards(s).some(c => playedIds.has(c.id)),
+  );
+  if (completedSets.length > 1) {
+    return {
+      success: false,
+      error: `每回合只能完成一組牌組（你的手牌分散在 ${completedSets.length} 組）`,
+    };
+  }
+  const scoreGained = scoreSet(completedSets[0]);
 
+  // 出牌後補到 RUMMY_HAND_SIZE 張，牌庫不夠就補到用完
+  const remainingHand = seat.hand.filter(c => !playedIds.has(c.id));
+  const refillCount = Math.max(RUMMY_HAND_SIZE - remainingHand.length, 0);
+  const { drawn, remaining } = takeFromDeck(state.deck, refillCount);
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat
       ? {
           ...s,
-          hand: s.hand.filter(c => !playedIds.has(c.id)),
+          hand: [...remainingHand, ...drawn],
           score: s.score + scoreGained,
         }
       : s,
   );
 
-  const next: RummyGameState = { ...state, table: proposedTable, seats };
-
-  if (seats[state.currentSeat].hand.length === 0) {
-    return { success: true, scoreGained, state: endGame(next) };
-  }
-  return { success: true, scoreGained, state: advanceTurn(next) };
+  return {
+    success: true,
+    scoreGained,
+    state: advanceTurn({
+      ...state,
+      deck: remaining,
+      table: proposedTable,
+      seats,
+    }),
+  };
 }
 
 export type DrawCardResult =
   { success: true; state: RummyGameState } | { success: false; error: string };
 
-/** 不出牌，從牌庫抽 1 張，換下一位 */
+/** 不出牌，從牌庫抽 1 張（牌庫已空就等同跳過），換下一位 */
 export function drawCard(state: RummyGameState): DrawCardResult {
   if (state.status === 'ended') {
     return { success: false, error: GAME_ENDED };
   }
 
-  const { drawn, remaining } = draw(state.deck, 1);
+  const { drawn, remaining } = takeFromDeck(state.deck, 1);
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat ? { ...s, hand: [...s.hand, ...drawn] } : s,
   );
-  const next = { ...state, deck: remaining, seats };
-
-  // 抽走最後一張：本次行動不算進最後一圈，接下來所有人各再行動一次
-  if (remaining.length === 0 && state.finalRoundTurnsLeft === undefined) {
-    return {
-      success: true,
-      state: {
-        ...next,
-        currentSeat: (state.currentSeat + 1) % state.seats.length,
-        finalRoundTurnsLeft: state.seats.length,
-      },
-    };
-  }
-  return { success: true, state: advanceTurn(next) };
+  return {
+    success: true,
+    state: advanceTurn({ ...state, deck: remaining, seats }),
+  };
 }
 
-/** 換下一位；最後一圈中每次行動扣 1，扣完就結算 */
+/**
+ * 從牌庫頂抽 n 張，牌庫不夠就抽到用完。
+ * 不用 lib/deck.ts 的 draw：它在 n = 0 時 slice(-0) 會把整副牌當成抽到的牌
+ */
+function takeFromDeck(deck: NumberCard[], n: number) {
+  const count = Math.min(n, deck.length);
+  if (count === 0) return { drawn: [], remaining: deck };
+  return { drawn: deck.slice(-count), remaining: deck.slice(0, -count) };
+}
+
+/** 換下一位；所有人都打滿 RUMMY_TURNS_PER_SEAT 回合就結算 */
 function advanceTurn(state: RummyGameState): RummyGameState {
   const next = {
     ...state,
     currentSeat: (state.currentSeat + 1) % state.seats.length,
+    turnsTaken: state.turnsTaken + 1,
   };
-  if (state.finalRoundTurnsLeft === undefined) return next;
-
-  const finalRoundTurnsLeft = state.finalRoundTurnsLeft - 1;
-  return finalRoundTurnsLeft === 0
-    ? endGame({ ...next, finalRoundTurnsLeft })
-    : { ...next, finalRoundTurnsLeft };
+  return next.turnsTaken >= RUMMY_TURNS_PER_SEAT * state.seats.length
+    ? endGame(next)
+    : next;
 }
 
-/** 結算：先出完手牌的人加分，其他人依剩下的牌扣分，依最終分數排名 */
+/** 結算：依牌組得分總和排名，同分並列同一名次，下一名跳過並列的人數（1, 1, 3） */
 function endGame(state: RummyGameState): RummyGameState {
   const standings = state.seats
-    .map(s => {
-      const wentOutBonus = s.hand.length === 0 ? RUMMY_WENT_OUT_BONUS : 0;
-      const leftoverPenalty = s.hand.reduce(
-        (sum, c) =>
-          sum +
-          (c.isJoker
-            ? RUMMY_LEFTOVER_JOKER_PENALTY
-            : RUMMY_LEFTOVER_CARD_PENALTY),
-        0,
-      );
-      return {
-        seatId: s.id,
-        tableScore: s.score,
-        wentOutBonus,
-        leftoverPenalty,
-        finalScore: s.score + wentOutBonus - leftoverPenalty,
-      };
-    })
-    .sort((a, b) => b.finalScore - a.finalScore)
-    // 同分並列同一名次，下一名跳過並列的人數（1, 1, 3）
+    .map(s => ({ seatId: s.id, score: s.score }))
+    .sort((a, b) => b.score - a.score)
     .map((s, _, sorted) => ({
       ...s,
-      rank: 1 + sorted.filter(o => o.finalScore > s.finalScore).length,
+      rank: 1 + sorted.filter(o => o.score > s.score).length,
     }));
 
   return { ...state, status: 'ended', result: { standings } };
