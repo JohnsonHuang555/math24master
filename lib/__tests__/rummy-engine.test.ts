@@ -69,7 +69,7 @@ function makeGame(opts: {
   };
 }
 
-/** 紅 (3 + 5) × 3 = 24，同色 3 張 = 5 分 */
+/** 紅 (3 + 5) × 3 = 24，同色 3 張 = 6 分 */
 function redSet(id = 'new') {
   const cards = [
     card(`${id}-a`, 3, 'red'),
@@ -90,12 +90,12 @@ describe('submitTurn - 出牌', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.scoreGained).toBe(5);
+    expect(result.scoreGained).toBe(6);
     expect(result.state.table).toEqual([newSet]);
     expect(result.state.seats[0].hand).toHaveLength(10);
     expect(result.state.seats[0].hand[0]).toEqual(keep);
     expect(result.state.deck).toHaveLength(11);
-    expect(result.state.seats[0].score).toBe(5);
+    expect(result.state.seats[0].score).toBe(6);
     expect(result.state.currentSeat).toBe(1);
     expect(result.state.turnsTaken).toBe(1);
   });
@@ -171,8 +171,8 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
       table: [t1, t2],
     });
 
-    // t1 接上手牌 r1：(8 × 2 + 8) × 1，符號 × + × = 5 + 雙乘號 1 + 4 張 1 = 7，同色 ×1.5 = 10.5 → 11
-    // （若 t2 也誤算進來：6 × 4 ÷ 1 同色 (2 + 3) × 1.5 = 7.5 → 8，合計會是 19）
+    // t1 接上手牌 r1：(8 × 2 + 8) × 1，符號 × + × = 5 + 雙乘號 1 + 4 張 1 = 7，同色 ×2 = 14
+    // （若 t2 也誤算進來：6 × 4 ÷ 1 同色 (2 + 3) × 2 = 10，合計會是 24）
     const t1Extended = set('t1', [
       L,
       n(r8),
@@ -191,7 +191,7 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.scoreGained).toBe(11);
+    expect(result.scoreGained).toBe(14);
   });
 });
 
@@ -244,7 +244,7 @@ describe('一局結束', () => {
     expect(result.state.status).toBe('ended');
     expect(result.state.result?.standings[0]).toEqual({
       seatId: 'seat-2',
-      score: 5,
+      score: 6,
       rank: 1,
     });
   });
@@ -438,7 +438,7 @@ describe('createRummyGame', () => {
 });
 
 describe('scoreSet', () => {
-  it('同色 3 張 (3 + 5) × 3：(1 + 2 + 0) × 1.5 = 4.5，四捨五入為 5 分（規格書範例）', () => {
+  it('同色 3 張 (3 + 5) × 3：(1 + 2 + 0) × 2 = 6 分（規格書範例）', () => {
     const s = set('s1', [
       L,
       n(card('a', 3, 'red')),
@@ -448,10 +448,10 @@ describe('scoreSet', () => {
       op('*'),
       n(card('c', 3, 'red')),
     ]);
-    expect(scoreSet(s)).toBe(5);
+    expect(scoreSet(s)).toBe(6);
   });
 
-  it('全異色 3 張 (1 + 2) × 8：(1 + 2 + 0) × 2 = 6 分', () => {
+  it('全異色 3 張 (1 + 2) × 8：(1 + 2 + 0) × 1.5 = 4.5，四捨五入為 5 分', () => {
     const s = set('s1', [
       L,
       n(card('a', 1, 'red')),
@@ -461,10 +461,10 @@ describe('scoreSet', () => {
       op('*'),
       n(card('c', 8, 'yellow')),
     ]);
-    expect(scoreSet(s)).toBe(6);
+    expect(scoreSet(s)).toBe(5);
   });
 
-  it('全異色 4 張 4 × 3 × 1 × 2：(三個 × 6 + 雙乘號 1 + 4 張 1) × 2 = 16 分', () => {
+  it('全異色 4 張 4 × 3 × 1 × 2：(三個 × 6 + 雙乘號 1 + 4 張 1) × 1.5 = 12 分', () => {
     const s = set('s1', [
       n(card('a', 4, 'red')),
       op('*'),
@@ -474,10 +474,10 @@ describe('scoreSet', () => {
       op('*'),
       n(card('d', 2, 'black')),
     ]);
-    expect(scoreSet(s)).toBe(16);
+    expect(scoreSet(s)).toBe(12);
   });
 
-  it('Joker 以宣告的顏色計算：紅 8 × 紅 3 × Joker(宣告紅 1) 視為同色 = (5 + 0) × 1.5 = 7.5 → 8 分', () => {
+  it('Joker 以宣告的顏色計算：紅 8 × 紅 3 × Joker(宣告紅 1) 視為同色 = (5 + 0) × 2 = 10 分', () => {
     const s = set('s1', [
       n(card('a', 8, 'red')),
       op('*'),
@@ -485,7 +485,7 @@ describe('scoreSet', () => {
       op('*'),
       n(joker('j', 1, 'red')),
     ]);
-    expect(scoreSet(s)).toBe(8);
+    expect(scoreSet(s)).toBe(10);
   });
 });
 

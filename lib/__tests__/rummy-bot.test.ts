@@ -226,7 +226,7 @@ describe('chooseBotMove - 合組（拆 2 組和手牌重組）', () => {
 });
 
 describe('chooseBotMove - 選擇策略', () => {
-  // 桌上 紅1 紅2 紅12：只接紅 1 → 17 分；只接紅 9 → 6 分；兩張一起接 → 14 分
+  // 桌上 紅1 紅2 紅12：只接紅 1 → 22 分；只接紅 9 → 8 分；兩張一起接 → 18 分
   const table = () => [tableSetOf('t1', [1, 2, 12], ['red'])];
   const r1 = () => card('r1', 1, 'red');
   const r9 = () => card('r9', 9, 'red');
@@ -240,7 +240,7 @@ describe('chooseBotMove - 選擇策略', () => {
 
       expect(move.type).toBe('play');
       if (move.type !== 'play') return;
-      expect(move.action).toMatchObject({ handCardsUsed: 1, score: 17 });
+      expect(move.action).toMatchObject({ handCardsUsed: 1, score: 22 });
     },
   );
 
@@ -331,14 +331,14 @@ describe('solveSet', () => {
     expect(cardIds(result)).toEqual(['a', 'b', 'c']);
   });
 
-  it('有多種解時挑符號分最高的：12、2、1 → 12 ÷ (1 ÷ 2) 兩個 ÷ 7 分 × 1.5 = 11，勝過 12 × 2 × 1 的 5 × 1.5 = 8', () => {
+  it('有多種解時挑符號分最高的：12、2、1 → 12 ÷ (1 ÷ 2) 兩個 ÷ 7 分 × 2 = 14，勝過 12 × 2 × 1 的 5 × 2 = 10', () => {
     const cards = [card('a', 12), card('b', 2), card('c', 1)];
 
     const result = solveSet(cards);
 
     expect(result).not.toBeNull();
     if (!result) return;
-    expect(scoreSet(result)).toBe(11);
+    expect(scoreSet(result)).toBe(14);
   });
 
   it('顏色不符合限制時回傳 null，即使數字湊得出 24', () => {

@@ -142,8 +142,8 @@ export function validateSet(set: RummySet): SetValidation {
 // 3 張 +0、4 張 +1、5 張 +2
 const CARD_COUNT_BONUS: Record<number, number> = { 3: 0, 4: 1, 5: 2 };
 
-// none 只會出現在不成立的牌組（倍率對應待確認，見 specs/game-rummy.spec.md）
-const COLOR_MULTIPLIER = { rainbow: 2, same: 1.5, none: 1 };
+// 同色比全異色難湊（隨機 3 張：同色約 6%、全異色約 38%），倍率較高；none 只會出現在不成立的牌組
+const COLOR_MULTIPLIER = { same: 2, rainbow: 1.5, none: 1 };
 
 /** 單組分數 = (符號分 + 張數分) × 顏色倍率（見 specs/game-rummy.spec.md「計分」） */
 export function scoreSet(set: RummySet): number {
@@ -158,7 +158,7 @@ export function scoreSet(set: RummySet): number {
   const cards = numberCards(set);
   const multiplier = COLOR_MULTIPLIER[colorPattern(cards) ?? 'none'];
 
-  // 同色 ×1.5 可能產生 .5，四捨五入成整數
+  // 全異色 ×1.5 可能產生 .5，四捨五入成整數
   return Math.round(
     (symbolScore + (CARD_COUNT_BONUS[cards.length] ?? 0)) * multiplier,
   );
