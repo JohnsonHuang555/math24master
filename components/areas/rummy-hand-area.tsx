@@ -55,7 +55,7 @@ const HandCard = ({
       whileHover={!isUsed ? { scale: 1.1 } : {}}
       whileTap={!isUsed ? { scale: 0.95 } : {}}
       className={cn(
-        'flex h-14 w-10 cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 text-sm font-bold shadow-sm',
+        'flex h-14 w-10 cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 text-sm font-bold shadow-xs',
         colorClass,
         isUsed && 'cursor-not-allowed',
       )}

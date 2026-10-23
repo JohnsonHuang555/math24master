@@ -211,7 +211,7 @@ export default function QuickMathPage() {
                     setTimeout(() => selectMode(cfg.value), 500);
                   }}
                   className={cn(
-                    'w-full cursor-pointer rounded-3xl border-2 border-zinc-200 bg-white/90 p-5 text-left backdrop-blur-sm transition-shadow dark:bg-zinc-900/80',
+                    'w-full cursor-pointer rounded-3xl border-2 border-zinc-200 bg-white/90 p-5 text-left backdrop-blur-xs transition-shadow dark:bg-zinc-900/80',
                     cfg.color.shadow,
                     cfg.color.hoverShadow,
                     cfg.color.activeShadow,

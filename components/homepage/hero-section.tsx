@@ -26,11 +26,11 @@ const HeroSection = ({
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="relative flex min-h-[100dvh] flex-col">
+    <section className="relative flex min-h-dvh flex-col">
       {/* teal 底部光暈 */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 [background-image:radial-gradient(60rem_40rem_at_50%_130%,rgba(13,148,136,0.13),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_40rem_at_50%_130%,rgba(13,148,136,0.13),transparent_70%)]"
       />
 
       {/* 導覽列 */}
@@ -123,7 +123,7 @@ const HeroSection = ({
                 damping: 16,
                 // delay: reduceMotion ? 0 : 0.08 + i * 0.1,
               }}
-              className="-mx-2 flex aspect-[5/7] w-[88px] items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-5xl font-bold text-zinc-800 shadow-[0_8px_0_0_rgba(0,0,0,0.10)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 md:-mx-3 md:w-[120px] md:rounded-3xl md:text-6xl lg:w-[130px] lg:text-6xl"
+              className="-mx-2 flex aspect-5/7 w-[88px] items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-5xl font-bold text-zinc-800 shadow-[0_8px_0_0_rgba(0,0,0,0.10)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 md:-mx-3 md:w-[120px] md:rounded-3xl md:text-6xl lg:w-[130px] lg:text-6xl"
             >
               {card.value}
             </motion.div>
@@ -139,7 +139,7 @@ const HeroSection = ({
             duration: 0.45,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="rounded-full border border-primary/25 bg-white/80 px-5 py-2 font-display text-sm font-semibold text-primary shadow-sm backdrop-blur-sm dark:bg-zinc-900/80 md:text-base"
+          className="rounded-full border border-primary/25 bg-white/80 px-5 py-2 font-display text-sm font-semibold text-primary shadow-xs backdrop-blur-xs dark:bg-zinc-900/80 md:text-base"
         >
           6 × 4 × (3 - 2) = 24
         </motion.div>

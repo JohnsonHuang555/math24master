@@ -11,7 +11,7 @@ const SoundToggle = () => {
     <Button
       variant="ghost"
       size="icon"
-      className="fixed bottom-4 right-4 z-50 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/30"
+      className="fixed bottom-4 right-4 z-50 rounded-full bg-black/20 backdrop-blur-xs hover:bg-black/30"
       onClick={toggleSound}
       title={soundEnabled ? '關閉音效' : '開啟音效'}
     >

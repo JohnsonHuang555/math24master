@@ -78,7 +78,7 @@ const BuzzerPlayerCard = ({
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute -top-3.5 rounded-full bg-primary px-2.5 py-0.5 font-display text-xs font-black text-white shadow-sm"
+          className="absolute -top-3.5 rounded-full bg-primary px-2.5 py-0.5 font-display text-xs font-black text-white shadow-xs"
         >
           作答中
         </motion.div>
@@ -86,7 +86,7 @@ const BuzzerPlayerCard = ({
 
       {/* 鎖定中 badge */}
       {isLocked && !isCurrentAnswerer && (
-        <div className="absolute -top-3.5 rounded-full bg-rose-500 px-2.5 py-0.5 font-display text-xs font-black text-white shadow-sm">
+        <div className="absolute -top-3.5 rounded-full bg-rose-500 px-2.5 py-0.5 font-display text-xs font-black text-white shadow-xs">
           鎖定中
         </div>
       )}

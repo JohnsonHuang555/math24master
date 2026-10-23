@@ -74,7 +74,7 @@ const BuzzerAnswerPanel = ({
 
   // 作答者互動面板
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-3 rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/90 md:gap-4 md:p-5">
+    <div className="flex w-full max-w-2xl flex-col gap-3 rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-800/90 md:gap-4 md:p-5">
       {/* 數字牌選擇區 */}
       <div className="flex justify-center gap-2 md:gap-3">
         {publicCards.map(card => {

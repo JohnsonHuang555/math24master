@@ -37,7 +37,7 @@ const StepsSection = ({ scrollRef }: StepsSectionProps) => {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="bg-white/50 px-4 py-14 backdrop-blur-sm dark:bg-zinc-900/30 md:px-10 md:py-20">
+    <section className="bg-white/50 px-4 py-14 backdrop-blur-xs dark:bg-zinc-900/30 md:px-10 md:py-20">
       <div className="mx-auto max-w-4xl">
         <h2 className="mb-10 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
           簡單遊玩三步驟

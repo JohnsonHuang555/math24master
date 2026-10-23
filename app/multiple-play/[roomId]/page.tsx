@@ -354,7 +354,7 @@ export default function RoomPage() {
 
               {/* 右欄：房間設定 + 聊天 */}
               <div className="flex min-h-0 flex-1 flex-col gap-4">
-                <div className="flex-3 overflow-y-auto">
+                <div className="overflow-y-auto">
                   <RoomInfoArea
                     isMaster={currentPlayer?.isMaster}
                     roomName={roomInfo.roomName}

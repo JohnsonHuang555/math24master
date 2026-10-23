@@ -9,7 +9,7 @@ export function ReconnectOverlay({ status, onLeave }: Props) {
   if (status === 'connected') return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-xs">
       {status === 'reconnecting' ? (
         <>
           <div className="mb-6 h-14 w-14 animate-spin rounded-full border-4 border-white/30 border-t-white" />
