@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, LayoutGrid, Timer } from 'lucide-react';
+import { Layers, LayoutGrid, Shapes, Timer } from 'lucide-react';
 import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
 import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
 import MatchPlayGame from '@/app/single-play/[mode]/match-play-game';
+import TabletopPlayGame from '@/app/single-play/[mode]/tabletop-play-game';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { prewarmMatchGenerator } from '@/lib/match-board-generator';
 import { cn } from '@/lib/utils';
 import { useStatsStore } from '@/stores/stats-store';
 
 // 關卡模式（normal）暫時下架，改版為固定題庫後再回歸
-type PlayMode = 'classic' | 'challenge' | 'match';
+type PlayMode = 'classic' | 'challenge' | 'match' | 'tabletop';
 
 const MODE_CONFIG = [
   {
@@ -60,6 +61,21 @@ const MODE_CONFIG = [
       activeShadow: 'active:shadow-[0_3px_0_0_rgba(0,0,0,0.10)]',
     },
   },
+  {
+    value: 'tabletop' as const,
+    label: '牌桌模式',
+    badge: '新' as string | undefined,
+    tagline: '對戰電腦 · 6 回合比總分',
+    chips: ['拆開重組桌上算式', '同色或全異色', '和 2 個電腦搶分'],
+    Icon: Shapes,
+    color: {
+      icon: 'bg-amber-400',
+      chip: 'bg-amber-50 border-amber-200 text-amber-700',
+      shadow: 'shadow-[0_8px_0_0_hsl(36,100%,72%)]',
+      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(36,100%,72%)]',
+      activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
+    },
+  },
 ] as const;
 
 export default function SinglePlayPage() {
@@ -78,6 +94,8 @@ export default function SinglePlayPage() {
     classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
     challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
     match: matchBestScore > 0 ? `${matchBestScore} 分` : null,
+    // 個人最佳與排行榜在下一階段加入
+    tabletop: null,
   };
 
   if (activeMode === 'challenge') {
@@ -89,6 +107,9 @@ export default function SinglePlayPage() {
   if (activeMode === 'match') {
     return <MatchPlayGame onBack={() => setActiveMode(null)} autoStart />;
   }
+  if (activeMode === 'tabletop') {
+    return <TabletopPlayGame onBack={() => setActiveMode(null)} />;
+  }
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -98,7 +119,7 @@ export default function SinglePlayPage() {
       </header>
 
       {/* Main */}
-      <main className="mb-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-8 pt-0">
+      <main className="mb-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-0 pb-8">
         <div className="text-center">
           <h1 className="font-display text-3xl font-black tracking-tight text-foreground md:text-4xl">
             選擇模式
