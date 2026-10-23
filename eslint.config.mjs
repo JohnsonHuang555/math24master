@@ -22,7 +22,15 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ['.next/**', 'dist/**', 'coverage/**', 'next-env.d.ts'],
+    ignores: [
+      '.next/**',
+      '.next-e2e/**',
+      'dist/**',
+      'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
+      'next-env.d.ts',
+    ],
   },
 ];
 

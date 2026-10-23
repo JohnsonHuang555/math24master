@@ -42,3 +42,10 @@ next-env.d.ts
 # server
 dist
 .gstack/
+
+# e2e (Playwright + Firestore Emulator)
+/.next-e2e/
+/test-results/
+/playwright-report/
+firebase-debug.log
+firestore-debug.log

@@ -25,7 +25,11 @@ npm run lint          # ESLint CLI (flat config: eslint.config.mjs)
 - **Frontend (Next.js)** → Vercel. Set `NEXT_PUBLIC_SOCKET_URL` to the socket server URL.
 - **Socket.IO server** → Cloud Run via `Dockerfile` (image contains only `server/`, `models/`, `lib/`). Set `ALLOWED_ORIGINS` (comma-separated frontend origins). Must run as a **single instance** since room state is in memory.
 
-No test framework is configured.
+### Testing
+
+- `npm test` — Vitest unit tests (`lib/`), `e2e/` is excluded
+- `npm run test:e2e` — Playwright E2E (`e2e/`). Starts Firestore Emulator (:8180), Socket.IO server (:3101) and a separate Next.js build in `.next-e2e` (:3100) automatically, so it does not clash with `npm run dev`. Requires **Java 21+** for the emulator; first run also needs `npx playwright install chromium`.
+- E2E skips the real Google OAuth screen by writing an Auth.js session cookie signed with a test-only `AUTH_SECRET` (`e2e/helpers/auth.ts`); leaderboard writes go to the emulator (`demo-math24` project), never production.
 
 Linting uses ESLint flat config (`eslint.config.mjs`: `eslint-config-next/core-web-vitals` + prettier); `next lint` was removed in Next.js 16. Prettier handles import sorting (`@trivago/prettier-plugin-sort-imports`) and Tailwind class sorting (`prettier-plugin-tailwindcss`).
 
