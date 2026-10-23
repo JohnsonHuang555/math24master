@@ -80,6 +80,19 @@ test.describe('Google 登入與排行榜', () => {
     expect(res.status()).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, updated: true });
 
+    // 結算畫面：送分完成後按鈕帶出名次，點開精簡 modal 顯示新紀錄與完整排行榜連結
+    const rankButton = page.getByRole('button', {
+      name: /第 \d+ 名 · 查看排行榜/,
+    });
+    await expect(rankButton).toBeVisible();
+    await rankButton.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByTestId('my-rank')).toContainText('新紀錄');
+    await expect(dialog.getByTestId('my-rank')).toContainText(`${score} 分`);
+    await expect(
+      dialog.getByRole('link', { name: '查看完整排行榜' }),
+    ).toHaveAttribute('href', '/leaderboard?mode=classic');
+
     // 排行榜頁預設就是經典
     await page.goto('/leaderboard');
 

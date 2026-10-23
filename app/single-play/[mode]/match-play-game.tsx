@@ -13,6 +13,7 @@ import { BookOpen, LayoutGrid, Play, Share2, Trophy } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
+import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
@@ -96,10 +97,7 @@ export default function MatchPlayGame({
   }, [isGameOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isNewBestScore =
-    screenStatus === 'finished' &&
-    isCleared &&
-    score > 0 &&
-    score >= bestScore;
+    screenStatus === 'finished' && isCleared && score > 0 && score >= bestScore;
 
   // 得分數字滾動動畫
   const count = useMotionValue(score);
@@ -124,7 +122,7 @@ export default function MatchPlayGame({
     }
   }, [score, screenStatus]);
 
-  useLeaderboardSubmit(
+  const leaderboardSubmit = useLeaderboardSubmit(
     'match',
     isAuthenticated && isCleared ? { score } : null,
     isAuthenticated && isCleared,
@@ -270,6 +268,11 @@ export default function MatchPlayGame({
                   <Share2 className="h-4 w-4" />
                   {isSharing ? '圖卡產生中...' : '分享成績'}
                 </Button>
+                <ResultRank
+                  mode="match"
+                  submit={leaderboardSubmit}
+                  className="mt-3"
+                />
               </>
             ) : (
               <>
@@ -337,7 +340,7 @@ export default function MatchPlayGame({
       <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white/95 px-5 py-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
         <div>
           <p className="text-[10px] font-medium text-muted-foreground">得分</p>
-          <motion.div className="font-display text-2xl font-bold tabular-nums text-primary">
+          <motion.div className="font-display text-2xl font-bold text-primary tabular-nums">
             {rounded}
           </motion.div>
         </div>
@@ -348,7 +351,7 @@ export default function MatchPlayGame({
         </div>
         <div className="text-right">
           <p className="text-[10px] font-medium text-muted-foreground">剩餘</p>
-          <p className="font-display text-lg font-semibold tabular-nums text-foreground">
+          <p className="font-display text-lg font-semibold text-foreground tabular-nums">
             {remainingCount} 張
           </p>
         </div>

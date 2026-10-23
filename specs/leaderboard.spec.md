@@ -79,12 +79,28 @@
 
 ---
 
+## 結算畫面
+
+經典、挑戰、消消樂（全清時）、快答的結算畫面各有一顆「第 N 名 · 查看排行榜」按鈕（尚無名次時顯示「查看排行榜」），點開精簡 modal：
+
+- **我的名次**：狀態同排行榜頁；這次刷新個人最佳時附「新紀錄」標籤（取自 `useLeaderboardSubmit` 回傳的 `updated`）
+- **前 3 名**
+- **查看完整排行榜**：連到 `/leaderboard?mode=…&level=…`
+
+時序：
+
+- 結算時已登入：`useLeaderboardSubmit` 回傳 `{ status, updated }`，送分中暫停查名次，送完自動重查
+- 結算後才登入：`PendingScoreSubmitter` 補送完會清空 `pendingScore`，此時重查名次；這條路徑不顯示「新紀錄」
+- `useMyRank` 只採用最後一次請求的回應，避免送分前的舊名次覆蓋新名次
+
+---
+
 ## 原始碼對應
 
 - 排行榜與難度設定：[lib/leaderboard.ts](../lib/leaderboard.ts)
 - API 路由：[app/api/leaderboard/route.ts](../app/api/leaderboard/route.ts)、[app/api/leaderboard/rank/route.ts](../app/api/leaderboard/rank/route.ts)、[app/api/leaderboard/config.ts](../app/api/leaderboard/config.ts)
 - 排行榜頁：[app/leaderboard/leaderboard-view.tsx](../app/leaderboard/leaderboard-view.tsx)
-- 共用元件：[components/leaderboard/](../components/leaderboard/)
+- 共用元件：[components/leaderboard/](../components/leaderboard/)（結算畫面入口為 `result-rank.tsx`）
 - 前 100 名 Hook：[hooks/useLeaderboard.ts](../hooks/useLeaderboard.ts)
 - 我的名次 Hook：[hooks/useMyRank.ts](../hooks/useMyRank.ts)
 - 成績提交 Hook：[hooks/useLeaderboardSubmit.ts](../hooks/useLeaderboardSubmit.ts)

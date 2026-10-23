@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Play, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import {
@@ -72,7 +73,7 @@ export default function ChallengePlayGame({
 
   const isFinished = status === 'finished';
 
-  useLeaderboardSubmit(
+  const leaderboardSubmit = useLeaderboardSubmit(
     'challenge',
     isAuthenticated && isFinished ? { stage, totalScore } : null,
     isAuthenticated && isFinished,
@@ -204,7 +205,12 @@ export default function ChallengePlayGame({
                 個人最佳：第 {best.stage} 關（{best.totalScore} 分）
               </p>
             )}
-            <div className="mt-6 flex gap-2">
+            <ResultRank
+              mode="challenge"
+              submit={leaderboardSubmit}
+              className="mt-6"
+            />
+            <div className="mt-3 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={onBack}>
                 返回選單
               </Button>
@@ -247,7 +253,7 @@ export default function ChallengePlayGame({
         theme="orange"
       >
         {/* HUD */}
-        <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pb-3 pt-2.5 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
+        <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-2.5 pb-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-base font-semibold text-muted-foreground">
               挑戰模式

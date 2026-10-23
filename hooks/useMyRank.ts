@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { LeaderboardMode, LeaderboardRow } from '@/lib/leaderboard';
 import { useGuestStore } from '@/stores/guest-store';
@@ -26,8 +26,15 @@ export function useMyRank(mode: LeaderboardMode, enabled = true) {
     state: MyRankState;
   } | null>(null);
 
+  // 送分前後可能各查一次，只採用最後發出的那次，避免較慢的舊回應蓋掉新名次
+  const requestSeqRef = useRef(0);
+
   const load = useCallback(async () => {
     if (!myId) return;
+    const seq = ++requestSeqRef.current;
+    const settle = (next: MyRankState) => {
+      if (seq === requestSeqRef.current) setFetched({ key, state: next });
+    };
     try {
       const params = new URLSearchParams({ mode });
       if (!googleId) params.set('guestId', myId);
@@ -37,12 +44,9 @@ export function useMyRank(mode: LeaderboardMode, enabled = true) {
       );
       if (!res.ok) throw new Error('fetch failed');
       const data = (await res.json()) as LeaderboardRow | null;
-      setFetched({
-        key,
-        state: data ? { status: 'ranked', row: data } : { status: 'none' },
-      });
+      settle(data ? { status: 'ranked', row: data } : { status: 'none' });
     } catch {
-      setFetched({ key, state: { status: 'error' } });
+      settle({ status: 'error' });
     }
   }, [key, mode, myId, googleId]);
 

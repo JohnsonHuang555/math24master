@@ -21,6 +21,7 @@ import {
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RoundHistoryModal } from '@/components/modals/round-history-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
@@ -229,7 +230,7 @@ export default function ClassicPlayGame({
     }
   };
 
-  useLeaderboardSubmit(
+  const leaderboardSubmit = useLeaderboardSubmit(
     'classic',
     isAuthenticated && isGameOver ? { score: currentScore } : null,
     isAuthenticated && !!isGameOver,
@@ -393,6 +394,11 @@ export default function ClassicPlayGame({
               <Share2 className="h-4 w-4" />
               {isSharing ? '圖卡產生中...' : '分享成績'}
             </Button>
+            <ResultRank
+              mode="classic"
+              submit={leaderboardSubmit}
+              className="mt-3"
+            />
             <div className="mt-3 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={onBack}>
                 返回選單
@@ -434,7 +440,7 @@ export default function ClassicPlayGame({
       <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white/95 px-5 py-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
         <div>
           <p className="text-[10px] font-medium text-muted-foreground">得分</p>
-          <motion.div className="font-display text-2xl font-bold tabular-nums text-primary">
+          <motion.div className="font-display text-2xl font-bold text-primary tabular-nums">
             {rounded}
           </motion.div>
         </div>
@@ -450,7 +456,7 @@ export default function ClassicPlayGame({
         </div>
         <div className="text-right">
           <p className="text-[10px] font-medium text-muted-foreground">牌庫</p>
-          <p className="font-display text-lg font-semibold tabular-nums text-foreground">
+          <p className="font-display text-lg font-semibold text-foreground tabular-nums">
             {remainCards} 張
           </p>
         </div>
