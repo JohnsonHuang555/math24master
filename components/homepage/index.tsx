@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { AddToHomeScreenPrompt } from '@/components/add-to-home-screen-prompt';
 import AnnouncementBanner from '@/components/announcement-banner';
 import { AchievementModal } from '@/components/modals/achievement-modal';
-import { LeaderboardModal } from '@/components/modals/leaderboard-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { StatsModal } from '@/components/modals/stats-modal';
 import Footer from './footer';
@@ -16,17 +15,12 @@ const Homepage = () => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isOpenAchievementModal, setIsOpenAchievementModal] = useState(false);
   const [isOpenStatsModal, setIsOpenStatsModal] = useState(false);
-  const [isOpenLeaderboardModal, setIsOpenLeaderboardModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
       <AddToHomeScreenPrompt />
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
-      <LeaderboardModal
-        isOpen={isOpenLeaderboardModal}
-        onClose={() => setIsOpenLeaderboardModal(false)}
-      />
       <AchievementModal
         isOpen={isOpenAchievementModal}
         onClose={() => setIsOpenAchievementModal(false)}
@@ -42,7 +36,6 @@ const Homepage = () => {
       >
         <AnnouncementBanner />
         <HeroSection
-          onOpenLeaderboardModal={() => setIsOpenLeaderboardModal(true)}
           onOpenStatsModal={() => setIsOpenStatsModal(true)}
           onOpenAchievementModal={() => setIsOpenAchievementModal(true)}
         />
