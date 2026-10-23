@@ -1,5 +1,5 @@
 import { evaluate } from 'mathjs';
-import { createRummyDeck } from '@/lib/deck';
+import { createRummyDeck, draw } from '@/lib/deck';
 import { NumberCard } from '@/models/Player';
 import {
   RUMMY_HAND_SIZE,
@@ -19,7 +19,7 @@ const GAME_ENDED = '這局已經結束';
 export function createRummyGame(difficulty: RummyDifficulty): RummyGameState {
   let deck = createRummyDeck();
   const seats: RummySeat[] = SEAT_NAMES.map((name, i) => {
-    const { drawn, remaining } = takeFromDeck(deck, RUMMY_HAND_SIZE);
+    const { drawn, remaining } = draw(deck, RUMMY_HAND_SIZE);
     deck = remaining;
     return { id: `seat-${i}`, name, isBot: i > 0, hand: drawn, score: 0 };
   });
@@ -242,7 +242,7 @@ export function submitTurn(
   // 出牌後補到 RUMMY_HAND_SIZE 張，牌庫不夠就補到用完
   const remainingHand = seat.hand.filter(c => !playedIds.has(c.id));
   const refillCount = Math.max(RUMMY_HAND_SIZE - remainingHand.length, 0);
-  const { drawn, remaining } = takeFromDeck(state.deck, refillCount);
+  const { drawn, remaining } = draw(state.deck, refillCount);
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat
       ? {
@@ -274,7 +274,7 @@ export function drawCard(state: RummyGameState): DrawCardResult {
     return { success: false, error: GAME_ENDED };
   }
 
-  const { drawn, remaining } = takeFromDeck(state.deck, 1);
+  const { drawn, remaining } = draw(state.deck, 1);
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat ? { ...s, hand: [...s.hand, ...drawn] } : s,
   );
@@ -282,16 +282,6 @@ export function drawCard(state: RummyGameState): DrawCardResult {
     success: true,
     state: advanceTurn({ ...state, deck: remaining, seats }),
   };
-}
-
-/**
- * 從牌庫頂抽 n 張，牌庫不夠就抽到用完。
- * 不用 lib/deck.ts 的 draw：它在 n = 0 時 slice(-0) 會把整副牌當成抽到的牌
- */
-function takeFromDeck(deck: NumberCard[], n: number) {
-  const count = Math.min(n, deck.length);
-  if (count === 0) return { drawn: [], remaining: deck };
-  return { drawn: deck.slice(-count), remaining: deck.slice(0, -count) };
 }
 
 /** 換下一位；所有人都打滿 RUMMY_TURNS_PER_SEAT 回合就結算 */
