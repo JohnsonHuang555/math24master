@@ -3,25 +3,18 @@ import { auth } from '@/auth';
 import { db } from '@/lib/firebase-admin';
 
 type Mode =
-  | 'normal'
-  | 'challenge'
-  | 'classic'
-  | 'quickmath'
-  | 'quickmath_advanced'
-  | 'match';
+  'challenge' | 'classic' | 'quickmath' | 'quickmath_advanced' | 'match';
 
 const COLLECTION: Record<Mode, string> = {
-  normal: 'leaderboard_normal',
   challenge: 'leaderboard_challenge',
   classic: 'leaderboard_classic',
   quickmath: 'leaderboard_quickmath',
-  // 進階模式獨立 collection，理由見 docs/adr/0002-advanced-mode-separate-leaderboard-collection.md
+  // 進階模式獨立 collection，理由見 docs/adr/0003-advanced-mode-separate-leaderboard-collection.md
   quickmath_advanced: 'leaderboard_quickmath_advanced',
   match: 'leaderboard_matching',
 };
 
 const ORDER_FIELD: Record<Mode, string> = {
-  normal: 'rankingScore',
   challenge: 'stage',
   classic: 'score',
   quickmath: 'seconds',
@@ -30,7 +23,6 @@ const ORDER_FIELD: Record<Mode, string> = {
 };
 
 const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
-  normal: 'desc',
   challenge: 'desc',
   classic: 'desc',
   quickmath: 'asc',
@@ -50,7 +42,6 @@ const MATCH_MAX_SCORE = 40;
 // quickmath / quickmath_advanced 是完成時間制，沒有「0 分」的概念，不列入
 const ZERO_FILTER_FIELD: Partial<Record<Mode, string>> = {
   classic: 'score',
-  normal: 'totalScore',
   challenge: 'totalScore',
   match: 'score',
 };
@@ -155,18 +146,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
   }
 
-  // Sanity checks + compute rankingScore for normal mode
-  if (mode === 'normal') {
-    const seconds = Number(payload.seconds);
-    const totalScore = Number(payload.totalScore ?? 0);
-    if (!Number.isFinite(seconds) || seconds < 30) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
-    if (!Number.isFinite(totalScore) || totalScore < 0 || totalScore > 10) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
-    payload.rankingScore = totalScore * 10 - seconds;
-  }
+  // Sanity checks
   if (mode === 'challenge') {
     const stage = Number(payload.stage);
     if (!Number.isFinite(stage) || stage < 1 || stage > 500) {
@@ -215,8 +195,6 @@ export async function POST(req: NextRequest) {
       await staleDoc.ref.delete();
 
       const isStaleWorse =
-        (mode === 'normal' &&
-          Number(payload.rankingScore) <= Number(staleData.rankingScore)) ||
         (mode === 'challenge' &&
           Number(payload.stage) <= Number(staleData.stage)) ||
         ((mode === 'classic' || mode === 'match') &&
@@ -229,27 +207,20 @@ export async function POST(req: NextRequest) {
         ? {
             seconds: staleData.seconds,
             totalScore: staleData.totalScore,
-            rankingScore: staleData.rankingScore,
             stage: staleData.stage,
             score: staleData.score,
           }
         : payload;
 
       const safeMerged =
-        mode === 'normal'
+        mode === 'challenge'
           ? {
-              seconds: mergedPayload.seconds,
+              stage: mergedPayload.stage,
               totalScore: mergedPayload.totalScore,
-              rankingScore: mergedPayload.rankingScore,
             }
-          : mode === 'challenge'
-            ? {
-                stage: mergedPayload.stage,
-                totalScore: mergedPayload.totalScore,
-              }
-            : isQuickMathMode(mode)
-              ? { seconds: mergedPayload.seconds }
-              : { score: mergedPayload.score };
+          : isQuickMathMode(mode)
+            ? { seconds: mergedPayload.seconds }
+            : { score: mergedPayload.score };
 
       await ref.set({
         displayName,
@@ -268,8 +239,6 @@ export async function POST(req: NextRequest) {
   if (existing.exists) {
     const old = existing.data()!;
     const isWorse =
-      (mode === 'normal' &&
-        Number(payload.rankingScore) <= Number(old.rankingScore)) ||
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
       ((mode === 'classic' || mode === 'match') &&
         Number(payload.score) <= Number(old.score)) ||
@@ -281,17 +250,11 @@ export async function POST(req: NextRequest) {
   }
 
   const safePayload =
-    mode === 'normal'
-      ? {
-          seconds: payload.seconds,
-          totalScore: payload.totalScore,
-          rankingScore: payload.rankingScore,
-        }
-      : mode === 'challenge'
-        ? { stage: payload.stage, totalScore: payload.totalScore }
-        : isQuickMathMode(mode)
-          ? { seconds: payload.seconds }
-          : { score: payload.score };
+    mode === 'challenge'
+      ? { stage: payload.stage, totalScore: payload.totalScore }
+      : isQuickMathMode(mode)
+        ? { seconds: payload.seconds }
+        : { score: payload.score };
 
   await ref.set({
     displayName,

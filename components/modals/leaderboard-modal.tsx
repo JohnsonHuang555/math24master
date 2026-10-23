@@ -10,7 +10,7 @@ import {
   LeaderboardRow,
   useLeaderboard,
 } from '@/hooks/useLeaderboard';
-import { formatTime, formatTimePrecise } from '@/lib/utils';
+import { formatTimePrecise } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -32,7 +32,6 @@ const TABS: { mode: LeaderboardMode; label: string }[] = [
 ];
 
 const SCORE_HEADER: Record<LeaderboardMode, string> = {
-  normal: '得分 / 時間',
   challenge: '關卡',
   classic: '分數',
   quickmath: '完成時間',
@@ -56,16 +55,6 @@ function ScoreCell({
       <div className="min-w-[72px] text-right text-xs">
         <div className="font-semibold">
           {formatTimePrecise(row.seconds ?? 0)}
-        </div>
-      </div>
-    );
-  }
-  if (mode === 'normal') {
-    return (
-      <div className="min-w-[72px] text-right text-xs">
-        <div className="font-semibold">{row.rankingScore ?? '-'} pt</div>
-        <div className="text-muted-foreground">
-          {formatTime(row.seconds ?? 0)}
         </div>
       </div>
     );

@@ -11,7 +11,6 @@
 | 模式 | 評比指標 | 說明 |
 |------|---------|------|
 | `classic` | 總分（score）| 數值越高排名越前 |
-| `normal` | 完成秒數（seconds）| 數值越低排名越前 |
 | `challenge` | 連續答對題數（stage）| 數值越高排名越前 |
 
 ---
@@ -37,9 +36,8 @@
 **Request Body**：
 ```typescript
 {
-  mode: 'classic' | 'normal' | 'challenge';
+  mode: 'classic' | 'challenge';
   score?: number;    // classic 模式
-  seconds?: number;  // normal 模式
   stage?: number;    // challenge 模式
 }
 ```
@@ -79,8 +77,6 @@
 leaderboard/
 ├── classic/
 │   └── {docId}: { userId, playerName, score, createdAt }
-├── normal/
-│   └── {docId}: { userId, playerName, seconds, createdAt }
 └── challenge/
     └── {docId}: { userId, playerName, stage, createdAt }
 ```
