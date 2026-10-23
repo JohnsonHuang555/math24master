@@ -69,6 +69,9 @@ const BuzzerPlayerCard = ({
           : {}
       }
       className={`relative flex min-w-[80px] flex-col items-center gap-1 rounded-2xl border-2 px-3 py-2.5 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] md:min-w-[100px] md:gap-1.5 md:px-4 md:py-3 ${getCardClass()}`}
+      data-testid="buzzer-player"
+      data-player-name={player.name}
+      data-score={player.score}
     >
       {/* 作答中 badge */}
       {isCurrentAnswerer && (

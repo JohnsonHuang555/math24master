@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // E2E 測試另外 build 一份（NEXT_PUBLIC_SOCKET_URL 會在 build 時寫死），避免覆蓋一般的 .next
+  distDir: process.env.E2E_DIST_DIR || '.next',
   reactStrictMode: false,
   images: {
     remotePatterns: [

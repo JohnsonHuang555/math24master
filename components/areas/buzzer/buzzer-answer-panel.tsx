@@ -85,6 +85,7 @@ const BuzzerAnswerPanel = ({
               whileTap={isUsed || reduceMotion ? undefined : { scale: 0.93 }}
               disabled={isUsed}
               onClick={() => onSelectCard(card)}
+              data-testid="buzzer-card"
               className={`flex h-14 w-12 items-center justify-center rounded-2xl border-2 font-display text-xl font-black transition-colors md:h-16 md:w-14 md:text-2xl
                 ${
                   isUsed
@@ -125,6 +126,7 @@ const BuzzerAnswerPanel = ({
             key={sym.value}
             whileTap={reduceMotion ? undefined : { scale: 0.93 }}
             onClick={() => onSelectSymbol(sym.value)}
+            data-testid={`symbol-${sym.value}`}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/5 font-display text-base font-black text-primary shadow-[0_3px_0_0_rgba(13,148,136,0.2)] hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10 md:h-11 md:w-11 md:text-lg"
           >
             {sym.label}

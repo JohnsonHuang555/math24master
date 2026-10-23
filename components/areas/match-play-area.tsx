@@ -123,6 +123,8 @@ export function MatchPlayArea({
                     : { type: 'spring', stiffness: 190, damping: 16 }
                 }
                 onClick={() => onSelectCard({ number: cell.card! })}
+                data-testid="match-card"
+                data-selected={selectedNumberIds.has(cell.card.id)}
                 className={cn(
                   'aspect-square cursor-pointer select-none rounded-2xl border-2 font-display text-3xl font-semibold transition-colors',
                   selectedNumberIds.has(cell.card.id)

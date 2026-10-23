@@ -151,6 +151,8 @@ export function PuzzlePlayArea({
             >
               <Card
                 onClick={() => onSelectCard({ number: card })}
+                data-testid="hand-card"
+                data-selected={isSelected}
                 className={cn(
                   'flex cursor-pointer select-none items-center justify-center rounded-2xl border-2 font-display text-3xl font-bold transition-all sm:text-4xl',
                   cardSizeClass,
