@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev           # Start Next.js (:3000) + Socket.IO server (:3001, nodemon watches /server) together
+npm run dev           # Start Next.js (:3000) + Socket.IO server (:3001, tsx watch reloads on server/models/lib changes) together
 npm run build         # Build Next.js app
 npm start             # Run Next.js production build
 npm run start:socket  # Run Socket.IO server in production mode (tsx server/index.ts)
