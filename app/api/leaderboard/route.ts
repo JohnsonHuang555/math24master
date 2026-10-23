@@ -7,17 +7,11 @@ import {
   type Mode,
   ORDER_DIR,
   ORDER_FIELD,
+  SCORE_MAX,
   hasZeroScore,
+  isScoreMode,
   isValidMode,
 } from './config';
-
-// 經典模式單局理論最高分：6 手 * 每手最高 11 分
-const CLASSIC_MAX_SCORE = 66;
-
-// 消消樂模式單局理論最高分：16 張拆成 4 組各 4 張時分數/張數比最高，
-// 每組理論最高 10 分（連三個除號：3+3+3+1），4 組 * 10 分 = 40。
-// 詳見 lib/match-single-play-engine.ts 的 submitSelection（沿用 lib/scoring.ts 的 calcRoundScore）。
-const MATCH_MAX_SCORE = 40;
 
 // quickmath 與 quickmath_advanced 除了寫入的 collection 不同外，
 // 驗證/排序/覆寫規則完全相同（詳見 CONTEXT.md 的 Mode 定義）
@@ -118,12 +112,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
   }
-  if (mode === 'classic') {
+  // 以分數比高低的模式（經典、消消樂、牌桌）：分數必須落在 0～單局理論上限之間
+  if (isScoreMode(mode)) {
     const score = Number(payload.score);
-    // 經典模式單局理論上限：牌庫 24 張 / 每手 4 張 = 6 手，
-    // 每手最高 11 分（全除法 3*3=9 ＋ 2 個以上除法加成 1 ＋ 完美手 bonus 1）
-    // 詳見 lib/classic-single-play-engine.ts 的 updateScore。
-    if (!Number.isFinite(score) || score < 0 || score > CLASSIC_MAX_SCORE) {
+    if (!Number.isFinite(score) || score < 0 || score > SCORE_MAX[mode]!) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
   }
@@ -133,12 +125,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid score' }, { status: 400 });
     }
     payload.seconds = Math.round(seconds * 10) / 10;
-  }
-  if (mode === 'match') {
-    const score = Number(payload.score);
-    if (!Number.isFinite(score) || score < 0 || score > MATCH_MAX_SCORE) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
   }
 
   let ref = db.collection(COLLECTION[mode]).doc(userId);
@@ -162,7 +148,7 @@ export async function POST(req: NextRequest) {
       const isStaleWorse =
         (mode === 'challenge' &&
           Number(payload.stage) <= Number(staleData.stage)) ||
-        ((mode === 'classic' || mode === 'match') &&
+        (isScoreMode(mode) &&
           Number(payload.score) <= Number(staleData.score)) ||
         // 快答比完成秒數，越小越好，方向與其他模式相反
         (isQuickMathMode(mode) &&
@@ -205,8 +191,7 @@ export async function POST(req: NextRequest) {
     const old = existing.data()!;
     const isWorse =
       (mode === 'challenge' && Number(payload.stage) <= Number(old.stage)) ||
-      ((mode === 'classic' || mode === 'match') &&
-        Number(payload.score) <= Number(old.score)) ||
+      (isScoreMode(mode) && Number(payload.score) <= Number(old.score)) ||
       // 快答比完成秒數，越小越好
       (isQuickMathMode(mode) && Number(payload.seconds) >= Number(old.seconds));
     if (isWorse) {

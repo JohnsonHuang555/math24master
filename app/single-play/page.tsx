@@ -81,8 +81,21 @@ const MODE_CONFIG = [
 export default function SinglePlayPage() {
   const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
 
-  const { classicBestScore, challengeBestStage, matchBestScore } =
-    useStatsStore();
+  const {
+    classicBestScore,
+    challengeBestStage,
+    matchBestScore,
+    tabletopBestScores,
+  } = useStatsStore();
+
+  // 三個難度的分數不能互相比較，顯示最高難度的那筆紀錄
+  const tabletopBest = (
+    [
+      ['hard', '困難'],
+      ['normal', '普通'],
+      ['easy', '簡單'],
+    ] as const
+  ).find(([d]) => tabletopBestScores[d] > 0);
 
   // 消消樂模式牌局的反向構造需要先窮舉可解組合，趁玩家瀏覽模式選單的空檔背景預熱，
   // 避免點「開始遊戲」時卡頓（詳見 lib/match-board-generator.ts）
@@ -94,8 +107,9 @@ export default function SinglePlayPage() {
     classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
     challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
     match: matchBestScore > 0 ? `${matchBestScore} 分` : null,
-    // 個人最佳與排行榜在下一階段加入
-    tabletop: null,
+    tabletop: tabletopBest
+      ? `${tabletopBest[1]} ${tabletopBestScores[tabletopBest[0]]} 分`
+      : null,
   };
 
   if (activeMode === 'challenge') {

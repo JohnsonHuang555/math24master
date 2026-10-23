@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { LeaderboardMode } from '@/lib/leaderboard';
 
-export type PendingScoreMode =
-  'classic' | 'challenge' | 'quickmath' | 'quickmath_advanced' | 'match';
+export type PendingScoreMode = LeaderboardMode;
 
 type PendingScore = {
   mode: PendingScoreMode;

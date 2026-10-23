@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   BookOpen,
@@ -13,6 +13,9 @@ import {
   Trophy,
   User,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { ResultRank } from '@/components/leaderboard/result-rank';
+import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { JokerDeclareDialog } from '@/components/tabletop/joker-declare-dialog';
 import { TabletopComposer } from '@/components/tabletop/tabletop-composer';
@@ -30,9 +33,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useTabletopPlay from '@/hooks/useTabletopPlay';
+import type { LeaderboardMode } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 import { TabletopDifficulty } from '@/models/Tabletop';
+import { useGuestStore } from '@/stores/guest-store';
+import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
+import { usePendingScoreStore } from '@/stores/pending-score-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 const DIFFICULTIES: {
   value: TabletopDifficulty;
@@ -57,6 +66,56 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
 
   const play = useTabletopPlay();
   const { game, draft } = play;
+
+  const { status: sessionStatus } = useSession();
+  const { guestId } = useGuestStore();
+  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { skipLoginPrompt, setSkipLoginPrompt } =
+    useLoginPromptPreferenceStore();
+  const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const {
+    tabletopBestScores,
+    updateTabletopBestScore,
+    incrementTabletopPlays,
+  } = useStatsStore();
+
+  // 只有打滿 6 回合的一局才計分；中途離開不會走到 ended
+  const isEnded = game?.status === 'ended';
+  const playerScore =
+    game?.result?.standings.find(s => s.seatId === game.seats[0].id)?.score ??
+    0;
+  const leaderboardMode: LeaderboardMode = `tabletop_${game?.difficulty ?? difficulty}`;
+  const bestScore = tabletopBestScores[game?.difficulty ?? difficulty];
+  const isNewBestScore = isEnded && playerScore > 0 && playerScore >= bestScore;
+
+  useEffect(() => {
+    if (!isEnded || !game) return;
+    incrementTabletopPlays();
+    updateTabletopBestScore(game.difficulty, playerScore);
+  }, [isEnded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const leaderboardSubmit = useLeaderboardSubmit(
+    leaderboardMode,
+    isAuthenticated && isEnded ? { score: playerScore } : null,
+    isAuthenticated && isEnded,
+  );
+
+  // 未登入時先暫存成績，提示登入；登入後由 PendingScoreSubmitter 補送
+  useEffect(() => {
+    if (
+      !isEnded ||
+      isAuthenticated ||
+      sessionStatus === 'loading' ||
+      skipLoginPrompt ||
+      playerScore <= 0
+    )
+      return;
+    setPendingScore({ mode: leaderboardMode, payload: { score: playerScore } });
+    const id = setTimeout(() => setShowLoginPrompt(true), 1000);
+    return () => clearTimeout(id);
+  }, [isEnded, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ruleModal = (
     <RuleModal
@@ -152,6 +211,19 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
     const isWinner = playerStanding?.rank === 1;
     return (
       <div className="flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-8">
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => {
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+          onSkipForever={() => {
+            setSkipLoginPrompt(true);
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+        />
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,6 +240,24 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             {playerStanding?.score ?? 0}
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">你的總分</p>
+          {isNewBestScore ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                新紀錄！
+              </p>
+            </div>
+          ) : (
+            bestScore > 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                個人最佳：{bestScore} 分
+              </p>
+            )
+          )}
+          <ResultRank
+            mode={leaderboardMode}
+            submit={leaderboardSubmit}
+            className="mt-3"
+          />
 
           <ol className="mt-5 flex flex-col gap-1.5 text-left">
             {game.result.standings.map(s => {

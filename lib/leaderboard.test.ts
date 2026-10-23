@@ -61,3 +61,27 @@ describe('formatRecord', () => {
     expect(formatRecord('quickmath_advanced', { seconds: 9 })).toBe('0:09.0');
   });
 });
+
+describe('牌桌模式排行榜', () => {
+  it('簡單、普通、困難三個難度屬於同一個「牌桌」排行榜', () => {
+    for (const [mode, levelId] of [
+      ['tabletop_easy', 'easy'],
+      ['tabletop_normal', 'normal'],
+      ['tabletop_hard', 'hard'],
+    ] as const) {
+      const { board, level } = findBoardByMode(mode);
+      expect(board.id).toBe('tabletop');
+      expect(level.id).toBe(levelId);
+    }
+  });
+
+  it('排行榜網址帶難度', () => {
+    expect(leaderboardHref('tabletop_hard')).toBe(
+      '/leaderboard?mode=tabletop&level=hard',
+    );
+  });
+
+  it('成績以分數顯示', () => {
+    expect(formatRecord('tabletop_normal', { score: 52 })).toBe('52 分');
+  });
+});

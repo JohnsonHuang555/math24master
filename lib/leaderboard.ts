@@ -2,7 +2,14 @@ import { formatTimePrecise } from './utils';
 
 // 一個難度對應一個 collection（見 docs/adr/0003），API 以此作為 mode 參數
 export type LeaderboardMode =
-  'classic' | 'challenge' | 'match' | 'quickmath' | 'quickmath_advanced';
+  | 'classic'
+  | 'challenge'
+  | 'match'
+  | 'quickmath'
+  | 'quickmath_advanced'
+  | 'tabletop_easy'
+  | 'tabletop_normal'
+  | 'tabletop_hard';
 
 export interface LeaderboardRow {
   rank: number;
@@ -61,6 +68,17 @@ export const BOARDS: Board[] = [
     levels: [
       { id: 'basic', label: '基礎', mode: 'quickmath' },
       { id: 'advanced', label: '進階', mode: 'quickmath_advanced' },
+    ],
+  },
+  {
+    id: 'tabletop',
+    label: '牌桌',
+    recordLabel: '分數',
+    playHref: '/single-play',
+    levels: [
+      { id: 'easy', label: '簡單', mode: 'tabletop_easy' },
+      { id: 'normal', label: '普通', mode: 'tabletop_normal' },
+      { id: 'hard', label: '困難', mode: 'tabletop_hard' },
     ],
   },
 ];

@@ -139,5 +139,9 @@ Joker 以宣告的顏色計算。
 ## 排行榜
 
 - 排行榜：牌桌，底下三個難度各自排名
-- Collection：`tabletop_easy` / `tabletop_normal` / `tabletop_hard`（依 ADR 0003 的慣例）
-- 記錄方式：歷史單局最高分
+- 排行榜 mode：`tabletop_easy` / `tabletop_normal` / `tabletop_hard`；對應 collection `leaderboard_tabletop_easy` / `leaderboard_tabletop_normal` / `leaderboard_tabletop_hard`（依 ADR 0003 的慣例）
+- 記錄方式：歷史單局最高分，分數比舊紀錄高才覆寫；0 分不上榜
+- 單局分數上限 180 分（每回合最高 30 分 × 6 回合），超過視為造假，API 拒絕
+- 只有打滿 6 回合的一局才送出；中途離開不計分
+- 未登入時暫存成績並提示登入，登入後補送（與其他模式相同）
+- 個人最佳：每個難度各記一筆，存在瀏覽器；模式選單顯示最高難度的那筆
