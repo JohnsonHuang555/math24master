@@ -79,7 +79,7 @@ export default function RootLayout({
       >
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-0 -z-10 bg-[#f3faf8] [background-image:radial-gradient(42rem_42rem_at_115%_-12%,rgba(13,148,136,0.10),transparent_70%),radial-gradient(34rem_34rem_at_-12%_112%,rgba(245,158,11,0.08),transparent_70%)] dark:bg-zinc-950 dark:[background-image:radial-gradient(42rem_42rem_at_115%_-12%,rgba(45,212,191,0.07),transparent_70%)]"
+          className="pointer-events-none fixed inset-0 -z-10 bg-[#f3faf8] bg-[radial-gradient(42rem_42rem_at_115%_-12%,rgba(13,148,136,0.10),transparent_70%),radial-gradient(34rem_34rem_at_-12%_112%,rgba(245,158,11,0.08),transparent_70%)] dark:bg-zinc-950 dark:bg-[radial-gradient(42rem_42rem_at_115%_-12%,rgba(45,212,191,0.07),transparent_70%)]"
         />
         <div
           aria-hidden

@@ -50,7 +50,7 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
     classic: {
       border: 'border-teal-200 dark:border-teal-800',
       bg: 'bg-teal-50 dark:bg-teal-900/20',
-      shadow: 'shadow-[0_6px_0_0_theme(colors.teal.200)] dark:shadow-[0_6px_0_0_theme(colors.teal.800)]',
+      shadow: 'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
       hover: 'hover:bg-teal-100/70 dark:hover:bg-teal-900/30',
       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
       icon: 'bg-teal-500',
@@ -60,7 +60,7 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
     rummy: {
       border: 'border-teal-200 dark:border-teal-800',
       bg: 'bg-teal-50/60 dark:bg-teal-900/10',
-      shadow: 'shadow-[0_6px_0_0_theme(colors.teal.200)] dark:shadow-[0_6px_0_0_theme(colors.teal.800)]',
+      shadow: 'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
       hover: 'hover:bg-teal-100/50 dark:hover:bg-teal-900/20',
       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
       icon: 'bg-teal-400',
@@ -70,7 +70,7 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
     buzzer: {
       border: 'border-amber-200 dark:border-amber-800',
       bg: 'bg-amber-50 dark:bg-amber-900/20',
-      shadow: 'shadow-[0_6px_0_0_theme(colors.amber.200)] dark:shadow-[0_6px_0_0_theme(colors.amber.800)]',
+      shadow: 'shadow-[0_6px_0_0_var(--color-amber-200)] dark:shadow-[0_6px_0_0_var(--color-amber-800)]',
       hover: 'hover:bg-amber-100/70 dark:hover:bg-amber-900/30',
       badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
       icon: 'bg-amber-500',
@@ -290,7 +290,7 @@ export default function MultiplePlayPage() {
             className="mb-6 mt-2 flex items-end justify-between"
           >
             <div>
-              <h1 className="font-display text-3xl font-black leading-tight text-foreground md:text-4xl">
+              <h1 className="font-display text-3xl font-black leading-tight text-foreground md:text-4xl md:leading-10">
                 多人對戰
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -325,7 +325,7 @@ export default function MultiplePlayPage() {
             </div>
 
             {/* TODO: 之後再做, 遊戲類型篩選 */}
-            {/* <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white/60 p-1 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+            {/* <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white/60 p-1 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/40">
               {FILTERS.map(f => (
                 <button
                   key={f.value}
@@ -333,7 +333,7 @@ export default function MultiplePlayPage() {
                   className={cn(
                     'rounded-lg px-3 py-1.5 text-sm font-bold transition-colors',
                     gameTypeFilter === f.value
-                      ? 'bg-primary text-white shadow-sm'
+                      ? 'bg-primary text-white shadow-xs'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >

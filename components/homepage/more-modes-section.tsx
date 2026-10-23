@@ -4,21 +4,21 @@ import GameModeCard, { GameModeCardTheme } from './game-mode-card';
 
 const THEMES: Record<'teal' | 'amber' | 'violet', GameModeCardTheme> = {
   teal: {
-    card: 'border-teal-200 bg-teal-50 shadow-[0_6px_0_0_theme(colors.teal.200)] hover:bg-teal-100/70 dark:border-teal-800 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_theme(colors.teal.800)] dark:hover:bg-teal-900/30',
+    card: 'border-teal-200 bg-teal-50 shadow-[0_6px_0_0_var(--color-teal-200)] hover:bg-teal-100/70 dark:border-teal-800 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_var(--color-teal-800)] dark:hover:bg-teal-900/30',
     iconBg: 'bg-teal-500',
     title: 'text-teal-800 dark:text-teal-300',
     description: 'text-teal-600 dark:text-teal-400/80',
     chevron: 'text-teal-400',
   },
   amber: {
-    card: 'border-amber-200 bg-amber-50 shadow-[0_6px_0_0_theme(colors.amber.200)] hover:bg-amber-100/70 dark:border-amber-800 dark:bg-amber-900/20 dark:shadow-[0_6px_0_0_theme(colors.amber.800)] dark:hover:bg-amber-900/30',
+    card: 'border-amber-200 bg-amber-50 shadow-[0_6px_0_0_var(--color-amber-200)] hover:bg-amber-100/70 dark:border-amber-800 dark:bg-amber-900/20 dark:shadow-[0_6px_0_0_var(--color-amber-800)] dark:hover:bg-amber-900/30',
     iconBg: 'bg-amber-400',
     title: 'text-amber-800 dark:text-amber-300',
     description: 'text-amber-600 dark:text-amber-400/80',
     chevron: 'text-amber-400',
   },
   violet: {
-    card: 'border-violet-200 bg-violet-50 shadow-[0_6px_0_0_theme(colors.violet.200)] hover:bg-violet-100/70 dark:border-violet-800 dark:bg-violet-900/20 dark:shadow-[0_6px_0_0_theme(colors.violet.800)] dark:hover:bg-violet-900/30',
+    card: 'border-violet-200 bg-violet-50 shadow-[0_6px_0_0_var(--color-violet-200)] hover:bg-violet-100/70 dark:border-violet-800 dark:bg-violet-900/20 dark:shadow-[0_6px_0_0_var(--color-violet-800)] dark:hover:bg-violet-900/30',
     iconBg: 'bg-violet-400',
     title: 'text-violet-800 dark:text-violet-300',
     description: 'text-violet-600 dark:text-violet-400/80',

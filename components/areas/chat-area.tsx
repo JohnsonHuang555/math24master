@@ -39,7 +39,7 @@ const ChatArea = ({ messages, onSend, currentPlayerName }: ChatAreaProps) => {
   };
 
   return (
-    <div className="flex flex-1 min-h-[220px] flex-col rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/30 max-md:mb-4 max-md:max-h-[160px] md:min-h-[150px]">
+    <div className="flex flex-1 min-h-[220px] flex-col rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/30 max-md:mb-4 max-md:max-h-[160px] md:min-h-[150px]">
       {/* 標題 */}
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-teal-500 text-white">
@@ -81,7 +81,7 @@ const ChatArea = ({ messages, onSend, currentPlayerName }: ChatAreaProps) => {
                 )}
                 <span
                   className={cn(
-                    'max-w-[80%] break-words rounded-xl px-2.5 py-1 leading-relaxed',
+                    'max-w-[80%] wrap-break-word rounded-xl px-2.5 py-1 leading-relaxed',
                     isSelf
                       ? 'bg-primary/10 text-teal-800 dark:bg-primary/20 dark:text-teal-200'
                       : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',

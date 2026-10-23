@@ -40,7 +40,7 @@ const PlayerInfoArea = ({
             height={16}
             priority
           />
-          <div className="mb-[1px] ml-1 text-base text-red-600 max-md:text-sm">
+          <div className="mb-px ml-1 text-base text-red-600 max-md:text-sm">
             你的回合
           </div>
         </div>

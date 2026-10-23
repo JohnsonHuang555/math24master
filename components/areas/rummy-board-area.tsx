@@ -34,7 +34,7 @@ const TileChip = ({ tile, colorRule }: { tile: EquationTile; colorRule?: 'none' 
 
     return (
       <span
-        className={`inline-flex h-8 min-w-[2rem] items-center justify-center rounded border px-1 text-sm font-bold ${colorCls}`}
+        className={`inline-flex h-8 min-w-8 items-center justify-center rounded border px-1 text-sm font-bold ${colorCls}`}
       >
         {label}
       </span>

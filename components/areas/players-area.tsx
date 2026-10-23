@@ -42,7 +42,7 @@ const PlayersArea = ({
   const allPlayersReady = players.length > 1 && players.every(p => p.isReady);
 
   return (
-    <div className="flex h-full flex-1 flex-col rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/30 max-sm:min-h-[270px]">
+    <div className="flex h-full flex-1 flex-col rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/30 max-sm:min-h-[270px]">
       {/* 標題 */}
       <div className="mb-4 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500 text-white">

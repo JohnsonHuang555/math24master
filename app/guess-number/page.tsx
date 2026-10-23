@@ -87,9 +87,9 @@ function ClueCardButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-2xl border-2 px-2 py-3 text-center outline-none transition-all focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]',
+        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-2xl border-2 px-2 py-3 text-center outline-hidden transition-all focus:outline-hidden focus-visible:outline-hidden [-webkit-tap-highlight-color:transparent]',
         isRedraw || isPeek
-          ? 'border-amber-200 bg-amber-50 shadow-[0_4px_0_0_theme(colors.amber.200)] dark:border-amber-700 dark:bg-amber-900/20 dark:shadow-[0_4px_0_0_theme(colors.amber.800)]'
+          ? 'border-amber-200 bg-amber-50 shadow-[0_4px_0_0_var(--color-amber-200)] dark:border-amber-700 dark:bg-amber-900/20 dark:shadow-[0_4px_0_0_var(--color-amber-800)]'
           : selected
             ? 'border-primary bg-primary text-primary-foreground shadow-[0_4px_0_0_hsl(175_84%_22%)]'
             : 'border-zinc-200 bg-white shadow-[0_4px_0_0_rgba(0,0,0,0.06)] dark:border-zinc-700 dark:bg-zinc-800',
@@ -385,14 +385,14 @@ export default function GuessNumberPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setRulesOpen(true)}
-            className="flex h-8 items-center gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+            className="flex h-8 items-center gap-1 text-muted-foreground outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-foreground"
           >
             <HelpCircle size={16} />
             <span className="text-xs">規則</span>
           </button>
           <button
             onClick={() => setNotesOpen(true)}
-            className="flex h-8 items-center gap-1 text-muted-foreground outline-none [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+            className="flex h-8 items-center gap-1 text-muted-foreground outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-foreground"
           >
             <BookOpen size={16} />
             <span className="text-xs">筆記</span>
@@ -408,7 +408,7 @@ export default function GuessNumberPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="w-full max-w-lg rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 shadow-[0_5px_0_0_theme(colors.amber.200)] dark:border-amber-700 dark:bg-zinc-900 dark:shadow-[0_5px_0_0_theme(colors.amber.800)]"
+            className="w-full max-w-lg rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 shadow-[0_5px_0_0_var(--color-amber-200)] dark:border-amber-700 dark:bg-zinc-900 dark:shadow-[0_5px_0_0_var(--color-amber-800)]"
           >
             <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
               透視中… 剩餘的數字為（{remaining.length} 個）
@@ -597,7 +597,7 @@ export default function GuessNumberPage() {
               isRoundGuessed ||
               gameOver
             }
-            className="flex-[3] text-center text-lg font-bold"
+            className="flex-3 text-center text-lg font-bold"
             maxLength={2}
           />
           <Button
@@ -699,13 +699,13 @@ export default function GuessNumberPage() {
                   <div className="flex gap-6">
                     <button
                       onClick={() => setNotesMarked(new Set())}
-                      className="text-xs text-zinc-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
+                      className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
                     >
                       清除全部
                     </button>
                     <button
                       onClick={() => { setNotesOpen(false); setDragSelectMode(false); }}
-                      className="text-xs text-zinc-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
+                      className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
                     >
                       關閉
                     </button>
@@ -718,7 +718,7 @@ export default function GuessNumberPage() {
                         key={col}
                         onClick={() => setNotesColumns(col)}
                         className={cn(
-                          'px-2.5 py-1 text-xs outline-none [-webkit-tap-highlight-color:transparent]',
+                          'px-2.5 py-1 text-xs outline-hidden [-webkit-tap-highlight-color:transparent]',
                           notesColumns === col
                             ? 'bg-teal-500 text-white'
                             : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800',
@@ -731,7 +731,7 @@ export default function GuessNumberPage() {
                   <button
                     onClick={handleToggleDragSelect}
                     className={cn(
-                      'rounded border px-2.5 py-1 text-xs outline-none [-webkit-tap-highlight-color:transparent]',
+                      'rounded border px-2.5 py-1 text-xs outline-hidden [-webkit-tap-highlight-color:transparent]',
                       dragSelectMode
                         ? 'border-teal-500 bg-teal-500 text-white'
                         : 'border-zinc-200 text-zinc-500 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800',
@@ -750,7 +750,7 @@ export default function GuessNumberPage() {
                   className={cn(
                     'grid gap-2 sm:gap-1',
                     notesColumns === 5 ? 'grid-cols-5 sm:grid-cols-10' : 'grid-cols-6 sm:grid-cols-10',
-                    dragSelectMode && '[touch-action:none]',
+                    dragSelectMode && 'touch-none',
                   )}
                   onPointerDown={handleNotesPointerDown}
                   onPointerMove={dragSelectMode ? handleNotesPointerMove : undefined}
@@ -764,7 +764,7 @@ export default function GuessNumberPage() {
                       transition={{ layout: { type: 'spring', damping: 25, stiffness: 300, duration: 0.3 } }}
                       data-note-num={n}
                       className={cn(
-                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-none sm:h-8 [-webkit-tap-highlight-color:transparent]',
+                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-hidden sm:h-8 [-webkit-tap-highlight-color:transparent]',
                         notesMarked.has(n)
                           ? 'bg-teal-500 text-white'
                           : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
@@ -804,7 +804,7 @@ export default function GuessNumberPage() {
                 <h2 className="font-bold">遊戲規則</h2>
                 <button
                   onClick={() => setRulesOpen(false)}
-                  className="text-xs text-zinc-400 outline-none [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
+                  className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
                 >
                   關閉
                 </button>
@@ -903,7 +903,7 @@ export default function GuessNumberPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
           >
             <div
               className={cn(

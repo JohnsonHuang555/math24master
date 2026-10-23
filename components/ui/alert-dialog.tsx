@@ -49,7 +49,7 @@ const AlertDialogHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn('flex flex-col space-y-2 text-left', className)}
+    className={cn('flex flex-col gap-2 text-left', className)}
     {...props}
   />
 );
@@ -61,7 +61,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex flex-col-reverse max-md:flex-row max-md:justify-end max-md:space-x-2 md:flex-row md:justify-end md:space-x-2',
+      'flex flex-col-reverse max-md:flex-row max-md:justify-end max-md:gap-2 md:flex-row md:justify-end md:gap-2',
       className,
     )}
     {...props}

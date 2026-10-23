@@ -115,7 +115,7 @@ const RoomInfoArea = ({
   const roundUnlimited = bs.roundSeconds === null;
 
   return (
-    <div className="md:h-full grow rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/30">
+    <div className="md:h-full grow rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/30">
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
 
       {/* Header */}

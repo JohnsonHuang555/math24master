@@ -45,7 +45,7 @@ export type PuzzleTheme = 'blue' | 'orange' | 'emerald';
 // 全站色彩鎖：三種模式共用 teal 品牌 tokens（theme prop 保留 API 相容）
 const BRAND_TOKENS = {
   cardSelected:
-    'border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)] hover:border-red-400 hover:bg-red-400 hover:shadow-[0_5px_0_0_theme(colors.red.600)]',
+    'border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)] hover:border-red-400 hover:bg-red-400 hover:shadow-[0_5px_0_0_var(--color-red-600)]',
   cardIdle:
     'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
   expressionBox:

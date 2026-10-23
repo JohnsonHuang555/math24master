@@ -79,7 +79,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
               className={cn(
                 'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
                 activeTab === tab.key
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -122,7 +122,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
                 <div className="flex items-start gap-3">
                   <div
                     className={cn(
-                      'mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full',
+                      'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                       isUnlocked
                         ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300'
                         : 'bg-muted text-muted-foreground',
@@ -145,7 +145,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
                         {achievement.name}
                       </span>
                       {isUnlocked && unlockTs && (
-                        <span className="flex-shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 text-xs text-muted-foreground">
                           {new Date(unlockTs).toLocaleDateString('zh-TW')}
                         </span>
                       )}
