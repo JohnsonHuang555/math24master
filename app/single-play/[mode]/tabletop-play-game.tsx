@@ -19,6 +19,7 @@ import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { JokerDeclareDialog } from '@/components/tabletop/joker-declare-dialog';
+import { TabletopBetaNotice } from '@/components/tabletop/tabletop-beta-notice';
 import { TabletopComposer } from '@/components/tabletop/tabletop-composer';
 import { TabletopHand } from '@/components/tabletop/tabletop-hand';
 import { TabletopHistoryDialog } from '@/components/tabletop/tabletop-history-dialog';
@@ -153,6 +154,8 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
           </div>
         </div>
 
+        <TabletopBetaNotice className="w-full max-w-sm" />
+
         <div
           className="flex w-full max-w-sm flex-col gap-2"
           role="radiogroup"
@@ -259,6 +262,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
               </p>
             )
           )}
+          <TabletopBetaNotice className="mt-3" />
           <ResultRank
             mode={leaderboardMode}
             submit={leaderboardSubmit}

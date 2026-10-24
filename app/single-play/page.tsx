@@ -64,7 +64,7 @@ const MODE_CONFIG = [
   {
     value: 'tabletop' as const,
     label: '牌桌模式',
-    badge: '新' as string | undefined,
+    badge: 'Beta' as string | undefined,
     tagline: '改編自拉密 · 對戰電腦搶先出完',
     chips: ['拆開重組桌上算式', '同色或全異色', '和 2 個電腦搶分'],
     Icon: Shapes,

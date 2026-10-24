@@ -9,6 +9,7 @@ import { BoardSelector } from '@/components/leaderboard/board-selector';
 import { MyRankCard } from '@/components/leaderboard/my-rank-card';
 import { Podium } from '@/components/leaderboard/podium';
 import { RankingList } from '@/components/leaderboard/ranking-list';
+import { TabletopBetaNotice } from '@/components/tabletop/tabletop-beta-notice';
 import { Button } from '@/components/ui/button';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { useMyRank } from '@/hooks/useMyRank';
@@ -51,6 +52,8 @@ export default function LeaderboardView() {
         </div>
 
         <BoardSelector board={board} level={level} onChange={handleChange} />
+
+        {board.id === 'tabletop' && <TabletopBetaNotice />}
 
         {loading ? (
           <div className="flex flex-col gap-1.5" aria-label="載入中">
