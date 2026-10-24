@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { Play } from 'lucide-react';
 import type { MyRankState } from '@/hooks/useMyRank';
+import { Link } from '@/i18n/navigation';
 import {
   type LeaderboardMode,
   findBoardByMode,

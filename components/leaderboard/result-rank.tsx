@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { ChevronRight, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +12,7 @@ import {
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import type { LeaderboardSubmitState } from '@/hooks/useLeaderboardSubmit';
 import { useMyRank } from '@/hooks/useMyRank';
+import { Link } from '@/i18n/navigation';
 import {
   type LeaderboardMode,
   findBoardByMode,

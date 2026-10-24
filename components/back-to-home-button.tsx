@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useRouter } from '@/i18n/navigation';
 
 // 全站統一的「回首頁」按鈕，各頁面自行決定要放進 <header> 還是既有的標題列
 export function BackToHomeButton() {

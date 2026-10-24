@@ -1,19 +1,50 @@
-import { Toaster } from '@/components/ui/sonner';
-import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
+import {
+  Baloo_2,
+  Noto_Sans,
+  Noto_Sans_SC,
+  Noto_Sans_TC,
+} from 'next/font/google';
+import { notFound } from 'next/navigation';
 import type { Metadata, Viewport } from 'next';
-import { SessionProvider } from '@/components/session-provider';
+import { NextIntlClientProvider, hasLocale } from 'next-intl';
+import { setRequestLocale } from 'next-intl/server';
 import { GoogleAnalytics } from '@/components/analytics';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
+import { SessionProvider } from '@/components/session-provider';
+import { Toaster } from '@/components/ui/sonner';
+import { HTML_LANG } from '@/i18n/locales';
+import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
-import './globals.css';
+import '../globals.css';
 
-const fontNotoSans = Noto_Sans_TC({
+// 內文字型依語系切換，三者共用 --font-noto-sans：簡中字形與繁中不同，英文不需要載入 CJK 字型
+const fontNotoSansTC = Noto_Sans_TC({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-noto-sans',
   preload: true,
 });
+
+const fontNotoSansSC = Noto_Sans_SC({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-noto-sans',
+  preload: false,
+});
+
+const fontNotoSans = Noto_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-noto-sans',
+  preload: false,
+});
+
+const BODY_FONT = {
+  'zh-TW': fontNotoSansTC,
+  en: fontNotoSans,
+  'zh-CN': fontNotoSansSC,
+};
 
 // 展示字體：圓潤厚實，用於數字牌與大標題（拉丁字元／數字），中文自動 fallback 到 Noto Sans TC
 const fontBaloo = Baloo_2({
@@ -63,17 +94,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export function generateStaticParams() {
+  return routing.locales.map(locale => ({ locale }));
+}
+
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  params,
+}: LayoutProps<'/[locale]'>) {
+  const { locale } = await params;  if (!hasLocale(routing.locales, locale)) notFound();
+  setRequestLocale(locale);
+
   return (
-    <html lang="zh-Hant">
+    <html lang={HTML_LANG[locale]}>
       <body
         className={cn(
           'relative h-dvh font-noto antialiased',
-          fontNotoSans.variable,
+          BODY_FONT[locale].variable,
           fontBaloo.variable,
         )}
       >
@@ -86,10 +123,12 @@ export default function RootLayout({
           className="pointer-events-none fixed inset-0 -z-10 bg-[url('/b2.webp')] bg-cover bg-center opacity-[0.18] dark:opacity-[0.07]"
         />
         <GoogleAnalytics measurementId="G-HWFWE6ED59" />
-        <SessionProvider>
-          <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
-          <PendingScoreSubmitter />
-        </SessionProvider>
+        <NextIntlClientProvider>
+          <SessionProvider>
+            <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
+            <PendingScoreSubmitter />
+          </SessionProvider>
+        </NextIntlClientProvider>
         {/* <SoundToggle /> */}
         <Toaster />
       </body>

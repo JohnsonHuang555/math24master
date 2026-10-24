@@ -1,7 +1,6 @@
 'use client';
 
 import { memo, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGuessNumber } from '@/hooks/useGuessNumber';
 import type { HistoryEntry } from '@/hooks/useGuessNumber';
+import { Link } from '@/i18n/navigation';
 import type { ClueCard, LineClueCard } from '@/lib/guess-number';
 import { cn } from '@/lib/utils';
 
@@ -53,7 +53,10 @@ const NumberBoard = memo(function NumberBoard({
   );
 });
 
-function formatCardQuestion(card: LineClueCard, lastGuess: number | null): string {
+function formatCardQuestion(
+  card: LineClueCard,
+  lastGuess: number | null,
+): string {
   if (card.id === 'higher-than-last' && lastGuess !== null) {
     return `謎底比你上一次猜的（${lastGuess}）大嗎？`;
   }
@@ -79,15 +82,13 @@ function ClueCardButton({
   const isPeek = card.id === 'peek';
   const isRedraw = card.id === 'redraw';
   const displayText =
-    'question' in card
-      ? formatCardQuestion(card, lastGuess)
-      : card.description;
+    'question' in card ? formatCardQuestion(card, lastGuess) : card.description;
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-2xl border-2 px-2 py-3 text-center outline-hidden transition-all focus:outline-hidden focus-visible:outline-hidden [-webkit-tap-highlight-color:transparent]',
+        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-2xl border-2 px-2 py-3 text-center outline-hidden transition-all [-webkit-tap-highlight-color:transparent] focus:outline-hidden focus-visible:outline-hidden',
         isRedraw || isPeek
           ? 'border-amber-200 bg-amber-50 shadow-[0_4px_0_0_var(--color-amber-200)] dark:border-amber-700 dark:bg-amber-900/20 dark:shadow-[0_4px_0_0_var(--color-amber-800)]'
           : selected
@@ -100,7 +101,7 @@ function ClueCardButton({
           : 'active:translate-y-0.5 active:shadow-none',
       )}
     >
-      <span className="text-sm font-bold leading-tight">{card.name}</span>
+      <span className="text-sm leading-tight font-bold">{card.name}</span>
       <span
         className={cn(
           'mt-1 text-xs leading-tight',
@@ -121,7 +122,7 @@ function HistoryChips({ history }: { history: HistoryEntry[] }) {
   if (history.length === 0) return null;
   return (
     <div className="w-full max-w-lg">
-      <div className="flex gap-1.5 overflow-x-auto px-0.5 py-1 scrollbar-none">
+      <div className="flex scrollbar-none gap-1.5 overflow-x-auto px-0.5 py-1">
         {history.map((e, i) => {
           if (e.type === 'clue') {
             return (
@@ -184,12 +185,18 @@ function ProgressDots({ roundCount }: { roundCount: number }) {
       {Array.from({ length: 10 }, (_, i) => {
         if (i < roundCount) {
           return (
-            <div key={i} className={cn('h-2 flex-1 rounded-full', filledClass)} />
+            <div
+              key={i}
+              className={cn('h-2 flex-1 rounded-full', filledClass)}
+            />
           );
         }
         if (i === roundCount) {
           return (
-            <div key={i} className={cn('h-2 flex-1 rounded-full', currentClass)} />
+            <div
+              key={i}
+              className={cn('h-2 flex-1 rounded-full', currentClass)}
+            />
           );
         }
         return (
@@ -269,11 +276,20 @@ export default function GuessNumberPage() {
     !isRoundGuessed &&
     !gameOver;
 
-  const lineCardAreaDisabled = isRoundGuessed || selectedCard !== null || peekActive;
+  const lineCardAreaDisabled =
+    isRoundGuessed || selectedCard !== null || peekActive;
 
   const getCardDisabled = (card: ClueCard) => {
-    if (card.id === 'peek') return peekUsed || isRoundGuessed || gameOver || selectedCard !== null;
-    if (card.id === 'redraw') return redrawUsed || redrawnThisRound || isRoundGuessed || gameOver || selectedCard !== null;
+    if (card.id === 'peek')
+      return peekUsed || isRoundGuessed || gameOver || selectedCard !== null;
+    if (card.id === 'redraw')
+      return (
+        redrawUsed ||
+        redrawnThisRound ||
+        isRoundGuessed ||
+        gameOver ||
+        selectedCard !== null
+      );
     return lineCardAreaDisabled || gameOver;
   };
 
@@ -296,7 +312,8 @@ export default function GuessNumberPage() {
 
   const getNumFromTarget = (el: HTMLElement | null): number | null => {
     while (el) {
-      const attr = (el as HTMLElement & { dataset: DOMStringMap }).dataset?.noteNum;
+      const attr = (el as HTMLElement & { dataset: DOMStringMap }).dataset
+        ?.noteNum;
       if (attr !== undefined) return Number(attr);
       el = el.parentElement;
     }
@@ -413,7 +430,10 @@ export default function GuessNumberPage() {
             <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
               透視中… 剩餘的數字為（{remaining.length} 個）
             </p>
-            <NumberBoard remaining={remaining} guessedNumbers={guessedNumbers} />
+            <NumberBoard
+              remaining={remaining}
+              guessedNumbers={guessedNumbers}
+            />
             <motion.div
               className="mt-2 h-1 rounded-full bg-amber-400"
               initial={{ width: '100%' }}
@@ -449,7 +469,9 @@ export default function GuessNumberPage() {
             <div className="mt-2 font-display text-2xl font-bold text-primary">
               剩 {remaining.length} 個未猜
             </div>
-            <div className="mt-1 text-xs text-zinc-400">謎底是 10-99 之間的數字</div>
+            <div className="mt-1 text-xs text-zinc-400">
+              謎底是 10-99 之間的數字
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -500,7 +522,10 @@ export default function GuessNumberPage() {
                   </div>
                   <div className="truncate text-sm text-zinc-600 dark:text-zinc-400">
                     {'question' in selectedCard
-                      ? formatCardQuestion(selectedCard as LineClueCard, lastGuess)
+                      ? formatCardQuestion(
+                          selectedCard as LineClueCard,
+                          lastGuess,
+                        )
                       : ''}
                   </div>
                 </div>
@@ -660,7 +685,9 @@ export default function GuessNumberPage() {
               {pendingCard?.name}
               {pendingCard && '：'}
               {pendingCard &&
-                ('question' in pendingCard ? pendingCard.question : pendingCard.description)}
+                ('question' in pendingCard
+                  ? pendingCard.question
+                  : pendingCard.description)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -681,7 +708,10 @@ export default function GuessNumberPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setNotesOpen(false); setDragSelectMode(false); }}
+              onClick={() => {
+                setNotesOpen(false);
+                setDragSelectMode(false);
+              }}
               className="fixed inset-0 z-40 bg-black/30"
             />
             <motion.div
@@ -690,7 +720,7 @@ export default function GuessNumberPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900"
+              className="fixed right-0 bottom-0 left-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900"
             >
               {/* 固定標題區（不參與滾動） */}
               <div className="shrink-0 px-4 pt-4">
@@ -704,7 +734,10 @@ export default function GuessNumberPage() {
                       清除全部
                     </button>
                     <button
-                      onClick={() => { setNotesOpen(false); setDragSelectMode(false); }}
+                      onClick={() => {
+                        setNotesOpen(false);
+                        setDragSelectMode(false);
+                      }}
                       className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
                     >
                       關閉
@@ -734,7 +767,7 @@ export default function GuessNumberPage() {
                       'rounded border px-2.5 py-1 text-xs outline-hidden [-webkit-tap-highlight-color:transparent]',
                       dragSelectMode
                         ? 'border-teal-500 bg-teal-500 text-white'
-                        : 'border-zinc-200 text-zinc-500 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800',
+                        : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800',
                     )}
                   >
                     ✎ 連選
@@ -749,22 +782,37 @@ export default function GuessNumberPage() {
                 <div
                   className={cn(
                     'grid gap-2 sm:gap-1',
-                    notesColumns === 5 ? 'grid-cols-5 sm:grid-cols-10' : 'grid-cols-6 sm:grid-cols-10',
+                    notesColumns === 5
+                      ? 'grid-cols-5 sm:grid-cols-10'
+                      : 'grid-cols-6 sm:grid-cols-10',
                     dragSelectMode && 'touch-none',
                   )}
                   onPointerDown={handleNotesPointerDown}
-                  onPointerMove={dragSelectMode ? handleNotesPointerMove : undefined}
-                  onPointerUp={dragSelectMode ? handleNotesPointerUp : undefined}
-                  onPointerCancel={dragSelectMode ? handleNotesPointerUp : undefined}
+                  onPointerMove={
+                    dragSelectMode ? handleNotesPointerMove : undefined
+                  }
+                  onPointerUp={
+                    dragSelectMode ? handleNotesPointerUp : undefined
+                  }
+                  onPointerCancel={
+                    dragSelectMode ? handleNotesPointerUp : undefined
+                  }
                 >
                   {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
                     <motion.button
                       key={n}
                       layout
-                      transition={{ layout: { type: 'spring', damping: 25, stiffness: 300, duration: 0.3 } }}
+                      transition={{
+                        layout: {
+                          type: 'spring',
+                          damping: 25,
+                          stiffness: 300,
+                          duration: 0.3,
+                        },
+                      }}
                       data-note-num={n}
                       className={cn(
-                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium transition-colors outline-hidden sm:h-8 [-webkit-tap-highlight-color:transparent]',
+                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium outline-hidden transition-colors [-webkit-tap-highlight-color:transparent] sm:h-8',
                         notesMarked.has(n)
                           ? 'bg-teal-500 text-white'
                           : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
@@ -798,7 +846,7 @@ export default function GuessNumberPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-zinc-900"
+              className="fixed right-0 bottom-0 left-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-zinc-900"
             >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-bold">遊戲規則</h2>
@@ -812,40 +860,67 @@ export default function GuessNumberPage() {
 
               {/* 遊戲目標 */}
               <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">遊戲目標</h3>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                  遊戲目標
+                </h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                  利用線索牌推理出藏匿的兩位數（10-99），最多 <span className="font-semibold">10 回合</span>內猜對即獲勝。
+                  利用線索牌推理出藏匿的兩位數（10-99），最多{' '}
+                  <span className="font-semibold">10 回合</span>內猜對即獲勝。
                 </p>
               </section>
 
               {/* 每回合流程 */}
               <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">每回合流程</h3>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                  每回合流程
+                </h3>
                 <ol className="space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
-                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">1.</span>從手牌中選一張線索牌，系統回答「是」或「否」</li>
-                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">2.</span>根據線索縮小謎底範圍後，輸入你猜測的數字</li>
-                  <li className="flex gap-2"><span className="shrink-0 font-bold text-teal-500">3.</span>猜錯則繼續下一回合；猜對立即獲勝</li>
+                  <li className="flex gap-2">
+                    <span className="shrink-0 font-bold text-teal-500">1.</span>
+                    從手牌中選一張線索牌，系統回答「是」或「否」
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="shrink-0 font-bold text-teal-500">2.</span>
+                    根據線索縮小謎底範圍後，輸入你猜測的數字
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="shrink-0 font-bold text-teal-500">3.</span>
+                    猜錯則繼續下一回合；猜對立即獲勝
+                  </li>
                 </ol>
               </section>
 
               {/* 特殊牌 */}
               <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">特殊牌</h3>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                  特殊牌
+                </h3>
                 <div className="space-y-2">
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">🔍 透視鏡</p>
-                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">顯示目前所有可能為謎底的數字 5 秒。每局限用一次，使用後本回合仍可猜數。</p>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                      🔍 透視鏡
+                    </p>
+                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
+                      顯示目前所有可能為謎底的數字 5
+                      秒。每局限用一次，使用後本回合仍可猜數。
+                    </p>
                   </div>
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">🔄 全面革新</p>
-                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。</p>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                      🔄 全面革新
+                    </p>
+                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
+                      重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。
+                    </p>
                   </div>
                 </div>
               </section>
 
               {/* 線索牌一覽 */}
               <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">線索牌一覽</h3>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                  線索牌一覽
+                </h3>
                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                   {[
                     ['半壁江山', '謎底 ≥ 55？'],
@@ -865,9 +940,16 @@ export default function GuessNumberPage() {
                     ['完美平方', '謎底是完全平方數？'],
                     ['幸運之星', '謎底含有數字 7？'],
                   ].map(([name, desc]) => (
-                    <div key={name} className="flex items-baseline gap-1.5 rounded px-2 py-1 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                      <span className="shrink-0 font-medium text-zinc-700 dark:text-zinc-300">{name}</span>
-                      <span className="text-zinc-400 dark:text-zinc-500">{desc}</span>
+                    <div
+                      key={name}
+                      className="flex items-baseline gap-1.5 rounded px-2 py-1 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                    >
+                      <span className="shrink-0 font-medium text-zinc-700 dark:text-zinc-300">
+                        {name}
+                      </span>
+                      <span className="text-zinc-400 dark:text-zinc-500">
+                        {desc}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -875,7 +957,9 @@ export default function GuessNumberPage() {
 
               {/* 評分 */}
               <section>
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">評分標準</h3>
+                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                  評分標準
+                </h3>
                 <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
                   {[
                     ['1 回合', '🎲 運氣爆棚！'],
@@ -885,7 +969,9 @@ export default function GuessNumberPage() {
                     ['未猜中', '😤 下次再試'],
                   ].map(([rounds, label]) => (
                     <div key={rounds} className="flex items-center gap-2">
-                      <span className="w-16 shrink-0 text-zinc-400">{rounds}</span>
+                      <span className="w-16 shrink-0 text-zinc-400">
+                        {rounds}
+                      </span>
                       <span>{label}</span>
                     </div>
                   ))}

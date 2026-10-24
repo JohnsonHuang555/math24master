@@ -1,10 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Award, BarChart2, Trophy, Users } from 'lucide-react';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
+import { Link, useHardNavigate } from '@/i18n/navigation';
 
 const HERO_CARDS = [
   { value: 6, rotate: -14, y: 22 },
@@ -23,6 +24,7 @@ const HeroSection = ({
   onOpenAchievementModal,
 }: HeroSectionProps) => {
   const reduceMotion = useReducedMotion();
+  const hardNavigate = useHardNavigate();
 
   return (
     <section className="relative flex min-h-dvh flex-col">
@@ -98,6 +100,7 @@ const HeroSection = ({
           >
             <Award className="h-5 w-5" />
           </Button>
+          <LocaleSwitcher />
         </nav>
       </header>
 
@@ -184,7 +187,7 @@ const HeroSection = ({
               <Button
                 variant="tactile"
                 className="h-14 px-12 text-xl"
-                onClick={() => (window.location.href = '/single-play')}
+                onClick={() => hardNavigate('/single-play')}
               >
                 立即開始
               </Button>
@@ -196,7 +199,7 @@ const HeroSection = ({
               <Button
                 variant="tactileOutline"
                 className="h-14 gap-2 px-8 text-xl"
-                onClick={() => (window.location.href = '/multiple-play')}
+                onClick={() => hardNavigate('/multiple-play')}
               >
                 <Users className="h-5 w-5" />
                 多人對戰

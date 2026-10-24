@@ -3,6 +3,7 @@
 import { RefObject } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronRight, LucideIcon } from 'lucide-react';
+import { useHardNavigate } from '@/i18n/navigation';
 
 export type GameModeCardTheme = {
   card: string;
@@ -34,6 +35,7 @@ const GameModeCard = ({
   scrollRef,
 }: GameModeCardProps) => {
   const reduceMotion = useReducedMotion();
+  const hardNavigate = useHardNavigate();
 
   return (
     <motion.button
@@ -44,7 +46,7 @@ const GameModeCard = ({
       whileHover={reduceMotion ? undefined : { y: -4 }}
       whileTap={reduceMotion ? undefined : { scale: 0.98 }}
       className={`flex w-full items-center gap-4 rounded-2xl border-2 p-5 text-left transition-colors active:translate-y-1 active:shadow-none md:p-6 ${theme.card}`}
-      onClick={() => (window.location.href = href)}
+      onClick={() => hardNavigate(href)}
     >
       <div
         className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white ${theme.iconBg}`}

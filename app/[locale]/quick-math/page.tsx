@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Calculator,
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { LeaderboardMode } from '@/hooks/useLeaderboard';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { WRONG_PENALTY_SECONDS, useQuickMath } from '@/hooks/useQuickMath';
+import { Link } from '@/i18n/navigation';
 import { leaderboardHref } from '@/lib/leaderboard';
 import { TOTAL_QUESTIONS } from '@/lib/quick-math-generator';
 import { cn, formatTimePrecise } from '@/lib/utils';

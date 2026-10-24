@@ -29,6 +29,7 @@ npm run build         # Build Next.js app
 npm start             # Run Next.js production build
 npm run start:socket  # Run Socket.IO server in production mode (tsx server/index.ts)
 npm run lint          # ESLint CLI (flat config: eslint.config.mjs)
+npm run i18n:zh-cn    # Regenerate messages/zh-CN.json from zh-TW (OpenCC); run after editing zh-TW messages
 ```
 
 ### Deployment
@@ -57,7 +58,9 @@ This is a **Math24 puzzle game** (make 24 from number cards using math operation
 
 | Path | Purpose |
 |------|---------|
-| `app/` | Next.js App Router pages (`/`, `/single-play`, `/multiple-play/[roomId]`) |
+| `app/` | Next.js App Router pages, all under `app/[locale]/` (`/`, `/single-play`, `/multiple-play/[roomId]`); `app/api/` and `global-not-found.tsx` stay at the root |
+| `i18n/` | next-intl setup: locales, routing, `navigation.ts` (use its `Link` / `useRouter` / `useHardNavigate` instead of `next/link` / `next/navigation`), `Accept-Language` detection (`pick-locale.ts`, used by root `proxy.ts`) |
+| `messages/` | Translations per locale (`zh-TW` is the source; `zh-CN.json` is generated) |
 | `server/` | Standalone Socket.IO server (`index.ts` = HTTP + socket setup, `game.ts` = all game logic, `utils.ts` = deck generation) |
 | `components/areas/` | Game board UI split into area components (hand, action, players, chat, etc.) |
 | `components/ui/` | Radix UI primitives (shadcn/ui pattern) |

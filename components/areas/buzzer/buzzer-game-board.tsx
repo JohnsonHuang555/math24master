@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { BookOpen, LogOut } from 'lucide-react';
+import { RuleModal } from '@/components/modals/rule-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { RuleModal } from '@/components/modals/rule-modal';
+import { useHardNavigate } from '@/i18n/navigation';
 import { NumberCard } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
@@ -29,6 +30,7 @@ import BuzzerRoundTimer from './buzzer-round-timer';
 type Props = { roomId: string };
 
 export default function BuzzerGameBoard({ roomId }: Props) {
+  const hardNavigate = useHardNavigate();
   const reduceMotion = useReducedMotion();
 
   const {
@@ -136,7 +138,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
               onClick={() => {
                 sessionStorage.removeItem('reconnectToken');
                 sessionStorage.removeItem('reconnectRoomId');
-                window.location.href = '/multiple-play';
+                hardNavigate('/multiple-play');
               }}
             >
               離開
@@ -162,7 +164,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
               animate={{ scale: 1, opacity: 1 }}
               exit={reduceMotion ? undefined : { scale: 0.7, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 280, damping: 18 }}
-              className="font-display text-[120px] font-black leading-none text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+              className="font-display text-[120px] leading-none font-black text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
             >
               {countdownValue}
             </motion.span>
@@ -185,7 +187,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             key="answer-result"
             initial={reduceMotion ? false : { opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }}
+            exit={
+              reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }
+            }
             transition={{ type: 'spring', stiffness: 280, damping: 22 }}
             className={`fixed inset-x-0 top-5 z-50 mx-auto w-fit rounded-full px-6 py-3 font-display text-sm font-black shadow-lg ${
               lastAnswerResult.isCorrect
@@ -207,11 +211,14 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             key="round-timeout-notification"
             initial={reduceMotion ? false : { opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }}
+            exit={
+              reduceMotion ? undefined : { opacity: 0, y: -20, scale: 0.95 }
+            }
             transition={{ type: 'spring', stiffness: 280, damping: 22 }}
             className="fixed inset-x-0 top-5 z-50 mx-auto w-fit rounded-full bg-zinc-800 px-6 py-3 font-display text-sm font-black text-white shadow-lg dark:bg-zinc-700"
           >
-            ⏰ 時間到！沒有人答對，全體扣 {roundTimeoutNotification.penaltyPoints} 分
+            ⏰ 時間到！沒有人答對，全體扣{' '}
+            {roundTimeoutNotification.penaltyPoints} 分
           </motion.div>
         )}
       </AnimatePresence>
@@ -227,14 +234,14 @@ export default function BuzzerGameBoard({ roomId }: Props) {
           </div>
           <button
             onClick={() => setIsOpenRuleModal(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-primary/40 dark:hover:text-primary md:h-9 md:w-9"
+            className="flex h-8 w-8 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary md:h-9 md:w-9 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-primary/40 dark:hover:text-primary"
             title="遊戲規則"
           >
             <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </button>
           <button
             onClick={() => setIsOpenLeaveDialog(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-rose-700 dark:hover:text-rose-400 md:h-9 md:w-9"
+            className="flex h-8 w-8 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white text-zinc-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-500 md:h-9 md:w-9 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-rose-700 dark:hover:text-rose-400"
             title="離開房間"
           >
             <LogOut className="h-3.5 w-3.5 md:h-4 md:w-4" />
@@ -275,11 +282,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
               className="flex items-center gap-3 rounded-2xl border-2 border-primary/20 bg-primary/5 px-5 py-2.5 dark:border-primary/30 dark:bg-primary/10"
             >
               <motion.div
-                animate={
-                  reduceMotion
-                    ? undefined
-                    : { opacity: [1, 0.3, 1] }
-                }
+                animate={reduceMotion ? undefined : { opacity: [1, 0.3, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
                 className="h-2 w-2 rounded-full bg-primary"
               />
@@ -302,7 +305,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
           <div className="w-full max-w-2xl">
             <BuzzerAnswerPanel
               publicCards={publicCards}
-              selectedCards={isCurrentAnswerer ? selectedCards : answerSelectedCards}
+              selectedCards={
+                isCurrentAnswerer ? selectedCards : answerSelectedCards
+              }
               onSelectCard={handleSelectCard}
               onSelectSymbol={handleSelectSymbol}
               onClear={handleClear}
@@ -314,7 +319,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
       </div>
 
       {/* 底部操作區 */}
-      <div className="flex shrink-0 flex-col items-center gap-4 border-t border-zinc-200/60 px-4 pb-5 pt-4 dark:border-zinc-700/40">
+      <div className="flex shrink-0 flex-col items-center gap-4 border-t border-zinc-200/60 px-4 pt-4 pb-5 dark:border-zinc-700/40">
         {/* 搶答按鈕 */}
         {!isCurrentAnswerer && (
           <BuzzerButton

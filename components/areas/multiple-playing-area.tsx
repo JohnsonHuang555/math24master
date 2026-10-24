@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import ActionArea from '@/components/areas/action-area';
 import HandCardArea from '@/components/areas/hand-card-area';
 import PlayerInfoArea from '@/components/areas/player-info-area';
 import HoverTip from '@/components/hover-tip';
 import MainLayout from '@/components/layouts/main-layout';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { useHardNavigate } from '@/i18n/navigation';
 import { MAX_CARD_COUNT } from '@/models/Room';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import MainPlayArea from './main-play-area';
@@ -14,6 +15,7 @@ import MainPlayArea from './main-play-area';
 const MultiplePlayingArea = () => <ClassicPlayingArea />;
 
 const ClassicPlayingArea = () => {
+  const hardNavigate = useHardNavigate();
   const {
     roomInfo,
     checkAnswerCorrect,
@@ -120,7 +122,7 @@ const ClassicPlayingArea = () => {
           </div>
         ))}
         {countdown && (
-          <div className="absolute left-5 top-5 flex items-center gap-2">
+          <div className="absolute top-5 left-5 flex items-center gap-2">
             {/* 剩餘時間 */}
             <HoverTip content="回合剩餘時間">
               <div className="relative h-7 w-7 max-sm:h-6 max-sm:w-6">
@@ -130,7 +132,7 @@ const ClassicPlayingArea = () => {
             <div className="text-lg">{countdown}</div>
           </div>
         )}
-        <div className="absolute right-5 top-5 flex gap-5">
+        <div className="absolute top-5 right-5 flex gap-5">
           {/* 遊戲規則 */}
           <HoverTip content="遊戲規則">
             <div className="relative h-6 w-6 max-sm:h-5 max-sm:w-5">
@@ -151,7 +153,7 @@ const ClassicPlayingArea = () => {
                 alt="leave"
                 fill
                 priority
-                onClick={() => (window.location.href = '/multiple-play')}
+                onClick={() => hardNavigate('/multiple-play')}
               />
             </div>
           </HoverTip>
@@ -169,7 +171,7 @@ const ClassicPlayingArea = () => {
           onSelectSymbol={symbol => onSelectCardOrSymbol({ symbol })}
         />
       </div>
-      <div className="relative flex w-full basis-1/5 max-md:flex-wrap max-md:basis-[35%]">
+      <div className="relative flex w-full basis-1/5 max-md:basis-[35%] max-md:flex-wrap">
         <PlayerInfoArea
           isLastRoundPlayer={currentPlayer?.isLastRoundPlayer}
           remainCards={roomInfo?.deck.length}

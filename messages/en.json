@@ -1,0 +1,9 @@
+{
+  "LocaleSwitcher": {
+    "label": "Language"
+  },
+  "NotFound": {
+    "title": "This page could not be found",
+    "backHome": "Home"
+  }
+}
