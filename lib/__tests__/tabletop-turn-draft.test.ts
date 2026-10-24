@@ -171,7 +171,7 @@ describe('Joker', () => {
     expect(checkEndTurn(state, draft).ok).toBe(true);
   });
 
-  it('桌上拆下來的 Joker 維持原本的宣告，不能重新宣告', () => {
+  it('桌上拆下來的 Joker 變回未宣告，加進組裝列時要重新宣告', () => {
     const declared: NumberCard = {
       id: 'tj',
       value: 0,
@@ -193,12 +193,20 @@ describe('Joker', () => {
       breakSet(startDraft(game({ hand: [], table: [onTable] })), 't1'),
     );
 
-    expect(addCard(draft, 'tj', { value: 3, color: 'red' })).toEqual({
-      ok: false,
-      error: '桌上的 Joker 已經宣告過，不能更改',
+    expect(draft.loose.find(c => c.id === 'tj')).toEqual({
+      id: 'tj',
+      value: 0,
+      isJoker: true,
     });
-    const added = ok(addCard(draft, 'tj'));
-    expect(added.composer[0]).toEqual({ type: 'number', card: declared });
+    expect(addCard(draft, 'tj')).toEqual({
+      ok: false,
+      error: '請先宣告 Joker 的數值與顏色',
+    });
+    const added = ok(addCard(draft, 'tj', { value: 3, color: 'blue' }));
+    expect(added.composer[0]).toEqual({
+      type: 'number',
+      card: { ...declared, jokerDeclaredValue: 3, jokerDeclaredColor: 'blue' },
+    });
   });
 
   it('手牌的 Joker 退回手牌時清掉宣告，可以重新宣告', () => {

@@ -44,7 +44,7 @@ export function JokerDeclareDialog({
         <DialogHeader>
           <DialogTitle>宣告 Joker</DialogTitle>
           <DialogDescription>
-            宣告後就固定不變，之後重組時當作一張普通的牌
+            所在的牌組被拆開時，Joker 會變回未宣告，可以再重新宣告
           </DialogDescription>
         </DialogHeader>
 

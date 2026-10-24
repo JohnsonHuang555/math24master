@@ -279,6 +279,15 @@ function cardsOf(set: TabletopSet): NumberCard[] {
   return set.tiles.flatMap(t => (t.type === 'number' ? [t.card] : []));
 }
 
+/** 拆開或接牌時，桌上牌組裡的 Joker 變回未宣告，由 solveSet 重新挑宣告值（與玩家規則一致） */
+function reopenedCardsOf(set: TabletopSet): NumberCard[] {
+  return cardsOf(set).map(c => {
+    if (!c.isJoker) return c;
+    const { jokerDeclaredValue, jokerDeclaredColor, ...undeclared } = c;
+    return undeclared;
+  });
+}
+
 function without(hand: NumberCard[], used: NumberCard[]): NumberCard[] {
   const ids = new Set(used.map(c => c.id));
   return hand.filter(c => !ids.has(c.id));
@@ -370,7 +379,7 @@ function generateCandidates(
 
   // 接牌：把 1～maxExtendCards 張手牌接進桌上某一組
   table.forEach((target, index) => {
-    const targetCards = cardsOf(target);
+    const targetCards = reopenedCardsOf(target);
     for (let k = 1; k <= config.maxExtendCards; k++) {
       if (targetCards.length + k > TABLETOP_MAX_SET_SIZE) break;
       for (const used of subsets(hand, k)) {
@@ -394,7 +403,7 @@ function generateCandidates(
   // 拆組／合組：拆 1～maxRegroupSets 組桌上的牌組，和手牌一起重新切成數組
   for (let r = 1; r <= config.maxRegroupSets; r++) {
     for (const targets of subsets(table, r)) {
-      const targetCards = targets.flatMap(cardsOf);
+      const targetCards = targets.flatMap(reopenedCardsOf);
       for (let k = 1; k <= config.maxRegroupHandCards; k++) {
         for (const used of subsets(hand, k)) {
           if (exhausted()) return candidates;

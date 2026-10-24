@@ -39,6 +39,7 @@ import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useTabletopPlay from '@/hooks/useTabletopPlay';
 import type { LeaderboardMode } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
+import { NumberCard } from '@/models/Player';
 import { TabletopDifficulty } from '@/models/Tabletop';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
@@ -323,6 +324,11 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
 
   // ── 遊戲中 ──
   const canEdit = play.isPlayerTurn;
+  // Joker 不論來自手牌或拆開的牌組，加進組裝列前都要先宣告
+  const pickCard = (card: NumberCard) => {
+    if (card.isJoker) setPendingJokerId(card.id);
+    else play.onAddCard(card.id);
+  };
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       {ruleModal}
@@ -385,7 +391,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
           highlightSetIds={play.highlightSetIds}
           canEdit={canEdit}
           onBreakSet={play.onBreakSet}
-          onPickLoose={cardId => play.onAddCard(cardId)}
+          onPickLoose={pickCard}
         />
 
         <TabletopComposer
@@ -401,10 +407,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
         <TabletopHand
           hand={draft?.hand ?? game.seats[0].hand}
           disabled={!canEdit}
-          onPick={card => {
-            if (card.isJoker) setPendingJokerId(card.id);
-            else play.onAddCard(card.id);
-          }}
+          onPick={pickCard}
         />
 
         {/* 操作列固定在畫面底部，手機上不必捲到最下面才能結束回合 */}

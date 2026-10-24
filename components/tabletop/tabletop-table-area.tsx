@@ -16,7 +16,7 @@ type TabletopTableAreaProps = {
   highlightSetIds: string[];
   canEdit: boolean;
   onBreakSet: (setId: string) => void;
-  onPickLoose: (cardId: string) => void;
+  onPickLoose: (card: NumberCard) => void;
 };
 
 export function TabletopTableArea({
@@ -103,7 +103,7 @@ export function TabletopTableArea({
                 key={card.id}
                 card={card}
                 size="sm"
-                onClick={() => onPickLoose(card.id)}
+                onClick={() => onPickLoose(card)}
               />
             ))}
           </div>

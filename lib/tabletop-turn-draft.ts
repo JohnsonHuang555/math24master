@@ -44,19 +44,21 @@ function cardsOf(set: TabletopSet): NumberCard[] {
   return set.tiles.flatMap(t => (t.type === 'number' ? [t.card] : []));
 }
 
+/** Joker 離開牌組時變回未宣告，下一個使用它的人重新宣告 */
+function undeclare(card: NumberCard): NumberCard {
+  if (!card.isJoker) return card;
+  const { jokerDeclaredValue, jokerDeclaredColor, ...undeclared } = card;
+  return undeclared;
+}
+
 /**
  * 牌退出組裝列或牌組時，回合開始時在手上的回手牌，其他的進散牌區。
- * 手牌的 Joker 回到手上時清掉宣告，下次使用時重新宣告
+ * 不管回到哪裡，Joker 都清掉宣告
  */
 function returnCards(draft: TurnDraft, cards: NumberCard[]): TurnDraft {
-  const fromHand = cards
-    .filter(c => draft.startHandIds.includes(c.id))
-    .map(c => {
-      if (!c.isJoker) return c;
-      const { jokerDeclaredValue, jokerDeclaredColor, ...undeclared } = c;
-      return undeclared;
-    });
-  const fromTable = cards.filter(c => !draft.startHandIds.includes(c.id));
+  const returned = cards.map(undeclare);
+  const fromHand = returned.filter(c => draft.startHandIds.includes(c.id));
+  const fromTable = returned.filter(c => !draft.startHandIds.includes(c.id));
   return {
     ...draft,
     hand: [...draft.hand, ...fromHand],
@@ -96,7 +98,7 @@ export type JokerDeclaration = { value: number; color: CardColor };
 
 /**
  * 把手牌或散牌區的一張牌加到組裝列尾端。
- * 手牌的 Joker 必須帶 declaration；桌上拆下來的 Joker 已宣告過，不能再帶
+ * Joker（不論來自手牌或拆開的牌組）都必須帶 declaration 重新宣告
  */
 export function addCard(
   draft: TurnDraft,
@@ -107,20 +109,14 @@ export function addCard(
   if (!found) return { ok: false, error: '找不到這張牌' };
   let card = found;
   if (found.isJoker) {
-    const fromHand = draft.startHandIds.includes(found.id);
-    if (!fromHand && declaration) {
-      return { ok: false, error: '桌上的 Joker 已經宣告過，不能更改' };
+    if (!declaration) {
+      return { ok: false, error: '請先宣告 Joker 的數值與顏色' };
     }
-    if (fromHand) {
-      if (!declaration) {
-        return { ok: false, error: '請先宣告 Joker 的數值與顏色' };
-      }
-      card = {
-        ...found,
-        jokerDeclaredValue: declaration.value,
-        jokerDeclaredColor: declaration.color,
-      };
-    }
+    card = {
+      ...found,
+      jokerDeclaredValue: declaration.value,
+      jokerDeclaredColor: declaration.color,
+    };
   }
   if (endsWithOperand(draft)) {
     return { ok: false, error: '數字牌之間要有運算符號' };

@@ -349,7 +349,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     expectRejected(game, [a, b], '同一張牌不能使用兩次');
   });
 
-  it('改變桌上 Joker 的宣告時拒絕（宣告後永久固定）', () => {
+  it('桌上的 Joker 被拆開重組時可以重新宣告，只要最後的牌組成立', () => {
     // 桌上：紅8 × Joker(紅 3) × 紅1
     const r1 = card('r1', 1, 'red');
     const onTable = set('t1', [
@@ -375,7 +375,16 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
       n(r1),
     ]);
 
-    expectRejected(game, [changed], '桌上 Joker 的宣告不能更改');
+    const result = submitTurn(game, [changed]);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const jokerOnTable = result.state.table[0].tiles.find(
+      t => t.type === 'number' && t.card.id === 'j',
+    );
+    expect(jokerOnTable).toMatchObject({
+      card: { jokerDeclaredValue: 2, jokerDeclaredColor: 'red' },
+    });
   });
 });
 

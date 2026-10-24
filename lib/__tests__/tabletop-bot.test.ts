@@ -166,6 +166,45 @@ function tableSetOf(
   return { ...set, id };
 }
 
+describe('chooseBotMove - 重新宣告桌上的 Joker', () => {
+  it.each(['easy', 'normal', 'hard'] as const)(
+    '%s：接牌時可以把桌上的 Joker 重新宣告成需要的值',
+    difficulty => {
+      // 桌上 (紅1 + 紅2) × Joker(紅8)；Joker 固定為 8 時接不上紅 11，改宣告成其他值才行
+      expect(canMake24([1, 2, 8, 11])).toBe(false);
+      const table: TabletopSet = {
+        id: 't1',
+        tiles: [
+          { type: 'bracket', bracket: '(' },
+          n(card('t1c', 1)),
+          op('+'),
+          n(card('t2c', 2)),
+          { type: 'bracket', bracket: ')' },
+          op('*'),
+          n(joker('tj', 8, 'red')),
+        ],
+      };
+      const state = botTurn({
+        hand: [card('h11', 11)],
+        table: [table],
+        difficulty,
+      });
+
+      const move = chooseBotMove(state);
+
+      expect(move.type).toBe('play');
+      if (move.type !== 'play') return;
+      const result = applyMove(state, move);
+      expect(result.success, result.success ? '' : result.error).toBe(true);
+      const jokerTile = move.table
+        .flatMap(s => s.tiles)
+        .find(t => t.type === 'number' && t.card.id === 'tj');
+      expect(jokerTile).toMatchObject({ card: { jokerDeclaredColor: 'red' } });
+      expect(jokerTile).not.toMatchObject({ card: { jokerDeclaredValue: 8 } });
+    },
+  );
+});
+
 describe('chooseBotMove - 拆組（拆 1 組和手牌重組）', () => {
   // 桌上 5 張的牌組不能再接牌，手牌只有 1 張也組不成新組；
   // 唯一的出路是拆開重組：{1, 5, 4} 與 {2, 3, 4}

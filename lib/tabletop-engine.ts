@@ -211,24 +211,6 @@ export function submitTurn(
     return { success: false, error: '桌面上的牌不能拿回手牌' };
   }
 
-  const tableJokers = new Map(
-    state.table
-      .flatMap(numberCards)
-      .filter(c => c.isJoker)
-      .map(c => [c.id, c]),
-  );
-  const jokerRedeclared = proposedTable.flatMap(numberCards).some(c => {
-    const before = tableJokers.get(c.id);
-    return (
-      before !== undefined &&
-      (before.jokerDeclaredValue !== c.jokerDeclaredValue ||
-        before.jokerDeclaredColor !== c.jokerDeclaredColor)
-    );
-  });
-  if (jokerRedeclared) {
-    return { success: false, error: '桌上 Joker 的宣告不能更改' };
-  }
-
   const playedIds = new Set(proposedIds.filter(id => handIds.has(id)));
   if (playedIds.size === 0) {
     return { success: false, error: '本回合至少要從手牌打出 1 張牌' };

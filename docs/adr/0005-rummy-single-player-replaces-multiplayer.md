@@ -12,6 +12,6 @@
 
 ## Consequences
 
-- 新規則拿掉破冰；Joker 宣告後永久固定、不能換回手牌。這些都是刻意簡化，不是遺漏。（原本也把顏色從硬性限制改成計分倍率，這一點已被 [ADR 0006](./0006-rummy-score-race-and-color-rule.md) 取代。）
+- 新規則拿掉破冰；Joker 不能換回手牌。這些都是刻意簡化，不是遺漏。（原本也把顏色從硬性限制改成計分倍率，這一點已被 [ADR 0006](./0006-rummy-score-race-and-color-rule.md) 取代；「Joker 宣告後永久固定」也在試玩後取消，改成牌組被拆開時變回未宣告、重新宣告。）
 - 拉密不再走 Socket.IO，也不再受「socket server 只能單一 instance」的限制影響；之後若要做多人版，應從新規則重新出發，不要復活舊程式碼。
 - 排行榜依 [ADR 0003](./0003-advanced-mode-separate-leaderboard-collection.md) 的慣例，每個難度各開一個 collection（`rummy_easy` / `rummy_normal` / `rummy_hard`）。
