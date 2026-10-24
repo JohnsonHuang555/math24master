@@ -1,6 +1,7 @@
 'use client';
 
 import { Award, BarChart2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { formatTimePrecise } from '@/lib/utils';
 import {
   VISIBLE_ACHIEVEMENTS,
@@ -33,6 +34,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
+  const t = useTranslations('Stats');
+  const tCommon = useTranslations('Common');
   const {
     classicPlays,
     classicBestScore,
@@ -65,58 +68,64 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-blue-500" />
-            玩家統計
+            {t('title')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-1">
           {/* 經典模式 */}
           <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>經典模式</SectionTitle>
+            <SectionTitle>{t('classic')}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
-              <StatItem label="場次" value={classicPlays} />
-              <StatItem label="最高分" value={classicBestScore || '-'} />
+              <StatItem label={t('plays')} value={classicPlays} />
+              <StatItem label={t('bestScore')} value={classicBestScore || '-'} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 opacity-70">
-              <StatItem label="最快出牌" value={fastestPlayDisplay} />
-              <StatItem label="累計跳過" value={classicTotalSkips} />
+              <StatItem label={t('fastestPlay')} value={fastestPlayDisplay} />
+              <StatItem label={t('totalSkips')} value={classicTotalSkips} />
             </div>
           </div>
 
           {/* 挑戰模式 + 每日挑戰 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>挑戰模式</SectionTitle>
+              <SectionTitle>{t('challenge')}</SectionTitle>
               <div className="flex flex-col gap-3">
-                <StatItem label="場次" value={challengePlays} />
-                <StatItem label="最高關卡" value={challengeBestStage || '-'} />
+                <StatItem label={t('plays')} value={challengePlays} />
+                <StatItem
+                  label={t('bestStage')}
+                  value={challengeBestStage || '-'}
+                />
               </div>
             </div>
             <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>每日挑戰</SectionTitle>
+              <SectionTitle>{t('daily')}</SectionTitle>
               <div className="flex justify-center">
-                <StatItem label="完成次數" value={dailyChallengeCompletes} />
+                <StatItem
+                  label={t('completions')}
+                  value={dailyChallengeCompletes}
+                />
               </div>
             </div>
           </div>
 
           {/* 消消樂模式 */}
           <div className="rounded-lg border bg-muted/30 p-4">
-            <SectionTitle>消消樂模式</SectionTitle>
+            <SectionTitle>{t('match')}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
-              <StatItem label="完賽場次" value={matchPlays} />
-              <StatItem label="最高分" value={matchBestScore || '-'} />
+              <StatItem label={t('finishedPlays')} value={matchPlays} />
+              <StatItem label={t('bestScore')} value={matchBestScore || '-'} />
             </div>
           </div>
 
           {/* 心算快答 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>心算快答．初階</SectionTitle>
+              <SectionTitle>{t('quickMathBasic')}</SectionTitle>
               <div className="flex flex-col gap-3">
-                <StatItem label="完賽場次" value={quickMathPlays} />
+                <StatItem label={t('finishedPlays')} value={quickMathPlays} />
                 <StatItem
-                  label="最速完成"
+                  label={t('fastestFinish')}
                   value={
                     quickMathBestSeconds > 0
                       ? formatTimePrecise(quickMathBestSeconds)
@@ -126,11 +135,14 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
               </div>
             </div>
             <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>心算快答．進階</SectionTitle>
+              <SectionTitle>{t('quickMathAdvanced')}</SectionTitle>
               <div className="flex flex-col gap-3">
-                <StatItem label="完賽場次" value={quickMathAdvancedPlays} />
                 <StatItem
-                  label="最速完成"
+                  label={t('finishedPlays')}
+                  value={quickMathAdvancedPlays}
+                />
+                <StatItem
+                  label={t('fastestFinish')}
                   value={
                     quickMathAdvancedBestSeconds > 0
                       ? formatTimePrecise(quickMathAdvancedBestSeconds)
@@ -144,7 +156,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
           {/* 成就解鎖進度 */}
           <div className="grid grid-cols-1 gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
-              <SectionTitle>成就解鎖</SectionTitle>
+              <SectionTitle>{t('achievements')}</SectionTitle>
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-1.5">
                   <Award className="h-5 w-5 text-yellow-400" />
@@ -169,7 +181,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
         </div>
 
         <Button variant="outline" onClick={onClose}>
-          關閉
+          {tCommon('close')}
         </Button>
       </DialogContent>
     </Dialog>

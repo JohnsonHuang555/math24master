@@ -1,8 +1,11 @@
+import { useTranslations } from 'next-intl';
+
 const Footer = () => {
+  const t = useTranslations('Home');
   return (
     <footer className="px-4 pb-8 pt-2 text-center">
       <p className="text-xs text-muted-foreground">
-        #24點大師, Created by Johnson Huang 2026
+        {t('footer')}
       </p>
     </footer>
   );

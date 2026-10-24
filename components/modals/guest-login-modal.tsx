@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,6 +20,7 @@ type GuestLoginModalProps = {
 
 export function GuestLoginModal({ isOpen, onClose, onConfirm }: GuestLoginModalProps) {
   const [name, setName] = useState('');
+  const t = useTranslations('Common');
   const trimmed = name.trim();
 
   const handleConfirm = () => {
@@ -31,13 +33,13 @@ export function GuestLoginModal({ isOpen, onClose, onConfirm }: GuestLoginModalP
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-[360px]">
         <DialogHeader>
-          <DialogTitle>訪客登入</DialogTitle>
+          <DialogTitle>{t('guestLogin')}</DialogTitle>
         </DialogHeader>
         <p className="text-xs text-muted-foreground">
-          輸入暱稱即可上榜，資料儲存於此裝置
+          {t('guestLoginDescription')}
         </p>
         <Input
-          placeholder="請輸入暱稱（2–12 字）"
+          placeholder={t('nicknamePlaceholder')}
           maxLength={12}
           value={name}
           onChange={e => setName(e.target.value)}
@@ -46,10 +48,10 @@ export function GuestLoginModal({ isOpen, onClose, onConfirm }: GuestLoginModalP
         />
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            取消
+            {t('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={trimmed.length < 2}>
-            確定
+            {t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

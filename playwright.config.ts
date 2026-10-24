@@ -16,6 +16,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     ...devices['Desktop Chrome'],
+    // 瀏覽器預設 en-US 會被導向 /en；既有測試以 zh-TW 文字定位，英文版另有 i18n.spec.ts
+    locale: 'zh-TW',
   },
   webServer: [
     {

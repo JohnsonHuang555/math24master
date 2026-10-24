@@ -1,19 +1,6 @@
-import { toast } from 'sonner';
-import {
-  ACHIEVEMENTS,
-  AchievementId,
-  useAchievementStore,
-} from '@/stores/achievement-store';
+import { AchievementId, useAchievementStore } from '@/stores/achievement-store';
 
-/** 嘗試解鎖成就；若首次解鎖則顯示通知 */
+/** 嘗試解鎖成就；首次解鎖的通知由 AchievementToaster 依玩家語系顯示 */
 export function unlockAchievement(id: AchievementId): void {
-  const wasNew = useAchievementStore.getState().unlock(id);
-  if (wasNew) {
-    const achievement = ACHIEVEMENTS.find(a => a.id === id);
-    if (achievement) {
-      toast.info(`成就解鎖：${achievement.name} — ${achievement.description}`, {
-        duration: 4000,
-      });
-    }
-  }
+  useAchievementStore.getState().unlock(id);
 }

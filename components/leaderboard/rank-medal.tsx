@@ -1,4 +1,5 @@
 import { Medal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 // 金：amber、銀：zinc、銅：深 amber（設計系統不引入第四色相）
@@ -19,10 +20,11 @@ type RankMedalProps = {
 
 // 前三名顯示獎牌圖示，其餘顯示名次數字
 export function RankMedal({ rank, className }: RankMedalProps) {
+  const t = useTranslations('Leaderboard');
   if (isMedalRank(rank)) {
     return (
       <Medal
-        aria-label={`第 ${rank} 名`}
+        aria-label={t('rank', { rank })}
         className={cn('h-5 w-5', MEDAL_COLOR[rank], className)}
       />
     );

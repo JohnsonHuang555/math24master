@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
+import { AchievementToaster } from '@/components/achievement-toaster';
 import { GoogleAnalytics } from '@/components/analytics';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
 import { SessionProvider } from '@/components/session-provider';
@@ -128,6 +129,7 @@ export default async function RootLayout({
             <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
             <PendingScoreSubmitter />
           </SessionProvider>
+          <AchievementToaster />
         </NextIntlClientProvider>
         {/* <SoundToggle /> */}
         <Toaster />

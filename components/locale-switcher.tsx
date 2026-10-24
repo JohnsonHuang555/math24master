@@ -48,7 +48,8 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
         )}
       >
         <Languages className="h-5 w-5 md:h-4 md:w-4" />
-        <span className="hidden md:inline">{LOCALE_LABELS[locale]}</span>
+        {/* 用 div：SelectTrigger 會對子層 span 套 line-clamp，蓋掉 hidden */}
+        <div className="hidden md:block">{LOCALE_LABELS[locale]}</div>
       </SelectTrigger>
       <SelectContent align="end">
         {routing.locales.map(item => (

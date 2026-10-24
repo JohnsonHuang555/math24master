@@ -1,16 +1,14 @@
 'use client';
 
 import { Play } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { MyRankState } from '@/hooks/useMyRank';
 import { Link } from '@/i18n/navigation';
-import {
-  type LeaderboardMode,
-  findBoardByMode,
-  formatRecord,
-} from '@/lib/leaderboard';
+import { type LeaderboardMode, findBoardByMode } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 import { LoginButtons } from './login-buttons';
 import { PlayerAvatar } from './player-avatar';
+import { useLeaderboardLabels } from './use-leaderboard-labels';
 
 type MyRankCardProps = {
   mode: LeaderboardMode;
@@ -21,6 +19,9 @@ type MyRankCardProps = {
 
 export function MyRankCard({ mode, state, badge, className }: MyRankCardProps) {
   const { board } = findBoardByMode(mode);
+  const t = useTranslations('Leaderboard');
+  const tCommon = useTranslations('Common');
+  const { record } = useLeaderboardLabels();
 
   return (
     <div
@@ -40,7 +41,7 @@ export function MyRankCard({ mode, state, badge, className }: MyRankCardProps) {
       {state.status === 'anonymous' && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-bold text-teal-800 dark:text-teal-300">
-            登入後即可上榜
+            {t('loginToRank')}
           </p>
           <LoginButtons className="sm:w-64" />
         </div>
@@ -49,14 +50,14 @@ export function MyRankCard({ mode, state, badge, className }: MyRankCardProps) {
       {(state.status === 'none' || state.status === 'error') && (
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-bold text-teal-800 dark:text-teal-300">
-            {state.status === 'none' ? '尚無紀錄' : '名次載入失敗'}
+            {state.status === 'none' ? t('noRecord') : t('rankLoadFailed')}
           </p>
           <Link
             href={board.playHref}
             className="flex shrink-0 items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:brightness-110"
           >
             <Play className="h-3.5 w-3.5" />
-            開始遊戲
+            {tCommon('startGame')}
           </Link>
         </div>
       )}
@@ -70,15 +71,15 @@ export function MyRankCard({ mode, state, badge, className }: MyRankCardProps) {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-xs text-teal-700 dark:text-teal-400">
-              我的名次
+              {t('myRank')}
               {badge}
             </div>
             <div className="font-display text-xl leading-tight font-black text-foreground">
-              第 {state.row.rank} 名
+              {t('rank', { rank: state.row.rank })}
             </div>
           </div>
           <div className="shrink-0 font-display text-lg font-bold tabular-nums">
-            {formatRecord(mode, state.row)}
+            {record(mode, state.row)}
           </div>
         </div>
       )}

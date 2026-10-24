@@ -6,6 +6,229 @@
     "title": "找不到这个页面",
     "backHome": "首页"
   },
+  "Common": {
+    "cancel": "取消",
+    "confirm": "确定",
+    "close": "关闭",
+    "back": "返回",
+    "dontRemindAgain": "不要再提醒我",
+    "home": "首页",
+    "startGame": "开始游戏",
+    "guestLogin": "访客登录",
+    "guestLoginDescription": "输入暱称即可上榜，数据保存于此设备",
+    "nicknamePlaceholder": "请输入暱称（2–12 字）"
+  },
+  "Home": {
+    "logoAlt": "24点大师",
+    "leaderboard": "排行榜",
+    "stats": "统计",
+    "achievements": "成就",
+    "title": "你能用 4 张牌<br></br>算出 <highlight>24</highlight> 吗？",
+    "subtitle": "利用 4 张数字牌，透过加、减、乘、除与括号，组合出等于 24 的算式",
+    "start": "立即开始",
+    "multiplayer": "多人对战",
+    "moreModes": {
+      "title": "更多游戏",
+      "dailyChallenge": {
+        "title": "每日挑战",
+        "description": "每天 3 题 · 连续挑战纪录"
+      },
+      "guessNumber": {
+        "title": "猜数字",
+        "description": "用线索卡推理谜底数字",
+        "badge": "推理小游戏"
+      },
+      "quickMath": {
+        "title": "心算快答",
+        "description": "10 题限时心算 · 挑战你的心算速度"
+      }
+    },
+    "steps": {
+      "title": "简单游玩三步骤",
+      "draw": {
+        "title": "抽牌",
+        "description": "每局抽 4 张手牌，1 ~ 13 的随机数字"
+      },
+      "make24": {
+        "title": "凑 24",
+        "description": "用加减乘除，让算式结果等于 24"
+      },
+      "score": {
+        "title": "得分",
+        "description": "符号越困难，得分越高"
+      }
+    },
+    "footer": "#24点大师, Created by Johnson Huang 2026"
+  },
+  "Announcement": {
+    "dismiss": "关闭公告",
+    "tryNow": "立即体验 →",
+    "tabletop": {
+      "title": "新模式「牌桌模式」上线！",
+      "description": "改编自拉密・和 2 个电脑抢分・拆开重组桌上的算式"
+    },
+    "match": {
+      "title": "新模式「消消乐模式」上线！",
+      "description": "16 张牌自由配对消除・任选 2~4 张凑 24・全部清除才计分上榜"
+    },
+    "quickMathAdvanced": {
+      "title": "心算快答「高级模式」上线！",
+      "description": "混入平方、阶乘、根号・更烧脑的心算挑战"
+    }
+  },
+  "AddToHomeScreen": {
+    "title": "加到主画面",
+    "iosIntro": "两步就能把 24 点大师加到主画面<br></br>下次可以像 App 一样打开游戏，不用再找网址",
+    "iosStep1": "点击浏览器的<icon></icon>分享键",
+    "iosStep2": "选择「加入主画面」",
+    "intro": "加到主画面后，下次可以像 App 一样打开游戏，不用再找网址",
+    "install": "加到主画面",
+    "gotIt": "知道了",
+    "later": "之后再说"
+  },
+  "LoginPrompt": {
+    "title": "同步至排行榜",
+    "description": "登录后可将此局分数同步至排行榜，与其他玩家比较成绩！",
+    "google": "使用 Google 登录",
+    "skip": "暂不登录",
+    "scoreSynced": "分数已同步至排行榜！"
+  },
+  "SoundToggle": {
+    "mute": "关闭音效",
+    "unmute": "打开音效"
+  },
+  "Achievements": {
+    "title": "成就",
+    "unlockedCount": "已解锁 {unlocked} / {total}",
+    "unlockedToast": "成就解锁：{name} — {description}",
+    "tabs": {
+      "all": "全部",
+      "beginner": "新手",
+      "advanced": "高级",
+      "challenge": "挑战"
+    },
+    "items": {
+      "first_win": {
+        "name": "初次出牌",
+        "description": "首次出牌成功"
+      },
+      "daily_done": {
+        "name": "每日挑战",
+        "description": "完成第一次每日挑战"
+      },
+      "normal_first": {
+        "name": "关卡初体验",
+        "description": "完成第一次关卡模式"
+      },
+      "challenge_first": {
+        "name": "挑战起步",
+        "description": "挑战模式答对第一题"
+      },
+      "speed_win": {
+        "name": "神速",
+        "description": "10 秒内出牌成功"
+      },
+      "all_ops": {
+        "name": "全能达人",
+        "description": "一个算式中同时使用三种不同运算符号"
+      },
+      "all_multiply": {
+        "name": "乘法王",
+        "description": "使用 3 个乘号组出算式"
+      },
+      "no_skip": {
+        "name": "精准",
+        "description": "经典模式一局未跳过完成游戏"
+      },
+      "consecutive_5": {
+        "name": "连胜达人",
+        "description": "连续 5 次出牌成功（不中断）"
+      },
+      "total_score_100": {
+        "name": "得分达人",
+        "description": "累计得分达 100 分"
+      },
+      "play_100": {
+        "name": "传奇玩家",
+        "description": "累计出牌成功 100 次"
+      },
+      "normal_perfect": {
+        "name": "完美通关",
+        "description": "关卡模式全程无错误完成"
+      },
+      "challenge_stage_10": {
+        "name": "不朽连击",
+        "description": "挑战模式连续答对 10 题"
+      },
+      "daily_streak_7": {
+        "name": "每日达人",
+        "description": "每日挑战连续 7 天完成"
+      }
+    }
+  },
+  "Stats": {
+    "title": "玩家统计",
+    "classic": "经典模式",
+    "challenge": "挑战模式",
+    "daily": "每日挑战",
+    "match": "消消乐模式",
+    "quickMathBasic": "心算快答．初阶",
+    "quickMathAdvanced": "心算快答．高级",
+    "achievements": "成就解锁",
+    "plays": "场次",
+    "bestScore": "最高分",
+    "fastestPlay": "最快出牌",
+    "totalSkips": "累计跳过",
+    "bestStage": "最高关卡",
+    "completions": "完成次数",
+    "finishedPlays": "完赛场次",
+    "fastestFinish": "最速完成"
+  },
+  "Leaderboard": {
+    "title": "全球排行榜",
+    "subtitle": "每位玩家只保留最佳成绩",
+    "loading": "加载中",
+    "loadFailed": "加载失败",
+    "empty": "榜单还是空的",
+    "emptyHint": "成为第一个上榜的玩家",
+    "gameMode": "游戏模式",
+    "level": "难度",
+    "boards": {
+      "classic": "经典",
+      "challenge": "挑战",
+      "match": "消消乐",
+      "quickmath": "快答",
+      "tabletop": "牌桌"
+    },
+    "levels": {
+      "basic": "基础",
+      "advanced": "高级",
+      "easy": "简单",
+      "normal": "普通",
+      "hard": "困难"
+    },
+    "record": {
+      "stage": "第 {stage} 关",
+      "score": "{score} 分"
+    },
+    "rank": "第 {rank} 名",
+    "me": "我",
+    "guest": "访客",
+    "signOut": "注销",
+    "googleLogin": "Google 登录",
+    "loginToRank": "登录后即可上榜",
+    "noRecord": "尚无纪录",
+    "rankLoadFailed": "名次加载失败",
+    "myRank": "我的名次",
+    "boardTitle": "{board}排行榜",
+    "boardLevelTitle": "{board}排行榜 · {level}",
+    "rankAndView": "第 {rank} 名 · 查看排行榜",
+    "view": "查看排行榜",
+    "newRecord": "新纪录",
+    "top3": "前 3 名",
+    "viewFull": "查看完整排行榜",
+    "tabletopBeta": "测试版：排行榜将于 {date} 重置"
+  },
   "ServerError": {
     "UNEXPECTED": "发生错误，请稍后再试",
     "ROOM_NOT_FOUND": "房间不存在",

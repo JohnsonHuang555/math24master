@@ -1,6 +1,7 @@
 'use client';
 
 import { signOut, useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { useGuestStore } from '@/stores/guest-store';
 import { PlayerAvatar } from './player-avatar';
 
@@ -8,6 +9,7 @@ import { PlayerAvatar } from './player-avatar';
 export function AccountChip() {
   const { data: session, status } = useSession();
   const { guestId, guestName, clearGuest } = useGuestStore();
+  const t = useTranslations('Leaderboard');
 
   let name: string;
   let photoURL: string | null = null;
@@ -32,14 +34,14 @@ export function AccountChip() {
       <span className="max-w-32 truncate text-sm font-medium">{name}</span>
       {isGuest && (
         <span className="shrink-0 rounded-md bg-zinc-100 px-1 py-px text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-          訪客
+          {t('guest')}
         </span>
       )}
       <button
         onClick={onSignOut}
         className="shrink-0 rounded-xl px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
       >
-        登出
+        {t('signOut')}
       </button>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Download, Share, Smartphone } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -28,6 +29,8 @@ export function AddToHomeScreenModal({
   isIOS,
 }: AddToHomeScreenModalProps) {
   const [dontRemind, setDontRemind] = useState(false);
+  const t = useTranslations('AddToHomeScreen');
+  const tCommon = useTranslations('Common');
 
   const handleOpenChange = (open: boolean) => {
     if (!open) onClose();
@@ -46,36 +49,36 @@ export function AddToHomeScreenModal({
               <Smartphone className="h-6 w-6 text-teal-600 dark:text-teal-400" />
             </div>
           </div>
-          <DialogTitle className="text-center">加到主畫面</DialogTitle>
+          <DialogTitle className="text-center">{t('title')}</DialogTitle>
         </DialogHeader>
 
         {isIOS ? (
           <div className="space-y-2 text-sm">
             <p className="text-center text-muted-foreground">
-              兩步就能把 24 點大師加到主畫面
-              <br />
-              下次可以像 App 一樣開啟遊戲，不用再找網址
+              {t.rich('iosIntro', { br: () => <br /> })}
             </p>
             <div className="flex items-center gap-3 rounded-xl border-2 border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-teal-500 text-xs font-bold text-white">
                 1
               </span>
               <span className="flex items-center gap-1.5 text-foreground">
-                點選瀏覽器的
-                <Share className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                分享鍵
+                {t.rich('iosStep1', {
+                  icon: () => (
+                    <Share className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                  ),
+                })}
               </span>
             </div>
             <div className="flex items-center gap-3 rounded-xl border-2 border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-teal-500 text-xs font-bold text-white">
                 2
               </span>
-              <span className="text-foreground">選擇「加入主畫面」</span>
+              <span className="text-foreground">{t('iosStep2')}</span>
             </div>
           </div>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
-            加到主畫面後，下次可以像 App 一樣開啟遊戲，不用再找網址
+            {t('intro')}
           </p>
         )}
 
@@ -89,7 +92,7 @@ export function AddToHomeScreenModal({
             htmlFor="dont-remind-a2hs"
             className="cursor-pointer select-none text-sm text-muted-foreground"
           >
-            不要再提醒我
+            {tCommon('dontRemindAgain')}
           </label>
         </div>
 
@@ -101,7 +104,7 @@ export function AddToHomeScreenModal({
               onClick={onInstallClick}
             >
               <Download className="h-4 w-4" />
-              加到主畫面
+              {t('install')}
             </Button>
           )}
           <Button
@@ -109,7 +112,7 @@ export function AddToHomeScreenModal({
             className="w-full text-muted-foreground"
             onClick={dontRemind ? onSkipForever : onClose}
           >
-            {isIOS ? '知道了' : '之後再說'}
+            {isIOS ? t('gotIt') : t('later')}
           </Button>
         </DialogFooter>
       </DialogContent>

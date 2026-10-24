@@ -2,14 +2,12 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Medal } from 'lucide-react';
-import {
-  type LeaderboardMode,
-  type LeaderboardRow,
-  formatRecord,
-} from '@/lib/leaderboard';
+import { useTranslations } from 'next-intl';
+import { type LeaderboardMode, type LeaderboardRow } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 import { PlayerAvatar } from './player-avatar';
 import { MEDAL_COLOR, isMedalRank } from './rank-medal';
+import { useLeaderboardLabels } from './use-leaderboard-labels';
 
 // 依「位置」決定台座高度（中間最高），獎牌顏色則依實際名次（並列時可能兩個金牌）
 const SLOTS = [
@@ -32,6 +30,8 @@ type PodiumProps = {
 
 export function Podium({ rows, mode, myId }: PodiumProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Leaderboard');
+  const { record } = useLeaderboardLabels();
 
   return (
     <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
@@ -65,7 +65,7 @@ export function Podium({ rows, mode, myId }: PodiumProps) {
               />
               <span className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm dark:bg-zinc-900">
                 <Medal
-                  aria-label={`第 ${row.rank} 名`}
+                  aria-label={t('rank', { rank: row.rank })}
                   className={cn('h-4 w-4', MEDAL_COLOR[rank])}
                 />
               </span>
@@ -76,12 +76,12 @@ export function Podium({ rows, mode, myId }: PodiumProps) {
               </span>
               {isMe && (
                 <span className="shrink-0 rounded-md bg-teal-100 px-1 py-px text-[10px] font-bold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
-                  我
+                  {t('me')}
                 </span>
               )}
             </div>
             <div className="font-display text-base font-black text-foreground">
-              {formatRecord(mode, row)}
+              {record(mode, row)}
             </div>
             <div
               className={cn(

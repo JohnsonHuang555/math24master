@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import {
   AlertDialog,
@@ -15,6 +16,7 @@ import {
 const AlertDialogModal = () => {
   const { isOpen, title, description, onClose, onConfirm } =
     useAlertDialogStore(state => state);
+  const t = useTranslations('Common');
 
   return (
     <AlertDialog open={isOpen}>
@@ -24,8 +26,8 @@ const AlertDialogModal = () => {
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>取消</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>確定</AlertDialogAction>
+          <AlertDialogCancel onClick={onClose}>{t('cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{t('confirm')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

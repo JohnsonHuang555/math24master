@@ -6,7 +6,7 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE = 'zh-TW' satisfies Locale;
 
-export const ENABLED_LOCALES = ['zh-TW'] as const satisfies readonly Locale[];
+export const ENABLED_LOCALES = SUPPORTED_LOCALES;
 
 /** 語言切換器上顯示的名稱，一律用該語言自己的寫法 */
 export const LOCALE_LABELS: Record<Locale, string> = {

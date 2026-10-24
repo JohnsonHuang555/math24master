@@ -3,46 +3,40 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, LucideIcon, Shapes, Superscript, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
 type Announcement = {
   key: string;
+  /** messages 的 Announcement.<id>.title / description */
+  id: 'tabletop' | 'match' | 'quickMathAdvanced';
   icon: LucideIcon;
-  title: string;
   badge?: string;
-  description?: string;
   href: string;
-  linkLabel: string;
 };
 
 // 每次上線新玩法就往這裡加一則；key 帶版本號，換掉 key 可以讓已關閉過舊公告的人重新看到新公告
 const ANNOUNCEMENTS: Announcement[] = [
   {
     key: 'announcement-tabletop-mode-v1',
+    id: 'tabletop',
     icon: Shapes,
-    title: '新模式「牌桌模式」上線！',
     badge: 'Beta',
-    description: '改編自拉密・和 2 個電腦搶分・拆開重組桌上的算式',
     href: '/single-play',
-    linkLabel: '立即體驗 →',
   },
   {
     key: 'announcement-match-mode-v1',
+    id: 'match',
     icon: LayoutGrid,
-    title: '新模式「消消樂模式」上線！',
     badge: 'Beta',
-    description: '16 張牌自由配對消除・任選 2~4 張湊 24・全部清除才計分上榜',
     href: '/single-play',
-    linkLabel: '立即體驗 →',
   },
   {
     key: 'announcement-quick-math-advanced-v1',
+    id: 'quickMathAdvanced',
     icon: Superscript,
-    title: '心算快答「進階模式」上線！',
     badge: 'Beta',
-    description: '混入平方、階乘、根號・更燒腦的心算挑戰',
     href: '/quick-math',
-    linkLabel: '立即體驗 →',
   },
 ];
 
@@ -53,15 +47,8 @@ function AnnouncementRow({
   announcement: Announcement;
   onDismiss: (key: string) => void;
 }) {
-  const {
-    key,
-    icon: Icon,
-    title,
-    badge,
-    description,
-    href,
-    linkLabel,
-  } = announcement;
+  const t = useTranslations('Announcement');
+  const { key, id, icon: Icon, badge, href } = announcement;
 
   return (
     <div className="flex items-center gap-3 bg-primary px-4 py-2.5 md:px-10">
@@ -72,29 +59,29 @@ function AnnouncementRow({
 
       {/* Text */}
       <div className="flex flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-        <span className="text-sm font-bold text-white">{title}</span>
+        <span className="text-sm font-bold text-white">
+          {t(`${id}.title`)}
+        </span>
         {badge && (
           <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white">
             {badge}
           </span>
         )}
-        {description && (
-          <span className="hidden text-sm text-white/75 sm:inline">
-            {description}
-          </span>
-        )}
+        <span className="hidden text-sm text-white/75 sm:inline">
+          {t(`${id}.description`)}
+        </span>
         <Link
           href={href}
           className="text-sm font-bold text-white/90 underline underline-offset-2 transition-colors hover:text-white"
         >
-          {linkLabel}
+          {t('tryNow')}
         </Link>
       </div>
 
       {/* Dismiss */}
       <button
         onClick={() => onDismiss(key)}
-        aria-label="關閉公告"
+        aria-label={t('dismiss')}
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/20 hover:text-white"
       >
         <X className="h-4 w-4" />
