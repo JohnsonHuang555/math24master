@@ -5,5 +5,36 @@
   "NotFound": {
     "title": "This page could not be found",
     "backHome": "Home"
+  },
+  "ServerError": {
+    "UNEXPECTED": "Something went wrong. Please try again later.",
+    "ROOM_NOT_FOUND": "This room doesn't exist.",
+    "ROOM_FULL": "This room is full.",
+    "ROOM_FULL_OR_NOT_FOUND": "This room is full or doesn't exist.",
+    "ROOM_NAME_TAKEN": "A room with this name already exists.",
+    "WRONG_PASSWORD": "Wrong password.",
+    "PLAYER_NOT_FOUND": "Player not found.",
+    "RECONNECT_TOKEN_INVALID": "Your session has expired. Please rejoin the room.",
+    "PLAYERS_NOT_READY": "Not all players are ready.",
+    "START_GAME_FAILED": "Couldn't start the game.",
+    "NOT_YOUR_TURN": "It's not your turn yet.",
+    "INVALID_EQUATION": "Invalid equation.",
+    "FIRST_MUST_BE_NUMBER_OR_LEFT_PAREN": "Start with a number or a left parenthesis.",
+    "CONSECUTIVE_NUMBERS": "You can't place two number cards in a row.",
+    "CONSECUTIVE_PLUS": "You can't use two plus signs in a row.",
+    "CONSECUTIVE_MINUS": "You can't use two minus signs in a row.",
+    "CONSECUTIVE_TIMES": "You can't use two multiplication signs in a row.",
+    "CONSECUTIVE_DIVIDE": "You can't use two division signs in a row.",
+    "PLUS_MINUS_AFTER_LEFT_PAREN": "You can't use plus or minus right after a left parenthesis.",
+    "BUZZER_NOT_STARTED": "The buzzer round hasn't started.",
+    "NOT_ANSWERING_PLAYER": "You don't have the buzzer right now.",
+    "MUST_USE_ALL_CARDS": "You must use all 4 shared cards.",
+    "INVALID_CARDS": "Invalid cards.",
+    "ANSWER_NOT_24": "That doesn't equal 24.",
+    "ANSWER_TIMEOUT": "Time's up."
+  },
+  "SystemMessage": {
+    "COUNTDOWN_CANCELLED": "Game countdown cancelled.",
+    "GAME_STARTS_IN": "Game starts in {seconds}s"
   }
 }

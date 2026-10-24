@@ -1,7 +1,8 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { Room } from '@/models/Room';
-import { Message } from '../models/Message';
+import { ErrorCode } from '../models/ErrorCode';
+import { Message, SystemMessageCode } from '../models/Message';
 import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { SocketEvent } from '../models/SocketEvent';
 import {
@@ -321,10 +322,9 @@ const startServer = () => {
     timers.forEach(clearTimeout);
     startCountdownMap.delete(roomId);
     io.to(roomId).emit(SocketEvent.GetMessage, {
-      name: '',
-      message: '遊戲開始倒數已取消',
       isSystem: true,
-    } as Message);
+      code: SystemMessageCode.CountdownCancelled,
+    } satisfies Message);
   };
 
   const _startGameCountdown = (roomId: string, socketId: string) => {
@@ -332,11 +332,11 @@ const startServer = () => {
 
     const room = getCurrentRoom(roomId);
     if (!room) {
-      io.to(socketId).emit(SocketEvent.ErrorMessage, '房間不存在');
+      io.to(socketId).emit(SocketEvent.ErrorMessage, ErrorCode.RoomNotFound);
       return;
     }
     if (!room.players.every(p => p.isReady)) {
-      io.to(socketId).emit(SocketEvent.ErrorMessage, '尚有玩家未準備');
+      io.to(socketId).emit(SocketEvent.ErrorMessage, ErrorCode.PlayersNotReady);
       return;
     }
 
@@ -345,10 +345,10 @@ const startServer = () => {
       timers.push(
         setTimeout(() => {
           io.to(roomId).emit(SocketEvent.GetMessage, {
-            name: '',
-            message: `遊戲將在 ${String(n)} 秒開始`,
             isSystem: true,
-          } as Message);
+            code: SystemMessageCode.GameStartsIn,
+            params: { seconds: n },
+          } satisfies Message);
         }, i * 1000),
       );
     });
@@ -436,13 +436,13 @@ const startServer = () => {
               .emit(SocketEvent.JoinRoomSuccess, result.room);
             socket.emit(SocketEvent.GetPlayerId, playerId);
             socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
-          } else if (result.needPassword) {
+          } else if ('needPassword' in result) {
             socket.emit(SocketEvent.NeedRoomPassword);
           } else {
             socket.emit(SocketEvent.ErrorMessage, result.error);
           }
         } else {
-          socket.emit(SocketEvent.ErrorMessage, '房間人數已滿或不存在');
+          socket.emit(SocketEvent.ErrorMessage, ErrorCode.RoomFullOrNotFound);
         }
       },
     );
@@ -472,7 +472,7 @@ const startServer = () => {
             players: rankedPlayers,
           });
         }
-      } else if (result.error !== 'NOT_YOUR_TURN') {
+      } else if (result.error !== ErrorCode.NotYourTurn) {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -541,7 +541,7 @@ const startServer = () => {
             players: rankedPlayers,
           });
         }
-      } else if (result.error !== 'NOT_YOUR_TURN') {
+      } else if (result.error !== ErrorCode.NotYourTurn) {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -576,7 +576,7 @@ const startServer = () => {
             players: rankedPlayers,
           });
         }
-      } else if (result.error !== 'NOT_YOUR_TURN') {
+      } else if (result.error !== ErrorCode.NotYourTurn) {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
@@ -611,7 +611,7 @@ const startServer = () => {
         io.sockets.to(roomId).emit(SocketEvent.GetMessage, {
           name: playerName,
           message,
-        } as Message);
+        } satisfies Message);
       }
     });
 

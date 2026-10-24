@@ -7,6 +7,7 @@ import {
   shuffleArray,
 } from '../lib/deck';
 import { calculateAnswer } from '../lib/utils';
+import { ErrorCode } from '../models/ErrorCode';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
 import {
@@ -29,26 +30,33 @@ import { Symbol } from '../models/Symbol';
 
 type JoinRoomResult =
   | { success: true; room: Room; reconnectToken: string }
-  | { success: false; error: string; needPassword?: true };
+  | { success: false; error: ErrorCode }
+  | { success: false; needPassword: true };
 
 type DrawCardResult =
   | { success: true; room: Room; winner?: Player }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 type PlayCardResult =
   | { success: true; room: Room; isCorrect: boolean }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 type UpdateScoreResult =
   | { success: true; room: Room; winner?: Player; handResult?: HandResult }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 // 單人經典模式：拿滿該手理論最高分的額外獎勵
 const PERFECT_HAND_BONUS = 1;
 
 type SkipHandResult =
   | { success: true; room: Room; winner?: Player }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
+
+// 非預期錯誤：玩家只會看到通用訊息，發生在哪個操作記在 server log
+function _unexpected(context: string, err?: unknown) {
+  console.error(`[game] ${context} failed`, err ?? '');
+  return { success: false as const, error: ErrorCode.Unexpected };
+}
 
 // 所有房間資訊
 let _rooms: Room[] = [];
@@ -253,10 +261,10 @@ export function joinRoom(
       // 當房間有設密碼且不是房主需要回傳密碼輸入事件
       if (_rooms[roomIndex].password && !isMaster) {
         if (!payload.password) {
-          return { success: false, error: '', needPassword: true };
+          return { success: false, needPassword: true };
         }
         if (_rooms[roomIndex].password !== payload.password) {
-          return { success: false, error: '密碼錯誤' };
+          return { success: false, error: ErrorCode.WrongPassword };
         }
       }
 
@@ -285,14 +293,15 @@ export function joinRoom(
     } else {
       // 沒有房間名稱，表示房間已經被刪除剛好有玩家加入時
       if (mode === GameMode.Multiple && !payload.roomName) {
-        return { success: false, error: '房間不存在' };
+        return { success: false, error: ErrorCode.RoomNotFound };
       }
       // 建立房間時已經有相同成稱的房間需擋掉
       if (mode === GameMode.Multiple && payload.roomName) {
         const existRoomName = _rooms.find(
           room => room.roomName === payload.roomName,
         );
-        if (existRoomName) return { success: false, error: '房間名稱已存在' };
+        if (existRoomName)
+          return { success: false, error: ErrorCode.RoomNameTaken };
       }
       // 創建新房間
       const masterToken = uuidv4();
@@ -336,7 +345,7 @@ export function joinRoom(
       return { success: true, room: newRoom, reconnectToken: masterToken };
     }
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (join room)' };
+    return _unexpected('join room', e);
   }
 }
 
@@ -448,16 +457,16 @@ export function reconnectPlayer(
   reconnectToken: string,
 ):
   | { success: true; room: Room; playerName: string }
-  | { success: false; error: string } {
+  | { success: false; error: ErrorCode } {
   const entry = _tokenToPlayerMap.get(reconnectToken);
-  if (!entry) return { success: false, error: '重連令牌無效或已過期' };
+  if (!entry) return { success: false, error: ErrorCode.ReconnectTokenInvalid };
 
   const { playerId: oldPlayerId, roomId } = entry;
   const room = _getCurrentRoom(roomId);
-  if (!room) return { success: false, error: '房間不存在' };
+  if (!room) return { success: false, error: ErrorCode.RoomNotFound };
 
   const player = room.players.find(p => p.id === oldPlayerId);
-  if (!player) return { success: false, error: '玩家資料不存在' };
+  if (!player) return { success: false, error: ErrorCode.PlayerNotFound };
 
   // 更新玩家 ID 為新的 socket.id，清除斷線狀態
   player.id = newSocketId;
@@ -475,7 +484,7 @@ export function reconnectPlayer(
 // 開始遊戲
 export function startGame(roomId: string): GameResponse {
   const room = _getCurrentRoom(roomId);
-  if (!room) return { success: false, error: '房間不存在' };
+  if (!room) return { success: false, error: ErrorCode.RoomNotFound };
 
   try {
     let tempDeck: number[] = [];
@@ -516,7 +525,7 @@ export function startGame(roomId: string): GameResponse {
         }
         break;
       default:
-        return { success: false, error: '開始遊戲失敗' };
+        return { success: false, error: ErrorCode.StartGameFailed };
     }
 
     // 若牌庫大小不是 4 的倍數，隨機移除多餘的牌，確保不會有孤牌剩餘
@@ -539,7 +548,7 @@ export function startGame(roomId: string): GameResponse {
     // 隨機玩家順序
     const shuffledPlayerOrder = shuffleArray(playerOrders);
     if (shuffledPlayerOrder.length !== room.players.length)
-      return { success: false, error: '發生錯誤，請稍後再試 (shuffle)' };
+      return _unexpected('shuffle');
 
     let remainingDeck = shuffledDeck;
     shuffledPlayerOrder.forEach((order, index) => {
@@ -565,20 +574,22 @@ export function startGame(roomId: string): GameResponse {
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (start game)' };
+    return _unexpected('start game', e);
   }
 }
 
 // 準備遊戲
 export function readyGame(roomId: string, playerId: string): GameResponse {
   const roomIndex = _getCurrentRoomIndex(roomId);
-  if (roomIndex === -1) return { success: false, error: '房間不存在' };
+  if (roomIndex === -1)
+    return { success: false, error: ErrorCode.RoomNotFound };
 
   const playerIndex = _getCurrentPlayerIndex(
     _rooms[roomIndex].players,
     playerId,
   );
-  if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+  if (playerIndex === -1)
+    return { success: false, error: ErrorCode.PlayerNotFound };
 
   try {
     _rooms[roomIndex].players[playerIndex].isReady =
@@ -586,7 +597,7 @@ export function readyGame(roomId: string, playerId: string): GameResponse {
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (ready game)' };
+    return _unexpected('ready game', e);
   }
 }
 
@@ -598,17 +609,19 @@ export function drawCard(
 ): DrawCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+    if (playerIndex === -1)
+      return { success: false, error: ErrorCode.PlayerNotFound };
 
     // 回合驗證：防止計時器 race condition 觸發重複抽牌
     if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
+      return { success: false, error: ErrorCode.NotYourTurn };
     }
 
     const gameOver = _checkGameOver(roomIndex, playerIndex);
@@ -639,7 +652,7 @@ export function drawCard(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (draw card)' };
+    return _unexpected('draw card', e);
   }
 }
 
@@ -651,13 +664,15 @@ export function discardCard(
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+    if (playerIndex === -1)
+      return { success: false, error: ErrorCode.PlayerNotFound };
 
     const newCards = _rooms[roomIndex].players[playerIndex].handCard.filter(
       c => c.id !== cardId,
@@ -666,7 +681,7 @@ export function discardCard(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (discard card)' };
+    return _unexpected('discard card', e);
   }
 }
 
@@ -674,13 +689,15 @@ export function discardCard(
 export function playCard(roomId: string, playerId: string): PlayCardResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+    if (playerIndex === -1)
+      return { success: false, error: ErrorCode.PlayerNotFound };
 
     const selectedCards = _rooms[roomIndex].selectedCards;
     const answer = calculateAnswer(selectedCards);
@@ -704,20 +721,21 @@ export function playCard(roomId: string, playerId: string): PlayCardResult {
     }
     return { success: true, room: _rooms[roomIndex], isCorrect: false };
   } catch (e) {
-    return { success: false, error: '算式有誤 (play card)' };
+    return { success: false, error: ErrorCode.InvalidEquation };
   }
 }
 
 export function backCard(roomId: string): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     _rooms[roomIndex].selectedCards.pop();
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (error) {
-    return { success: false, error: '發生錯誤，請稍後再試 (back card)' };
+    return _unexpected('back card', error);
   }
 }
 
@@ -728,16 +746,18 @@ export function updateScore(
 ): UpdateScoreResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+    if (playerIndex === -1)
+      return { success: false, error: ErrorCode.PlayerNotFound };
 
     if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
+      return { success: false, error: ErrorCode.NotYourTurn };
     }
 
     const selectedCards = _rooms[roomIndex].selectedCards;
@@ -808,7 +828,7 @@ export function updateScore(
       handResult,
     };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (update score)' };
+    return _unexpected('update score', e);
   }
 }
 
@@ -819,12 +839,13 @@ export function selectCard(
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const selectedCards = _rooms[roomIndex].selectedCards;
 
     if (selectedCards.length === 0 && symbol && symbol !== Symbol.LeftBracket) {
-      return { success: false, error: '第一個只能用左括號或數字' };
+      return { success: false, error: ErrorCode.FirstMustBeNumberOrLeftParen };
     }
 
     if (number) {
@@ -832,7 +853,7 @@ export function selectCard(
 
       // 如果前一個是數字則不能選
       if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        return { success: false, error: '數字牌不能連續使用' };
+        return { success: false, error: ErrorCode.ConsecutiveNumbers };
       }
 
       if (currentSelect?.symbol === Symbol.RightBracket) {
@@ -851,19 +872,19 @@ export function selectCard(
     if (symbol) {
       const lastCard = selectedCards[selectedCards.length - 1];
       if (lastCard?.symbol === Symbol.Minus && symbol === Symbol.Minus) {
-        return { success: false, error: '減號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveMinus };
       }
 
       if (lastCard?.symbol === Symbol.Plus && symbol === Symbol.Plus) {
-        return { success: false, error: '加號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutivePlus };
       }
 
       if (lastCard?.symbol === Symbol.Times && symbol === Symbol.Times) {
-        return { success: false, error: '乘號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveTimes };
       }
 
       if (lastCard?.symbol === Symbol.Divide && symbol === Symbol.Divide) {
-        return { success: false, error: '除號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveDivide };
       }
 
       // if (lastCard.symbol === Symbol.Minus && symbol === Symbol.LeftBracket) {
@@ -874,7 +895,7 @@ export function selectCard(
         lastCard?.symbol === Symbol.LeftBracket &&
         [Symbol.Plus, Symbol.Minus].includes(symbol)
       ) {
-        return { success: false, error: '左括號後面無法使用減號或加號' };
+        return { success: false, error: ErrorCode.PlusMinusAfterLeftParen };
       }
 
       if (symbol === Symbol.LeftBracket && lastCard?.number) {
@@ -885,20 +906,21 @@ export function selectCard(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (select card)' };
+    return _unexpected('select card', e);
   }
 }
 
 export function reselectCard(roomId: string): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     _rooms[roomIndex].selectedCards = [];
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (reselect card)' };
+    return _unexpected('reselect card', e);
   }
 }
 
@@ -909,14 +931,15 @@ export function editRoom(
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     _rooms[roomIndex].roomName = newRoomName;
     _rooms[roomIndex].password = newPassword;
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (edit room)' };
+    return _unexpected('edit room', e);
   }
 }
 
@@ -931,7 +954,8 @@ export function editRoomSettings(
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     if (maxPlayers) {
       _rooms[roomIndex].maxPlayers = maxPlayers;
@@ -959,10 +983,7 @@ export function editRoomSettings(
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return {
-      success: false,
-      error: '發生錯誤，請稍後再試 (edit room settings)',
-    };
+    return _unexpected('edit room settings', e);
   }
 }
 
@@ -970,16 +991,18 @@ export function editRoomSettings(
 export function skipHand(roomId: string, playerId: string): SkipHandResult {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _getCurrentPlayerIndex(
       _rooms[roomIndex].players,
       playerId,
     );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+    if (playerIndex === -1)
+      return { success: false, error: ErrorCode.PlayerNotFound };
 
     if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
+      return { success: false, error: ErrorCode.NotYourTurn };
     }
 
     // 抽牌前先檢查（與 drawCard 一致），確保 isLastRoundPlayer 已在上一輪出牌後設置的情況下才結算
@@ -1016,14 +1039,15 @@ export function skipHand(roomId: string, playerId: string): SkipHandResult {
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (skip hand)' };
+    return _unexpected('skip hand', e);
   }
 }
 
 export function removePlayer(roomId: string, playerId: string): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const playerIndex = _rooms[roomIndex].players.findIndex(
       p => p.id === playerId,
@@ -1036,7 +1060,7 @@ export function removePlayer(roomId: string, playerId: string): GameResponse {
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (remove player)' };
+    return _unexpected('remove player', e);
   }
 }
 
@@ -1047,11 +1071,12 @@ export function addBotToRoom(
 ): GameResponse {
   try {
     const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
+    if (roomIndex === -1)
+      return { success: false, error: ErrorCode.RoomNotFound };
 
     const room = _rooms[roomIndex];
     if (room.players.length >= room.maxPlayers) {
-      return { success: false, error: '房間人數已滿' };
+      return { success: false, error: ErrorCode.RoomFull };
     }
 
     const botName =
@@ -1076,7 +1101,7 @@ export function addBotToRoom(
     _rooms[roomIndex].players.push(bot);
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (add bot)' };
+    return _unexpected('add bot', e);
   }
 }
 
