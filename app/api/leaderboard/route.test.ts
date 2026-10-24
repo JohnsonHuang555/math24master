@@ -65,9 +65,9 @@ describe('POST /api/leaderboard - 牌桌模式', () => {
     expect(saved('leaderboard_tabletop_easy')).toBeUndefined();
   });
 
-  it('超過單局上限 180 分時拒絕', async () => {
-    expect((await post('tabletop_normal', { score: 181 })).status).toBe(400);
-    expect((await post('tabletop_normal', { score: 180 })).status).toBe(200);
+  it('超過單局上限 2590 分時拒絕', async () => {
+    expect((await post('tabletop_normal', { score: 2591 })).status).toBe(400);
+    expect((await post('tabletop_normal', { score: 2590 })).status).toBe(200);
   });
 
   it('分數比舊紀錄低或相同時不覆寫', async () => {

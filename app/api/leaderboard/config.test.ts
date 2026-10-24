@@ -27,8 +27,8 @@ describe('牌桌模式的排行榜設定', () => {
     }
   });
 
-  it('單局分數上限是 180（每回合最高 30 分 × 6 回合）', () => {
-    for (const mode of modes) expect(SCORE_MAX[mode]).toBe(180);
+  it('單局分數上限是 2590（最多 86 組 × 每組 30 分 + 出完加分 10）', () => {
+    for (const mode of modes) expect(SCORE_MAX[mode]).toBe(2590);
   });
 });
 

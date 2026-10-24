@@ -3,9 +3,11 @@ import { createTabletopDeck, draw } from '@/lib/deck';
 import { NumberCard } from '@/models/Player';
 import {
   TABLETOP_HAND_SIZE,
+  TABLETOP_LEFTOVER_CARD_PENALTY,
+  TABLETOP_LEFTOVER_JOKER_PENALTY,
   TABLETOP_MAX_SET_SIZE,
   TABLETOP_MIN_SET_SIZE,
-  TABLETOP_TURNS_PER_SEAT,
+  TABLETOP_WENT_OUT_BONUS,
   TabletopDifficulty,
   TabletopGameState,
   TabletopSeat,
@@ -244,30 +246,26 @@ export function submitTurn(
   }
   const scoreGained = scoreSet(completedSets[0]);
 
-  // 出牌後補到 TABLETOP_HAND_SIZE 張，牌庫不夠就補到用完
-  const remainingHand = seat.hand.filter(c => !playedIds.has(c.id));
-  const refillCount = Math.max(TABLETOP_HAND_SIZE - remainingHand.length, 0);
-  const { drawn, remaining } = draw(state.deck, refillCount);
+  // 不補牌：手牌只會越來越少，出完就結束這局
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat
       ? {
           ...s,
-          hand: [...remainingHand, ...drawn],
+          hand: s.hand.filter(c => !playedIds.has(c.id)),
           score: s.score + scoreGained,
         }
       : s,
   );
+  const next: TabletopGameState = { ...state, table: proposedTable, seats };
 
-  return {
-    success: true,
-    scoreGained,
-    state: advanceTurn({
-      ...state,
-      deck: remaining,
-      table: proposedTable,
-      seats,
-    }),
-  };
+  if (seats[state.currentSeat].hand.length === 0) {
+    return {
+      success: true,
+      scoreGained,
+      state: endGame({ ...next, turnsTaken: state.turnsTaken + 1 }),
+    };
+  }
+  return { success: true, scoreGained, state: advanceTurn(next) };
 }
 
 export type DrawCardResult =
@@ -284,28 +282,62 @@ export function drawCard(state: TabletopGameState): DrawCardResult {
   const seats = state.seats.map((s, i) =>
     i === state.currentSeat ? { ...s, hand: [...s.hand, ...drawn] } : s,
   );
-  return {
-    success: true,
-    state: advanceTurn({ ...state, deck: remaining, seats }),
-  };
+  const next = { ...state, deck: remaining, seats };
+
+  // 抽走最後一張：本次行動不算進最後一圈，接下來所有人各再行動一次
+  if (drawn.length > 0 && remaining.length === 0) {
+    return {
+      success: true,
+      state: {
+        ...next,
+        currentSeat: (state.currentSeat + 1) % state.seats.length,
+        turnsTaken: state.turnsTaken + 1,
+        finalRoundTurnsLeft: state.seats.length,
+      },
+    };
+  }
+  return { success: true, state: advanceTurn(next) };
 }
 
-/** 換下一位；所有人都打滿 TABLETOP_TURNS_PER_SEAT 回合就結算 */
+/** 換下一位；最後一圈中每次行動扣 1，扣完就結算 */
 function advanceTurn(state: TabletopGameState): TabletopGameState {
   const next = {
     ...state,
     currentSeat: (state.currentSeat + 1) % state.seats.length,
     turnsTaken: state.turnsTaken + 1,
   };
-  return next.turnsTaken >= TABLETOP_TURNS_PER_SEAT * state.seats.length
-    ? endGame(next)
-    : next;
+  if (state.finalRoundTurnsLeft === undefined) return next;
+
+  const finalRoundTurnsLeft = state.finalRoundTurnsLeft - 1;
+  return finalRoundTurnsLeft === 0
+    ? endGame({ ...next, finalRoundTurnsLeft })
+    : { ...next, finalRoundTurnsLeft };
 }
 
-/** 結算：依牌組得分總和排名，同分並列同一名次，下一名跳過並列的人數（1, 1, 3） */
+/**
+ * 結算：牌組得分 + 先出完手牌的加分 − 剩下的牌扣分，依最終分數排名；
+ * 同分並列同一名次，下一名跳過並列的人數（1, 1, 3）
+ */
 function endGame(state: TabletopGameState): TabletopGameState {
   const standings = state.seats
-    .map(s => ({ seatId: s.id, score: s.score }))
+    .map(s => {
+      const wentOutBonus = s.hand.length === 0 ? TABLETOP_WENT_OUT_BONUS : 0;
+      const leftoverPenalty = s.hand.reduce(
+        (sum, c) =>
+          sum +
+          (c.isJoker
+            ? TABLETOP_LEFTOVER_JOKER_PENALTY
+            : TABLETOP_LEFTOVER_CARD_PENALTY),
+        0,
+      );
+      return {
+        seatId: s.id,
+        tableScore: s.score,
+        wentOutBonus,
+        leftoverPenalty,
+        score: s.score + wentOutBonus - leftoverPenalty,
+      };
+    })
     .sort((a, b) => b.score - a.score)
     .map((s, _, sorted) => ({
       ...s,

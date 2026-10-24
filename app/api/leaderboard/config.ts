@@ -54,10 +54,12 @@ export const SCORE_MAX: Partial<Record<Mode, number>> = {
   classic: 66,
   // 16 張拆成 4 組各 4 張，每組理論最高 10 分（連三個除號：3+3+3+1）
   match: 40,
-  // 每回合最高 30 分（5 張同色、4 個除號：(12+1+2)×2）× 6 回合（見 specs/game-tabletop.spec.md）
-  tabletop_easy: 180,
-  tabletop_normal: 180,
-  tabletop_hard: 180,
+  // 每組最高 30 分（5 張同色、4 個除號：(12+1+2)×2）。每組至少要有 1 張自己的手牌，
+  // 一人最多打出 10 張起始手牌 + 76 張牌庫 = 86 張，所以最多 86 組，再加出完加分 10
+  // （見 specs/game-tabletop.spec.md）
+  tabletop_easy: 2590,
+  tabletop_normal: 2590,
+  tabletop_hard: 2590,
 };
 
 export function isScoreMode(mode: Mode): boolean {

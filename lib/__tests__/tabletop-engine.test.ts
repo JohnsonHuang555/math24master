@@ -37,6 +37,15 @@ function set(id: string, tiles: TabletopTile[]): TabletopSet {
   return { id, tiles };
 }
 
+function unwrap(
+  result:
+    | { success: true; state: TabletopGameState }
+    | { success: false; error: string },
+): TabletopGameState {
+  if (!result.success) throw new Error(result.error);
+  return result.state;
+}
+
 function deckOf(count: number): NumberCard[] {
   return Array.from({ length: count }, (_, i) =>
     card(`deck-${i}`, 13, 'black'),
@@ -81,7 +90,7 @@ function redSet(id = 'new') {
 }
 
 describe('submitTurn - 出牌', () => {
-  it('用手牌組成新的牌組：手牌移到桌面、得分、補牌到 10 張、換下一位', () => {
+  it('用手牌組成新的牌組：手牌移到桌面、得分、不補牌、換下一位', () => {
     const { cards, set: newSet } = redSet();
     const keep = card('keep', 9, 'blue');
     const game = makeGame({ hands: [[...cards, keep]], deck: deckOf(20) });
@@ -92,52 +101,11 @@ describe('submitTurn - 出牌', () => {
     if (!result.success) return;
     expect(result.scoreGained).toBe(6);
     expect(result.state.table).toEqual([newSet]);
-    expect(result.state.seats[0].hand).toHaveLength(10);
-    expect(result.state.seats[0].hand[0]).toEqual(keep);
-    expect(result.state.deck).toHaveLength(11);
+    expect(result.state.seats[0].hand).toEqual([keep]);
+    expect(result.state.deck).toHaveLength(20);
     expect(result.state.seats[0].score).toBe(6);
     expect(result.state.currentSeat).toBe(1);
     expect(result.state.turnsTaken).toBe(1);
-  });
-
-  it('牌庫不夠補滿時，補到牌庫用完為止', () => {
-    const { cards, set: newSet } = redSet();
-    const keep = card('keep', 9, 'blue');
-    const game = makeGame({ hands: [[...cards, keep]], deck: deckOf(2) });
-
-    const result = submitTurn(game, [newSet]);
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.state.seats[0].hand).toHaveLength(3);
-    expect(result.state.deck).toEqual([]);
-  });
-
-  it('出牌後手牌仍有 10 張以上時不補牌', () => {
-    const { cards, set: newSet } = redSet();
-    const others = Array.from({ length: 10 }, (_, i) =>
-      card(`h${i}`, 9, 'blue'),
-    );
-    const game = makeGame({ hands: [[...cards, ...others]], deck: deckOf(5) });
-
-    const result = submitTurn(game, [newSet]);
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.state.seats[0].hand).toEqual(others);
-    expect(result.state.deck).toHaveLength(5);
-  });
-
-  it('牌庫已空時手牌出完也不會提前結束，一局照樣打滿回合數', () => {
-    const { cards, set: newSet } = redSet();
-    const game = makeGame({ hands: [cards], deck: [] });
-
-    const result = submitTurn(game, [newSet]);
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.state.seats[0].hand).toEqual([]);
-    expect(result.state.status).toBe('playing');
   });
 });
 
@@ -196,45 +164,15 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
 });
 
 describe('一局結束', () => {
-  it('所有人各行動 6 回合後結束，依總分排名', () => {
-    // 已行動 17 回合，輪到 Bot B 的第 6 回合
-    const game = makeGame({
-      hands: [],
-      currentSeat: 2,
-      turnsTaken: 17,
-      scores: [10, 4, 7],
-    });
-
-    const result = drawCard(game);
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.state.status).toBe('ended');
-    expect(result.state.result?.standings).toEqual([
-      { seatId: 'seat-0', score: 10, rank: 1 },
-      { seatId: 'seat-2', score: 7, rank: 2 },
-      { seatId: 'seat-1', score: 4, rank: 3 },
-    ]);
-  });
-
-  it('還沒打滿回合數時不會結束', () => {
-    const game = makeGame({ hands: [], currentSeat: 1, turnsTaken: 16 });
-
-    const result = drawCard(game);
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.state.status).toBe('playing');
-    expect(result.state.turnsTaken).toBe(17);
-  });
-
-  it('最後一回合出牌時，這一組的分數也算進結算', () => {
+  it('手牌出完立即結束：先出完 +10，其他人剩下的牌每張 −1、Joker 每張 −5，依最終分數排名', () => {
     const { cards, set: lastSet } = redSet();
     const game = makeGame({
-      hands: [[], [], cards],
-      currentSeat: 2,
-      turnsTaken: 17,
-      scores: [3, 3, 0],
+      hands: [
+        cards,
+        [card('a1', 4, 'blue'), joker('aj')],
+        [card('b1', 7, 'black')],
+      ],
+      scores: [0, 3, 0],
     });
 
     const result = submitTurn(game, [lastSet]);
@@ -242,11 +180,71 @@ describe('一局結束', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.state.status).toBe('ended');
-    expect(result.state.result?.standings[0]).toEqual({
-      seatId: 'seat-2',
-      score: 6,
-      rank: 1,
+    expect(result.state.result?.standings).toEqual([
+      {
+        seatId: 'seat-0',
+        tableScore: 6,
+        wentOutBonus: 10,
+        leftoverPenalty: 0,
+        score: 16,
+        rank: 1,
+      },
+      {
+        seatId: 'seat-2',
+        tableScore: 0,
+        wentOutBonus: 0,
+        leftoverPenalty: 1,
+        score: -1,
+        rank: 2,
+      },
+      {
+        seatId: 'seat-1',
+        tableScore: 3,
+        wentOutBonus: 0,
+        leftoverPenalty: 6,
+        score: -3,
+        rank: 3,
+      },
+    ]);
+  });
+
+  it('沒有回合數上限：沒人出完、牌庫也還有牌時一直打下去', () => {
+    const game = makeGame({ hands: [], currentSeat: 2, turnsTaken: 40 });
+
+    const result = drawCard(game);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.state.status).toBe('playing');
+    expect(result.state.turnsTaken).toBe(41);
+  });
+
+  it('抽走最後一張後進入最後一圈：所有人各再行動一次（出牌或抽牌都算）就結束，沒有人拿到出完加分', () => {
+    const b8 = card('b8', 8, 'blue');
+    const b2 = card('b2', 2, 'blue');
+    const b8b = card('b8b', 8, 'blue');
+    let game = makeGame({
+      hands: [[card('p', 1, 'red')], [b8, b2, b8b, card('keep', 5, 'red')]],
+      deck: [card('last', 9, 'black')],
     });
+
+    const steps: ((g: TabletopGameState) => TabletopGameState)[] = [
+      g => unwrap(drawCard(g)), // 玩家抽走最後一張 → 最後一圈開始
+      g =>
+        unwrap(
+          submitTurn(g, [set('new', [n(b8), op('*'), n(b2), op('+'), n(b8b)])]),
+        ), // Bot A 出牌
+      g => unwrap(drawCard(g)), // Bot B 牌庫已空，等同跳過
+    ];
+    for (const step of steps) {
+      game = step(game);
+      expect(game.status).toBe('playing');
+    }
+
+    game = unwrap(drawCard(game)); // 玩家最後一次行動
+
+    expect(game.status).toBe('ended');
+    expect(game.result?.standings.every(s => s.wentOutBonus === 0)).toBe(true);
   });
 
   it.each([
@@ -259,20 +257,29 @@ describe('一局結束', () => {
       [1, 1, 1],
     ],
   ])(
-    '總分 %j 時名次為 %j（同分並列，下一名跳過並列的人數）',
+    '最終分數 %j 時名次為 %j（同分並列，下一名跳過並列的人數）',
     (scores, ranks) => {
-      const game = makeGame({
-        hands: [],
-        currentSeat: 2,
-        turnsTaken: 17,
-        scores,
+      // 三人手上各剩 1 張（各扣 1 分），玩家抽走最後一張後大家都跳過，最後一圈結束
+      let game = makeGame({
+        hands: [[card('p', 13, 'red')]],
+        deck: [card('last', 13, 'black')],
+        scores: scores.map(s => s + 1),
       });
+      game = unwrap(drawCard(game));
+      game = {
+        ...game,
+        seats: game.seats.map(s => ({
+          ...s,
+          hand: [card(`${s.id}-x`, 13, 'yellow')],
+        })),
+      };
+      for (let i = 0; i < 3; i++) game = unwrap(drawCard(game));
 
-      const result = drawCard(game);
-
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.state.result?.standings.map(s => s.rank)).toEqual(ranks);
+      expect(game.status).toBe('ended');
+      expect(game.result?.standings.map(s => s.score)).toEqual(
+        [...scores].sort((a, b) => b - a),
+      );
+      expect(game.result?.standings.map(s => s.rank)).toEqual(ranks);
     },
   );
 });
