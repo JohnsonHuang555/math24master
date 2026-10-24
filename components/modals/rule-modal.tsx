@@ -10,7 +10,7 @@ import {
 type RuleModalProps = {
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
-  mode?: 'buzzer' | 'classic' | 'challenge' | 'match';
+  mode?: 'buzzer' | 'classic' | 'challenge' | 'match' | 'tabletop';
 };
 
 function RuleSection({
@@ -74,9 +74,10 @@ function BuzzerRules() {
         </li>
         <li className="pt-0.5 text-xs">
           範例：
-          <span className="font-mono font-bold">6 × 4 × (3 − 2) = 24</span> →{' '}
-          <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 + 兩個乘號額外加 1 分 +
-          減號 1 分）
+          <span className="font-mono font-bold">
+            6 × 4 × (3 − 2) = 24
+          </span> → <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 +
+          兩個乘號額外加 1 分 + 減號 1 分）
         </li>
       </RuleSection>
 
@@ -163,9 +164,10 @@ function ClassicRules() {
         </li>
         <li className="pt-0.5 text-xs">
           範例：
-          <span className="font-mono font-bold">6 × 4 × (3 − 2) = 24</span> →{' '}
-          <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 + 兩個乘號額外加 1 分 +
-          減號 1 分）
+          <span className="font-mono font-bold">
+            6 × 4 × (3 − 2) = 24
+          </span> → <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 +
+          兩個乘號額外加 1 分 + 減號 1 分）
         </li>
       </RuleSection>
 
@@ -309,11 +311,50 @@ function MatchRules() {
   );
 }
 
+// 規則控制在 5 條以內（見 specs/game-tabletop.spec.md「介面與提示」）
+function TabletopRules() {
+  return (
+    <>
+      <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+        改編自桌遊<strong>拉密（Rummikub）</strong>
+        ：一樣是出牌到共用桌面、可以拆開別人的牌組重組、先出完手牌的人佔優勢，只是組牌的條件改成「湊出
+        24」
+      </p>
+      <RuleSection title="玩法" accent="text-teal-700 dark:text-teal-400">
+        <li>
+          你和 2 個電腦輪流行動，每人起始 <strong>10 張</strong>
+          手牌，出牌後不補牌；沒有牌可以出時就抽 1 張
+        </li>
+        <li>
+          每回合<strong>完成一組牌組</strong>：3～5 張牌用加減乘除和括號湊出{' '}
+          <strong>24</strong>
+          。可以拆開桌上的牌組重新組合，但這回合打出的手牌要全部放在同一組，回合結束時桌上每一組都要成立
+        </li>
+        <li>
+          顏色限制：3～4 張要<strong>同色或全部不同色</strong>，5
+          張只能同色；Joker
+          打出時宣告數值與顏色，所在的牌組被拆開時變回未宣告，下一個使用的人重新宣告
+        </li>
+        <li>
+          計分：加減 1 分、乘 2 分、除 3 分，4 張 +1、5 張
+          +2，再乘上顏色倍率（同色 ×2、全異色 ×1.5，四捨五入）
+        </li>
+        <li>
+          有人<strong>手牌出完</strong>
+          就結束（牌庫抽完則再打一圈）：先出完的人 +10 分，其他人手上每張牌 −1
+          分、Joker −5 分，總分最高的人獲勝
+        </li>
+      </RuleSection>
+    </>
+  );
+}
+
 const RULE_TITLE: Record<NonNullable<RuleModalProps['mode']>, string> = {
   buzzer: '搶答模式規則',
   classic: '經典模式規則',
   challenge: '挑戰模式規則',
   match: '消消樂模式規則',
+  tabletop: '牌桌模式規則',
 };
 
 export function RuleModal({
@@ -333,6 +374,7 @@ export function RuleModal({
           {mode === 'classic' && <ClassicRules />}
           {mode === 'challenge' && <ChallengeRules />}
           {mode === 'match' && <MatchRules />}
+          {mode === 'tabletop' && <TabletopRules />}
         </div>
 
         <DialogFooter>

@@ -345,8 +345,7 @@ export default function RoomPage() {
                   onAddBot={addBot}
                   canAddBot={
                     !!currentPlayer?.isMaster &&
-                    (roomInfo.settings.gameType === 'rummy' ||
-                      roomInfo.settings.gameType === 'buzzer') &&
+                    roomInfo.settings.gameType === 'buzzer' &&
                     roomInfo.players.length < roomInfo.maxPlayers
                   }
                 />

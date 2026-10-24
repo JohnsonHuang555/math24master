@@ -3,28 +3,26 @@ import { canMake24, findAllSolutions } from '../lib/daily-seed';
 import {
   createDeckByRandomMode,
   createDeckByStandardMode,
-  createRummyDeck,
   draw,
   shuffleArray,
 } from '../lib/deck';
-import { BotDifficulty, findPlayableGroups } from '../lib/rummy-ai';
-import { ColorRule, validateBoard } from '../lib/rummy-validator';
 import { calculateAnswer } from '../lib/utils';
 import { GameMode } from '../models/GameMode';
 import { GameStatus } from '../models/GameStatus';
-import { CardColor, HandResult, NumberCard, Player } from '../models/Player';
+import {
+  BotDifficulty,
+  HandResult,
+  NumberCard,
+  Player,
+} from '../models/Player';
 import { GameResponse } from '../models/Response';
 import {
   BuzzerSettings,
   DEFAULT_BUZZER_SETTINGS,
   DeckType,
   Difficulty,
-  EquationGroup,
   GameType,
   HAND_CARD_COUNT,
-  RUMMY_HAND_CARD_COUNT,
-  RUMMY_HAND_CARD_COUNT_EASY,
-  RUMMY_TURN_SECONDS,
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
@@ -272,7 +270,6 @@ export function joinRoom(
         score: 0,
         isLastRoundPlayer: false,
         isReady: false,
-        hasMelded: false,
         reconnectToken: newPlayerToken,
       });
       _tokenToPlayerMap.set(newPlayerToken, {
@@ -306,7 +303,6 @@ export function joinRoom(
         currentOrder: -1,
         isGameOver: false,
         selectedCards: [],
-        board: [],
         roomName: payload.roomName,
         password: payload.password,
         status: GameStatus.Idle,
@@ -330,7 +326,6 @@ export function joinRoom(
             score: 0,
             isLastRoundPlayer: false,
             isReady: true,
-            hasMelded: false,
             reconnectToken: masterToken,
           },
         ],
@@ -567,7 +562,6 @@ export function startGame(roomId: string): GameResponse {
     _rooms[roomIndex].status = GameStatus.Playing;
     _rooms[roomIndex].isGameOver = false;
     _rooms[roomIndex].selectedCards = [];
-    _rooms[roomIndex].board = [];
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
@@ -1046,321 +1040,6 @@ export function removePlayer(roomId: string, playerId: string): GameResponse {
   }
 }
 
-// ============================================================
-// 拉密模式函數
-// ============================================================
-
-/** 拉密：開始遊戲（需在 startGame 之後，依 gameType 決定是否呼叫） */
-export function rummyStartGame(roomId: string): GameResponse {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    const rummyDeck = createRummyDeck();
-
-    const playerOrders = Array.from(
-      Array(_rooms[roomIndex].players.length).keys(),
-    ).map(i => i + 1);
-    const shuffledPlayerOrder = shuffleArray(playerOrders);
-
-    const difficulty =
-      _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
-    const handCount =
-      difficulty === Difficulty.Easy
-        ? RUMMY_HAND_CARD_COUNT_EASY
-        : RUMMY_HAND_CARD_COUNT;
-
-    let remainingDeck = rummyDeck;
-    shuffledPlayerOrder.forEach((order, index) => {
-      _rooms[roomIndex].players[index].playerOrder = order;
-      _rooms[roomIndex].players[index].score = 0;
-      _rooms[roomIndex].players[index].isLastRoundPlayer = false;
-      _rooms[roomIndex].players[index].hasMelded = false;
-
-      const { drawn, remaining } = draw(remainingDeck, handCount);
-      _rooms[roomIndex].players[index].handCard = drawn;
-      remainingDeck = remaining;
-    });
-
-    _rooms[roomIndex].deck = remainingDeck;
-    _rooms[roomIndex].board = [];
-    _rooms[roomIndex].currentOrder = 1;
-    _rooms[roomIndex].status = GameStatus.Playing;
-    _rooms[roomIndex].isGameOver = false;
-    _rooms[roomIndex].selectedCards = [];
-    _rooms[roomIndex].rummyFinalRoundStartOrder = undefined;
-
-    return { success: true, room: _rooms[roomIndex] };
-  } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (rummy start game)' };
-  }
-}
-
-/** 最後一圈結束檢查：若所有人都已輪過，計算懲罰分並回傳獲勝者 */
-function _checkRummyFinalRoundOver(roomIndex: number): Player | null {
-  const room = _rooms[roomIndex];
-  if (room.rummyFinalRoundStartOrder === undefined) return null;
-  if (room.currentOrder !== room.rummyFinalRoundStartOrder) return null;
-
-  // 所有人都輪過，計算殘局懲罰（手牌扣分）
-  for (const player of _rooms[roomIndex].players) {
-    let penalty = 0;
-    for (const card of player.handCard) {
-      penalty += card.isJoker ? 20 : card.value;
-    }
-    player.score -= penalty;
-  }
-
-  _rooms[roomIndex].isGameOver = true;
-  _rooms[roomIndex].status = GameStatus.Idle;
-
-  // 負分最少（分數最高）者獲勝
-  return [..._rooms[roomIndex].players].sort((a, b) => b.score - a.score)[0];
-}
-
-/** 拉密：抽 1 張牌並結束回合 */
-export function rummyDrawCard(
-  roomId: string,
-  playerId: string,
-): RummyDrawCardResult {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    const playerIndex = _getCurrentPlayerIndex(
-      _rooms[roomIndex].players,
-      playerId,
-    );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
-
-    if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
-    }
-
-    if (_rooms[roomIndex].deck.length === 0) {
-      // 最後一圈：無牌可抽，直接 Pass（換人）
-      _nextPlayerTurn(roomIndex);
-      const penaltyWinner = _checkRummyFinalRoundOver(roomIndex);
-      if (penaltyWinner) {
-        return { success: true, room: _rooms[roomIndex], penaltyWinner };
-      }
-      return { success: true, room: _rooms[roomIndex] };
-    }
-
-    const { drawn, remaining } = draw(_rooms[roomIndex].deck, 1);
-    _rooms[roomIndex].players[playerIndex].handCard.push(...drawn);
-    _rooms[roomIndex].deck = remaining;
-
-    _nextPlayerTurn(roomIndex);
-
-    // 抽完後牌庫剛好耗盡：觸發最後一圈
-    if (
-      _rooms[roomIndex].deck.length === 0 &&
-      _rooms[roomIndex].rummyFinalRoundStartOrder === undefined
-    ) {
-      _rooms[roomIndex].rummyFinalRoundStartOrder =
-        _rooms[roomIndex].currentOrder;
-    }
-
-    return { success: true, room: _rooms[roomIndex] };
-  } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (rummy draw card)' };
-  }
-}
-
-type RummyDrawCardResult =
-  | { success: true; room: Room; penaltyWinner?: Player }
-  | { success: false; error: string };
-
-type RummySubmitResult =
-  | { success: true; room: Room; winner?: Player; penaltyWinner?: Player }
-  | { success: false; error: string };
-
-/** 拉密：提交桌面（驗證 + 結算） */
-export function rummySubmitTurn(
-  roomId: string,
-  playerId: string,
-  submittedBoard: EquationGroup[],
-  playedCardIds: string[],
-): RummySubmitResult {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    const playerIndex = _getCurrentPlayerIndex(
-      _rooms[roomIndex].players,
-      playerId,
-    );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
-
-    if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
-    }
-
-    if (playedCardIds.length === 0) {
-      return { success: false, error: '至少需打出 1 張牌' };
-    }
-
-    const difficulty =
-      _rooms[roomIndex].settings.difficulty ?? Difficulty.Normal;
-    const colorRule: ColorRule =
-      difficulty === Difficulty.Easy ? 'none' : 'standard';
-    const penaltyCount = difficulty === Difficulty.Easy ? 2 : 3;
-
-    // 取得本輪前手牌 id 集合 + 提交前桌面所有 card id
-    const handCardIds = new Set(
-      _rooms[roomIndex].players[playerIndex].handCard.map(c => c.id),
-    );
-    const boardCardIds = new Set(
-      _rooms[roomIndex].board.flatMap(g =>
-        g.tiles
-          .filter(t => t.type === 'number')
-          .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
-      ),
-    );
-    const allowedIds = new Set([...handCardIds, ...boardCardIds]);
-
-    // 卡牌守恆：submittedBoard 中所有 card.id 必須屬於 allowedIds
-    const submittedCardIds = submittedBoard.flatMap(g =>
-      g.tiles
-        .filter(t => t.type === 'number')
-        .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
-    );
-    const invalidCard = submittedCardIds.find(id => !allowedIds.has(id));
-    if (invalidCard) {
-      return {
-        success: false,
-        error: '提交牌組包含不合法的牌（非手牌也非原桌面牌）',
-      };
-    }
-
-    // 若未破冰：舊 board 中所有牌組必須原樣保留在 submittedBoard 中
-    if (!_rooms[roomIndex].players[playerIndex].hasMelded) {
-      const oldBoardIds = new Set(
-        _rooms[roomIndex].board.flatMap(g =>
-          g.tiles
-            .filter(t => t.type === 'number')
-            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
-        ),
-      );
-      const submittedSet = new Set(submittedCardIds);
-      for (const id of oldBoardIds) {
-        if (!submittedSet.has(id)) {
-          // 罰抽並換人
-          _penaltyDraw(roomIndex, playerIndex, penaltyCount);
-          _nextPlayerTurn(roomIndex);
-          return {
-            success: false,
-            error: `未破冰時不可移動桌面上的既有牌組，已罰抽 ${penaltyCount} 張`,
-          };
-        }
-      }
-    }
-
-    // 驗證桌面
-    const validation = validateBoard(submittedBoard, colorRule);
-    if (!validation.valid) {
-      return {
-        success: false,
-        error: `桌面驗證失敗：${validation.errors.join('；')}`,
-      };
-    }
-
-    // 成功：更新桌面與手牌
-    _rooms[roomIndex].board = submittedBoard;
-    const playedSet = new Set(playedCardIds);
-    _rooms[roomIndex].players[playerIndex].handCard = _rooms[roomIndex].players[
-      playerIndex
-    ].handCard.filter(c => !playedSet.has(c.id));
-    _rooms[roomIndex].players[playerIndex].hasMelded = true;
-
-    // 判斷勝利（手牌清空）
-    if (_rooms[roomIndex].players[playerIndex].handCard.length === 0) {
-      // 計算贏家得分：所有其他玩家的剩餘手牌點數加總
-      let winScore = 0;
-      for (const player of _rooms[roomIndex].players) {
-        if (player.id !== _rooms[roomIndex].players[playerIndex].id) {
-          for (const card of player.handCard) {
-            winScore += card.isJoker ? 20 : card.value;
-          }
-        }
-      }
-      _rooms[roomIndex].players[playerIndex].score += winScore;
-
-      _rooms[roomIndex].isGameOver = true;
-      _rooms[roomIndex].status = GameStatus.Idle;
-      const winner = _rooms[roomIndex].players[playerIndex];
-      return { success: true, room: _rooms[roomIndex], winner };
-    }
-
-    _nextPlayerTurn(roomIndex);
-
-    // 最後一圈結束檢查
-    const penaltyWinner = _checkRummyFinalRoundOver(roomIndex);
-    if (penaltyWinner) {
-      return { success: true, room: _rooms[roomIndex], penaltyWinner };
-    }
-
-    return { success: true, room: _rooms[roomIndex] };
-  } catch (e) {
-    return {
-      success: false,
-      error: '發生錯誤，請稍後再試 (rummy submit turn)',
-    };
-  }
-}
-
-/** 罰抽 n 張（內部輔助函數） */
-function _penaltyDraw(roomIndex: number, playerIndex: number, n: number) {
-  const count = Math.min(n, _rooms[roomIndex].deck.length);
-  if (count > 0) {
-    const { drawn, remaining } = draw(_rooms[roomIndex].deck, count);
-    _rooms[roomIndex].players[playerIndex].handCard.push(...drawn);
-    _rooms[roomIndex].deck = remaining;
-  }
-}
-
-/** 拉密：宣告 Joker 數值與顏色 */
-export function rummyDeclareJoker(
-  roomId: string,
-  jokerCardId: string,
-  declaredValue: number,
-  declaredColor: CardColor,
-): GameResponse {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    let found = false;
-    for (const group of _rooms[roomIndex].board) {
-      for (const tile of group.tiles) {
-        if (
-          tile.type === 'number' &&
-          tile.card.isJoker &&
-          tile.card.id === jokerCardId
-        ) {
-          tile.card.jokerDeclaredValue = declaredValue;
-          tile.card.jokerDeclaredColor = declaredColor;
-          found = true;
-          break;
-        }
-      }
-      if (found) break;
-    }
-
-    if (!found) {
-      return { success: false, error: '找不到指定的 Joker 牌' };
-    }
-
-    return { success: true, room: _rooms[roomIndex] };
-  } catch (e) {
-    return {
-      success: false,
-      error: '發生錯誤，請稍後再試 (rummy declare joker)',
-    };
-  }
-}
-
 /** 加入 Bot 玩家到房間 */
 export function addBotToRoom(
   roomId: string,
@@ -1391,7 +1070,6 @@ export function addBotToRoom(
       score: 0,
       isMaster: false,
       isReady: true,
-      hasMelded: false,
       isLastRoundPlayer: false,
     };
 
@@ -1399,168 +1077,6 @@ export function addBotToRoom(
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {
     return { success: false, error: '發生錯誤，請稍後再試 (add bot)' };
-  }
-}
-
-export type BotPlayResult =
-  | { success: true; room: Room; winner?: Player; penaltyWinner?: Player }
-  | { success: false; error: string };
-
-/** Bot 自動行動（出牌或抽牌） */
-export function rummyBotPlay(
-  roomId: string,
-  botPlayerId: string,
-): BotPlayResult {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    const room = _rooms[roomIndex];
-    if (room.status !== GameStatus.Playing) {
-      return { success: false, error: 'Game not playing' };
-    }
-
-    const playerIndex = _getCurrentPlayerIndex(room.players, botPlayerId);
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
-
-    if (!_isPlayerTurn(roomIndex, playerIndex)) {
-      return { success: false, error: 'NOT_YOUR_TURN' };
-    }
-
-    const bot = room.players[playerIndex];
-    const difficulty = (bot.botDifficulty as BotDifficulty) ?? 'normal';
-
-    const playableGroups = findPlayableGroups(bot.handCard, difficulty);
-
-    if (playableGroups.length > 0) {
-      // 組裝 submittedBoard = 現有桌面 + Bot 新牌組
-      const submittedBoard = [...room.board, ...playableGroups];
-      const boardCardIds = new Set(
-        room.board.flatMap(g =>
-          g.tiles
-            .filter(t => t.type === 'number')
-            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
-        ),
-      );
-      const playedCardIds = playableGroups
-        .flatMap(g =>
-          g.tiles
-            .filter(t => t.type === 'number')
-            .map(t => (t as { type: 'number'; card: NumberCard }).card.id),
-        )
-        .filter(id => !boardCardIds.has(id));
-
-      return rummySubmitTurn(
-        roomId,
-        botPlayerId,
-        submittedBoard,
-        playedCardIds,
-      );
-    } else {
-      const drawResult = rummyDrawCard(roomId, botPlayerId);
-      if (!drawResult.success) return drawResult;
-      return {
-        success: true,
-        room: drawResult.room,
-        penaltyWinner: drawResult.penaltyWinner,
-      };
-    }
-  } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (bot play)' };
-  }
-}
-
-/** 取得目前輪到的 Bot 玩家（若不是 Bot 則回傳 null） */
-export function getCurrentBotPlayer(roomId: string): Player | null {
-  const room = _getCurrentRoom(roomId);
-  if (!room || room.status !== GameStatus.Playing) return null;
-  return (
-    room.players.find(p => p.playerOrder === room.currentOrder && p.isBot) ??
-    null
-  );
-}
-
-/** 拉密：用手牌換取桌面上的 Joker */
-export function rummySwapJoker(
-  roomId: string,
-  playerId: string,
-  handCardId: string,
-  jokerCardId: string,
-): GameResponse {
-  try {
-    const roomIndex = _getCurrentRoomIndex(roomId);
-    if (roomIndex === -1) return { success: false, error: '房間不存在' };
-
-    const playerIndex = _getCurrentPlayerIndex(
-      _rooms[roomIndex].players,
-      playerId,
-    );
-    if (playerIndex === -1) return { success: false, error: '玩家不存在' };
-
-    // 找到手牌
-    const handCardIndex = _rooms[roomIndex].players[
-      playerIndex
-    ].handCard.findIndex(c => c.id === handCardId);
-    if (handCardIndex === -1) return { success: false, error: '手牌不存在' };
-
-    const handCard =
-      _rooms[roomIndex].players[playerIndex].handCard[handCardIndex];
-
-    // 找到桌面上的 Joker
-    let jokerTile: (typeof _rooms)[0]['board'][0]['tiles'][0] | null = null;
-    let groupIdx = -1;
-    let tileIdx = -1;
-
-    for (let gi = 0; gi < _rooms[roomIndex].board.length; gi++) {
-      const group = _rooms[roomIndex].board[gi];
-      for (let ti = 0; ti < group.tiles.length; ti++) {
-        const tile = group.tiles[ti];
-        if (
-          tile.type === 'number' &&
-          tile.card.isJoker &&
-          tile.card.id === jokerCardId
-        ) {
-          jokerTile = tile;
-          groupIdx = gi;
-          tileIdx = ti;
-          break;
-        }
-      }
-      if (jokerTile) break;
-    }
-
-    if (!jokerTile || jokerTile.type !== 'number') {
-      return { success: false, error: '找不到指定的 Joker 牌' };
-    }
-
-    const jokerCard = jokerTile.card;
-
-    // 驗證手牌符合 Joker 宣告的 value 與 color
-    if (
-      handCard.value !== jokerCard.jokerDeclaredValue ||
-      handCard.color !== jokerCard.jokerDeclaredColor
-    ) {
-      return {
-        success: false,
-        error: '手牌的數值或顏色與 Joker 宣告不符',
-      };
-    }
-
-    // 將手牌放入 Joker 位置
-    _rooms[roomIndex].board[groupIdx].tiles[tileIdx] = {
-      type: 'number',
-      card: handCard,
-    };
-
-    // 移除手牌
-    _rooms[roomIndex].players[playerIndex].handCard.splice(handCardIndex, 1);
-
-    // Joker 加入玩家手牌（供本回合使用）
-    _rooms[roomIndex].players[playerIndex].handCard.push(jokerCard);
-
-    return { success: true, room: _rooms[roomIndex] };
-  } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (rummy swap joker)' };
   }
 }
 

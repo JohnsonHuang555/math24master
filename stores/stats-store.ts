@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { TabletopDifficulty } from '@/models/Tabletop';
 
 type StatsStore = {
   // 經典模式
@@ -20,6 +21,10 @@ type StatsStore = {
   // 消消樂模式
   matchPlays: number; // 完賽場次
   matchBestScore: number; // 最高分（全清才計分）
+
+  // 牌桌模式
+  tabletopPlays: number; // 完賽場次（中途離開不算）
+  tabletopBestScores: Record<TabletopDifficulty, number>; // 各難度最高分
 
   // 每日挑戰
   dailyChallengeCompletes: number;
@@ -47,6 +52,12 @@ type StatsStore = {
   incrementMatchPlays: () => void;
   updateMatchBestScore: (score: number) => void;
 
+  incrementTabletopPlays: () => void;
+  updateTabletopBestScore: (
+    difficulty: TabletopDifficulty,
+    score: number,
+  ) => void;
+
   incrementDailyChallenge: () => void;
 
   incrementQuickMathPlays: () => void;
@@ -73,6 +84,9 @@ export const useStatsStore = create<StatsStore>()(
 
       matchPlays: 0,
       matchBestScore: 0,
+
+      tabletopPlays: 0,
+      tabletopBestScores: { easy: 0, normal: 0, hard: 0 },
 
       dailyChallengeCompletes: 0,
 
@@ -131,6 +145,16 @@ export const useStatsStore = create<StatsStore>()(
         }
       },
 
+      incrementTabletopPlays: () =>
+        set(state => ({ tabletopPlays: state.tabletopPlays + 1 })),
+
+      updateTabletopBestScore: (difficulty, score) => {
+        const best = get().tabletopBestScores;
+        if (score > best[difficulty]) {
+          set({ tabletopBestScores: { ...best, [difficulty]: score } });
+        }
+      },
+
       incrementDailyChallenge: () =>
         set(state => ({
           dailyChallengeCompletes: state.dailyChallengeCompletes + 1,
@@ -173,6 +197,8 @@ export const useStatsStore = create<StatsStore>()(
         challengeBestStage: 0,
         matchPlays: 0,
         matchBestScore: 0,
+        tabletopPlays: 0,
+        tabletopBestScores: { easy: 0, normal: 0, hard: 0 },
         dailyChallengeCompletes: 0,
         quickMathPlays: 0,
         quickMathBestSeconds: 0,

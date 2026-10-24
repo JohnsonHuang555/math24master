@@ -19,7 +19,6 @@ import {
   BuzzerSettings,
   DEFAULT_BUZZER_SETTINGS,
   DeckType,
-  Difficulty,
   GameType,
   RoomSettings,
 } from '@/models/Room';
@@ -174,7 +173,7 @@ const RoomInfoArea = ({
           ))}
         </SettingSelect>
 
-        {roomSettings.gameType !== 'rummy' && roomSettings.gameType !== 'buzzer' && (
+        {roomSettings.gameType !== 'buzzer' && (
           <SettingSelect
             label="牌庫類型"
             disabled={!isMaster}
@@ -222,24 +221,6 @@ const RoomInfoArea = ({
         >
           <SelectItem value="buzzer">搶答模式</SelectItem>
         </SettingSelect>
-
-        {roomSettings.gameType === 'rummy' && (
-          <SettingSelect
-            label="遊戲難度"
-            disabled={!isMaster}
-            value={roomSettings.difficulty}
-            onValueChange={v =>
-              onRoomSettingsChange({ difficulty: v as Difficulty })
-            }
-          >
-            <SelectItem value={Difficulty.Easy}>
-              簡單（10 張・無顏色限制）
-            </SelectItem>
-            <SelectItem value={Difficulty.Normal}>
-              普通（14 張・標準規則）
-            </SelectItem>
-          </SettingSelect>
-        )}
 
         {roomSettings.gameType === 'buzzer' && (
           <>

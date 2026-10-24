@@ -46,8 +46,8 @@ export function shuffleArray<T>(array: T[]) {
   return shuffledArray;
 }
 
-/** 產生拉密牌庫：4 色 × 13 值 × 2 份 = 104 張 + 2 Jokers，已洗牌 */
-export function createRummyDeck() {
+/** 產生牌桌模式牌庫：4 色 × 13 值 × 2 份 = 104 張 + 2 Jokers，已洗牌 */
+export function createTabletopDeck() {
   const colors = ['red', 'blue', 'yellow', 'black'] as const;
   const cards: NumberCard[] = [];
 
@@ -66,8 +66,10 @@ export function createRummyDeck() {
   return shuffleArray(cards);
 }
 
-/** 抽牌 n = 抽幾張，純函數不修改原始陣列 */
+/** 抽牌 n = 抽幾張（超過剩下的張數就抽到用完），純函數不修改原始陣列 */
 export function draw<T>(array: T[], n: number): { drawn: T[]; remaining: T[] } {
+  // n = 0 時 slice(-0) 會變成 slice(0)，把整個陣列當成抽到的牌
+  if (n <= 0) return { drawn: [], remaining: array.slice() };
   const remaining = array.slice(0, -n);
   const drawn = array.slice(-n);
   return { drawn, remaining };

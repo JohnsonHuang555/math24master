@@ -24,7 +24,6 @@ import {
   editRoom,
   editRoomSettings,
   endBuzzerGame,
-  getCurrentBotPlayer,
   getCurrentRoom,
   getCurrentRoomId,
   getCurrentRooms,
@@ -37,12 +36,6 @@ import {
   reconnectPlayer,
   removePlayer,
   reselectCard,
-  rummyBotPlay,
-  rummyDeclareJoker,
-  rummyDrawCard,
-  rummyStartGame,
-  rummySubmitTurn,
-  rummySwapJoker,
   selectCard,
   skipHand,
   startGame,
@@ -88,38 +81,6 @@ const startServer = () => {
       origin: allowedOrigins,
     },
   });
-
-  /** 若目前輪到的玩家是 Bot，延遲 1.5 秒後自動行動 */
-  const _triggerBotIfNeeded = (roomId: string) => {
-    const botPlayer = getCurrentBotPlayer(roomId);
-    if (!botPlayer) return;
-
-    setTimeout(() => {
-      const result = rummyBotPlay(roomId, botPlayer.id);
-      if (!result.success) return;
-
-      const { room, winner, penaltyWinner } = result;
-      io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-      if (timerMap[roomId] && room.settings.remainSeconds !== null) {
-        _clearAndCreateTimer(roomId, room);
-      }
-
-      if (winner || penaltyWinner) {
-        const w = winner ?? penaltyWinner!;
-        const rankedPlayers = [...room.players].sort(
-          (a, b) => b.score - a.score,
-        );
-        io.to(roomId).emit(SocketEvent.GameOver, {
-          name: w.name,
-          score: w.score,
-          players: rankedPlayers,
-          isPenaltyGameOver: !!penaltyWinner,
-        });
-      } else {
-        _triggerBotIfNeeded(roomId);
-      }
-    }, 1500);
-  };
 
   // ── Buzzer Mode Helpers ──────────────────────────────────────────────────────
 
@@ -329,7 +290,7 @@ const startServer = () => {
   // ── 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────────
 
   const _actuallyStartGame = (roomId: string) => {
-    let result = startGame(roomId);
+    const result = startGame(roomId);
     if (!result.success) {
       io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, result.error);
       return;
@@ -339,15 +300,6 @@ const startServer = () => {
       io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
       setTimeout(() => _startBuzzerRoundWithCountdown(roomId), 600);
       return;
-    }
-
-    if (result.room.settings.gameType === 'rummy') {
-      const rummyResult = rummyStartGame(roomId);
-      if (!rummyResult.success) {
-        io.sockets.to(roomId).emit(SocketEvent.ErrorMessage, rummyResult.error);
-        return;
-      }
-      result = rummyResult;
     }
 
     const { room } = result;
@@ -360,10 +312,6 @@ const startServer = () => {
       _clearAndCreateTimer(roomId, room);
     } else {
       io.sockets.to(roomId).emit(SocketEvent.CountdownTimeResponse, undefined);
-    }
-
-    if (room.settings.gameType === 'rummy') {
-      _triggerBotIfNeeded(roomId);
     }
   };
 
@@ -719,113 +667,6 @@ const startServer = () => {
         socket.emit(SocketEvent.ErrorMessage, result.error);
       }
     });
-
-    // ============================================================
-    // 拉密模式 Socket Events
-    // ============================================================
-
-    socket.on(SocketEvent.RummyDrawCard, ({ roomId }) => {
-      const result = rummyDrawCard(roomId, playerId);
-      if (result.success) {
-        const { room } = result;
-        io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-        _resetRoundTimer(roomId, room);
-        if (result.penaltyWinner) {
-          const rankedPlayers = [...room.players].sort(
-            (a, b) => b.score - a.score,
-          );
-          io.sockets.to(roomId).emit(SocketEvent.GameOver, {
-            name: result.penaltyWinner.name,
-            score: result.penaltyWinner.score,
-            players: rankedPlayers,
-            isPenaltyGameOver: true,
-          });
-        } else {
-          _triggerBotIfNeeded(roomId);
-        }
-      } else if (result.error !== 'NOT_YOUR_TURN') {
-        socket.emit(SocketEvent.ErrorMessage, result.error);
-      }
-    });
-
-    socket.on(
-      SocketEvent.RummySubmitTurn,
-      ({ roomId, submittedBoard, playedCardIds }) => {
-        const result = rummySubmitTurn(
-          roomId,
-          playerId,
-          submittedBoard,
-          playedCardIds,
-        );
-        if (result.success) {
-          const { room, winner, penaltyWinner } = result;
-          io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
-          _resetRoundTimer(roomId, room);
-          if (winner) {
-            const rankedPlayers = [...room.players].sort(
-              (a, b) => b.score - a.score,
-            );
-            io.sockets.to(roomId).emit(SocketEvent.GameOver, {
-              name: winner.name,
-              score: winner.score,
-              players: rankedPlayers,
-            });
-          } else if (penaltyWinner) {
-            const rankedPlayers = [...room.players].sort(
-              (a, b) => b.score - a.score,
-            );
-            io.sockets.to(roomId).emit(SocketEvent.GameOver, {
-              name: penaltyWinner.name,
-              score: penaltyWinner.score,
-              players: rankedPlayers,
-              isPenaltyGameOver: true,
-            });
-          } else {
-            _triggerBotIfNeeded(roomId);
-          }
-        } else if (result.error !== 'NOT_YOUR_TURN') {
-          socket.emit(SocketEvent.ErrorMessage, result.error);
-        }
-      },
-    );
-
-    socket.on(
-      SocketEvent.RummyDeclareJoker,
-      ({ roomId, jokerCardId, declaredValue, declaredColor }) => {
-        const result = rummyDeclareJoker(
-          roomId,
-          jokerCardId,
-          declaredValue,
-          declaredColor,
-        );
-        if (result.success) {
-          io.sockets
-            .to(roomId)
-            .emit(SocketEvent.RoomUpdate, { room: result.room });
-        } else {
-          socket.emit(SocketEvent.ErrorMessage, result.error);
-        }
-      },
-    );
-
-    socket.on(
-      SocketEvent.RummySwapJoker,
-      ({ roomId, handCardId, jokerCardId }) => {
-        const result = rummySwapJoker(
-          roomId,
-          playerId,
-          handCardId,
-          jokerCardId,
-        );
-        if (result.success) {
-          io.sockets
-            .to(roomId)
-            .emit(SocketEvent.RoomUpdate, { room: result.room });
-        } else {
-          socket.emit(SocketEvent.ErrorMessage, result.error);
-        }
-      },
-    );
 
     socket.on(SocketEvent.AddBotToRoom, ({ roomId, difficulty }) => {
       const result = addBotToRoom(roomId, difficulty);
