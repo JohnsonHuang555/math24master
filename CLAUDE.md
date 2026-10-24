@@ -10,6 +10,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 不要在程式碼、UI 文案（按鈕、提示、toast、chips 等）中使用 emoji。需要視覺強調時改用 `lucide-react` 圖示元件，與現有設計系統（Radix UI + lucide-react）保持一致。
 
+## 多國語系
+
+支援 zh-TW（預設、來源語系）、en、zh-CN，使用 next-intl。背景見 `docs/adr/0008`、`docs/adr/0009`。
+
+- `server/`、`lib/`、`stores/` 不放顯示給玩家看的文字，只輸出代碼（如 `ROOM_NOT_FOUND`）或 id 加參數；文字一律在 UI 層用 message key 取得。Server 錯誤代碼加新值時，翻譯檔的 `Record<ErrorCode, string>` 要一起補。
+- 新增或修改文案時，同一個 PR 要更新 zh-TW 與 en 的 messages。
+- 不要手改 `zh-CN` 的 messages：它由 OpenCC 腳本從 zh-TW 產生。兩岸用語差異寫進校正對照表，再重跑腳本。
+- 英文遊戲術語以 `CONTEXT.md` 每個術語括號內的英文名稱為準，產品名稱在 zh-TW 以外的語系一律用 Math24 Master。中文成語類名稱在英文要重新取名，不要直譯。
+- 玩家輸入的內容（房間名稱、暱稱、聊天）不翻譯。
+- 日期、數字格式用目前語系，不要寫死 `'zh-TW'`。
+
 ## Commands
 
 ```bash
