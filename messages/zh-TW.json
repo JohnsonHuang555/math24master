@@ -5,5 +5,36 @@
   "NotFound": {
     "title": "找不到這個頁面",
     "backHome": "首頁"
+  },
+  "ServerError": {
+    "UNEXPECTED": "發生錯誤，請稍後再試",
+    "ROOM_NOT_FOUND": "房間不存在",
+    "ROOM_FULL": "房間人數已滿",
+    "ROOM_FULL_OR_NOT_FOUND": "房間人數已滿或不存在",
+    "ROOM_NAME_TAKEN": "房間名稱已存在",
+    "WRONG_PASSWORD": "密碼錯誤",
+    "PLAYER_NOT_FOUND": "玩家不存在",
+    "RECONNECT_TOKEN_INVALID": "重連令牌無效或已過期",
+    "PLAYERS_NOT_READY": "尚有玩家未準備",
+    "START_GAME_FAILED": "開始遊戲失敗",
+    "NOT_YOUR_TURN": "還沒輪到你",
+    "INVALID_EQUATION": "算式有誤",
+    "FIRST_MUST_BE_NUMBER_OR_LEFT_PAREN": "第一個只能用左括號或數字",
+    "CONSECUTIVE_NUMBERS": "數字牌不能連續使用",
+    "CONSECUTIVE_PLUS": "加號不能連續用",
+    "CONSECUTIVE_MINUS": "減號不能連續用",
+    "CONSECUTIVE_TIMES": "乘號不能連續用",
+    "CONSECUTIVE_DIVIDE": "除號不能連續用",
+    "PLUS_MINUS_AFTER_LEFT_PAREN": "左括號後面無法使用減號或加號",
+    "BUZZER_NOT_STARTED": "搶答尚未開始",
+    "NOT_ANSWERING_PLAYER": "你目前沒有搶答資格",
+    "MUST_USE_ALL_CARDS": "必須使用全部 4 張公共牌",
+    "INVALID_CARDS": "牌組不合法",
+    "ANSWER_NOT_24": "答案不等於 24",
+    "ANSWER_TIMEOUT": "作答超時"
+  },
+  "SystemMessage": {
+    "COUNTDOWN_CANCELLED": "遊戲開始倒數已取消",
+    "GAME_STARTS_IN": "遊戲將在 {seconds} 秒開始"
   }
 }

@@ -1,6 +1,7 @@
 import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
 import { canMake24 } from '../lib/daily-seed';
+import { ErrorCode } from '../models/ErrorCode';
 import {
   BuzzerPlayerState,
   BuzzerSettings,
@@ -20,7 +21,7 @@ export type BuzzInResult =
 
 export type BuzzerAnswerResult =
   | { success: true; room: Room; scoreDelta: number; streak: number; streakBonus: number; winner?: Player }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 export type NoSolutionVoteResult =
   | { passed: false; votes: string[] }
@@ -28,7 +29,7 @@ export type NoSolutionVoteResult =
 
 export type RoundTimeoutResult =
   | { success: true; room: Room }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 // ─── 牌組產生 ────────────────────────────────────────────────────────────────
 
@@ -146,24 +147,24 @@ export function processBuzzerAnswer(
   selectedCards: SelectedCard[],
 ): BuzzerAnswerResult {
   const state = room.buzzerState;
-  if (!state) return { success: false, error: 'buzzer state 不存在' };
-  if (state.currentAnswerPlayerId !== playerId) return { success: false, error: '你目前沒有搶答資格' };
+  if (!state) return { success: false, error: ErrorCode.BuzzerNotStarted };
+  if (state.currentAnswerPlayerId !== playerId) return { success: false, error: ErrorCode.NotAnsweringPlayer };
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
-  if (playerIndex === -1) return { success: false, error: '玩家不存在' };
+  if (playerIndex === -1) return { success: false, error: ErrorCode.PlayerNotFound };
 
   // 驗證數字牌必須全部來自公共牌，且每張最多用一次
   const usedCardIds = selectedCards.filter(c => c.number).map(c => c.number!.id);
   const publicIds = state.publicCards.map(c => c.id);
 
   if (usedCardIds.length !== 4) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, '必須使用全部 4 張公共牌');
+    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.MustUseAllCards);
   }
   const allFromPublic = usedCardIds.every(id => publicIds.includes(id));
   const noDuplicate = new Set(usedCardIds).size === 4;
   if (!allFromPublic || !noDuplicate) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, '牌組不合法');
+    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.InvalidCards);
   }
 
   // 驗算結果
@@ -172,11 +173,11 @@ export function processBuzzerAnswer(
     const expr = selectedCards.map(c => c.number ? c.number.value : c.symbol).join('');
     result = evaluate(expr);
   } catch {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, '算式有誤');
+    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.InvalidEquation);
   }
 
   if (Math.abs(result - 24) > 1e-6) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, `答案為 ${result}，不等於 24`);
+    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.AnswerNot24);
   }
 
   // 答對：計算分數
@@ -221,7 +222,7 @@ function _handleAnswerFail(
   playerId: string,
   playerIndex: number,
   settings: BuzzerSettings,
-  error: string,
+  error: ErrorCode,
 ): BuzzerAnswerResult {
   const state = room.buzzerState!;
   const newPlayers = [...room.players];
@@ -259,7 +260,7 @@ function _handleAnswerFail(
 // 失敗時帶 room 的型別（供 index.ts 取用更新後的 room）
 export type BuzzerAnswerFailed = {
   success: false;
-  error: string;
+  error: ErrorCode;
   room: Room;
   scoreDelta: number;
 };
@@ -269,11 +270,11 @@ export type BuzzerAnswerFailed = {
 /** 作答超時：等同作答失敗（不傳入 selectedCards） */
 export function processBuzzerAnswerTimeout(room: Room, playerId: string): BuzzerAnswerFailed {
   const state = room.buzzerState;
-  if (!state) return { success: false, error: 'buzzer state 不存在', room, scoreDelta: 0 };
+  if (!state) return { success: false, error: ErrorCode.BuzzerNotStarted, room, scoreDelta: 0 };
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
-  if (playerIndex === -1) return { success: false, error: '玩家不存在', room, scoreDelta: 0 };
+  if (playerIndex === -1) return { success: false, error: ErrorCode.PlayerNotFound, room, scoreDelta: 0 };
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score - settings.penaltyPoints;
@@ -299,7 +300,7 @@ export function processBuzzerAnswerTimeout(room: Room, playerId: string): Buzzer
 
   return {
     success: false,
-    error: '作答超時',
+    error: ErrorCode.AnswerTimeout,
     room: { ...room, players: newPlayers, buzzerState: newState },
     scoreDelta: -settings.penaltyPoints,
   };

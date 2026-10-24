@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useSystemMessageText } from '@/i18n/server-messages';
 import { cn } from '@/lib/utils';
 import { Message } from '@/models/Message';
 
@@ -14,6 +15,7 @@ type ChatAreaProps = {
 const ChatArea = ({ messages, onSend, currentPlayerName }: ChatAreaProps) => {
   const [message, setMessage] = useState('');
   const messageRef = useRef<HTMLDivElement>(null);
+  const systemMessageText = useSystemMessageText();
 
   useEffect(() => {
     handleScrollMessages();
@@ -61,7 +63,7 @@ const ChatArea = ({ messages, onSend, currentPlayerName }: ChatAreaProps) => {
             if (msgObj.isSystem) {
               return (
                 <div key={index} className="my-0.5 text-xs italic text-muted-foreground/70">
-                  {msgObj.message}
+                  {systemMessageText(msgObj)}
                 </div>
               );
             }

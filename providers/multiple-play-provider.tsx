@@ -12,6 +12,7 @@ import React, {
 import { toast } from 'sonner';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
+import { useServerErrorText } from '@/i18n/server-messages';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
@@ -108,6 +109,8 @@ type MultiplePlayProviderProps = {
   children: React.ReactNode;
 };
 export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
+  const serverErrorText = useServerErrorText();
+
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
@@ -162,8 +165,8 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.emit(SocketEvent.SearchRooms);
     console.log('????');
 
-    socket.on(SocketEvent.ErrorMessage, message => {
-      toast.error(message);
+    socket.on(SocketEvent.ErrorMessage, (error: string) => {
+      toast.error(serverErrorText(error));
     });
 
     socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {

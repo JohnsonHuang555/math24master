@@ -54,6 +54,9 @@ test('多人搶答：兩位玩家建房、加入、開局並各答對一題', as
   await expect(startButton).toBeEnabled();
   await startButton.click();
 
+  // 倒數的系統訊息由 server 送代碼，client 翻成文字
+  await expect(bob.getByText('遊戲將在 5 秒開始')).toBeVisible();
+
   // 雙方都進入搶答畫面
   for (const page of [alice, bob]) {
     await expect(scoreOf(page, 'Alice')).toHaveAttribute('data-score', '0');
