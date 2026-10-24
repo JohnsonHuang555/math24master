@@ -19,10 +19,9 @@ export type AchievementId =
   | 'challenge_stage_10'
   | 'daily_streak_7';
 
+// 名稱與描述在 messages 的 Achievements.items.<id>
 export type Achievement = {
   id: AchievementId;
-  name: string;
-  description: string;
   category: AchievementCategory;
   progressKey?:
     | 'totalPlays'
@@ -39,98 +38,70 @@ export const ACHIEVEMENTS: Achievement[] = [
   // 新手
   {
     id: 'first_win',
-    name: '初次出牌',
-    description: '首次出牌成功',
     category: 'beginner',
   },
   {
     id: 'daily_done',
-    name: '每日挑戰',
-    description: '完成第一次每日挑戰',
     category: 'beginner',
   },
   {
     id: 'normal_first',
-    name: '關卡初體驗',
-    description: '完成第一次關卡模式',
     category: 'beginner',
     hidden: true, // 關卡模式暫時下架
   },
   {
     id: 'challenge_first',
-    name: '挑戰起步',
-    description: '挑戰模式答對第一題',
     category: 'beginner',
   },
   // 進階
   {
     id: 'speed_win',
-    name: '神速',
-    description: '10 秒內出牌成功',
     category: 'advanced',
   },
   {
     id: 'all_ops',
-    name: '全能達人',
-    description: '一個算式中同時使用三種不同運算符號',
     category: 'advanced',
   },
   {
     id: 'all_multiply',
-    name: '乘法王',
-    description: '使用 3 個乘號組出算式',
     category: 'advanced',
   },
   {
     id: 'no_skip',
-    name: '精準',
-    description: '經典模式一局未跳過完成遊戲',
     category: 'advanced',
   },
   // 挑戰
   {
     id: 'consecutive_5',
-    name: '連勝達人',
-    description: '連續 5 次出牌成功（不中斷）',
     category: 'challenge',
     progressKey: 'consecutiveWins',
     progressTarget: 5,
   },
   {
     id: 'total_score_100',
-    name: '得分達人',
-    description: '累計得分達 100 分',
     category: 'challenge',
     progressKey: 'totalScore',
     progressTarget: 100,
   },
   {
     id: 'play_100',
-    name: '傳奇玩家',
-    description: '累計出牌成功 100 次',
     category: 'challenge',
     progressKey: 'totalPlays',
     progressTarget: 100,
   },
   {
     id: 'normal_perfect',
-    name: '完美通關',
-    description: '關卡模式全程無錯誤完成',
     category: 'challenge',
     hidden: true, // 關卡模式暫時下架
   },
   {
     id: 'challenge_stage_10',
-    name: '不朽連擊',
-    description: '挑戰模式連續答對 10 題',
     category: 'challenge',
     progressKey: 'challengeBestStage',
     progressTarget: 10,
   },
   {
     id: 'daily_streak_7',
-    name: '每日達人',
-    description: '每日挑戰連續 7 天完成',
     category: 'challenge',
     progressKey: 'dailyStreak',
     progressTarget: 7,

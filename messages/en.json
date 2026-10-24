@@ -6,6 +6,229 @@
     "title": "This page could not be found",
     "backHome": "Home"
   },
+  "Common": {
+    "cancel": "Cancel",
+    "confirm": "OK",
+    "close": "Close",
+    "back": "Back",
+    "dontRemindAgain": "Don't remind me again",
+    "home": "Home",
+    "startGame": "Play",
+    "guestLogin": "Play as guest",
+    "guestLoginDescription": "Pick a nickname to appear on the leaderboard. Your data stays on this device.",
+    "nicknamePlaceholder": "Nickname (2–12 characters)"
+  },
+  "Home": {
+    "logoAlt": "Math24 Master",
+    "leaderboard": "Leaderboard",
+    "stats": "Stats",
+    "achievements": "Achievements",
+    "title": "Can you make <highlight>24</highlight><br></br>with 4 cards?",
+    "subtitle": "Use 4 number cards with +, −, ×, ÷ and parentheses to build an equation that equals 24",
+    "start": "Play now",
+    "multiplayer": "Multiplayer",
+    "moreModes": {
+      "title": "More games",
+      "dailyChallenge": {
+        "title": "Daily Challenge",
+        "description": "3 puzzles a day · keep your streak going"
+      },
+      "guessNumber": {
+        "title": "Guess the Number",
+        "description": "Use clue cards to deduce the secret number",
+        "badge": "Logic puzzle"
+      },
+      "quickMath": {
+        "title": "Quick Math",
+        "description": "10 timed questions · test your mental math speed"
+      }
+    },
+    "steps": {
+      "title": "How to play",
+      "draw": {
+        "title": "Draw",
+        "description": "Get 4 random cards from 1 to 13"
+      },
+      "make24": {
+        "title": "Make 24",
+        "description": "Add, subtract, multiply and divide until the result is 24"
+      },
+      "score": {
+        "title": "Score",
+        "description": "Harder operators earn more points"
+      }
+    },
+    "footer": "#Math24Master, Created by Johnson Huang 2026"
+  },
+  "Announcement": {
+    "dismiss": "Dismiss announcement",
+    "tryNow": "Try it →",
+    "tabletop": {
+      "title": "New: Tabletop Mode!",
+      "description": "Inspired by Rummikub · race 2 computer players · split and rebuild equations on the table"
+    },
+    "match": {
+      "title": "New: Matching Mode!",
+      "description": "Pair up 16 cards · pick 2–4 cards that make 24 · clear the board to get on the leaderboard"
+    },
+    "quickMathAdvanced": {
+      "title": "New: Quick Math Advanced!",
+      "description": "Squares, factorials and square roots · a tougher mental math challenge"
+    }
+  },
+  "AddToHomeScreen": {
+    "title": "Add to Home Screen",
+    "iosIntro": "Add Math24 Master to your Home Screen in two steps<br></br>and open it like an app next time",
+    "iosStep1": "Tap the browser’s<icon></icon>Share button",
+    "iosStep2": "Choose “Add to Home Screen”",
+    "intro": "Add it to your Home Screen and open the game like an app next time",
+    "install": "Add to Home Screen",
+    "gotIt": "Got it",
+    "later": "Maybe later"
+  },
+  "LoginPrompt": {
+    "title": "Save to the leaderboard",
+    "description": "Sign in to save this score to the leaderboard and compare with other players!",
+    "google": "Sign in with Google",
+    "skip": "Not now",
+    "scoreSynced": "Your score has been saved to the leaderboard!"
+  },
+  "SoundToggle": {
+    "mute": "Mute sound",
+    "unmute": "Unmute sound"
+  },
+  "Achievements": {
+    "title": "Achievements",
+    "unlockedCount": "{unlocked} / {total} unlocked",
+    "unlockedToast": "Achievement unlocked: {name} — {description}",
+    "tabs": {
+      "all": "All",
+      "beginner": "Beginner",
+      "advanced": "Advanced",
+      "challenge": "Challenge"
+    },
+    "items": {
+      "first_win": {
+        "name": "First Move",
+        "description": "Play your first valid equation"
+      },
+      "daily_done": {
+        "name": "Daily Player",
+        "description": "Finish your first Daily Challenge"
+      },
+      "normal_first": {
+        "name": "Level Starter",
+        "description": "Finish Level Mode for the first time"
+      },
+      "challenge_first": {
+        "name": "Challenge Accepted",
+        "description": "Answer your first question in Challenge Mode"
+      },
+      "speed_win": {
+        "name": "Lightning Fast",
+        "description": "Play a valid equation within 10 seconds"
+      },
+      "all_ops": {
+        "name": "All-Rounder",
+        "description": "Use three different operators in one equation"
+      },
+      "all_multiply": {
+        "name": "Multiplication King",
+        "description": "Make an equation with 3 multiplication signs"
+      },
+      "no_skip": {
+        "name": "Precision",
+        "description": "Finish a Classic game without skipping"
+      },
+      "consecutive_5": {
+        "name": "Hot Streak",
+        "description": "Play 5 valid equations in a row"
+      },
+      "total_score_100": {
+        "name": "High Scorer",
+        "description": "Earn 100 points in total"
+      },
+      "play_100": {
+        "name": "Legend",
+        "description": "Play 100 valid equations in total"
+      },
+      "normal_perfect": {
+        "name": "Flawless",
+        "description": "Finish Level Mode without a single mistake"
+      },
+      "challenge_stage_10": {
+        "name": "Unstoppable",
+        "description": "Answer 10 questions in a row in Challenge Mode"
+      },
+      "daily_streak_7": {
+        "name": "Daily Devotee",
+        "description": "Finish the Daily Challenge 7 days in a row"
+      }
+    }
+  },
+  "Stats": {
+    "title": "Player stats",
+    "classic": "Classic",
+    "challenge": "Challenge",
+    "daily": "Daily Challenge",
+    "match": "Matching Mode",
+    "quickMathBasic": "Quick Math · Basic",
+    "quickMathAdvanced": "Quick Math · Advanced",
+    "achievements": "Achievements",
+    "plays": "Games",
+    "bestScore": "Best score",
+    "fastestPlay": "Fastest play",
+    "totalSkips": "Total skips",
+    "bestStage": "Best stage",
+    "completions": "Completed",
+    "finishedPlays": "Finished",
+    "fastestFinish": "Fastest time"
+  },
+  "Leaderboard": {
+    "title": "Global Leaderboard",
+    "subtitle": "Only each player’s best score is kept",
+    "loading": "Loading",
+    "loadFailed": "Failed to load",
+    "empty": "No one is on the leaderboard yet",
+    "emptyHint": "Be the first to get on it",
+    "gameMode": "Game mode",
+    "level": "Level",
+    "boards": {
+      "classic": "Classic",
+      "challenge": "Challenge",
+      "match": "Matching",
+      "quickmath": "Quick Math",
+      "tabletop": "Tabletop"
+    },
+    "levels": {
+      "basic": "Basic",
+      "advanced": "Advanced",
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard"
+    },
+    "record": {
+      "stage": "Stage {stage}",
+      "score": "{score} pts"
+    },
+    "rank": "#{rank}",
+    "me": "Me",
+    "guest": "Guest",
+    "signOut": "Sign out",
+    "googleLogin": "Google",
+    "loginToRank": "Sign in to get on the leaderboard",
+    "noRecord": "No record yet",
+    "rankLoadFailed": "Couldn’t load your rank",
+    "myRank": "My rank",
+    "boardTitle": "{board} leaderboard",
+    "boardLevelTitle": "{board} leaderboard · {level}",
+    "rankAndView": "#{rank} · View leaderboard",
+    "view": "View leaderboard",
+    "newRecord": "New record",
+    "top3": "Top 3",
+    "viewFull": "View full leaderboard",
+    "tabletopBeta": "Beta: the leaderboard will be reset on {date}"
+  },
   "ServerError": {
     "UNEXPECTED": "Something went wrong. Please try again later.",
     "ROOM_NOT_FOUND": "This room doesn't exist.",

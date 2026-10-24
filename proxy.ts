@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { pickLocale } from '@/i18n/pick-locale';
 import { routing } from '@/i18n/routing';
+import { isUntranslatedPage } from '@/i18n/translated-paths';
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -14,9 +15,14 @@ export default function proxy(request: NextRequest) {
       'accept-language',
       pickLocale(request.headers.get('accept-language'), routing.locales),
     );
-    return handleI18nRouting(new NextRequest(request, { headers }));
+    request = new NextRequest(request, { headers });
   }
-  return handleI18nRouting(request);
+
+  const response = handleI18nRouting(request);
+  if (isUntranslatedPage(request.nextUrl.pathname)) {
+    response.headers.set('X-Robots-Tag', 'noindex');
+  }
+  return response;
 }
 
 export const config = {

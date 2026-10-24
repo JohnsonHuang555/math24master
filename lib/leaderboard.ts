@@ -23,17 +23,15 @@ export interface LeaderboardRow {
   submittedAt: string | null;
 }
 
+// 顯示名稱在 messages 的 Leaderboard.boards / Leaderboard.levels
 export type BoardLevel = {
-  id: string;
-  label: string;
+  id: 'default' | 'basic' | 'advanced' | 'easy' | 'normal' | 'hard';
   mode: LeaderboardMode;
 };
 
 // 排行榜 = 一個遊戲模式；難度是其下各自獨立排名的變體（見 CONTEXT.md）
 export type Board = {
-  id: string;
-  label: string;
-  recordLabel: string;
+  id: 'classic' | 'challenge' | 'match' | 'quickmath' | 'tabletop';
   playHref: string;
   levels: BoardLevel[];
 };
@@ -41,44 +39,34 @@ export type Board = {
 export const BOARDS: Board[] = [
   {
     id: 'classic',
-    label: '經典',
-    recordLabel: '分數',
     playHref: '/single-play',
-    levels: [{ id: 'default', label: '經典', mode: 'classic' }],
+    levels: [{ id: 'default', mode: 'classic' }],
   },
   {
     id: 'challenge',
-    label: '挑戰',
-    recordLabel: '關卡',
     playHref: '/single-play',
-    levels: [{ id: 'default', label: '挑戰', mode: 'challenge' }],
+    levels: [{ id: 'default', mode: 'challenge' }],
   },
   {
     id: 'match',
-    label: '消消樂',
-    recordLabel: '分數',
     playHref: '/single-play',
-    levels: [{ id: 'default', label: '消消樂', mode: 'match' }],
+    levels: [{ id: 'default', mode: 'match' }],
   },
   {
     id: 'quickmath',
-    label: '快答',
-    recordLabel: '完成時間',
     playHref: '/quick-math',
     levels: [
-      { id: 'basic', label: '基礎', mode: 'quickmath' },
-      { id: 'advanced', label: '進階', mode: 'quickmath_advanced' },
+      { id: 'basic', mode: 'quickmath' },
+      { id: 'advanced', mode: 'quickmath_advanced' },
     ],
   },
   {
     id: 'tabletop',
-    label: '牌桌',
-    recordLabel: '分數',
     playHref: '/single-play',
     levels: [
-      { id: 'easy', label: '簡單', mode: 'tabletop_easy' },
-      { id: 'normal', label: '普通', mode: 'tabletop_normal' },
-      { id: 'hard', label: '困難', mode: 'tabletop_hard' },
+      { id: 'easy', mode: 'tabletop_easy' },
+      { id: 'normal', mode: 'tabletop_normal' },
+      { id: 'hard', mode: 'tabletop_hard' },
     ],
   },
 ];
@@ -110,17 +98,24 @@ export function leaderboardHref(mode: LeaderboardMode): string {
   return `/leaderboard?${params.toString()}`;
 }
 
+/** 「第 N 關」「N 分」的文字由呼叫端依語系提供 */
+export type RecordFormat = {
+  stage: (stage: number) => string;
+  score: (score: number) => string;
+};
+
 export function formatRecord(
   mode: LeaderboardMode,
   row: Pick<LeaderboardRow, 'score' | 'stage' | 'seconds'>,
+  format: RecordFormat,
 ): string {
   switch (mode) {
     case 'challenge':
-      return `第 ${row.stage ?? 0} 關`;
+      return format.stage(row.stage ?? 0);
     case 'quickmath':
     case 'quickmath_advanced':
       return formatTimePrecise(row.seconds ?? 0);
     default:
-      return `${row.score ?? 0} 分`;
+      return format.score(row.score ?? 0);
   }
 }

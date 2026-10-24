@@ -2,32 +2,30 @@
 
 import { RefObject } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 const STEPS = [
   {
     num: '1',
-    title: '抽牌',
-    desc: '每局抽 4 張手牌，1 ~ 13 的隨機數字',
+    id: 'draw',
     numBg: 'bg-teal-500',
     cardStyle:
       'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800',
   },
   {
     num: '2',
-    title: '湊 24',
-    desc: '用加減乘除，讓算式結果等於 24',
+    id: 'make24',
     numBg: 'bg-primary',
     cardStyle: 'bg-primary/5 border-primary/20',
   },
   {
     num: '3',
-    title: '得分',
-    desc: '符號越困難，得分越高',
+    id: 'score',
     numBg: 'bg-amber-500',
     cardStyle:
       'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
   },
-];
+] as const;
 
 type StepsSectionProps = {
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -35,12 +33,13 @@ type StepsSectionProps = {
 
 const StepsSection = ({ scrollRef }: StepsSectionProps) => {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Home.steps');
 
   return (
     <section className="bg-white/50 px-4 py-14 backdrop-blur-xs dark:bg-zinc-900/30 md:px-10 md:py-20">
       <div className="mx-auto max-w-4xl">
         <h2 className="mb-10 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
-          簡單遊玩三步驟
+          {t('title')}
         </h2>
         <div className="grid gap-4 md:grid-cols-3 md:gap-6">
           {STEPS.map((step, i) => (
@@ -63,10 +62,10 @@ const StepsSection = ({ scrollRef }: StepsSectionProps) => {
               </div>
               <div>
                 <div className="text-lg font-black text-foreground">
-                  {step.title}
+                  {t(`${step.id}.title`)}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  {step.desc}
+                  {t(`${step.id}.description`)}
                 </div>
               </div>
             </motion.div>

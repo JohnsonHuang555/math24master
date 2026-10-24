@@ -1,7 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { BOARDS, type Board, type BoardLevel } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
+import { useLeaderboardLabels } from './use-leaderboard-labels';
 
 type BoardSelectorProps = {
   board: Board;
@@ -11,11 +13,14 @@ type BoardSelectorProps = {
 
 // 第一層：遊戲模式 chip 列（手機可橫向捲動）；第二層：只有多難度時才出現的 segmented control
 export function BoardSelector({ board, level, onChange }: BoardSelectorProps) {
+  const t = useTranslations('Leaderboard');
+  const { boardLabel, levelLabel } = useLeaderboardLabels();
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div
         role="tablist"
-        aria-label="遊戲模式"
+        aria-label={t('gameMode')}
         className="-mx-4 flex max-w-[calc(100%+2rem)] [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1"
       >
         {BOARDS.map(b => {
@@ -33,7 +38,7 @@ export function BoardSelector({ board, level, onChange }: BoardSelectorProps) {
                   : 'border-zinc-200 bg-white/80 text-muted-foreground hover:text-foreground dark:border-zinc-700 dark:bg-zinc-900/60',
               )}
             >
-              {b.label}
+              {boardLabel(b)}
             </button>
           );
         })}
@@ -42,7 +47,7 @@ export function BoardSelector({ board, level, onChange }: BoardSelectorProps) {
       {board.levels.length > 1 && (
         <div
           role="tablist"
-          aria-label="難度"
+          aria-label={t('level')}
           className="inline-flex rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-800"
         >
           {board.levels.map(l => {
@@ -60,7 +65,7 @@ export function BoardSelector({ board, level, onChange }: BoardSelectorProps) {
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                {l.label}
+                {levelLabel(board, l)}
               </button>
             );
           })}

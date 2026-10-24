@@ -1,11 +1,9 @@
-import {
-  type LeaderboardMode,
-  type LeaderboardRow,
-  formatRecord,
-} from '@/lib/leaderboard';
+import { useTranslations } from 'next-intl';
+import { type LeaderboardMode, type LeaderboardRow } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 import { PlayerAvatar } from './player-avatar';
 import { RankMedal } from './rank-medal';
+import { useLeaderboardLabels } from './use-leaderboard-labels';
 
 type RankingListProps = {
   rows: LeaderboardRow[];
@@ -14,6 +12,9 @@ type RankingListProps = {
 };
 
 export function RankingList({ rows, mode, myId }: RankingListProps) {
+  const t = useTranslations('Leaderboard');
+  const { record } = useLeaderboardLabels();
+
   return (
     <ol className="flex flex-col gap-1.5">
       {rows.map(row => {
@@ -44,12 +45,12 @@ export function RankingList({ rows, mode, myId }: RankingListProps) {
               </span>
               {isMe && (
                 <span className="shrink-0 rounded-md bg-teal-100 px-1 py-px text-[10px] font-bold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
-                  我
+                  {t('me')}
                 </span>
               )}
             </div>
             <span className="shrink-0 font-display text-base font-bold tabular-nums">
-              {formatRecord(mode, row)}
+              {record(mode, row)}
             </span>
           </li>
         );

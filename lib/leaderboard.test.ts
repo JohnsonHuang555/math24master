@@ -53,12 +53,21 @@ describe('findBoardByMode / leaderboardHref', () => {
 });
 
 describe('formatRecord', () => {
+  const format = {
+    stage: (n: number) => `stage ${n}`,
+    score: (n: number) => `${n} pts`,
+  };
+
   it('依模式格式化成績', () => {
-    expect(formatRecord('classic', { score: 18 })).toBe('18 分');
-    expect(formatRecord('match', { score: 40 })).toBe('40 分');
-    expect(formatRecord('challenge', { stage: 7 })).toBe('第 7 關');
-    expect(formatRecord('quickmath', { seconds: 75.3 })).toBe('1:15.3');
-    expect(formatRecord('quickmath_advanced', { seconds: 9 })).toBe('0:09.0');
+    expect(formatRecord('classic', { score: 18 }, format)).toBe('18 pts');
+    expect(formatRecord('match', { score: 40 }, format)).toBe('40 pts');
+    expect(formatRecord('challenge', { stage: 7 }, format)).toBe('stage 7');
+    expect(formatRecord('quickmath', { seconds: 75.3 }, format)).toBe(
+      '1:15.3',
+    );
+    expect(formatRecord('quickmath_advanced', { seconds: 9 }, format)).toBe(
+      '0:09.0',
+    );
   });
 });
 
@@ -82,6 +91,12 @@ describe('牌桌模式排行榜', () => {
   });
 
   it('成績以分數顯示', () => {
-    expect(formatRecord('tabletop_normal', { score: 52 })).toBe('52 分');
+    expect(
+      formatRecord(
+        'tabletop_normal',
+        { score: 52 },
+        { stage: n => `stage ${n}`, score: n => `${n} pts` },
+      ),
+    ).toBe('52 pts');
   });
 });

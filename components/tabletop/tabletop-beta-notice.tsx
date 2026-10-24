@@ -2,7 +2,11 @@
 
 import { useSyncExternalStore } from 'react';
 import { FlaskConical } from 'lucide-react';
-import { tabletopBetaNotice } from '@/lib/tabletop-beta';
+import { useFormatter, useTranslations } from 'next-intl';
+import {
+  TABLETOP_LEADERBOARD_RESET_DATE,
+  isTabletopBeta,
+} from '@/lib/tabletop-beta';
 import { cn } from '@/lib/utils';
 
 const noopSubscribe = () => () => {};
@@ -12,12 +16,14 @@ const noopSubscribe = () => () => {};
  * 避免靜態預先產生的頁面在重置日後與 client 不一致
  */
 export function TabletopBetaNotice({ className }: { className?: string }) {
-  const notice = useSyncExternalStore(
+  const t = useTranslations('Leaderboard');
+  const format = useFormatter();
+  const isBeta = useSyncExternalStore(
     noopSubscribe,
-    () => tabletopBetaNotice(),
-    () => null,
+    () => isTabletopBeta(),
+    () => false,
   );
-  if (!notice) return null;
+  if (!isBeta) return null;
 
   return (
     <p
@@ -27,7 +33,17 @@ export function TabletopBetaNotice({ className }: { className?: string }) {
       )}
     >
       <FlaskConical className="h-3.5 w-3.5 shrink-0" />
-      {notice}
+      {t('tabletopBeta', {
+        date: format.dateTime(
+          new Date(`${TABLETOP_LEADERBOARD_RESET_DATE}T00:00:00+08:00`),
+          {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            timeZone: 'Asia/Taipei',
+          },
+        ),
+      })}
     </p>
   );
 }

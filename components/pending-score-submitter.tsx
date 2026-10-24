@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { useGuestStore } from '@/stores/guest-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
 
@@ -11,6 +12,7 @@ export function PendingScoreSubmitter() {
   const { guestId, guestName } = useGuestStore();
   const { pendingScore, clearPendingScore } = usePendingScoreStore();
   const submittedRef = useRef(false);
+  const t = useTranslations('LoginPrompt');
 
   useEffect(() => {
     if (!pendingScore || submittedRef.current) return;
@@ -34,13 +36,13 @@ export function PendingScoreSubmitter() {
       .then((data: { ok?: boolean; updated?: boolean }) => {
         clearPendingScore();
         if (data.ok) {
-          toast.success('分數已同步至排行榜！');
+          toast.success(t('scoreSynced'));
         }
       })
       .catch(() => {
         submittedRef.current = false;
       });
-  }, [session, guestId, guestName, pendingScore, clearPendingScore]);
+  }, [session, guestId, guestName, pendingScore, clearPendingScore, t]);
 
   return null;
 }

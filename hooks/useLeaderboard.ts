@@ -8,11 +8,11 @@ export type { LeaderboardMode, LeaderboardRow };
 export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError(false);
     try {
       const params = new URLSearchParams({ mode, limit: '100' });
       const res = await window.fetch(`/api/leaderboard?${params.toString()}`);
@@ -20,7 +20,7 @@ export function useLeaderboard(mode: LeaderboardMode, enabled: boolean) {
       const data = await res.json();
       setRows(data);
     } catch {
-      setError('載入失敗');
+      setError(true);
     } finally {
       setLoading(false);
     }

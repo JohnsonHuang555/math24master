@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { ArrowLeft, Trophy } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -29,6 +30,8 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [dontRemind, setDontRemind] = useState(false);
+  const t = useTranslations('LoginPrompt');
+  const tCommon = useTranslations('Common');
   const trimmed = name.trim();
 
   const { setGuest } = useGuestStore();
@@ -65,10 +68,10 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                   <Trophy className="h-6 w-6 text-amber-500" />
                 </div>
               </div>
-              <DialogTitle className="text-center">同步至排行榜</DialogTitle>
+              <DialogTitle className="text-center">{t('title')}</DialogTitle>
             </DialogHeader>
             <p className="text-center text-sm text-muted-foreground">
-              登入後可將此局分數同步至排行榜，與其他玩家比較成績！
+              {t('description')}
             </p>
             <div className="flex flex-col gap-3 py-2">
               <Button
@@ -77,14 +80,14 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 variant="outline"
                 className="w-full"
               >
-                使用 Google 登入
+                {t('google')}
               </Button>
               <Button
                 onClick={() => setView('guest')}
                 variant="outline"
                 className="w-full"
               >
-                訪客登入
+                {tCommon('guestLogin')}
               </Button>
             </div>
             <div className="flex justify-center items-center gap-2">
@@ -97,7 +100,7 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 htmlFor="dont-remind"
                 className="text-sm text-muted-foreground cursor-pointer select-none"
               >
-                不要再提醒我
+                {tCommon('dontRemindAgain')}
               </label>
             </div>
             <DialogFooter>
@@ -106,7 +109,7 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 className="w-full text-muted-foreground"
                 onClick={dontRemind ? onSkipForever : onSkip}
               >
-                暫不登入
+                {t('skip')}
               </Button>
             </DialogFooter>
           </>
@@ -124,14 +127,14 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <DialogTitle>訪客登入</DialogTitle>
+                <DialogTitle>{tCommon('guestLogin')}</DialogTitle>
               </div>
             </DialogHeader>
             <p className="text-xs text-muted-foreground">
-              輸入暱稱即可上榜，資料儲存於此裝置
+              {tCommon('guestLoginDescription')}
             </p>
             <Input
-              placeholder="請輸入暱稱（2–12 字）"
+              placeholder={tCommon('nicknamePlaceholder')}
               maxLength={12}
               value={name}
               onChange={e => setName(e.target.value)}
@@ -143,10 +146,10 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 variant="secondary"
                 onClick={() => { setView('choose'); setName(''); }}
               >
-                返回
+                {tCommon('back')}
               </Button>
               <Button onClick={handleGuestConfirm} disabled={trimmed.length < 2}>
-                確定
+                {tCommon('confirm')}
               </Button>
             </DialogFooter>
           </>

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Award, BarChart2, Trophy, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Link, useHardNavigate } from '@/i18n/navigation';
@@ -25,6 +26,7 @@ const HeroSection = ({
 }: HeroSectionProps) => {
   const reduceMotion = useReducedMotion();
   const hardNavigate = useHardNavigate();
+  const t = useTranslations('Home');
 
   return (
     <section className="relative flex min-h-dvh flex-col">
@@ -38,7 +40,7 @@ const HeroSection = ({
       <header className="relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-10">
         <Image
           src="/logo.webp"
-          alt="24點大師"
+          alt={t('logoAlt')}
           width={100}
           height={30}
           className="h-7 w-auto"
@@ -52,7 +54,7 @@ const HeroSection = ({
             className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
             asChild
           >
-            <Link href="/leaderboard">排行榜</Link>
+            <Link href="/leaderboard">{t('leaderboard')}</Link>
           </Button>
           <Button
             variant="ghost"
@@ -60,7 +62,7 @@ const HeroSection = ({
             className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
             onClick={onOpenStatsModal}
           >
-            統計
+            {t('stats')}
           </Button>
           {/* 暫時註解 */}
           {/* <Button
@@ -69,7 +71,7 @@ const HeroSection = ({
             className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
             onClick={onOpenAchievementModal}
           >
-            成就
+            {t('achievements')}
           </Button> */}
           {/* 手機：純圖示 */}
           <Button
@@ -78,7 +80,7 @@ const HeroSection = ({
             className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
             asChild
           >
-            <Link href="/leaderboard" aria-label="排行榜">
+            <Link href="/leaderboard" aria-label={t('leaderboard')}>
               <Trophy className="h-5 w-5" />
             </Link>
           </Button>
@@ -87,7 +89,7 @@ const HeroSection = ({
             size="icon"
             className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
             onClick={onOpenStatsModal}
-            aria-label="統計"
+            aria-label={t('stats')}
           >
             <BarChart2 className="h-5 w-5" />
           </Button>
@@ -96,7 +98,7 @@ const HeroSection = ({
             size="icon"
             className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
             onClick={onOpenAchievementModal}
-            aria-label="成就"
+            aria-label={t('achievements')}
           >
             <Award className="h-5 w-5" />
           </Button>
@@ -159,12 +161,15 @@ const HeroSection = ({
           className="space-y-3"
         >
           <h1 className="font-display text-3xl leading-none font-black tracking-tight text-foreground md:text-6xl lg:text-6xl">
-            你能用 4 張牌
-            <br />
-            算出 <span className="text-primary">24</span> 嗎？
+            {t.rich('title', {
+              br: () => <br />,
+              highlight: chunks => (
+                <span className="text-primary">{chunks}</span>
+              ),
+            })}
           </h1>
           <p className="mx-auto max-w-[24rem] text-base text-muted-foreground md:text-lg">
-            利用 4 張數字牌，透過加、減、乘、除與括號，組合出等於 24 的算式
+            {t('subtitle')}
           </p>
         </motion.div>
 
@@ -189,7 +194,7 @@ const HeroSection = ({
                 className="h-14 px-12 text-xl"
                 onClick={() => hardNavigate('/single-play')}
               >
-                立即開始
+                {t('start')}
               </Button>
             </motion.div>
             <motion.div
@@ -202,7 +207,7 @@ const HeroSection = ({
                 onClick={() => hardNavigate('/multiple-play')}
               >
                 <Users className="h-5 w-5" />
-                多人對戰
+                {t('multiplayer')}
               </Button>
             </motion.div>
           </div>

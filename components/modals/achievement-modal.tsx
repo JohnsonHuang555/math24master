@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Lock } from 'lucide-react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
   AchievementCategory,
@@ -17,14 +18,17 @@ type AchievementModalProps = {
   onClose: () => void;
 };
 
-const TABS: { key: AchievementCategory | 'all'; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'beginner', label: '新手' },
-  { key: 'advanced', label: '進階' },
-  { key: 'challenge', label: '挑戰' },
+const TABS: (AchievementCategory | 'all')[] = [
+  'all',
+  'beginner',
+  'advanced',
+  'challenge',
 ];
 
 export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
+  const t = useTranslations('Achievements');
+  const tCommon = useTranslations('Common');
+  const format = useFormatter();
   const {
     unlockedIds,
     unlockDates,
@@ -62,10 +66,13 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Award className="h-5 w-5 text-yellow-400" />
-              成就
+              {t('title')}
             </div>
             <span className="text-sm font-normal text-muted-foreground">
-              已解鎖 {unlockedValidCount} / {VISIBLE_ACHIEVEMENTS.length}
+              {t('unlockedCount', {
+                unlocked: unlockedValidCount,
+                total: VISIBLE_ACHIEVEMENTS.length,
+              })}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -74,16 +81,16 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
         <div className="flex gap-1 rounded-lg bg-muted p-1">
           {TABS.map(tab => (
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              key={tab}
+              onClick={() => setActiveTab(tab)}
               className={cn(
                 'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
-                activeTab === tab.key
+                activeTab === tab
                   ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.label}
+              {t(`tabs.${tab}`)}
             </button>
           ))}
         </div>
@@ -142,16 +149,20 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
                           !isUnlocked && 'text-muted-foreground',
                         )}
                       >
-                        {achievement.name}
+                        {t(`items.${achievement.id}.name`)}
                       </span>
                       {isUnlocked && unlockTs && (
                         <span className="shrink-0 text-xs text-muted-foreground">
-                          {new Date(unlockTs).toLocaleDateString('zh-TW')}
+                          {format.dateTime(new Date(unlockTs), {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                          })}
                         </span>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {achievement.description}
+                      {t(`items.${achievement.id}.description`)}
                     </span>
                     {/* 進度條 */}
                     {(hasProgress ||
@@ -187,7 +198,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
         </div>
 
         <Button variant="outline" onClick={onClose}>
-          關閉
+          {tCommon('close')}
         </Button>
       </DialogContent>
     </Dialog>
