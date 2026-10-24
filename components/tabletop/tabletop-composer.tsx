@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, CircleAlert, Delete, X } from 'lucide-react';
+import { Check, CircleAlert, Delete, Eraser } from 'lucide-react';
 import { TabletopTiles } from '@/components/tabletop/tabletop-tiles';
 import { Button } from '@/components/ui/button';
 import { ComposerPreview, ComposerSymbol } from '@/lib/tabletop-turn-draft';
@@ -100,15 +100,15 @@ export function TabletopComposer({
         >
           <Delete className="h-4 w-4" />
         </Button>
+        {/* 原本只有 X 圖示，和上方的乘號太像容易誤按，改成橡皮擦 + 文字 */}
         <Button
           variant="tactileOutline"
-          size="icon"
-          className="h-11 w-11 shrink-0"
-          aria-label="清空組裝列"
+          className="h-11 shrink-0 gap-1 px-3"
           disabled={disabled || composer.length === 0}
           onClick={onClear}
         >
-          <X className="h-4 w-4" />
+          <Eraser className="h-4 w-4" />
+          清空
         </Button>
         <Button
           variant="tactileOutline"

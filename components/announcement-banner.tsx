@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { LayoutGrid, LucideIcon, Superscript, X } from 'lucide-react';
+import { LayoutGrid, LucideIcon, Shapes, Superscript, X } from 'lucide-react';
 
 type Announcement = {
   key: string;
@@ -17,6 +17,15 @@ type Announcement = {
 
 // 每次上線新玩法就往這裡加一則；key 帶版本號，換掉 key 可以讓已關閉過舊公告的人重新看到新公告
 const ANNOUNCEMENTS: Announcement[] = [
+  {
+    key: 'announcement-tabletop-mode-v1',
+    icon: Shapes,
+    title: '新模式「牌桌模式」上線！',
+    badge: 'Beta',
+    description: '改編自拉密・和 2 個電腦搶分・拆開重組桌上的算式',
+    href: '/single-play',
+    linkLabel: '立即體驗 →',
+  },
   {
     key: 'announcement-match-mode-v1',
     icon: LayoutGrid,

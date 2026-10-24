@@ -67,7 +67,7 @@ const useTabletopPlay = () => {
   const pushLog = (seatName: string, text: string, score: number | null) => {
     logIdRef.current += 1;
     const entry = { id: logIdRef.current, seatName, text, score };
-    setLog(prev => [entry, ...prev].slice(0, 20));
+    setLog(prev => [entry, ...prev]);
   };
 
   /** 依序播放 Bot 的回合，直到輪回玩家或這局結束 */

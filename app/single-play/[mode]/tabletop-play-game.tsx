@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   Hand,
+  History,
   LogOut,
   Play,
   RotateCcw,
@@ -20,6 +21,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { JokerDeclareDialog } from '@/components/tabletop/joker-declare-dialog';
 import { TabletopComposer } from '@/components/tabletop/tabletop-composer';
 import { TabletopHand } from '@/components/tabletop/tabletop-hand';
+import { TabletopHistoryDialog } from '@/components/tabletop/tabletop-history-dialog';
 import { TabletopScoreboard } from '@/components/tabletop/tabletop-scoreboard';
 import { TabletopTableArea } from '@/components/tabletop/tabletop-table-area';
 import {
@@ -62,6 +64,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
   const [difficulty, setDifficulty] = useState<TabletopDifficulty>('normal');
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isOpenHistory, setIsOpenHistory] = useState(false);
   const [pendingJokerId, setPendingJokerId] = useState<string | null>(null);
 
   const play = useTabletopPlay();
@@ -81,7 +84,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
     incrementTabletopPlays,
   } = useStatsStore();
 
-  // 只有打滿 6 回合的一局才計分；中途離開不會走到 ended
+  // 只有正常結束的一局才計分；中途離開不會走到 ended
   const isEnded = game?.status === 'ended';
   const playerScore =
     game?.result?.standings.find(s => s.seatId === game.seats[0].id)?.score ??
@@ -96,10 +99,12 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
     updateTabletopBestScore(game.difficulty, playerScore);
   }, [isEnded]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 剩牌扣分可能讓最終分數變成 0 以下，這種成績不上榜（API 也會拒絕負分）
+  const canSubmit = isAuthenticated && isEnded && playerScore > 0;
   const leaderboardSubmit = useLeaderboardSubmit(
     leaderboardMode,
-    isAuthenticated && isEnded ? { score: playerScore } : null,
-    isAuthenticated && isEnded,
+    canSubmit ? { score: playerScore } : null,
+    canSubmit,
   );
 
   // 未登入時先暫存成績，提示登入；登入後由 PendingScoreSubmitter 補送
@@ -139,10 +144,10 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
               牌桌模式
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              和 2 個電腦輪流出牌 · 每人 6 回合比總分
+              改編自拉密 · 和 2 個電腦搶先出完手牌
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              可以拆開桌上的算式重新組合
+              每回合湊一組 24，可以拆開桌上的算式重新組合
             </p>
           </div>
         </div>
@@ -277,8 +282,15 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
                     {s.rank}
                   </span>
                   <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 font-bold text-foreground">
-                    {seat.name}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-foreground">
+                      {seat.name}
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      牌組 {s.tableScore}
+                      {s.wentOutBonus > 0 && ` ＋出完 ${s.wentOutBonus}`}
+                      {s.leftoverPenalty > 0 && ` −剩牌 ${s.leftoverPenalty}`}
+                    </span>
                   </span>
                   <span className="font-display text-lg font-bold tabular-nums">
                     {s.score} 分
@@ -314,6 +326,11 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       {ruleModal}
+      <TabletopHistoryDialog
+        open={isOpenHistory}
+        onOpenChange={setIsOpenHistory}
+        log={play.log}
+      />
       <JokerDeclareDialog
         open={pendingJokerId !== null}
         onCancel={() => setPendingJokerId(null)}
@@ -334,21 +351,31 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             <LogOut className="mr-1 h-4 w-4" />
             離開
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="font-bold text-muted-foreground hover:text-foreground"
-            onClick={() => setIsOpenRuleModal(true)}
-          >
-            <BookOpen className="mr-1 h-4 w-4" />
-            規則
-          </Button>
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-bold text-muted-foreground hover:text-foreground"
+              onClick={() => setIsOpenHistory(true)}
+            >
+              <History className="mr-1 h-4 w-4" />
+              紀錄
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-bold text-muted-foreground hover:text-foreground"
+              onClick={() => setIsOpenRuleModal(true)}
+            >
+              <BookOpen className="mr-1 h-4 w-4" />
+              規則
+            </Button>
+          </div>
         </div>
 
         <TabletopScoreboard
           game={game}
           thinkingSeat={play.thinkingSeat}
-          log={play.log}
           onSkipAnimation={play.onSkipAnimation}
         />
 
@@ -385,17 +412,16 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
           <div className="flex gap-2">
             <Button
               variant="tactileOutline"
-              size="icon"
-              className="h-12 w-12 shrink-0"
-              aria-label="還原桌面"
+              className="h-12 flex-1 gap-1 px-2"
               disabled={!canEdit || !play.hasDraftChanges}
               onClick={play.onResetDraft}
             >
               <RotateCcw className="h-4 w-4" />
+              還原桌面
             </Button>
             <Button
               variant="tactileOutline"
-              className="h-12 flex-1 gap-1.5"
+              className="h-12 flex-1 gap-1 px-2"
               disabled={!canEdit || play.hasDraftChanges}
               onClick={play.onDraw}
             >
@@ -404,7 +430,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             </Button>
             <Button
               variant="tactile"
-              className="h-12 flex-[2] text-base"
+              className="h-12 flex-[1.3] px-2 text-base"
               disabled={!canEdit || !play.canEndTurn}
               onClick={play.onEndTurn}
             >
