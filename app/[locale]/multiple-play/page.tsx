@@ -1,24 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
-import { v4 as uuidv4 } from 'uuid';
-import CreateRoomModal from '@/components/modals/create-room-modal';
-import { PlayerNameModal } from '@/components/modals/player-name-modal';
-import { RuleModal } from '@/components/modals/rule-modal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { Room } from '@/models/Room';
-import { SocketEvent } from '@/models/SocketEvent';
-import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
-import { useMultiplePlay } from '@/providers/multiple-play-provider';
-import { useGuestStore } from '@/stores/guest-store';
-import { useSession } from 'next-auth/react';
-import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import {
   ArrowLeft,
   BookOpen,
@@ -29,6 +13,22 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
+import AlertDialogModal from '@/components/modals/alert-dialog-modal';
+import CreateRoomModal from '@/components/modals/create-room-modal';
+import { PlayerNameModal } from '@/components/modals/player-name-modal';
+import { RuleModal } from '@/components/modals/rule-modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
+import { Room } from '@/models/Room';
+import { SocketEvent } from '@/models/SocketEvent';
+import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
+import { useMultiplePlay } from '@/providers/multiple-play-provider';
+import { useGuestStore } from '@/stores/guest-store';
 
 const RELOAD_ROOMS_TIMER = 1000;
 const roomId = uuidv4();
@@ -49,7 +49,8 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
     classic: {
       border: 'border-teal-200 dark:border-teal-800',
       bg: 'bg-teal-50 dark:bg-teal-900/20',
-      shadow: 'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
+      shadow:
+        'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
       hover: 'hover:bg-teal-100/70 dark:hover:bg-teal-900/30',
       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
       icon: 'bg-teal-500',
@@ -59,9 +60,11 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
     buzzer: {
       border: 'border-amber-200 dark:border-amber-800',
       bg: 'bg-amber-50 dark:bg-amber-900/20',
-      shadow: 'shadow-[0_6px_0_0_var(--color-amber-200)] dark:shadow-[0_6px_0_0_var(--color-amber-800)]',
+      shadow:
+        'shadow-[0_6px_0_0_var(--color-amber-200)] dark:shadow-[0_6px_0_0_var(--color-amber-800)]',
       hover: 'hover:bg-amber-100/70 dark:hover:bg-amber-900/30',
-      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      badge:
+        'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
       icon: 'bg-amber-500',
       name: 'text-amber-800 dark:text-amber-200',
       count: 'text-amber-600 dark:text-amber-400',
@@ -79,12 +82,20 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
       className={cn(
         'flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left',
         'transition-colors active:translate-y-1 active:shadow-none',
-        c.border, c.bg, c.shadow, c.hover,
+        c.border,
+        c.bg,
+        c.shadow,
+        c.hover,
         isFull && 'cursor-not-allowed opacity-50',
       )}
     >
       {/* 遊戲類型圖示 */}
-      <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white', c.icon)}>
+      <div
+        className={cn(
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white',
+          c.icon,
+        )}
+      >
         {gameType === 'buzzer' ? (
           <Zap className="h-5 w-5" />
         ) : (
@@ -94,19 +105,31 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
 
       {/* 房間資訊 */}
       <div className="min-w-0 flex-1">
-        <div className={cn('flex items-center gap-1.5 font-display text-base font-black', c.name)}>
+        <div
+          className={cn(
+            'flex items-center gap-1.5 font-display text-base font-black',
+            c.name,
+          )}
+        >
           {room.password && <Lock className="h-3.5 w-3.5 shrink-0" />}
           <span className="truncate">{room.roomName}</span>
         </div>
         <div className={cn('mt-0.5 flex items-center gap-2 text-sm', c.count)}>
-          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', c.badge)}>
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-xs font-medium',
+              c.badge,
+            )}
+          >
             {GAME_TYPE_LABELS[gameType] ?? gameType}
           </span>
           <span className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5" />
             {room.players.length} / {room.maxPlayers}
           </span>
-          {isFull && <span className="text-xs font-medium text-rose-500">人數已滿</span>}
+          {isFull && (
+            <span className="text-xs font-medium text-rose-500">人數已滿</span>
+          )}
         </div>
       </div>
     </motion.button>
@@ -114,6 +137,7 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
 }
 
 export default function MultiplePlayPage() {
+  const hardNavigate = useHardNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
 
@@ -166,7 +190,7 @@ export default function MultiplePlayPage() {
 
   useEffect(() => {
     if (isConfirmed) {
-      window.location.href = `/multiple-play/${selectedRoomId}`;
+      hardNavigate(`/multiple-play/${selectedRoomId}`);
       onReset();
     }
   }, [isConfirmed, onReset, selectedRoomId]);
@@ -213,7 +237,14 @@ export default function MultiplePlayPage() {
         isOpen={isOpenCreateRoomModal}
         onOpenChange={setIsOpenCreateRoomModal}
         onConfirm={(roomName, maxPlayers, password, gameType) => {
-          joinRoom(playerName, roomId, roomName, maxPlayers, password, gameType);
+          joinRoom(
+            playerName,
+            roomId,
+            roomName,
+            maxPlayers,
+            password,
+            gameType,
+          );
         }}
       />
 
@@ -233,7 +264,7 @@ export default function MultiplePlayPage() {
               alt="24點大師"
               width={100}
               height={30}
-              className="h-7 w-auto dark:invert cursor-pointer"
+              className="h-7 w-auto cursor-pointer dark:invert"
               priority
               onClick={() => router.push('/')}
             />
@@ -275,10 +306,10 @@ export default function MultiplePlayPage() {
             initial={reduceMotion ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-6 mt-2 flex items-end justify-between"
+            className="mt-2 mb-6 flex items-end justify-between"
           >
             <div>
-              <h1 className="font-display text-3xl font-black leading-tight text-foreground md:text-4xl md:leading-10">
+              <h1 className="font-display text-3xl leading-tight font-black text-foreground md:text-4xl md:leading-10">
                 多人對戰
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -299,12 +330,16 @@ export default function MultiplePlayPage() {
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.07, ease: [0.16, 1, 0.3, 1] }}
+            transition={{
+              duration: 0.45,
+              delay: 0.07,
+              ease: [0.16, 1, 0.3, 1],
+            }}
             className="mb-5 flex flex-wrap items-center gap-3"
           >
             {/* 搜尋框 */}
             <div className="relative min-w-0 flex-1 sm:max-w-[200px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="搜尋房間..."
                 className="rounded-xl border-zinc-200 pl-9 focus-visible:ring-primary dark:border-zinc-700"
@@ -346,7 +381,11 @@ export default function MultiplePlayPage() {
                   key={room.roomId}
                   initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{
+                    duration: 0.4,
+                    delay: i * 0.05,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
                 >
                   <RoomCard
                     room={room}

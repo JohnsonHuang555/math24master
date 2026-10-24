@@ -1,0 +1,9 @@
+{
+  "LocaleSwitcher": {
+    "label": "語言"
+  },
+  "NotFound": {
+    "title": "找不到這個頁面",
+    "backHome": "首頁"
+  }
+}

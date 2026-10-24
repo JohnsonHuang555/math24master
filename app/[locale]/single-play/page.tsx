@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Layers, LayoutGrid, Shapes, Timer } from 'lucide-react';
-import ChallengePlayGame from '@/app/single-play/[mode]/challenge-play-game';
-import ClassicPlayGame from '@/app/single-play/[mode]/classic-play-game';
-import MatchPlayGame from '@/app/single-play/[mode]/match-play-game';
-import TabletopPlayGame from '@/app/single-play/[mode]/tabletop-play-game';
+import ChallengePlayGame from '@/app/[locale]/single-play/[mode]/challenge-play-game';
+import ClassicPlayGame from '@/app/[locale]/single-play/[mode]/classic-play-game';
+import MatchPlayGame from '@/app/[locale]/single-play/[mode]/match-play-game';
+import TabletopPlayGame from '@/app/[locale]/single-play/[mode]/tabletop-play-game';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { prewarmMatchGenerator } from '@/lib/match-board-generator';
 import { cn } from '@/lib/utils';

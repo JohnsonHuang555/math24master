@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: '猜數字 - 24點大師',
-    description: '經典猜數字遊戲，根據提示找出隱藏的數字組合，訓練邏輯推理能力。',
+    description:
+      '經典猜數字遊戲，根據提示找出隱藏的數字組合，訓練邏輯推理能力。',
     url: 'https://math24master.com/guess-number',
   },
   twitter: {

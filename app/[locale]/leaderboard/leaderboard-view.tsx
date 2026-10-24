@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Trophy } from 'lucide-react';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { AccountChip } from '@/components/leaderboard/account-chip';
@@ -13,6 +12,8 @@ import { TabletopBetaNotice } from '@/components/tabletop/tabletop-beta-notice';
 import { Button } from '@/components/ui/button';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { useMyRank } from '@/hooks/useMyRank';
+import { Link } from '@/i18n/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { resolveBoard } from '@/lib/leaderboard';
 
 export default function LeaderboardView() {

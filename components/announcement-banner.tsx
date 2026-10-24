@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, LucideIcon, Shapes, Superscript, X } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 
 type Announcement = {
   key: string;

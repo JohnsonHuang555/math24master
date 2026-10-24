@@ -1,17 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
-import ChatArea from '@/components/areas/chat-area';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import BuzzerGameBoard from '@/components/areas/buzzer/buzzer-game-board';
+import ChatArea from '@/components/areas/chat-area';
 import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
 import PlayersArea from '@/components/areas/players-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
-import { BuzzerPlayProvider } from '@/providers/buzzer-play-provider';
 import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import EditRoomModal from '@/components/modals/edit-room-modal';
 import EnterRoomPasswordModal from '@/components/modals/enter-room-password-modal';
@@ -26,13 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useHardNavigate, useRouter } from '@/i18n/navigation';
 import { GameStatus } from '@/models/GameStatus';
 import { SocketEvent } from '@/models/SocketEvent';
+import { BuzzerPlayProvider } from '@/providers/buzzer-play-provider';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import { useGuestStore } from '@/stores/guest-store';
-import { useSession } from 'next-auth/react';
 
 export default function RoomPage() {
+  const hardNavigate = useHardNavigate();
   const router = useRouter();
   const { roomId } = useParams<{ roomId: string }>();
 
@@ -195,7 +197,7 @@ export default function RoomPage() {
             <Button
               variant="ghost"
               className="gap-2 rounded-2xl border border-zinc-200 px-5 font-bold dark:border-zinc-700"
-              onClick={() => (window.location.href = '/')}
+              onClick={() => hardNavigate('/')}
             >
               <ArrowLeft className="h-4 w-4" />
               回首頁
@@ -203,7 +205,7 @@ export default function RoomPage() {
             <Button
               variant="ghost"
               className="gap-2 rounded-2xl border border-zinc-200 px-5 font-bold dark:border-zinc-700"
-              onClick={() => (window.location.href = '/multiple-play')}
+              onClick={() => hardNavigate('/multiple-play')}
             >
               回房間列表
             </Button>
@@ -242,11 +244,15 @@ export default function RoomPage() {
             onPointerDownOutside={e => e.preventDefault()}
           >
             <DialogHeader>
-              <DialogTitle className="text-center text-xl">遊戲中斷</DialogTitle>
+              <DialogTitle className="text-center text-xl">
+                遊戲中斷
+              </DialogTitle>
             </DialogHeader>
             <p className="text-center text-sm text-muted-foreground">
               由於{' '}
-              <span className="font-semibold">{gameAbortedData.playerName}</span>{' '}
+              <span className="font-semibold">
+                {gameAbortedData.playerName}
+              </span>{' '}
               離開，遊戲已中斷
             </p>
             <div className="flex gap-3">
@@ -254,7 +260,7 @@ export default function RoomPage() {
                 onClick={() => {
                   sessionStorage.removeItem('reconnectToken');
                   sessionStorage.removeItem('reconnectRoomId');
-                  window.location.href = '/multiple-play';
+                  hardNavigate('/multiple-play');
                 }}
                 className="flex-1"
                 variant="secondary"
@@ -364,7 +370,7 @@ export default function RoomPage() {
                     onLeaveRoom={() => {
                       sessionStorage.removeItem('reconnectToken');
                       sessionStorage.removeItem('reconnectRoomId');
-                      window.location.href = '/multiple-play';
+                      hardNavigate('/multiple-play');
                     }}
                     onRoomSettingsChange={editRoomSettings}
                     onEditRoomName={() => setIsOpenEditRoomModal(true)}

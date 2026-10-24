@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
   type FormulaItem,
@@ -276,7 +276,7 @@ export default function DailyChallengePage() {
             </div>
 
             {/* 分享預覽 */}
-            <pre className="w-full whitespace-pre-wrap border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
+            <pre className="w-full border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
               {sharePreviewText}
             </pre>
 
