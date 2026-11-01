@@ -1,18 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  AnimatePresence,
-  animate,
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-} from 'framer-motion';
-import { BookOpen, LayoutGrid, Play, Share2, Trophy } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { LayoutGrid, Play, Share2, Trophy } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
+import { GameHud } from '@/components/game/game-hud';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
@@ -98,17 +92,6 @@ export default function MatchPlayGame({
 
   const isNewBestScore =
     screenStatus === 'finished' && isCleared && score > 0 && score >= bestScore;
-
-  // 得分數字滾動動畫
-  const count = useMotionValue(score);
-  const rounded = useTransform(count, Math.round);
-  useEffect(() => {
-    if (reduceMotion) {
-      count.set(score);
-      return;
-    }
-    animate(count, score, { duration: 0.3 });
-  }, [count, score, reduceMotion]);
 
   // 消除成功時全螢幕「+N分！」彈出提示
   useEffect(() => {
@@ -337,37 +320,13 @@ export default function MatchPlayGame({
         )}
       </AnimatePresence>
 
-      <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white/95 px-5 py-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground">得分</p>
-          <motion.div className="font-display text-2xl font-bold text-primary tabular-nums">
-            {rounded}
-          </motion.div>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-semibold text-muted-foreground">
-            消消樂模式
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-medium text-muted-foreground">剩餘</p>
-          <p className="font-display text-lg font-semibold text-foreground tabular-nums">
-            {remainingCount} 張
-          </p>
-        </div>
-      </div>
-
-      {/* nav row */}
-      <div className="flex w-full max-w-sm items-center justify-end px-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsOpenRuleModal(true)}
-        >
-          <BookOpen className="mr-1 h-4 w-4" />
-          規則
-        </Button>
-      </div>
+      <GameHud
+        className="max-w-sm"
+        modeLabel="消消樂模式"
+        score={score}
+        remaining={remainingCount}
+        onOpenRules={() => setIsOpenRuleModal(true)}
+      />
     </>
   );
 

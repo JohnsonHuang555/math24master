@@ -103,7 +103,7 @@ export function TabletopComposer({
         {/* 原本只有 X 圖示，和上方的乘號太像容易誤按，改成橡皮擦 + 文字 */}
         <Button
           variant="tactileOutline"
-          className="h-11 shrink-0 gap-1 px-3"
+          className="h-11 shrink-0 gap-1 px-3 text-base"
           disabled={disabled || composer.length === 0}
           onClick={onClear}
         >
@@ -112,7 +112,7 @@ export function TabletopComposer({
         </Button>
         <Button
           variant="tactileOutline"
-          className="h-11 flex-1"
+          className="h-11 flex-1 text-base"
           disabled={disabled || !preview?.validation.valid}
           onClick={onCommit}
         >

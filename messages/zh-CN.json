@@ -97,6 +97,35 @@
     "mute": "关闭音效",
     "unmute": "打开音效"
   },
+  "GameUI": {
+    "symbols": {
+      "plus": "加",
+      "minus": "减",
+      "times": "乘",
+      "divide": "除",
+      "leftParen": "左括号",
+      "rightParen": "右括号"
+    },
+    "expression": {
+      "incomplete": "算式未完成",
+      "correct": "等于 24",
+      "wrong": "不等于 24",
+      "removeToken": "移除"
+    },
+    "timer": {
+      "lowTime": "剩不到 1 分钟",
+      "paused": "已暂停",
+      "delta": "{sign}{seconds} 秒"
+    },
+    "hud": {
+      "pointsUnit": "分",
+      "remaining": "剩 {count} 张",
+      "lastRound": "最后一轮！",
+      "rules": "规则",
+      "exit": "离开",
+      "soundComingSoon": "音效（即将推出）"
+    }
+  },
   "Achievements": {
     "title": "成就",
     "unlockedCount": "已解锁 {unlocked} / {total}",

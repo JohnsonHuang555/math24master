@@ -1,15 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AnimatePresence,
-  animate,
-  motion,
-  useMotionValue,
-  useTransform,
-} from 'framer-motion';
-import {
-  BookOpen,
   Layers,
   ListChecks,
   Play,
@@ -21,6 +14,7 @@ import {
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import { GameHud } from '@/components/game/game-hud';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RoundHistoryModal } from '@/components/modals/round-history-modal';
@@ -115,9 +109,6 @@ export default function ClassicPlayGame({
   const remainCards = roomInfo?.deck.length ?? 0;
   const selectedCards = roomInfo?.selectedCards ?? [];
 
-  const count = useMotionValue(currentScore);
-  const rounded = useTransform(count, Math.round);
-
   const {
     classicBestScore: bestScore,
     updateClassicBestScore: updateBestScore,
@@ -143,10 +134,6 @@ export default function ClassicPlayGame({
       setStatus('finished');
     }
   }, [roomInfo?.isGameOver]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    animate(count, currentScore, { duration: 0.3 });
-  }, [count, currentScore]);
 
   useEffect(() => {
     if (status !== 'playing') return;
@@ -436,34 +423,17 @@ export default function ClassicPlayGame({
         )}
       </AnimatePresence>
 
-      {/* HUD bar */}
-      <div className="flex w-full max-w-sm items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white/95 px-5 py-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground">得分</p>
-          <motion.div className="font-display text-2xl font-bold text-primary tabular-nums">
-            {rounded}
-          </motion.div>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-semibold text-muted-foreground">
-            經典模式
-          </p>
-          {isLastRound && (
-            <p className="animate-pulse text-xs font-bold text-red-500">
-              最後一輪！
-            </p>
-          )}
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-medium text-muted-foreground">牌庫</p>
-          <p className="font-display text-lg font-semibold text-foreground tabular-nums">
-            {remainCards} 張
-          </p>
-        </div>
-      </div>
+      <GameHud
+        className="max-w-sm"
+        modeLabel="經典模式"
+        score={currentScore}
+        remaining={remainCards}
+        isLastRound={isLastRound}
+        onOpenRules={() => setIsOpenRuleModal(true)}
+      />
 
       {/* Bonus + nav row */}
-      <div className="flex w-full max-w-sm items-center justify-between px-1">
+      <div className="flex min-h-9 w-full max-w-sm items-center justify-between px-1">
         <AnimatePresence mode="wait">
           {isSymbolScoreAnimationFinished ? (
             <motion.div
@@ -511,14 +481,6 @@ export default function ClassicPlayGame({
               再來一局
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOpenRuleModal(true)}
-          >
-            <BookOpen className="mr-1 h-4 w-4" />
-            規則
-          </Button>
         </div>
       </div>
     </>

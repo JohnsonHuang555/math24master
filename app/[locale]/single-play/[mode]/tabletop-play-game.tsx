@@ -419,7 +419,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
           <div className="flex gap-2">
             <Button
               variant="tactileOutline"
-              className="h-12 flex-1 gap-1 px-2"
+              className="h-12 flex-1 gap-1 px-2 text-base"
               disabled={!canEdit || !play.hasDraftChanges}
               onClick={play.onResetDraft}
             >
@@ -428,7 +428,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             </Button>
             <Button
               variant="tactileOutline"
-              className="h-12 flex-1 gap-1 px-2"
+              className="h-12 flex-1 gap-1 px-2 text-base"
               disabled={!canEdit || play.hasDraftChanges}
               onClick={play.onDraw}
             >

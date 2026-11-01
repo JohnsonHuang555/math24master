@@ -97,6 +97,35 @@
     "mute": "Mute sound",
     "unmute": "Unmute sound"
   },
+  "GameUI": {
+    "symbols": {
+      "plus": "Plus",
+      "minus": "Minus",
+      "times": "Times",
+      "divide": "Divide",
+      "leftParen": "Left parenthesis",
+      "rightParen": "Right parenthesis"
+    },
+    "expression": {
+      "incomplete": "Incomplete",
+      "correct": "Equals 24",
+      "wrong": "Not 24",
+      "removeToken": "Remove"
+    },
+    "timer": {
+      "lowTime": "Under 1 minute",
+      "paused": "Paused",
+      "delta": "{sign}{seconds}s"
+    },
+    "hud": {
+      "pointsUnit": "pts",
+      "remaining": "{count} cards left",
+      "lastRound": "Final round!",
+      "rules": "Rules",
+      "exit": "Leave",
+      "soundComingSoon": "Sound (coming soon)"
+    }
+  },
   "Achievements": {
     "title": "Achievements",
     "unlockedCount": "{unlocked} / {total} unlocked",

@@ -1,13 +1,13 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Circle, Diamond, Sparkles, Square, Triangle } from 'lucide-react';
+import { Circle, Diamond, Square, Triangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CardColor, NumberCard } from '@/models/Player';
 
 /**
- * 牌色對應設計系統的色相（見 CONTEXT.md「牌色」）：紅 → rose、青 → teal、黃 → amber、黑 → zinc，
- * 每種顏色另外配一個形狀，色弱玩家也能分辨
+ * 牌色只出現在牌面上（見 CONTEXT.md「牌色」），每種顏色另外配一個形狀，色弱玩家也能分辨。
+ * 形狀放在左上角並在數字下方重複一次，牌被手指蓋住一半也看得到
  */
 export const CARD_COLOR_STYLE: Record<
   CardColor,
@@ -15,26 +15,26 @@ export const CARD_COLOR_STYLE: Record<
 > = {
   red: {
     label: '紅',
-    text: 'text-rose-600 dark:text-rose-400',
-    border: 'border-rose-300 dark:border-rose-800',
+    text: 'text-suit-red',
+    border: 'border-suit-red',
     Shape: Circle,
   },
   blue: {
     label: '青',
-    text: 'text-teal-700 dark:text-teal-400',
-    border: 'border-teal-300 dark:border-teal-800',
+    text: 'text-suit-blue',
+    border: 'border-suit-blue',
     Shape: Square,
   },
   yellow: {
     label: '黃',
-    text: 'text-amber-700 dark:text-amber-400',
-    border: 'border-amber-300 dark:border-amber-800',
+    text: 'text-suit-yellow',
+    border: 'border-suit-yellow',
     Shape: Triangle,
   },
   black: {
     label: '黑',
-    text: 'text-zinc-800 dark:text-zinc-100',
-    border: 'border-zinc-400 dark:border-zinc-500',
+    text: 'text-suit-black',
+    border: 'border-suit-black',
     Shape: Diamond,
   },
 };
@@ -50,6 +50,21 @@ function faceOf(card: NumberCard): { value: string; color?: CardColor } {
     color: card.jokerDeclaredColor,
   };
 }
+
+const SIZE_CLASS = {
+  // 手牌
+  md: {
+    card: 'h-[72px] w-[52px] rounded-[11px] border-2 text-[28px] shadow-[0_4px_0_0_var(--playcard-edge)]',
+    corner: 'top-[5px] left-[5px] h-[9px] w-[9px]',
+    under: 'h-2 w-2',
+  },
+  // 桌面牌組、組裝列
+  sm: {
+    card: 'h-[46px] w-[34px] rounded-lg border-[1.5px] text-xl shadow-[0_3px_0_0_var(--playcard-edge)]',
+    corner: 'top-[3px] left-[3px] h-[7px] w-[7px]',
+    under: null,
+  },
+} as const;
 
 type TabletopCardProps = {
   card: NumberCard;
@@ -71,6 +86,8 @@ export function TabletopCard({
   const style = face.color ? CARD_COLOR_STYLE[face.color] : null;
   const Shape = style?.Shape;
   const interactive = !!onClick && !disabled;
+  const sizeClass = SIZE_CLASS[size];
+  const isUndeclaredJoker = card.isJoker && !style;
 
   return (
     <motion.button
@@ -78,49 +95,59 @@ export function TabletopCard({
       disabled={!interactive}
       onClick={onClick}
       whileHover={interactive && !reduceMotion ? { y: -3 } : undefined}
-      whileTap={interactive && !reduceMotion ? { scale: 0.95 } : undefined}
-      transition={{ type: 'spring', stiffness: 190, damping: 16 }}
+      whileTap={interactive && !reduceMotion ? { y: 3 } : undefined}
+      transition={{ type: 'spring', stiffness: 600, damping: 32 }}
       aria-label={
-        card.isJoker && !style
+        isUndeclaredJoker
           ? 'Joker（尚未宣告）'
           : `${style?.label ?? ''}${face.value}${card.isJoker ? '（Joker）' : ''}`
       }
       className={cn(
-        'relative flex shrink-0 flex-col items-center justify-center rounded-2xl border-2 bg-white font-display font-bold select-none dark:bg-zinc-800',
-        size === 'md'
-          ? 'h-16 w-12 text-2xl shadow-[0_4px_0_0_rgba(0,0,0,0.08)]'
-          : 'h-11 w-8 rounded-xl text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)]',
-        style
-          ? [style.text, style.border]
-          : 'border-zinc-800 bg-zinc-900 text-white dark:border-zinc-200 dark:bg-zinc-100 dark:text-zinc-900',
-        highlighted &&
-          'ring-2 ring-amber-400 ring-offset-2 ring-offset-background',
-        interactive ? 'cursor-pointer' : 'cursor-default',
+        'relative flex shrink-0 flex-col items-center justify-center gap-0.5 border-playcard-line bg-playcard p-0 font-display leading-none font-extrabold select-none',
+        sizeClass.card,
+        style?.text,
+        // 已宣告的 Joker：虛線邊框用宣告的牌色
+        card.isJoker && style && ['border-dashed', style.border],
+        isUndeclaredJoker &&
+          'bg-[repeating-linear-gradient(135deg,var(--playcard)_0_8px,var(--sunken)_8px_16px)] text-playcard-ink',
+        highlighted && 'ring-2 ring-amber ring-offset-2 ring-offset-background',
+        interactive
+          ? 'cursor-pointer focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus'
+          : 'cursor-default',
       )}
     >
       {Shape && (
         <Shape
           aria-hidden
-          className={cn(
-            'absolute fill-current',
-            size === 'md'
-              ? 'top-1 left-1 h-2.5 w-2.5'
-              : 'top-0.5 left-0.5 h-2 w-2',
-          )}
+          className={cn('absolute fill-current stroke-0', sizeClass.corner)}
         />
       )}
-      {card.isJoker && (
-        <Sparkles
+      <span>{face.value}</span>
+      {/* 已宣告的 Joker 底部改放 J 標，不重複形狀 */}
+      {Shape && sizeClass.under && !card.isJoker && (
+        <Shape
+          aria-hidden
+          className={cn('fill-current stroke-0', sizeClass.under)}
+        />
+      )}
+      {isUndeclaredJoker && size === 'md' && (
+        <span className="font-noto text-[9px] font-extrabold tracking-[0.06em] text-ink-2">
+          JOKER
+        </span>
+      )}
+      {card.isJoker && style && (
+        <span
           aria-hidden
           className={cn(
-            'absolute',
+            'absolute rounded bg-suit-black px-1 font-noto font-extrabold text-white',
             size === 'md'
-              ? 'right-1 bottom-1 h-3 w-3'
-              : 'right-0.5 bottom-0.5 h-2 w-2',
+              ? 'bottom-1 text-[9px] leading-3'
+              : '-right-1 -bottom-1 text-[8px] leading-[11px]',
           )}
-        />
+        >
+          J
+        </span>
       )}
-      <span className="leading-none">{face.value}</span>
     </motion.button>
   );
 }

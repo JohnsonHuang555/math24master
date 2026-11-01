@@ -18,11 +18,12 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
-        // 觸感立體按鈕：底部硬陰影，按下時陷入（全站遊戲風格主 CTA）
+        // 觸感立體按鈕：實色底部陰影（厚度），按下時下沉。全站只有數字牌與主 CTA 有厚度
+        // 白字配 teal 只有 3.65:1，標籤必須是 20px 粗體（WCAG 大字），見 compoundVariants
         tactile:
-          'rounded-2xl bg-primary font-bold text-primary-foreground shadow-[0_4px_0_0_hsl(175_84%_22%)] transition-[transform,box-shadow,filter] hover:brightness-110 active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]',
+          'rounded-[14px] bg-primary font-extrabold text-primary-foreground shadow-[0_5px_0_0_var(--primary-edge)] transition-[transform,box-shadow] duration-[90ms] ease-out active:translate-y-1 active:shadow-[0_1px_0_0_var(--primary-edge)] disabled:bg-line disabled:text-ink-2 disabled:opacity-100 disabled:shadow-[0_5px_0_0_var(--line-strong)]',
         tactileOutline:
-          'rounded-2xl border-2 border-border bg-card font-bold text-foreground shadow-[0_4px_0_0_hsl(var(--border))] transition-[transform,box-shadow] hover:bg-accent active:translate-y-1 active:shadow-none',
+          'rounded-[14px] border-2 border-line-strong bg-surface font-bold text-ink shadow-[0_4px_0_0_var(--line-strong)] transition-[transform,box-shadow] duration-[90ms] ease-out hover:bg-sunken active:translate-y-1 active:shadow-[0_1px_0_0_var(--line-strong)]',
       },
       size: {
         default: 'h-10 px-4 py-2',
@@ -31,6 +32,14 @@ const buttonVariants = cva(
         icon: 'h-10 w-10',
       },
     },
+    compoundVariants: [
+      { variant: 'tactile', size: 'default', class: 'h-14 px-6 text-xl' },
+      {
+        variant: 'tactileOutline',
+        size: 'default',
+        class: 'h-14 px-5 text-[17px]',
+      },
+    ],
     defaultVariants: {
       variant: 'default',
       size: 'default',

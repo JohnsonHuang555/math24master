@@ -97,6 +97,35 @@
     "mute": "關閉音效",
     "unmute": "開啟音效"
   },
+  "GameUI": {
+    "symbols": {
+      "plus": "加",
+      "minus": "減",
+      "times": "乘",
+      "divide": "除",
+      "leftParen": "左括號",
+      "rightParen": "右括號"
+    },
+    "expression": {
+      "incomplete": "算式未完成",
+      "correct": "等於 24",
+      "wrong": "不等於 24",
+      "removeToken": "移除"
+    },
+    "timer": {
+      "lowTime": "剩不到 1 分鐘",
+      "paused": "已暫停",
+      "delta": "{sign}{seconds} 秒"
+    },
+    "hud": {
+      "pointsUnit": "分",
+      "remaining": "剩 {count} 張",
+      "lastRound": "最後一輪！",
+      "rules": "規則",
+      "exit": "離開",
+      "soundComingSoon": "音效（即將推出）"
+    }
+  },
   "Achievements": {
     "title": "成就",
     "unlockedCount": "已解鎖 {unlocked} / {total}",

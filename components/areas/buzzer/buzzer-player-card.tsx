@@ -1,8 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
-import { Flame } from 'lucide-react';
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from 'framer-motion';
+import { Flame, Lock, PenLine } from 'lucide-react';
+import { PlayerCard, PlayerStatus } from '@/components/game/player-card';
 import { Player } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
 
@@ -27,10 +35,18 @@ const BuzzerPlayerCard = ({
   const count = useMotionValue(player.score);
   const displayScore = useTransform(count, v => Math.round(v));
   useEffect(() => {
-    animate(count, player.score, { duration: 0.5, ease: 'easeOut' });
-  }, [player.score, count]);
+    if (reduceMotion) {
+      count.set(player.score);
+      return;
+    }
+    const controls = animate(count, player.score, {
+      duration: 0.5,
+      ease: 'easeOut',
+    });
+    return () => controls.stop();
+  }, [player.score, count, reduceMotion]);
 
-  // 分數變動 delta floater
+  // 分數變動：以正負號 pill 顯示，不靠綠/紅判斷加或扣
   const prevScoreRef = useRef(player.score);
   const [delta, setDelta] = useState<number | null>(null);
   useEffect(() => {
@@ -38,104 +54,70 @@ const BuzzerPlayerCard = ({
     prevScoreRef.current = player.score;
     if (diff === 0) return;
     setDelta(diff);
-    const t = setTimeout(() => setDelta(null), 1800);
+    const t = setTimeout(() => setDelta(null), reduceMotion ? 2500 : 1800);
     return () => clearTimeout(t);
-  }, [player.score]);
+  }, [player.score, reduceMotion]);
 
-  const getCardClass = () => {
-    if (isCurrentAnswerer)
-      return 'border-primary bg-primary/5 dark:bg-primary/10';
-    if (isLocked)
-      return 'border-rose-400 bg-rose-50 dark:border-rose-600 dark:bg-rose-950/20';
-    return 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800';
-  };
+  const status: PlayerStatus | undefined = isCurrentAnswerer
+    ? {
+        kind: 'answering',
+        label: '作答中',
+        icon: <PenLine aria-hidden className="h-4 w-4" />,
+      }
+    : isLocked
+      ? {
+          kind: 'locked',
+          label: '鎖定中',
+          icon: <Lock aria-hidden className="h-4 w-4" />,
+        }
+      : undefined;
 
   return (
-    <motion.div
-      animate={
-        isCurrentAnswerer && !reduceMotion
-          ? {
-              boxShadow: [
-                '0 0 0 0 rgba(13,148,136,0)',
-                '0 0 0 4px rgba(13,148,136,0.22)',
-                '0 0 0 0 rgba(13,148,136,0)',
-              ],
-            }
-          : { boxShadow: '0 5px 0 0 rgba(0,0,0,0.06)' }
-      }
-      transition={
-        isCurrentAnswerer
-          ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
-          : {}
-      }
-      className={`relative flex min-w-[80px] flex-col items-center gap-1 rounded-2xl border-2 px-3 py-2.5 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] md:min-w-[100px] md:gap-1.5 md:px-4 md:py-3 ${getCardClass()}`}
+    <PlayerCard
+      className="w-[240px] shrink-0"
+      name={player.name}
+      isSelf={isCurrentPlayer}
+      selfLabel="（你）"
+      isActive={isCurrentAnswerer}
+      isDimmed={isLocked && !isCurrentAnswerer}
+      status={status}
       data-testid="buzzer-player"
       data-player-name={player.name}
       data-score={player.score}
-    >
-      {/* 作答中 badge */}
-      {isCurrentAnswerer && (
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute -top-3.5 rounded-full bg-primary px-2.5 py-0.5 font-display text-xs font-black text-white shadow-xs"
-        >
-          作答中
-        </motion.div>
-      )}
-
-      {/* 鎖定中 badge */}
-      {isLocked && !isCurrentAnswerer && (
-        <div className="absolute -top-3.5 rounded-full bg-rose-500 px-2.5 py-0.5 font-display text-xs font-black text-white shadow-xs">
-          鎖定中
-        </div>
-      )}
-
-      {/* 名稱 */}
-      <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-        {player.name}
-        {isCurrentPlayer && (
-          <span className="ml-1 text-xs text-primary">（你）</span>
-        )}
-      </span>
-
-      {/* 分數 + delta floater */}
-      <div className="relative flex items-center justify-center">
-        <motion.span
-          className={`font-display text-3xl font-black tabular-nums md:text-4xl ${
-            isCurrentAnswerer
-              ? 'text-primary'
-              : 'text-zinc-900 dark:text-zinc-100'
-          }`}
-        >
-          {displayScore}
-        </motion.span>
-        <AnimatePresence>
-          {delta !== null && !reduceMotion && (
-            <motion.span
-              key={`delta-${player.score}`}
-              initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: delta > 0 ? -28 : 28 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.4, ease: 'easeOut' }}
-              className={`pointer-events-none absolute left-full ml-1 whitespace-nowrap font-display text-sm font-black ${
-                delta > 0 ? 'text-emerald-500' : 'text-rose-500'
-              }`}
-            >
-              {delta > 0 ? `+${delta}` : delta}
-            </motion.span>
+      meta={
+        <span className="flex items-center gap-1.5">
+          <span>
+            <motion.span className="font-display font-bold text-ink tabular-nums">
+              {displayScore}
+            </motion.span>{' '}
+            分
+          </span>
+          {streak > 0 && (
+            <span className="inline-flex items-center gap-0.5 font-display font-bold text-amber-ink">
+              <Flame aria-hidden className="h-3.5 w-3.5" />
+              {streak}
+            </span>
           )}
-        </AnimatePresence>
-      </div>
-
-      {/* 連勝 */}
-      {streak > 0 && (
-        <div className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 font-display text-xs font-black text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-          <Flame className="h-3 w-3" />
-          {streak}
-        </div>
-      )}
-    </motion.div>
+          <AnimatePresence>
+            {delta !== null && (
+              <motion.span
+                key={`delta-${player.score}`}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                className={
+                  delta > 0
+                    ? 'rounded-full bg-primary-tint px-1.5 font-display font-extrabold text-primary-ink'
+                    : 'rounded-full bg-danger-tint px-1.5 font-display font-extrabold text-danger-ink'
+                }
+              >
+                {delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
+      }
+    />
   );
 };
 

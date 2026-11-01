@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Play, Timer } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
+import { BookOpen, Flag, Play, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import { GameTimer, TimerDelta } from '@/components/game/game-timer';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
@@ -19,9 +20,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { useChallengePlay } from '@/hooks/useChallengePlay';
+import { getStageBonus, useChallengePlay } from '@/hooks/useChallengePlay';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
-import { cn, formatTime } from '@/lib/utils';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
@@ -56,11 +56,12 @@ export default function ChallengePlayGame({
     endGameEarly,
   } = useChallengePlay();
 
-  const [penaltyMsg, setPenaltyMsg] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
+  const [timeDelta, setTimeDelta] = useState<TimerDelta | null>(null);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const penaltyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+  const deltaTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
 
@@ -97,15 +98,31 @@ export default function ChallengePlayGame({
     if (autoStart) startGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const triggerPenalty = (penalty: number) => {
-    clearTimeout(penaltyTimeoutRef.current);
-    setPenaltyMsg(`-${penalty}s`);
-    penaltyTimeoutRef.current = setTimeout(() => setPenaltyMsg(null), 900);
+  const showTimeDelta = (deltaSeconds: number) => {
+    clearTimeout(deltaTimeoutRef.current);
+    setTimeDelta(prev => ({
+      key: (prev?.key ?? 0) + 1,
+      seconds: deltaSeconds,
+    }));
+    // reduced-motion 時沒有飄字動畫，停留久一點
+    deltaTimeoutRef.current = setTimeout(
+      () => setTimeDelta(null),
+      reduceMotion ? 2500 : 1200,
+    );
   };
+
+  // 答對進入下一關時顯示加了幾秒
+  const prevStageRef = useRef(stage);
+  useEffect(() => {
+    if (status === 'playing' && stage > prevStageRef.current) {
+      showTimeDelta(getStageBonus(prevStageRef.current));
+    }
+    prevStageRef.current = stage;
+  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSkip = () => {
     const penalty = skipPuzzle();
-    triggerPenalty(penalty);
+    showTimeDelta(-penalty);
   };
 
   // ── 開始畫面 ──
@@ -225,10 +242,6 @@ export default function ChallengePlayGame({
   }
 
   // ── 遊戲中 ──
-  const isLowTime = seconds <= 60;
-  const maxSeconds = 5 * 60;
-  const progressPct = Math.min(100, (seconds / maxSeconds) * 100);
-
   return (
     <>
       <RuleModal
@@ -249,76 +262,46 @@ export default function ChallengePlayGame({
           onBack();
         }}
         showSkipButton={true}
-        skipPenaltyText={`-${nextSkipPenalty} 秒`}
+        skipPenaltyText={`−${nextSkipPenalty} 秒`}
         theme="orange"
       >
         {/* HUD */}
-        <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white/95 px-4 pt-2.5 pb-3 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/90">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-base font-semibold text-muted-foreground">
-              挑戰模式
-            </span>
-            <div className="flex items-center gap-3">
-              <button
-                className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                onClick={() => setIsOpenRuleModal(true)}
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                規則
-              </button>
-              <button
-                className="text-xs font-semibold text-amber-500 hover:text-amber-600 dark:text-amber-400"
-                onClick={() => setShowEarlyEndConfirm(true)}
-              >
-                提前結算
-              </button>
-            </div>
-          </div>
-          {/* Big timer */}
-          <div className="flex items-baseline justify-center gap-2">
-            <span
-              className={cn(
-                'font-display text-5xl font-bold tabular-nums transition-colors duration-150',
-                isLowTime ? 'animate-pulse text-red-500' : 'text-amber-500',
-              )}
-            >
-              {formatTime(seconds)}
-            </span>
-            <AnimatePresence>
-              {penaltyMsg && (
-                <motion.span
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.15 }}
-                  className="text-sm font-bold text-red-500"
-                >
-                  {penaltyMsg}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-          {/* Timer progress bar */}
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-            <motion.div
-              className={cn(
-                'h-1.5 rounded-full',
-                isLowTime ? 'bg-red-400' : 'bg-amber-400',
-              )}
-              style={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-          {/* Stage + score */}
-          <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
-            <span>
-              第 <b className="font-bold text-foreground">{stage}</b> 關
-            </span>
-            <span>
-              <b className="font-bold text-foreground">{totalScore}</b> 分
-            </span>
-          </div>
+        <div className="flex w-full items-center gap-1">
+          <span className="flex-1 text-sm font-bold text-ink-2">挑戰模式</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 text-ink"
+            onClick={() => setIsOpenRuleModal(true)}
+            aria-label="規則"
+          >
+            <BookOpen className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-11 gap-1 px-2.5 text-sm font-bold text-ink"
+            onClick={() => setShowEarlyEndConfirm(true)}
+          >
+            <Flag className="h-4.5 w-4.5" />
+            提前結算
+          </Button>
         </div>
+        <GameTimer
+          seconds={seconds}
+          maxSeconds={5 * 60}
+          delta={timeDelta}
+          aside={
+            <span className="ml-auto flex items-baseline gap-2 text-[13px] text-ink-2">
+              <span className="font-display text-xl leading-none font-extrabold text-ink">
+                第 {stage} 關
+              </span>
+              <span>
+                <b className="font-display font-bold text-ink">{totalScore}</b>{' '}
+                分
+              </span>
+            </span>
+          }
+        />
       </PuzzlePlayArea>
 
       <AlertDialog
