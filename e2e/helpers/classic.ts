@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { enterFormula, readCardValues } from './play';
 import { solve24 } from './solver';
 
-/** 從單人模式選單進入某個模式（選單按鈕有 500ms 延遲才切換） */
+/** 從單人模式選單進入某個模式 */
 export async function openSinglePlayMode(page: Page, label: string) {
   await page.goto('/single-play');
   await page.getByRole('button', { name: new RegExp(label) }).click();

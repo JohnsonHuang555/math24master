@@ -26,6 +26,8 @@ import { GameType } from '@/models/Room';
 
 type CreateRoomModalProps = {
   roomId: string;
+  /** 預填的房間名稱（例如大廳搜尋不到時，用關鍵字建立房間） */
+  defaultRoomName?: string;
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirm: (
@@ -38,8 +40,13 @@ type CreateRoomModalProps = {
 
 // ── 元件 ─────────────────────────────────────────────────────────────────────
 
-const CreateRoomModal = ({ isOpen, onOpenChange, onConfirm }: CreateRoomModalProps) => {
-  const [roomName, setRoomName] = useState('');
+const CreateRoomModal = ({
+  defaultRoomName = '',
+  isOpen,
+  onOpenChange,
+  onConfirm,
+}: CreateRoomModalProps) => {
+  const [roomName, setRoomName] = useState(defaultRoomName);
   const [maxPlayers, setMaxPlayers] = useState('2');
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);

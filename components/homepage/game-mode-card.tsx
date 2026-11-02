@@ -1,69 +1,53 @@
 'use client';
 
-import { RefObject } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { ReactNode } from 'react';
 import { ChevronRight, LucideIcon } from 'lucide-react';
 import { useHardNavigate } from '@/i18n/navigation';
-
-export type GameModeCardTheme = {
-  card: string;
-  iconBg: string;
-  title: string;
-  description: string;
-  chevron: string;
-};
 
 type GameModeCardProps = {
   href: string;
   icon: LucideIcon;
   title: string;
   description: string;
-  theme: GameModeCardTheme;
-  badge?: { label: string; className: string };
-  delay?: number;
-  scrollRef: RefObject<HTMLDivElement | null>;
+  badge?: string;
+  /** 說明下方的狀態 pill，如每日挑戰的完成狀態與連續天數 */
+  extra?: ReactNode;
 };
 
+/** 首頁「更多遊戲」的小磚：平面卡片，模式之間用圖示區分、不用顏色 */
 const GameModeCard = ({
   href,
   icon: Icon,
   title,
   description,
-  theme,
   badge,
-  delay = 0,
-  scrollRef,
+  extra,
 }: GameModeCardProps) => {
-  const reduceMotion = useReducedMotion();
   const hardNavigate = useHardNavigate();
 
   return (
-    <motion.button
-      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ root: scrollRef, once: true, amount: 0.3 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={reduceMotion ? undefined : { y: -4 }}
-      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-      className={`flex w-full items-center gap-4 rounded-2xl border-2 p-5 text-left transition-colors active:translate-y-1 active:shadow-none md:p-6 ${theme.card}`}
+    <button
+      type="button"
       onClick={() => hardNavigate(href)}
+      className="flex w-full items-center gap-3.5 rounded-[18px] border border-line bg-surface p-3.5 text-left transition-colors hover:border-line-strong hover:bg-sunken focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
-      <div
-        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white ${theme.iconBg}`}
-      >
-        <Icon className="h-7 w-7" />
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary-ink">
+        <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className={`text-lg font-black ${theme.title}`}>{title}</span>
-          {badge && <span className={badge.className}>{badge.label}</span>}
-        </div>
-        <div className={`mt-0.5 text-sm ${theme.description}`}>
-          {description}
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+        <span className="flex items-center gap-1.5">
+          <strong className="text-base text-ink">{title}</strong>
+          {badge && (
+            <span className="inline-flex h-[22px] items-center rounded-full border border-line-strong bg-sunken px-2 text-[11px] font-bold whitespace-nowrap text-ink">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className="text-[13px] text-ink-2">{description}</span>
+        {extra}
       </div>
-      <ChevronRight className={`h-5 w-5 shrink-0 ${theme.chevron}`} />
-    </motion.button>
+      <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-ink-2" />
+    </button>
   );
 };
 

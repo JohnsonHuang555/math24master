@@ -277,6 +277,23 @@ export function findAllSolutions(nums: number[]): Solution[] {
   return results.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * 首頁每日挑戰入口用：今天是否已完成、目前的連續天數。
+ * 今天還沒做時，昨天有完成就延續昨天的天數（今天做完才會 +1），否則為 0
+ */
+export function getDailyStatus(today = getTodayDateString()): {
+  doneToday: boolean;
+  streak: number;
+} {
+  const todayRecord = getDailyRecord(today);
+  if (todayRecord?.done) return { doneToday: true, streak: todayRecord.streak };
+  const yesterdayRecord = getDailyRecord(getYesterdayDateString(today));
+  return {
+    doneToday: false,
+    streak: yesterdayRecord?.done ? yesterdayRecord.streak : 0,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 舊 API（deprecated，保留相容性）
 // ---------------------------------------------------------------------------

@@ -1,35 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Layers, LayoutGrid, Shapes, Timer } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  ChevronRight,
+  Layers,
+  LayoutGrid,
+  Shapes,
+  Timer,
+  Trophy,
+} from 'lucide-react';
 import ChallengePlayGame from '@/app/[locale]/single-play/[mode]/challenge-play-game';
 import ClassicPlayGame from '@/app/[locale]/single-play/[mode]/classic-play-game';
 import MatchPlayGame from '@/app/[locale]/single-play/[mode]/match-play-game';
 import TabletopPlayGame from '@/app/[locale]/single-play/[mode]/tabletop-play-game';
 import { BackToHomeButton } from '@/components/back-to-home-button';
+import { LocaleSwitcher } from '@/components/locale-switcher';
+import { Link } from '@/i18n/navigation';
 import { prewarmMatchGenerator } from '@/lib/match-board-generator';
-import { cn } from '@/lib/utils';
 import { useStatsStore } from '@/stores/stats-store';
 
 // 關卡模式（normal）暫時下架，改版為固定題庫後再回歸
 type PlayMode = 'classic' | 'challenge' | 'match' | 'tabletop';
 
+// 模式之間用圖示區分，不用顏色（設計系統：所有模式卡都是 teal）
 const MODE_CONFIG = [
   {
     value: 'classic' as const,
     label: '經典模式',
     badge: undefined as string | undefined,
     tagline: '牌值 1–13 · 累積最高分',
-    chips: ['解題獲得分數', '尋找 最佳解答', '牌庫抽完即遊戲結束'],
+    chips: ['解題獲得分數', '尋找最佳解答', '牌庫抽完即遊戲結束'],
     Icon: Layers,
-    color: {
-      icon: 'bg-teal-500',
-      chip: 'bg-teal-50 border-teal-200 text-teal-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(175,84%,78%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(175,84%,78%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(175,84%,78%)]',
-    },
   },
   {
     value: 'challenge' as const,
@@ -38,28 +40,14 @@ const MODE_CONFIG = [
     tagline: '倒數 5 分鐘 · 無限關卡',
     chips: ['答對加秒數', '跳過會懲罰', '挑戰通過最多關卡數'],
     Icon: Timer,
-    color: {
-      icon: 'bg-amber-400',
-      chip: 'bg-amber-50 border-amber-200 text-amber-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(36,100%,72%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(36,100%,72%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
-    },
   },
   {
     value: 'match' as const,
     label: '消消樂模式',
     badge: undefined as string | undefined,
     tagline: '16 張牌 · 自由配對消除',
-    chips: ['任選 2-4 張湊 24', '無時間限制', '全部清除才計分上榜'],
+    chips: ['任選 2–4 張湊 24', '無時間限制', '全部清除才計分上榜'],
     Icon: LayoutGrid,
-    color: {
-      icon: 'bg-primary',
-      chip: 'bg-zinc-50 border-zinc-200 text-zinc-700',
-      shadow: 'shadow-[0_8px_0_0_rgba(0,0,0,0.10)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_rgba(0,0,0,0.10)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_rgba(0,0,0,0.10)]',
-    },
   },
   {
     value: 'tabletop' as const,
@@ -68,17 +56,11 @@ const MODE_CONFIG = [
     tagline: '改編自拉密 · 對戰電腦搶先出完',
     chips: ['拆開重組桌上算式', '同色或全異色', '和 2 個電腦搶分'],
     Icon: Shapes,
-    color: {
-      icon: 'bg-amber-400',
-      chip: 'bg-amber-50 border-amber-200 text-amber-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(36,100%,72%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(36,100%,72%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
-    },
   },
 ] as const;
 
 export default function SinglePlayPage() {
+  const reduceMotion = useReducedMotion();
   const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
 
   const {
@@ -103,14 +85,22 @@ export default function SinglePlayPage() {
     prewarmMatchGenerator();
   }, []);
 
-  const bestLabel: Record<PlayMode, string | null> = {
-    classic: classicBestScore > 0 ? `${classicBestScore} 分` : null,
-    challenge: challengeBestStage > 0 ? `第 ${challengeBestStage} 關` : null,
-    match: matchBestScore > 0 ? `${matchBestScore} 分` : null,
-    tabletop: tabletopBest
-      ? `${tabletopBest[1]} ${tabletopBestScores[tabletopBest[0]]} 分`
-      : null,
-  };
+  const bestLabel: Record<PlayMode, { prefix?: string; value: string } | null> =
+    {
+      classic:
+        classicBestScore > 0 ? { value: `${classicBestScore} 分` } : null,
+      challenge:
+        challengeBestStage > 0
+          ? { value: `第 ${challengeBestStage} 關` }
+          : null,
+      match: matchBestScore > 0 ? { value: `${matchBestScore} 分` } : null,
+      tabletop: tabletopBest
+        ? {
+            prefix: tabletopBest[1],
+            value: `${tabletopBestScores[tabletopBest[0]]} 分`,
+          }
+        : null,
+    };
 
   if (activeMode === 'challenge') {
     return <ChallengePlayGame onBack={() => setActiveMode(null)} autoStart />;
@@ -127,104 +117,98 @@ export default function SinglePlayPage() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      {/* Header */}
-      <header className="flex h-14 shrink-0 items-center px-4">
+      <header className="flex shrink-0 items-center gap-1 px-2 pt-2">
         <BackToHomeButton />
+        <span className="flex-1" />
+        <Link
+          href="/leaderboard"
+          aria-label="排行榜"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
+        >
+          <Trophy className="h-5 w-5" />
+        </Link>
+        <LocaleSwitcher className="text-ink" />
       </header>
 
-      {/* Main */}
-      <main className="mb-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-0 pb-8">
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-black tracking-tight text-foreground md:text-4xl">
-            選擇模式
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            挑選適合你的遊戲方式
-          </p>
-        </div>
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-1.5 px-4 pt-2 pb-5">
+        <h1 className="text-[28px] font-black tracking-tight text-ink">
+          單人模式
+        </h1>
+        <p className="text-[15px] text-ink-2">選一個模式開始，點了就進入遊戲</p>
+      </div>
 
-        <div className="flex w-full max-w-lg flex-col gap-4 space-y-4">
-          {MODE_CONFIG.map((mode, i) => {
-            const best = bestLabel[mode.value];
-            return (
-              <motion.button
-                key={mode.value}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.4,
-                  delay: i * 0.07,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                whileHover={{ y: -4 }}
-                whileTap={{ y: 2 }}
-                onClick={() => {
-                  setTimeout(() => {
-                    setActiveMode(mode.value);
-                  }, 500);
-                }}
-                className={cn(
-                  'w-full cursor-pointer rounded-3xl border-2 border-zinc-200 bg-white/90 p-5 text-left backdrop-blur-xs transition-shadow dark:bg-zinc-900/80',
-                  mode.color.shadow,
-                  mode.color.hoverShadow,
-                  mode.color.activeShadow,
-                )}
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div
-                    className={cn(
-                      'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white',
-                      mode.color.icon,
-                    )}
-                  >
-                    <mode.Icon className="h-7 w-7" />
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display text-xl font-black text-foreground">
-                        {mode.label}
-                      </span>
-                      {mode.badge && (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-                          {mode.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {mode.tagline}
-                    </p>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {mode.chips.map(chip => (
-                        <span
-                          key={chip}
-                          className={cn(
-                            'rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                            mode.color.chip,
-                          )}
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+      <main className="mx-auto flex w-full max-w-lg flex-col gap-3.5 px-4 pb-10">
+        {MODE_CONFIG.map((mode, i) => {
+          const best = bestLabel[mode.value];
+          return (
+            <motion.button
+              key={mode.value}
+              type="button"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.28,
+                delay: reduceMotion ? 0 : i * 0.05,
+                ease: [0.2, 0, 0, 1],
+              }}
+              onClick={() => setActiveMode(mode.value)}
+              className="group flex w-full flex-col gap-3 rounded-[20px] border border-line bg-surface p-[18px] text-left transition-[border-color,translate] duration-[90ms] hover:border-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0.5"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary-ink">
+                  <mode.Icon className="h-6 w-6" />
                 </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex items-center gap-2">
+                    <strong className="text-[19px] text-ink">
+                      {mode.label}
+                    </strong>
+                    {mode.badge && (
+                      <span className="rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber uppercase">
+                        {mode.badge}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm text-ink-2">{mode.tagline}</span>
+                </div>
+                <ChevronRight
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 text-ink-2 group-hover:text-primary-ink"
+                />
+              </div>
 
-                {/* Personal best */}
-                {best && (
-                  <div className="mt-4 border-t border-zinc-100 pt-3.5 dark:border-zinc-800">
-                    <p className="text-xs text-muted-foreground">個人最佳</p>
-                    <p className="font-display text-xl font-bold text-foreground">
-                      {best}
-                    </p>
-                  </div>
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
+              <div className="flex flex-wrap gap-1.5">
+                {mode.chips.map(chip => (
+                  <span
+                    key={chip}
+                    className="inline-flex h-[26px] items-center rounded-full bg-sunken px-[9px] text-xs font-semibold whitespace-nowrap text-ink"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+
+              {best && (
+                <div className="flex items-center justify-between border-t border-line pt-3">
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2">
+                    <Trophy aria-hidden className="h-4 w-4" />
+                    個人最佳
+                  </span>
+                  <span className="flex items-baseline gap-1.5">
+                    {best.prefix && (
+                      <span className="text-[13px] font-bold text-ink-2">
+                        {best.prefix}
+                      </span>
+                    )}
+                    <span className="font-display text-[22px] font-extrabold text-ink">
+                      {best.value}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
       </main>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { AddToHomeScreenPrompt } from '@/components/add-to-home-screen-prompt';
 import AnnouncementBanner from '@/components/announcement-banner';
 import { AchievementModal } from '@/components/modals/achievement-modal';
@@ -15,7 +15,6 @@ const Homepage = () => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [isOpenAchievementModal, setIsOpenAchievementModal] = useState(false);
   const [isOpenStatsModal, setIsOpenStatsModal] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -30,17 +29,14 @@ const Homepage = () => {
         onClose={() => setIsOpenStatsModal(false)}
       />
 
-      <div
-        ref={scrollRef}
-        className="flex h-full w-full flex-col overflow-y-auto"
-      >
+      <div className="flex h-full w-full flex-col overflow-y-auto">
         <AnnouncementBanner />
         <HeroSection
           onOpenStatsModal={() => setIsOpenStatsModal(true)}
           onOpenAchievementModal={() => setIsOpenAchievementModal(true)}
         />
-        <MoreModesSection scrollRef={scrollRef} />
-        <StepsSection scrollRef={scrollRef} />
+        <MoreModesSection />
+        <StepsSection />
         <Footer />
       </div>
     </>

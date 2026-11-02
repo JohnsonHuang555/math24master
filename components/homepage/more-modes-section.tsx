@@ -1,95 +1,86 @@
-import { RefObject } from 'react';
-import { CalendarDays, LucideIcon, Search, Timer } from 'lucide-react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import {
+  Calculator,
+  CalendarDays,
+  CircleCheck,
+  CircleDashed,
+  Flame,
+  HelpCircle,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import GameModeCard, { GameModeCardTheme } from './game-mode-card';
+import { getDailyStatus } from '@/lib/daily-seed';
+import GameModeCard from './game-mode-card';
 
-const THEMES: Record<'teal' | 'amber' | 'violet', GameModeCardTheme> = {
-  teal: {
-    card: 'border-teal-200 bg-teal-50 shadow-[0_6px_0_0_var(--color-teal-200)] hover:bg-teal-100/70 dark:border-teal-800 dark:bg-teal-900/20 dark:shadow-[0_6px_0_0_var(--color-teal-800)] dark:hover:bg-teal-900/30',
-    iconBg: 'bg-teal-500',
-    title: 'text-teal-800 dark:text-teal-300',
-    description: 'text-teal-600 dark:text-teal-400/80',
-    chevron: 'text-teal-400',
-  },
-  amber: {
-    card: 'border-amber-200 bg-amber-50 shadow-[0_6px_0_0_var(--color-amber-200)] hover:bg-amber-100/70 dark:border-amber-800 dark:bg-amber-900/20 dark:shadow-[0_6px_0_0_var(--color-amber-800)] dark:hover:bg-amber-900/30',
-    iconBg: 'bg-amber-400',
-    title: 'text-amber-800 dark:text-amber-300',
-    description: 'text-amber-600 dark:text-amber-400/80',
-    chevron: 'text-amber-400',
-  },
-  violet: {
-    card: 'border-violet-200 bg-violet-50 shadow-[0_6px_0_0_var(--color-violet-200)] hover:bg-violet-100/70 dark:border-violet-800 dark:bg-violet-900/20 dark:shadow-[0_6px_0_0_var(--color-violet-800)] dark:hover:bg-violet-900/30',
-    iconBg: 'bg-violet-400',
-    title: 'text-violet-800 dark:text-violet-300',
-    description: 'text-violet-600 dark:text-violet-400/80',
-    chevron: 'text-violet-400',
-  },
-};
+const PILL_CLASS =
+  'inline-flex h-6 items-center gap-[5px] rounded-full px-2 text-xs font-bold whitespace-nowrap';
 
-type GameMode = {
-  id: 'dailyChallenge' | 'guessNumber' | 'quickMath';
-  href: string;
-  icon: LucideIcon;
-  theme: GameModeCardTheme;
-  badgeClassName?: string;
-  delay: number;
-};
+/** 每日挑戰的今日狀態與連續天數；讀 localStorage，所以等掛載後才顯示 */
+function DailyStatusPills() {
+  const t = useTranslations('Home.moreModes.dailyChallenge');
+  const [status, setStatus] = useState<ReturnType<
+    typeof getDailyStatus
+  > | null>(null);
 
-const GAME_MODES: GameMode[] = [
-  {
-    id: 'dailyChallenge',
-    href: '/daily-challenge',
-    icon: CalendarDays,
-    theme: THEMES.teal,
-    delay: 0,
-  },
-  {
-    id: 'guessNumber',
-    href: '/guess-number',
-    icon: Search,
-    theme: THEMES.amber,
-    badgeClassName:
-      'rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-800/40 dark:text-amber-300',
-    delay: 0.08,
-  },
-  {
-    id: 'quickMath',
-    href: '/quick-math',
-    icon: Timer,
-    theme: THEMES.violet,
-    delay: 0.16,
-  },
-];
+  useEffect(() => {
+    setStatus(getDailyStatus()); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
-type MoreModesSectionProps = {
-  scrollRef: RefObject<HTMLDivElement | null>;
-};
+  if (!status) return null;
 
-const MoreModesSection = ({ scrollRef }: MoreModesSectionProps) => {
+  return (
+    <span className="mt-[3px] flex flex-wrap gap-1.5">
+      <span
+        className={`${PILL_CLASS} ${status.doneToday ? 'bg-primary-tint text-primary-ink' : 'bg-sunken text-ink'}`}
+      >
+        {status.doneToday ? (
+          <CircleCheck aria-hidden className="h-[13px] w-[13px]" />
+        ) : (
+          <CircleDashed aria-hidden className="h-[13px] w-[13px]" />
+        )}
+        {status.doneToday ? t('doneToday') : t('notDoneToday')}
+      </span>
+      {status.streak > 0 && (
+        <span className={`${PILL_CLASS} bg-amber-tint text-amber-ink`}>
+          <Flame aria-hidden className="h-[13px] w-[13px]" />
+          {t('streak', { count: status.streak })}
+        </span>
+      )}
+    </span>
+  );
+}
+
+const MoreModesSection = () => {
   const t = useTranslations('Home.moreModes');
 
   return (
-    <section className="px-4 py-14 md:px-10 md:py-20">
-      <div className="mx-auto max-w-4xl">
-        <h2 className="mb-6 text-2xl font-black tracking-tight text-foreground md:text-3xl">
+    <section className="px-4 pt-2 pb-8 md:px-10 md:pb-14">
+      <div className="mx-auto flex max-w-4xl flex-col gap-3">
+        <h2 className="mb-1 text-xl font-extrabold text-ink md:text-2xl">
           {t('title')}
         </h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 md:gap-6">
-          {GAME_MODES.map(({ id, badgeClassName, ...mode }) => (
-            <GameModeCard
-              key={id}
-              scrollRef={scrollRef}
-              title={t(`${id}.title`)}
-              description={t(`${id}.description`)}
-              badge={
-                badgeClassName && id === 'guessNumber'
-                  ? { label: t(`${id}.badge`), className: badgeClassName }
-                  : undefined
-              }
-              {...mode}
-            />
-          ))}
+        <div className="grid gap-3 md:grid-cols-3">
+          <GameModeCard
+            href="/daily-challenge"
+            icon={CalendarDays}
+            title={t('dailyChallenge.title')}
+            description={t('dailyChallenge.description')}
+            extra={<DailyStatusPills />}
+          />
+          <GameModeCard
+            href="/quick-math"
+            icon={Calculator}
+            title={t('quickMath.title')}
+            description={t('quickMath.description')}
+          />
+          <GameModeCard
+            href="/guess-number"
+            icon={HelpCircle}
+            title={t('guessNumber.title')}
+            description={t('guessNumber.description')}
+            badge={t('guessNumber.badge')}
+          />
         </div>
       </div>
     </section>

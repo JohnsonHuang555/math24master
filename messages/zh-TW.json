@@ -4,6 +4,7 @@
   },
   "NotFound": {
     "title": "找不到這個頁面",
+    "description": "這張牌不在牌庫裡",
     "backHome": "首頁"
   },
   "Common": {
@@ -31,7 +32,10 @@
       "title": "更多遊戲",
       "dailyChallenge": {
         "title": "每日挑戰",
-        "description": "每天 3 題 · 連續挑戰紀錄"
+        "description": "每天 3 題 · 連續挑戰紀錄",
+        "doneToday": "今日已完成",
+        "notDoneToday": "今日未完成",
+        "streak": "連續 {count} 天"
       },
       "guessNumber": {
         "title": "猜數字",
@@ -44,25 +48,22 @@
       }
     },
     "steps": {
-      "title": "簡單遊玩三步驟",
+      "title": "怎麼玩",
       "draw": {
-        "title": "抽牌",
-        "description": "每局抽 4 張手牌，1 ~ 13 的隨機數字"
+        "title": "抽牌"
       },
       "make24": {
-        "title": "湊 24",
-        "description": "用加減乘除，讓算式結果等於 24"
+        "title": "湊 24"
       },
       "score": {
-        "title": "得分",
-        "description": "符號越困難，得分越高"
+        "title": "得分"
       }
     },
     "footer": "#24點大師, Created by Johnson Huang 2026"
   },
   "Announcement": {
     "dismiss": "關閉公告",
-    "tryNow": "立即體驗 →",
+    "tryNow": "立即體驗",
     "tabletop": {
       "title": "新模式「牌桌模式」上線！",
       "description": "改編自拉密・和 2 個電腦搶分・拆開重組桌上的算式"
@@ -246,6 +247,7 @@
     "signOut": "登出",
     "googleLogin": "Google 登入",
     "loginToRank": "登入後即可上榜",
+    "loginHint": "Google 或訪客登入都可以",
     "noRecord": "尚無紀錄",
     "rankLoadFailed": "名次載入失敗",
     "myRank": "我的名次",

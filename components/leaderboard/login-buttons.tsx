@@ -18,16 +18,15 @@ export function LoginButtons({ className }: { className?: string }) {
     <>
       <div className={cn('flex gap-2', className)}>
         <Button
-          size="sm"
-          className="h-8 flex-1 rounded-xl text-xs font-bold"
+          variant="outline"
+          className="h-11 flex-1 rounded-xl border-[1.5px] border-line-strong bg-surface text-sm font-bold text-ink hover:bg-sunken"
           onClick={() => signIn('google')}
         >
           {t('googleLogin')}
         </Button>
         <Button
-          size="sm"
-          variant="outline"
-          className="h-8 flex-1 rounded-xl text-xs font-bold"
+          variant="ghost"
+          className="h-11 flex-1 rounded-xl text-sm font-bold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
           onClick={() => setShowGuestLogin(true)}
         >
           {tCommon('guestLogin')}

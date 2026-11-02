@@ -28,11 +28,11 @@ export function TabletopBetaNotice({ className }: { className?: string }) {
   return (
     <p
       className={cn(
-        'flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400',
+        'flex items-center gap-2 rounded-[10px] bg-amber-tint px-3 py-2 text-sm font-semibold text-amber-ink',
         className,
       )}
     >
-      <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+      <FlaskConical aria-hidden className="h-4 w-4 shrink-0" />
       {t('tabletopBeta', {
         date: format.dateTime(
           new Date(`${TABLETOP_LEADERBOARD_RESET_DATE}T00:00:00+08:00`),

@@ -112,6 +112,14 @@ import Symbols from '@/components/symbols';
 | `GameTimer` | 倒數計時：一般 / 低時限（粗框＋警示 pill＋脈動）/ 暫停（條紋進度條）；`delta` 顯示加扣秒數 pill |
 | `PlayerCard` | 多人玩家卡：頭像、暱稱（截斷）、次要資訊、右側「圖示＋文字」狀態 pill |
 
+外框頁的共用寫法（第二批改版後）：
+
+- 次頁面頂部：`<BackToHomeButton />`（44px 圖示鈕）＋ `flex-1` 空白＋右側工具；標題左對齊 `text-[28px] font-black`、副標 `text-[15px] text-ink-2`
+- 清單卡（模式卡、房間卡、更多遊戲磚）：`rounded-[18px]~[20px] border border-line bg-surface`，左側 `bg-primary-tint text-primary-ink` 圖示框，右側 chevron；不用彩色底與厚度陰影
+- 篩選 chip：`h-11 rounded-full border-line-strong`，選中 `bg-primary-ink text-white`；segmented control 見 `components/leaderboard/board-selector.tsx`
+- Beta 標籤：`bg-amber text-on-amber` 小方角大寫
+- 名次獎牌：`components/leaderboard/rank-medal.tsx`，頭像：`components/leaderboard/player-avatar.tsx`（無照片時顯示名字縮寫）
+
 牌桌模式的牌面用 `components/tabletop/tabletop-card.tsx`：牌色用 `text-suit-red` / `suit-blue` / `suit-yellow` / `suit-black`，形狀在左上角並在數字下方重複一次；Joker 未宣告為條紋底、已宣告為虛線邊＋J 標。
 
 - 符號鈕 48×48，6 顆一列剛好放進 360px 寬
