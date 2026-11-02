@@ -3,6 +3,7 @@ import {
   canMake24,
   findAllSolutions,
   getDailyRecord,
+  getDailyStatus,
   saveDailyRecord,
 } from '../daily-seed';
 
@@ -59,6 +60,41 @@ describe('saveDailyRecord', () => {
 // ---------------------------------------------------------------------------
 // getDailyRecord + migrateOldRecords
 // ---------------------------------------------------------------------------
+
+describe('getDailyStatus', () => {
+  it('沒有任何紀錄時未完成、連續 0 天', () => {
+    expect(getDailyStatus('2026-04-07')).toEqual({
+      doneToday: false,
+      streak: 0,
+    });
+  });
+
+  it('今天已完成時回傳今天的連續天數', () => {
+    saveDailyRecord('2026-04-06', 4, []);
+    saveDailyRecord('2026-04-07', 5, []);
+    expect(getDailyStatus('2026-04-07')).toEqual({
+      doneToday: true,
+      streak: 2,
+    });
+  });
+
+  it('今天還沒做、昨天有完成時延續昨天的天數', () => {
+    saveDailyRecord('2026-04-05', 4, []);
+    saveDailyRecord('2026-04-06', 4, []);
+    expect(getDailyStatus('2026-04-07')).toEqual({
+      doneToday: false,
+      streak: 2,
+    });
+  });
+
+  it('昨天也沒做時連續天數歸零', () => {
+    saveDailyRecord('2026-04-05', 4, []);
+    expect(getDailyStatus('2026-04-07')).toEqual({
+      doneToday: false,
+      streak: 0,
+    });
+  });
+});
 
 describe('getDailyRecord + 遷移', () => {
   it('無資料時回傳 undefined', () => {

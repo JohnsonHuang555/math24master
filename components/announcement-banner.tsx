@@ -50,41 +50,34 @@ function AnnouncementRow({
   const t = useTranslations('Announcement');
   const { key, id, icon: Icon, badge, href } = announcement;
 
+  // 單行公告列：標題過長以省略號截斷，桌機再顯示說明
   return (
-    <div className="flex items-center gap-3 bg-primary px-4 py-2.5 md:px-10">
-      {/* Icon */}
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/20">
-        <Icon className="h-4 w-4 text-white" />
-      </div>
-
-      {/* Text */}
-      <div className="flex flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-        <span className="text-sm font-bold text-white">
-          {t(`${id}.title`)}
+    <div className="flex items-center gap-2.5 border-b border-line bg-surface py-1 pr-1 pl-4 md:pl-10">
+      {badge ? (
+        <span className="shrink-0 rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber uppercase">
+          {badge}
         </span>
-        {badge && (
-          <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white">
-            {badge}
-          </span>
-        )}
-        <span className="hidden text-sm text-white/75 sm:inline">
+      ) : (
+        <Icon aria-hidden className="h-4 w-4 shrink-0 text-primary-ink" />
+      )}
+      <Link
+        href={href}
+        className="min-w-0 flex-1 truncate py-2 text-[13px] font-semibold text-ink"
+      >
+        {t(`${id}.title`)}
+        <span className="hidden font-normal text-ink-2 md:inline">
+          {' '}
           {t(`${id}.description`)}
         </span>
-        <Link
-          href={href}
-          className="text-sm font-bold text-white/90 underline underline-offset-2 transition-colors hover:text-white"
-        >
-          {t('tryNow')}
-        </Link>
-      </div>
-
-      {/* Dismiss */}
+        <span className="font-bold text-primary-ink"> {t('tryNow')}</span>
+      </Link>
       <button
+        type="button"
         onClick={() => onDismiss(key)}
         aria-label={t('dismiss')}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
       >
-        <X className="h-4 w-4" />
+        <X className="h-[18px] w-[18px]" />
       </button>
     </div>
   );
@@ -118,7 +111,7 @@ const AnnouncementBanner = () => {
       initial={reduceMotion ? false : { opacity: 0, y: -40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 280, damping: 22 }}
-      className="sticky top-0 z-30 flex flex-col divide-y divide-white/15"
+      className="sticky top-0 z-30 flex flex-col"
     >
       <AnimatePresence initial={false}>
         {visible.map(announcement => (

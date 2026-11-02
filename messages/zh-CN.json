@@ -4,6 +4,7 @@
   },
   "NotFound": {
     "title": "找不到这个页面",
+    "description": "这张牌不在牌库里",
     "backHome": "首页"
   },
   "Common": {
@@ -31,7 +32,10 @@
       "title": "更多游戏",
       "dailyChallenge": {
         "title": "每日挑战",
-        "description": "每天 3 题 · 连续挑战纪录"
+        "description": "每天 3 题 · 连续挑战纪录",
+        "doneToday": "今日已完成",
+        "notDoneToday": "今日未完成",
+        "streak": "连续 {count} 天"
       },
       "guessNumber": {
         "title": "猜数字",
@@ -44,25 +48,22 @@
       }
     },
     "steps": {
-      "title": "简单游玩三步骤",
+      "title": "怎么玩",
       "draw": {
-        "title": "抽牌",
-        "description": "每局抽 4 张手牌，1 ~ 13 的随机数字"
+        "title": "抽牌"
       },
       "make24": {
-        "title": "凑 24",
-        "description": "用加减乘除，让算式结果等于 24"
+        "title": "凑 24"
       },
       "score": {
-        "title": "得分",
-        "description": "符号越困难，得分越高"
+        "title": "得分"
       }
     },
     "footer": "#24点大师, Created by Johnson Huang 2026"
   },
   "Announcement": {
     "dismiss": "关闭公告",
-    "tryNow": "立即体验 →",
+    "tryNow": "立即体验",
     "tabletop": {
       "title": "新模式「牌桌模式」上线！",
       "description": "改编自拉密・和 2 个电脑抢分・拆开重组桌上的算式"
@@ -246,6 +247,7 @@
     "signOut": "注销",
     "googleLogin": "Google 登录",
     "loginToRank": "登录后即可上榜",
+    "loginHint": "Google 或访客登录都可以",
     "noRecord": "尚无纪录",
     "rankLoadFailed": "名次加载失败",
     "myRank": "我的名次",

@@ -111,7 +111,7 @@ export function PlayerCard({
 }
 
 /** 頭像文字：拉丁字母取前兩個字元，其他（如中文）取第一個字 */
-function initialOf(name: string): string {
+export function initialOf(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return '?';
   const first = Array.from(trimmed)[0];

@@ -1,5 +1,6 @@
 'use client';
 
+import { LogOut } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useGuestStore } from '@/stores/guest-store';
@@ -29,19 +30,24 @@ export function AccountChip() {
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <PlayerAvatar name={name} photoURL={photoURL} size={24} />
-      <span className="max-w-32 truncate text-sm font-medium">{name}</span>
+    <div className="flex h-11 min-w-0 items-center gap-2 rounded-full border border-line bg-surface pr-1 pl-1.5">
+      <PlayerAvatar name={name} photoURL={photoURL} size={30} isMe />
+      <span className="max-w-32 truncate text-sm font-bold text-ink">
+        {name}
+      </span>
       {isGuest && (
-        <span className="shrink-0 rounded-md bg-zinc-100 px-1 py-px text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+        <span className="shrink-0 rounded-md bg-sunken px-1.5 py-px text-[11px] font-bold text-ink-2">
           {t('guest')}
         </span>
       )}
       <button
+        type="button"
         onClick={onSignOut}
-        className="shrink-0 rounded-xl px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
+        aria-label={t('signOut')}
+        title={t('signOut')}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
       >
-        {t('signOut')}
+        <LogOut className="h-4 w-4" />
       </button>
     </div>
   );

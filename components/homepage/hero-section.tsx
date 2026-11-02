@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Link, useHardNavigate } from '@/i18n/navigation';
 
 const HERO_CARDS = [
-  { value: 6, rotate: -14, y: 22 },
-  { value: 4, rotate: -5, y: 8 },
-  { value: 3, rotate: 5, y: 8 },
-  { value: 2, rotate: 14, y: 22 },
+  { value: 6, rotate: -14, y: 18 },
+  { value: 4, rotate: -5, y: 0 },
+  { value: 3, rotate: 5, y: 0 },
+  { value: 2, rotate: 14, y: 18 },
 ];
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 type HeroSectionProps = {
   onOpenStatsModal: () => void;
@@ -28,16 +30,32 @@ const HeroSection = ({
   const hardNavigate = useHardNavigate();
   const t = useTranslations('Home');
 
+  const navItems = [
+    { key: 'leaderboard', label: t('leaderboard'), icon: Trophy },
+    {
+      key: 'stats',
+      label: t('stats'),
+      icon: BarChart2,
+      onClick: onOpenStatsModal,
+    },
+    {
+      key: 'achievements',
+      label: t('achievements'),
+      icon: Award,
+      onClick: onOpenAchievementModal,
+    },
+  ];
+
   return (
-    <section className="relative flex min-h-dvh flex-col">
+    <section className="relative flex flex-col">
       {/* teal 底部光暈 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_40rem_at_50%_130%,rgba(13,148,136,0.13),transparent_70%)]"
       />
 
-      {/* 導覽列 */}
-      <header className="relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-10">
+      {/* 導覽列：手機為圖示按鈕，桌機為文字按鈕 */}
+      <header className="relative z-10 flex h-16 shrink-0 items-center justify-between gap-2 pr-2 pl-4 md:px-10">
         <Image
           src="/logo.webp"
           alt={t('logoAlt')}
@@ -47,70 +65,44 @@ const HeroSection = ({
           priority
         />
         <nav className="flex items-center gap-0.5">
-          {/* 桌面：文字按鈕 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
-            asChild
-          >
-            <Link href="/leaderboard">{t('leaderboard')}</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
-            onClick={onOpenStatsModal}
-          >
-            {t('stats')}
-          </Button>
-          {/* 暫時註解 */}
-          {/* <Button
-            variant="ghost"
-            size="sm"
-            className="hidden font-bold text-muted-foreground hover:text-foreground md:inline-flex"
-            onClick={onOpenAchievementModal}
-          >
-            {t('achievements')}
-          </Button> */}
-          {/* 手機：純圖示 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
-            asChild
-          >
-            <Link href="/leaderboard" aria-label={t('leaderboard')}>
-              <Trophy className="h-5 w-5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
-            onClick={onOpenStatsModal}
-            aria-label={t('stats')}
-          >
-            <BarChart2 className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 text-muted-foreground hover:text-foreground md:hidden"
-            onClick={onOpenAchievementModal}
-            aria-label={t('achievements')}
-          >
-            <Award className="h-5 w-5" />
-          </Button>
-          <LocaleSwitcher />
+          {navItems.map(({ key, label, icon: Icon, onClick }) =>
+            onClick ? (
+              <Button
+                key={key}
+                variant="ghost"
+                className="h-11 w-11 px-0 font-bold text-ink md:w-auto md:px-3"
+                onClick={onClick}
+                aria-label={label}
+              >
+                <Icon className="h-5 w-5 md:hidden" />
+                <span className="hidden md:inline">{label}</span>
+              </Button>
+            ) : (
+              <Button
+                key={key}
+                variant="ghost"
+                className="h-11 w-11 px-0 font-bold text-ink md:w-auto md:px-3"
+                asChild
+              >
+                <Link href="/leaderboard" aria-label={label}>
+                  <Icon className="h-5 w-5 md:hidden" />
+                  <span className="hidden md:inline">{label}</span>
+                </Link>
+              </Button>
+            ),
+          )}
+          <LocaleSwitcher className="text-ink" />
         </nav>
       </header>
 
       {/* Hero 中心內容 */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-16 text-center md:gap-8 md:pb-24">
+      <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col items-center gap-[18px] px-4 pt-5 pb-8 text-center md:gap-6 md:pt-14 md:pb-16">
         {/* 牌面扇形 */}
-        <div className="flex items-end justify-center" aria-hidden>
-          {HERO_CARDS.map(card => (
+        <div
+          className="flex h-[118px] items-start justify-center md:h-[170px]"
+          aria-hidden
+        >
+          {HERO_CARDS.map((card, i) => (
             <motion.div
               key={card.value}
               initial={
@@ -120,15 +112,15 @@ const HeroSection = ({
               }
               animate={{ opacity: 1, y: card.y, rotate: card.rotate }}
               whileHover={
-                reduceMotion ? undefined : { y: card.y - 18, scale: 1.08 }
+                reduceMotion ? undefined : { y: card.y - 12, scale: 1.05 }
               }
               transition={{
                 type: 'spring',
-                stiffness: 190,
-                damping: 16,
-                // delay: reduceMotion ? 0 : 0.08 + i * 0.1,
+                stiffness: 300,
+                damping: 18,
+                delay: reduceMotion ? 0 : i * 0.06,
               }}
-              className="-mx-2 flex aspect-5/7 w-[88px] items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-5xl font-bold text-zinc-800 shadow-[0_8px_0_0_rgba(0,0,0,0.10)] md:-mx-3 md:w-[120px] md:rounded-3xl md:text-6xl lg:w-[130px] lg:text-6xl dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="-mx-1 flex h-[88px] w-16 items-center justify-center rounded-[13px] border-2 border-playcard-line bg-playcard font-display text-[38px] font-extrabold text-playcard-ink shadow-[0_5px_0_0_var(--playcard-edge)] md:-mx-1.5 md:h-[132px] md:w-24 md:rounded-[18px] md:text-[56px]"
             >
               {card.value}
             </motion.div>
@@ -137,80 +129,75 @@ const HeroSection = ({
 
         {/* 算式膠囊 */}
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
-            delay: reduceMotion ? 0 : 0.5,
-            duration: 0.45,
-            ease: [0.16, 1, 0.3, 1],
+            delay: reduceMotion ? 0 : 0.4,
+            duration: 0.4,
+            ease: EASE_OUT,
           }}
-          className="rounded-full border border-primary/25 bg-white/80 px-5 py-2 font-display text-sm font-semibold text-primary shadow-xs backdrop-blur-xs md:text-base dark:bg-zinc-900/80"
+          className="flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-2 font-display"
         >
-          6 × 4 × (3 - 2) = 24
+          <span className="text-lg font-bold text-ink-2">
+            6 × 4 × (3 − 2) =
+          </span>
+          <span className="text-[22px] font-extrabold text-primary-ink">
+            24
+          </span>
         </motion.div>
 
         {/* 標題 + 副文案 */}
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            delay: reduceMotion ? 0 : 0.32,
-            duration: 0.55,
-            ease: [0.16, 1, 0.3, 1],
+            delay: reduceMotion ? 0 : 0.25,
+            duration: 0.5,
+            ease: EASE_OUT,
           }}
-          className="space-y-3"
+          className="mt-1.5 space-y-3"
         >
-          <h1 className="font-display text-3xl leading-none font-black tracking-tight text-foreground md:text-6xl lg:text-6xl">
+          <h1 className="text-[34px] leading-[1.15] font-black tracking-tight text-balance text-ink md:text-6xl md:leading-[1.05]">
             {t.rich('title', {
               br: () => <br />,
               highlight: chunks => (
-                <span className="text-primary">{chunks}</span>
+                <span className="font-display text-[44px] font-extrabold text-primary-ink md:text-7xl">
+                  {chunks}
+                </span>
               ),
             })}
           </h1>
-          <p className="mx-auto max-w-[24rem] text-base text-muted-foreground md:text-lg">
+          <p className="mx-auto max-w-sm text-[15px] leading-relaxed text-pretty text-ink-2 md:text-lg">
             {t('subtitle')}
           </p>
         </motion.div>
 
-        {/* CTA 按鈕組 */}
+        {/* CTA：手機上下排、桌機並排 */}
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            delay: reduceMotion ? 0 : 0.52,
-            duration: 0.45,
-            ease: [0.16, 1, 0.3, 1],
+            delay: reduceMotion ? 0 : 0.45,
+            duration: 0.4,
+            ease: EASE_OUT,
           }}
-          className="flex flex-col items-center gap-3"
+          className="mt-1.5 flex w-full flex-col gap-3 md:w-auto md:flex-row"
         >
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <motion.div
-              whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-            >
-              <Button
-                variant="tactile"
-                className="h-14 px-12 text-xl"
-                onClick={() => hardNavigate('/single-play')}
-              >
-                {t('start')}
-              </Button>
-            </motion.div>
-            <motion.div
-              whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-            >
-              <Button
-                variant="tactileOutline"
-                className="h-14 gap-2 px-8 text-xl"
-                onClick={() => hardNavigate('/multiple-play')}
-              >
-                <Users className="h-5 w-5" />
-                {t('multiplayer')}
-              </Button>
-            </motion.div>
-          </div>
+          <Button
+            variant="tactile"
+            className="w-full md:w-60"
+            onClick={() => hardNavigate('/single-play')}
+          >
+            {t('start')}
+          </Button>
+          <Button
+            variant="tactileOutline"
+            className="w-full gap-2 md:w-60"
+            onClick={() => hardNavigate('/multiple-play')}
+          >
+            <Users className="h-5 w-5" />
+            {t('multiplayer')}
+          </Button>
         </motion.div>
       </div>
     </section>

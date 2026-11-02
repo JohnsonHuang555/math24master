@@ -4,6 +4,7 @@
   },
   "NotFound": {
     "title": "This page could not be found",
+    "description": "This card isn't in the deck",
     "backHome": "Home"
   },
   "Common": {
@@ -31,7 +32,10 @@
       "title": "More games",
       "dailyChallenge": {
         "title": "Daily Challenge",
-        "description": "3 puzzles a day · keep your streak going"
+        "description": "3 puzzles a day · keep your streak going",
+        "doneToday": "Done today",
+        "notDoneToday": "Not done today",
+        "streak": "{count}-day streak"
       },
       "guessNumber": {
         "title": "Guess the Number",
@@ -46,23 +50,20 @@
     "steps": {
       "title": "How to play",
       "draw": {
-        "title": "Draw",
-        "description": "Get 4 random cards from 1 to 13"
+        "title": "Draw"
       },
       "make24": {
-        "title": "Make 24",
-        "description": "Add, subtract, multiply and divide until the result is 24"
+        "title": "Make 24"
       },
       "score": {
-        "title": "Score",
-        "description": "Harder operators earn more points"
+        "title": "Score"
       }
     },
     "footer": "#Math24Master, Created by Johnson Huang 2026"
   },
   "Announcement": {
     "dismiss": "Dismiss announcement",
-    "tryNow": "Try it →",
+    "tryNow": "Try it",
     "tabletop": {
       "title": "New: Tabletop Mode!",
       "description": "Inspired by Rummikub · race 2 computer players · split and rebuild equations on the table"
@@ -246,6 +247,7 @@
     "signOut": "Sign out",
     "googleLogin": "Google",
     "loginToRank": "Sign in to get on the leaderboard",
+    "loginHint": "Sign in with Google or as a guest",
     "noRecord": "No record yet",
     "rankLoadFailed": "Couldn’t load your rank",
     "myRank": "My rank",

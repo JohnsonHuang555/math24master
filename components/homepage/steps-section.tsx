@@ -1,76 +1,77 @@
-'use client';
-
-import { RefObject } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 
+const CARD_CLASS =
+  'rounded-[7px] border-[1.5px] border-playcard-line bg-playcard shadow-[0_3px_0_0_var(--playcard-edge)]';
+
+/** 抽牌：兩張疊著的迷你牌 */
+function DrawIllustration() {
+  return (
+    <div aria-hidden className="relative h-[52px] w-14">
+      <span
+        className={`absolute top-1.5 left-1 h-[42px] w-[30px] -rotate-10 ${CARD_CLASS}`}
+      />
+      <span
+        className={`absolute top-0.5 left-5 flex h-[42px] w-[30px] items-center justify-center font-display text-lg font-extrabold text-playcard-ink ${CARD_CLASS}`}
+      >
+        7
+      </span>
+    </div>
+  );
+}
+
 const STEPS = [
+  { id: 'draw', illustration: <DrawIllustration /> },
   {
-    num: '1',
-    id: 'draw',
-    numBg: 'bg-teal-500',
-    cardStyle:
-      'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800',
-  },
-  {
-    num: '2',
     id: 'make24',
-    numBg: 'bg-primary',
-    cardStyle: 'bg-primary/5 border-primary/20',
+    illustration: (
+      <span
+        aria-hidden
+        className="font-display text-[26px] font-extrabold text-ink-2"
+      >
+        + − × ÷
+      </span>
+    ),
   },
   {
-    num: '3',
     id: 'score',
-    numBg: 'bg-amber-500',
-    cardStyle:
-      'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
+    illustration: (
+      <span
+        aria-hidden
+        className="font-display text-[32px] font-extrabold text-primary-ink"
+      >
+        +7
+      </span>
+    ),
   },
 ] as const;
 
-type StepsSectionProps = {
-  scrollRef: RefObject<HTMLDivElement | null>;
-};
-
-const StepsSection = ({ scrollRef }: StepsSectionProps) => {
-  const reduceMotion = useReducedMotion();
+const StepsSection = () => {
   const t = useTranslations('Home.steps');
 
   return (
-    <section className="bg-white/50 px-4 py-14 backdrop-blur-xs dark:bg-zinc-900/30 md:px-10 md:py-20">
-      <div className="mx-auto max-w-4xl">
-        <h2 className="mb-10 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+    <section className="px-4 pt-2 pb-9 md:px-10 md:pb-16">
+      <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
+        <h2 className="text-xl font-extrabold text-ink md:text-2xl">
           {t('title')}
         </h2>
-        <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+        <ol className="grid grid-cols-3 gap-2.5 md:gap-4">
           {STEPS.map((step, i) => (
-            <motion.div
-              key={step.num}
-              initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ root: scrollRef, once: true, amount: 0.3 }}
-              transition={{
-                duration: 0.5,
-                delay: i * 0.09,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className={`flex flex-col gap-4 rounded-2xl border-2 p-6 ${step.cardStyle}`}
+            <li
+              key={step.id}
+              className="flex flex-col items-center gap-2.5 rounded-[18px] border border-line bg-surface px-1.5 py-4 md:py-6"
             >
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${step.numBg} font-display text-base font-black text-white`}
-              >
-                {step.num}
+              <div className="flex h-[52px] items-center">
+                {step.illustration}
               </div>
-              <div>
-                <div className="text-lg font-black text-foreground">
-                  {t(`${step.id}.title`)}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {t(`${step.id}.description`)}
-                </div>
-              </div>
-            </motion.div>
+              <span className="font-display text-[13px] font-extrabold text-primary-ink">
+                {i + 1}
+              </span>
+              <strong className="text-center text-[15px] text-ink">
+                {t(`${step.id}.title`)}
+              </strong>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

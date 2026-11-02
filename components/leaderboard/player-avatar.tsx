@@ -1,11 +1,13 @@
 import Image from 'next/image';
-import { User } from 'lucide-react';
+import { initialOf } from '@/components/game/player-card';
 import { cn } from '@/lib/utils';
 
 type PlayerAvatarProps = {
   name: string;
   photoURL: string | null;
   size: number;
+  /** 自己的頭像改用 primary 實色底 */
+  isMe?: boolean;
   className?: string;
 };
 
@@ -13,6 +15,7 @@ export function PlayerAvatar({
   name,
   photoURL,
   size,
+  isMe,
   className,
 }: PlayerAvatarProps) {
   if (photoURL) {
@@ -26,18 +29,20 @@ export function PlayerAvatar({
       />
     );
   }
+  // 沒有照片時顯示名字縮寫（拉丁字母取兩字、中文取一字）
   return (
     <div
-      style={{ width: size, height: size }}
+      aria-hidden
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.39) }}
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700',
+        'flex shrink-0 items-center justify-center rounded-full font-extrabold',
+        isMe
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-primary-tint text-primary-ink',
         className,
       )}
     >
-      <User
-        className="text-zinc-500 dark:text-zinc-400"
-        style={{ width: size * 0.55, height: size * 0.55 }}
-      />
+      {initialOf(name)}
     </div>
   );
 }

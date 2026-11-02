@@ -1,21 +1,23 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft,
   BookOpen,
+  ChevronRight,
+  Layers,
   Lock,
   Pencil,
   Plus,
   Search,
+  SearchX,
   Users,
   Zap,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { BackToHomeButton } from '@/components/back-to-home-button';
 import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import CreateRoomModal from '@/components/modals/create-room-modal';
 import { PlayerNameModal } from '@/components/modals/player-name-modal';
@@ -41,104 +43,65 @@ const GAME_TYPE_LABELS: Record<string, string> = {
 };
 
 function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
-  const reduceMotion = useReducedMotion();
   const isFull = room.players.length >= room.maxPlayers;
   const gameType = room.settings.gameType;
+  const typeLabel = GAME_TYPE_LABELS[gameType] ?? gameType;
 
-  const colorMap = {
-    classic: {
-      border: 'border-teal-200 dark:border-teal-800',
-      bg: 'bg-teal-50 dark:bg-teal-900/20',
-      shadow:
-        'shadow-[0_6px_0_0_var(--color-teal-200)] dark:shadow-[0_6px_0_0_var(--color-teal-800)]',
-      hover: 'hover:bg-teal-100/70 dark:hover:bg-teal-900/30',
-      badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
-      icon: 'bg-teal-500',
-      name: 'text-teal-800 dark:text-teal-200',
-      count: 'text-teal-600 dark:text-teal-400',
-    },
-    buzzer: {
-      border: 'border-amber-200 dark:border-amber-800',
-      bg: 'bg-amber-50 dark:bg-amber-900/20',
-      shadow:
-        'shadow-[0_6px_0_0_var(--color-amber-200)] dark:shadow-[0_6px_0_0_var(--color-amber-800)]',
-      hover: 'hover:bg-amber-100/70 dark:hover:bg-amber-900/30',
-      badge:
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-      icon: 'bg-amber-500',
-      name: 'text-amber-800 dark:text-amber-200',
-      count: 'text-amber-600 dark:text-amber-400',
-    },
-  };
-
-  const c = colorMap[gameType as keyof typeof colorMap] ?? colorMap.classic;
-
+  // 遊戲類型用圖示區分，不用顏色；人數已滿時整張卡退成 sunken 並標示「已滿」
   return (
-    <motion.button
+    <button
+      type="button"
       onClick={onClick}
-      whileHover={reduceMotion || isFull ? undefined : { y: -4 }}
-      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-      disabled={isFull}
+      aria-disabled={isFull}
       className={cn(
-        'flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left',
-        'transition-colors active:translate-y-1 active:shadow-none',
-        c.border,
-        c.bg,
-        c.shadow,
-        c.hover,
-        isFull && 'cursor-not-allowed opacity-50',
+        'flex min-h-[68px] w-full items-center gap-3 rounded-[18px] border border-line bg-surface py-3 pr-3 pl-3.5 text-left text-ink transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+        isFull ? 'cursor-not-allowed bg-sunken' : 'hover:border-primary',
       )}
     >
-      {/* 遊戲類型圖示 */}
       <div
         className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white',
-          c.icon,
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary-ink',
+          isFull && 'opacity-55',
         )}
       >
         {gameType === 'buzzer' ? (
           <Zap className="h-5 w-5" />
         ) : (
-          <span className="font-display text-base font-black">24</span>
+          <Layers className="h-5 w-5" />
         )}
       </div>
-
-      {/* 房間資訊 */}
-      <div className="min-w-0 flex-1">
-        <div
-          className={cn(
-            'flex items-center gap-1.5 font-display text-base font-black',
-            c.name,
-          )}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span
+          className={cn('truncate text-base font-bold', isFull && 'text-ink-2')}
         >
-          {room.password && <Lock className="h-3.5 w-3.5 shrink-0" />}
-          <span className="truncate">{room.roomName}</span>
-        </div>
-        <div className={cn('mt-0.5 flex items-center gap-2 text-sm', c.count)}>
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-xs font-medium',
-              c.badge,
-            )}
-          >
-            {GAME_TYPE_LABELS[gameType] ?? gameType}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
-            {room.players.length} / {room.maxPlayers}
-          </span>
-          {isFull && (
-            <span className="text-xs font-medium text-rose-500">人數已滿</span>
-          )}
-        </div>
+          {room.roomName}
+        </span>
+        <span className="flex items-center gap-1 text-[13px] text-ink-2">
+          {room.password && <Lock aria-hidden className="h-3.5 w-3.5" />}
+          {typeLabel}
+          {room.password && ' · 有密碼'}
+        </span>
       </div>
-    </motion.button>
+      {isFull ? (
+        <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2.5 text-[13px] font-bold whitespace-nowrap text-danger-ink">
+          <Users aria-hidden className="h-3.5 w-3.5" />
+          已滿 {room.players.length}/{room.maxPlayers}
+        </span>
+      ) : (
+        <>
+          <span className="flex shrink-0 items-center gap-1 text-sm font-bold">
+            <Users aria-hidden className="h-4 w-4 text-ink-2" />
+            {room.players.length}/{room.maxPlayers}
+          </span>
+          <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-ink-2" />
+        </>
+      )}
+    </button>
   );
 }
 
 export default function MultiplePlayPage() {
   const hardNavigate = useHardNavigate();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -150,6 +113,7 @@ export default function MultiplePlayPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string>();
   const [isOpenNameModal, setIsOpenNameModal] = useState(false);
   const [isOpenCreateRoomModal, setIsOpenCreateRoomModal] = useState(false);
+  const [createRoomName, setCreateRoomName] = useState('');
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
   const { onOpen, isConfirmed, onReset } = useAlertDialogStore(state => state);
@@ -205,6 +169,14 @@ export default function MultiplePlayPage() {
     return () => clearInterval(interval);
   }, [searchRooms, searchedRoomName]);
 
+  const isSearching = searchedRoomName.trim() !== '';
+
+  // 建立房間可帶入預填名稱；modal 以 key 重新掛載，用預填值初始化
+  const openCreateRoom = (name: string) => {
+    setCreateRoomName(name);
+    setIsOpenCreateRoomModal(true);
+  };
+
   const filteredRooms =
     gameTypeFilter === 'all'
       ? rooms
@@ -233,6 +205,8 @@ export default function MultiplePlayPage() {
         defaultValue={playerName}
       />
       <CreateRoomModal
+        key={createRoomName}
+        defaultRoomName={createRoomName}
         roomId={roomId}
         isOpen={isOpenCreateRoomModal}
         onOpenChange={setIsOpenCreateRoomModal}
@@ -255,136 +229,96 @@ export default function MultiplePlayPage() {
       />
 
       {/* 頁面捲動容器 */}
-      <div ref={scrollRef} className="flex h-full flex-col overflow-y-auto">
-        {/* Header */}
-        <header className="relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.webp"
-              alt="24點大師"
-              width={100}
-              height={30}
-              className="h-7 w-auto cursor-pointer dark:invert"
-              priority
-              onClick={() => router.push('/')}
-            />
-          </div>
-          <nav className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden font-bold text-muted-foreground hover:text-foreground md:flex"
-              onClick={() => setIsOpenRuleModal(true)}
+      <div className="flex h-full flex-col overflow-y-auto">
+        <header className="flex shrink-0 items-center gap-0.5 px-2 pt-2">
+          <BackToHomeButton />
+          <span className="flex-1" />
+          <Button
+            variant="ghost"
+            className="h-11 w-11 px-0 font-bold text-ink md:w-auto md:gap-1.5 md:px-3"
+            onClick={() => setIsOpenRuleModal(true)}
+            aria-label="遊戲規則"
+          >
+            <BookOpen className="h-5 w-5" />
+            <span className="hidden md:inline">遊戲規則</span>
+          </Button>
+          {/* 玩家暱稱 */}
+          <button
+            type="button"
+            onClick={() => setIsOpenNameModal(true)}
+            aria-label={`修改暱稱：${playerName}`}
+            className="ml-1 flex h-11 max-w-40 items-center gap-2 rounded-full border border-line bg-surface pr-3 pl-1.5 text-sm font-bold text-ink transition-colors hover:border-line-strong"
+          >
+            <span
+              aria-hidden
+              className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-extrabold text-primary-foreground"
             >
-              <BookOpen className="mr-1.5 h-4 w-4" />
-              遊戲規則
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground md:hidden"
-              onClick={() => setIsOpenRuleModal(true)}
-            >
-              <BookOpen className="h-5 w-5" />
-            </Button>
-            {/* 玩家名稱 */}
-            <button
-              onClick={() => setIsOpenNameModal(true)}
-              className="ml-1 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            >
-              <span className="hidden md:inline">Hi, </span>
-              <span className="font-bold">{playerName}</span>
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          </nav>
+              {Array.from(playerName.trim())[0]?.toUpperCase() ?? '?'}
+            </span>
+            <span className="truncate">{playerName}</span>
+            <Pencil aria-hidden className="h-3.5 w-3.5 shrink-0 text-ink-2" />
+          </button>
         </header>
 
-        {/* Main */}
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-8 md:px-8">
-          {/* 頁面標題 */}
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-2 mb-6 flex items-end justify-between"
-          >
-            <div>
-              <h1 className="font-display text-3xl leading-tight font-black text-foreground md:text-4xl md:leading-10">
-                多人對戰
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                加入房間或建立你的專屬對局
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsOpenCreateRoomModal(true)}
-              className="h-11 gap-2 rounded-2xl bg-primary px-5 font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] transition-all active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">建立房間</span>
-              <span className="sm:hidden">建立</span>
-            </Button>
-          </motion.div>
+        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col pb-10">
+          <div className="flex flex-col gap-1.5 px-4 pt-2 pb-[18px] md:px-8">
+            <h1 className="text-[28px] font-black tracking-tight text-ink">
+              多人對戰
+            </h1>
+            <p className="text-[15px] text-ink-2">加入房間或建立你的專屬對局</p>
+          </div>
 
-          {/* 篩選列 */}
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.45,
-              delay: 0.07,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-            className="mb-5 flex flex-wrap items-center gap-3"
-          >
-            {/* 搜尋框 */}
-            <div className="relative min-w-0 flex-1 sm:max-w-[200px]">
-              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          {/* 搜尋 + 建立 */}
+          <div className="flex gap-2.5 px-4 md:px-8">
+            <div className="relative min-w-0 flex-1 md:max-w-xs">
+              <label htmlFor="room-search" className="sr-only">
+                搜尋房間
+              </label>
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-2"
+              />
               <Input
+                id="room-search"
                 placeholder="搜尋房間..."
-                className="rounded-xl border-zinc-200 pl-9 focus-visible:ring-primary dark:border-zinc-700"
+                value={searchedRoomName}
+                className="h-12 rounded-xl border-[1.5px] border-line-strong bg-surface pr-3 pl-[42px] text-base text-ink"
                 onChange={e => setSearchedRoomName(e.target.value)}
               />
             </div>
-
-            {/* TODO: 之後再做, 遊戲類型篩選 */}
-            {/* <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white/60 p-1 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/40">
-              {FILTERS.map(f => (
-                <button
-                  key={f.value}
-                  onClick={() => setGameTypeFilter(f.value)}
-                  className={cn(
-                    'rounded-lg px-3 py-1.5 text-sm font-bold transition-colors',
-                    gameTypeFilter === f.value
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div> */}
-          </motion.div>
+            <Button
+              variant="tactile"
+              className="h-12 gap-1.5 px-4 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)]"
+              onClick={() => openCreateRoom('')}
+            >
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">建立房間</span>
+              <span className="sm:hidden">建立</span>
+            </Button>
+          </div>
 
           {/* 房間計數 */}
-          {filteredRooms.length > 0 && (
-            <p className="mb-3 text-xs font-medium text-muted-foreground">
-              {filteredRooms.length} 個房間
-            </p>
-          )}
+          <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8">
+            <span className="text-sm font-bold text-ink-2">
+              <span className="font-display text-base text-ink">
+                {filteredRooms.length}
+              </span>{' '}
+              {isSearching ? '個房間符合' : '個房間'}
+            </span>
+          </div>
 
           {/* 房間列表 */}
           {filteredRooms.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2.5 px-4 sm:grid-cols-2 md:px-8 lg:grid-cols-3">
               {filteredRooms.map((room, i) => (
                 <motion.div
                   key={room.roomId}
-                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: 0.4,
-                    delay: i * 0.05,
-                    ease: [0.16, 1, 0.3, 1],
+                    duration: 0.28,
+                    delay: reduceMotion ? 0 : i * 0.04,
+                    ease: [0.2, 0, 0, 1],
                   }}
                 >
                   <RoomCard
@@ -405,29 +339,48 @@ export default function MultiplePlayPage() {
               ))}
             </div>
           ) : (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-1 flex-col items-center justify-center pb-20"
-            >
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
-                <Users className="h-7 w-7 text-zinc-400" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pt-10 pb-20 text-center">
+              <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary-tint text-primary-ink">
+                {isSearching ? (
+                  <SearchX className="h-7 w-7" />
+                ) : (
+                  <Users className="h-7 w-7" />
+                )}
               </div>
-              <p className="font-display text-xl font-black text-zinc-600 dark:text-zinc-400">
-                目前沒有房間
+              <p className="text-xl font-extrabold text-ink">
+                {isSearching
+                  ? `找不到「${searchedRoomName.trim()}」`
+                  : '目前沒有房間'}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                建立房間，邀請朋友一起來玩吧！
+              <p className="text-[15px] text-ink-2">
+                {isSearching
+                  ? '換個關鍵字，或用這個名稱建立一個新房間'
+                  : '建立房間，邀請朋友一起來玩吧！'}
               </p>
-              <Button
-                onClick={() => setIsOpenCreateRoomModal(true)}
-                className="mt-6 h-11 gap-2 rounded-2xl bg-primary px-6 font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
-              >
-                <Plus className="h-4 w-4" />
-                建立第一個房間
-              </Button>
-            </motion.div>
+              <div className="mt-5 flex w-full max-w-sm flex-col gap-3">
+                <Button
+                  variant="tactile"
+                  className="w-full gap-2"
+                  onClick={() =>
+                    openCreateRoom(isSearching ? searchedRoomName.trim() : '')
+                  }
+                >
+                  <Plus className="h-5 w-5" />
+                  {isSearching
+                    ? `建立「${searchedRoomName.trim()}」`
+                    : '建立第一個房間'}
+                </Button>
+                {isSearching && (
+                  <Button
+                    variant="tactileOutline"
+                    className="w-full"
+                    onClick={() => setSearchedRoomName('')}
+                  >
+                    清除搜尋
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

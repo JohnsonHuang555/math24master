@@ -1,5 +1,5 @@
-import { Baloo_2, Noto_Sans_TC } from 'next/font/google';
-import { ArrowLeft } from 'lucide-react';
+import { Baloo_2, Figtree, Noto_Sans_TC } from 'next/font/google';
+import { House } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { HTML_LANG } from '@/i18n/locales';
@@ -17,6 +17,14 @@ const fontNotoSans = Noto_Sans_TC({
   preload: false,
 });
 
+const fontFigtree = Figtree({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-figtree',
+  weight: ['400', '800', '900'],
+  preload: false,
+});
+
 const fontBaloo = Baloo_2({
   subsets: ['latin'],
   display: 'swap',
@@ -29,6 +37,9 @@ export const metadata: Metadata = {
   title: '404',
 };
 
+const CARD_CLASS =
+  'flex h-[100px] w-[74px] items-center justify-center rounded-[14px] border-2 font-display text-[40px] font-extrabold';
+
 export default async function GlobalNotFound() {
   const locale = await getLocale();
   const t = await getTranslations('NotFound');
@@ -39,19 +50,47 @@ export default async function GlobalNotFound() {
         className={cn(
           'font-noto antialiased',
           fontNotoSans.variable,
+          fontFigtree.variable,
           fontBaloo.variable,
         )}
       >
-        <main className="flex h-dvh flex-col items-center justify-center gap-4 bg-[#f3faf8] px-4 text-center dark:bg-zinc-950">
-          <p className="font-display text-6xl font-extrabold text-primary">
-            404
+        <main className="flex h-dvh flex-col items-center justify-center gap-5 bg-[#f3faf8] px-6 text-center text-ink">
+          {/* 404 用三張牌呈現，中間的 0 是缺牌的虛線空位 */}
+          <div role="img" aria-label="404" className="flex items-end gap-2.5">
+            <div
+              className={cn(
+                CARD_CLASS,
+                '-rotate-6 border-playcard-line bg-playcard text-playcard-ink shadow-[0_5px_0_0_var(--playcard-edge)]',
+              )}
+            >
+              4
+            </div>
+            <div
+              className={cn(
+                CARD_CLASS,
+                'border-dashed border-[#9fb0ac] text-ink-2',
+              )}
+            >
+              0
+            </div>
+            <div
+              className={cn(
+                CARD_CLASS,
+                'rotate-6 border-playcard-line bg-playcard text-playcard-ink shadow-[0_5px_0_0_var(--playcard-edge)]',
+              )}
+            >
+              4
+            </div>
+          </div>
+          <h1 className="mt-4 text-[26px] font-black">{t('title')}</h1>
+          <p className="text-[15px] leading-relaxed text-ink-2">
+            {t('description')}
           </p>
-          <h1 className="text-lg font-bold">{t('title')}</h1>
           <a
             href={getPathname({ href: '/', locale })}
-            className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
+            className="mt-2 flex h-14 items-center justify-center gap-2 rounded-[14px] bg-primary px-8 text-xl font-extrabold text-primary-foreground shadow-[0_5px_0_0_var(--primary-edge)] transition-[translate,box-shadow] duration-[90ms] active:translate-y-1 active:shadow-[0_1px_0_0_var(--primary-edge)]"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <House aria-hidden className="h-5 w-5" />
             {t('backHome')}
           </a>
         </main>
