@@ -1,49 +1,47 @@
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { fadeVariants } from '@/lib/animation-variants';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 import { Symbol } from '@/models/Symbol';
 
 type SymbolsProps = {
   onClick: (symbol: Symbol) => void;
+  disabled?: boolean;
 };
 
-type SymbolConfig =
-  | { symbol: Symbol; type: 'image'; icon: string; alt: string }
-  | { symbol: Symbol; type: 'text'; text: string };
+const SYMBOLS = [
+  { symbol: Symbol.Plus, label: '+', name: 'plus' },
+  { symbol: Symbol.Minus, label: '−', name: 'minus' },
+  { symbol: Symbol.Times, label: '×', name: 'times' },
+  { symbol: Symbol.Divide, label: '÷', name: 'divide' },
+  { symbol: Symbol.LeftBracket, label: '(', name: 'leftParen' },
+  { symbol: Symbol.RightBracket, label: ')', name: 'rightParen' },
+] as const;
 
-const SYMBOLS: SymbolConfig[] = [
-  { symbol: Symbol.Plus, type: 'image', icon: '/plus.svg', alt: 'plus' },
-  { symbol: Symbol.Minus, type: 'image', icon: '/minus.svg', alt: 'minus' },
-  { symbol: Symbol.Times, type: 'image', icon: '/times.svg', alt: 'times' },
-  { symbol: Symbol.Divide, type: 'image', icon: '/divide.svg', alt: 'divide' },
-  { symbol: Symbol.LeftBracket, type: 'text', text: '(' },
-  { symbol: Symbol.RightBracket, type: 'text', text: ')' },
-];
+/**
+ * 運算符號按鈕列。平面樣式：厚度只留給數字牌與主 CTA。
+ * 6 × 48 + 5 × 8 = 328px，剛好放進 360px 寬扣掉左右 16px 邊距
+ */
+const Symbols = ({ onClick, disabled }: SymbolsProps) => {
+  const t = useTranslations('GameUI.symbols');
 
-const Symbols = ({ onClick }: SymbolsProps) => {
   return (
     <>
       {SYMBOLS.map(config => (
-        <motion.button
+        <button
           key={config.symbol}
           type="button"
-          variants={fadeVariants}
-          initial="hidden"
-          animate="show"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+          disabled={disabled}
           onClick={() => onClick(config.symbol)}
           data-testid={`symbol-${config.symbol}`}
-          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border-2 border-zinc-200 bg-white shadow-[0_3px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-primary/40 hover:bg-zinc-50 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-        >
-          {config.type === 'image' ? (
-            <div className="relative h-7 w-7">
-              <Image src={config.icon} alt={config.alt} fill priority />
-            </div>
-          ) : (
-            <span className="font-display text-2xl">{config.text}</span>
+          aria-label={t(config.name)}
+          className={cn(
+            'flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong bg-surface font-display text-[26px] leading-none font-bold text-ink transition-[transform,background-color,border-color] duration-[90ms] ease-out',
+            'hover:bg-sunken active:translate-y-px active:border-primary active:bg-primary-tint',
+            'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+            'disabled:cursor-not-allowed disabled:opacity-45',
           )}
-        </motion.button>
+        >
+          {config.label}
+        </button>
       ))}
     </>
   );

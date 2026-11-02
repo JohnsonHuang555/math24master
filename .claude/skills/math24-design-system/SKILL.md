@@ -14,19 +14,26 @@
 
 ## 1. 品牌色系
 
-| Token | Light | Dark | 用途 |
+> 2026-11 全站改版：新畫面一律用下列語意 tokens（定義在 `app/globals.css`，Tailwind 直接用 `bg-surface`、`text-ink-2`、`border-line-strong` 等），不要再寫死 `zinc-*`、`teal-*`、`rose-*`。尚未改版的舊畫面仍有舊寫法，改到時一併換掉。
+
+| Tailwind | Light | Dark | 用途 |
 |---|---|---|---|
-| `--primary` | `hsl(175 84% 32%)` (teal) | `hsl(173 66% 45%)` | 主 CTA、強調數字、標記 |
-| `--primary-foreground` | `hsl(0 0% 100%)` | `hsl(0 0% 100%)` | primary 上的文字（白色） |
-| amber | `amber-400` / `amber-500` | `amber-400` | 次要功能磁磚、計分獎勵 |
-| teal | `teal-500` | `teal-400` | 每日挑戰、「是」回饋、進度點 |
-| rose / red | `rose-500` | `rose-400` | 錯誤、低時限、移除提示 |
-| zinc | `zinc-200` / `zinc-800` | — | 牌面邊框、中性背景 |
+| `bg-surface` / `bg-sunken` | `#FFFFFF` / `#F3F6F5` | `#18181B` / `#111113` | 面板、卡片 / 算式列、輸入框底 |
+| `border-line` / `border-line-strong` | `#DDE5E2` / `#C9D3D0` | `#2E2E33` / `#3F3F46` | 細線 / 按鈕與輸入框邊框 |
+| `text-ink` / `text-ink-2` | `#132321` / `#5B6664` | `#F4F4F5` / `#A1A1AA` | 主要文字 / 次要文字 |
+| `bg-primary` | `hsl(175 84% 32%)` | `hsl(173 66% 45%)` | 主 CTA、選中的牌（白字只有 3.65:1，標籤須 ≥ 19px 粗體） |
+| `text-primary-ink` | `#0F766E` | `#3CCFBE` | teal 小字、小面積 teal 填色 |
+| `primary-edge` / `bg-primary-tint` | `#0A6B63` / `#D5F0EC` | `#178276` / `#0F2E2B` | tactile 陰影 / 正確狀態底 |
+| `bg-amber` / `text-amber-ink` / `bg-amber-tint` | `#F59E0B` / `#B45309` / `#FDF0D5` | `#FBBF24` | Beta 標籤、新紀錄、加成；amber 填色配深字 `text-on-amber` |
+| `danger` / `text-danger-ink` / `bg-danger-tint` | `#E11D48` / `#BE123C` / `#FDE4E9` | `#FB7185` / `#2E1219` | 錯誤、低時限、移除 |
+| `playcard` / `playcard-line` / `playcard-edge` / `playcard-ink` | 白牌、`#CBD5D2` 邊與厚度 | 紙牌色 `#E4E8E7`（深色模式牌面仍是亮的） | 數字牌專用 |
 
 **顏色禁項：**
-- 不可引入第四色相（目前只有 teal 主 + amber 次 + rose 語意 + zinc 中性）
-- 不可用飽和紫色 / 藍色卡片
-- `text-primary` 直接用於小字時對比度不足，小字強調改用 `text-teal-700 dark:text-teal-400`
+- 只有四個色相：teal、amber、rose（danger）、中性灰。不可用 violet、blue
+- 模式之間不用顏色區分，用圖示區分（所有模式卡都是 teal）
+- 評級：S 用 amber＋星形、A 實色 teal、B/C 描邊；名次獎牌金 `#F5C04A` 銀 `#DADFE3` 銅 `#E8B48A`，獎牌上一定有數字
+- 牌桌模式四色只出現在牌面上，「青」偏藍 `#0369A1` 以和主色 teal 區分；每色配一個形狀
+- 狀態不能只靠顏色：對錯、選取、低時限都要同時有圖示、文字、外框或位移
 
 ---
 
@@ -35,8 +42,8 @@
 ```css
 /* Baloo 2 — 數字、大標題、遊戲強調文字 */
 font-display: Baloo 2 (variable: --font-baloo)
-/* Noto Sans TC — 一般內文 */
-font-body: Noto Sans TC (variable: --font-noto-sans)
+/* Figtree（拉丁字元）+ 依語系載入的 Noto Sans TC / SC — 一般內文 */
+font-body: Figtree, Noto Sans (variables: --font-figtree, --font-noto-sans)
 ```
 
 **使用規則：**
@@ -77,32 +84,47 @@ className="bg-white/50 backdrop-blur-sm dark:bg-zinc-900/30"
 
 ---
 
-## 4. 牌面（Card）標準樣式
+## 4. 牌面與遊戲元件
+
+**只有數字牌與主 CTA 有厚度**（實色底部陰影、按下下沉）；卡片、面板、modal、符號鈕都是平面＋細線。
+
+不要自己拼牌面 class，直接用元件：
 
 ```tsx
-// 基本牌面（手牌、數字牌）
-className="rounded-2xl border-2 border-zinc-200 bg-white
-  font-display font-bold text-zinc-800
-  shadow-[0_5px_0_0_rgba(0,0,0,0.08)]
-  dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+import { NumberCard, numberCardVariants, EmptyCardSlot } from '@/components/game/number-card';
+import { ExpressionBar } from '@/components/game/expression-bar';
+import Symbols from '@/components/symbols';
 
-// 選中態（primary 實色）
-className="rounded-2xl border-2 border-primary bg-primary
-  font-display font-bold text-white
-  shadow-[0_4px_0_0_hsl(175_84%_22%)]
-  dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
+// 手牌 lg 74×100、4×4 牌面 md、桌面牌組 sm 36×48、紀錄 xs 24×32
+<NumberCard value={8} state="selected" order={1} />   // state: idle | selected | disabled | static
+// 需要 framer-motion 時把 class 套到 motion.button 上
+<motion.button className={numberCardVariants({ size: 'md', state: 'idle' })} />
 
-// hover 移除提示（紅色邊框）
-className="border-rose-400 bg-rose-50"
+// 算式列：空白 / 不完整 / 非 24（用完該用的牌才判錯）/ 等於 24
+<ExpressionBar tokens={selectedCards} result={livePreview} isFinal={usedAll} placeholder="..." />
 ```
+
+其他共用遊戲元件（`components/game/`）：
+
+| 元件 | 用途 |
+|---|---|
+| `GameHud` | 頂部 HUD：模式名稱、分數滾動、剩餘張數 pill（最後一輪換成 amber 旗標）、規則、預留的音效鈕 |
+| `GameTimer` | 倒數計時：一般 / 低時限（粗框＋警示 pill＋脈動）/ 暫停（條紋進度條）；`delta` 顯示加扣秒數 pill |
+| `PlayerCard` | 多人玩家卡：頭像、暱稱（截斷）、次要資訊、右側「圖示＋文字」狀態 pill |
+
+牌桌模式的牌面用 `components/tabletop/tabletop-card.tsx`：牌色用 `text-suit-red` / `suit-blue` / `suit-yellow` / `suit-black`，形狀在左上角並在數字下方重複一次；Joker 未宣告為條紋底、已宣告為虛線邊＋J 標。
+
+- 符號鈕 48×48，6 顆一列剛好放進 360px 寬
+- 操作列次要按鈕：`h-12 rounded-xl border border-line-strong bg-surface`，圖示按鈕要有 `aria-label`
+- 牌桌模式的牌選中時不填 teal（牌色是規則資訊），改為上浮＋teal 外圈
 
 ---
 
 ## 5. 按鈕系統
 
 ```tsx
-// 主 CTA — tactile 立體按鈕（全站遊戲主行動）
-<Button variant="tactile" className="h-14 px-12 text-xl">
+// 主 CTA — tactile 立體按鈕（全站遊戲主行動）。預設尺寸已是 56px 高、20px 粗體
+<Button variant="tactile" className="w-full">
   立即開始
 </Button>
 
@@ -126,6 +148,7 @@ className="border-rose-400 bg-rose-50"
 - 主 CTA 一律 `variant="tactile"`，不可用 `variant="default"`
 - 次要按鈕用 `variant="tactileOutline"` 或 `variant="ghost"`
 - 按鈕文字不可換行（`whitespace-nowrap` 已內建）
+- tactile 標籤不要縮到 20px 以下：白字配 teal 只有 3.65:1，只有大字才過 WCAG AA
 
 ---
 

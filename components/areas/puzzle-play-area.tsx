@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, RotateCcw, SkipForward } from 'lucide-react';
+import { ExpressionBar } from '@/components/game/expression-bar';
+import { NumberCard } from '@/components/game/number-card';
 import Symbols from '@/components/symbols';
 import {
   AlertDialog,
@@ -15,7 +17,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Tooltip,
   TooltipContent,
@@ -23,45 +24,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { fadeVariants } from '@/lib/animation-variants';
-import { calculateAnswer, cn } from '@/lib/utils';
-import { NumberCard } from '@/models/Player';
+import { calculateAnswer } from '@/lib/utils';
+import { NumberCard as NumberCardModel } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
-import { Symbol } from '@/models/Symbol';
-
-function cardLabel(card: SelectedCard): string {
-  if (card.number) return String(card.number.value);
-  switch (card.symbol) {
-    case Symbol.Times:
-      return '×';
-    case Symbol.Divide:
-      return '÷';
-    default:
-      return card.symbol ?? '';
-  }
-}
 
 export type PuzzleTheme = 'blue' | 'orange' | 'emerald';
 
-// 全站色彩鎖：三種模式共用 teal 品牌 tokens（theme prop 保留 API 相容）
-const BRAND_TOKENS = {
-  cardSelected:
-    'border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)] hover:border-red-400 hover:bg-red-400 hover:shadow-[0_5px_0_0_var(--color-red-600)]',
-  cardIdle:
-    'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
-  expressionBox:
-    'border-zinc-200 bg-white shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900',
-  iconBtn:
-    'border-2 border-zinc-200 bg-white text-zinc-500 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:bg-zinc-50 hover:text-primary active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
-};
-
-const THEME_TOKENS: Record<PuzzleTheme, typeof BRAND_TOKENS> = {
-  blue: BRAND_TOKENS,
-  orange: BRAND_TOKENS,
-  emerald: BRAND_TOKENS,
-};
+// 操作列的次要按鈕：平面樣式，厚度只留給數字牌與主 CTA
+const ACTION_BUTTON_CLASS =
+  'h-12 flex-1 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink';
 
 export interface PuzzlePlayAreaProps {
-  currentNumbers: NumberCard[];
+  currentNumbers: NumberCardModel[];
   selectedCards: SelectedCard[];
   onSelectCard: (card: SelectedCard) => void;
   onRemoveCard: (index: number) => void;
@@ -91,8 +65,7 @@ export function PuzzlePlayArea({
   onSkip,
   onBack,
   showSkipButton = false,
-  skipPenaltyText = '-15 秒',
-  theme = 'blue',
+  skipPenaltyText = '−15 秒',
   children,
   submitLabel = '確認',
   onBackStep,
@@ -102,10 +75,11 @@ export function PuzzlePlayArea({
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
 
-  const t = THEME_TOKENS[theme];
-
-  const selectedNumberIds = new Set(
-    selectedCards.filter(c => c.number).map(c => c.number!.id),
+  // 選中角標顯示第幾個被選
+  const selectedNumberOrder = new Map(
+    selectedCards
+      .filter(c => c.number)
+      .map((c, i) => [c.number!.id, i + 1] as const),
   );
 
   // Live equation preview
@@ -121,11 +95,6 @@ export function PuzzlePlayArea({
     }
   }, [selectedCards]);
 
-  const isCorrect = livePreview !== null && Math.abs(livePreview - 24) < 1e-9;
-
-  // Card size classes
-  const cardSizeClass = 'w-[72px] h-[100px] sm:w-[80px] sm:h-[112px]';
-
   // When onBackStep is provided, chips are display-only (no per-chip remove)
   const chipsClickable = !onBackStep;
 
@@ -137,88 +106,41 @@ export function PuzzlePlayArea({
       </div>
 
       {/* 數字牌 */}
-      <div className="flex gap-3">
+      <div className="flex gap-2 pt-2">
         {currentNumbers.map(card => {
-          const isSelected = selectedNumberIds.has(card.id);
+          const order = selectedNumberOrder.get(card.id);
           return (
             <motion.div
               key={card.id}
               variants={fadeVariants}
               initial="hidden"
               animate="show"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.96 }}
             >
-              <Card
+              <NumberCard
+                value={card.value}
+                state={order !== undefined ? 'selected' : 'idle'}
+                order={order}
                 onClick={() => onSelectCard({ number: card })}
                 data-testid="hand-card"
-                data-selected={isSelected}
-                className={cn(
-                  'flex cursor-pointer select-none items-center justify-center rounded-2xl border-2 font-display text-3xl font-bold transition-all sm:text-4xl',
-                  cardSizeClass,
-                  isSelected ? t.cardSelected : t.cardIdle,
-                )}
-              >
-                {card.value}
-              </Card>
+                data-selected={order !== undefined}
+              />
             </motion.div>
           );
         })}
       </div>
 
       {/* 算式列 + 即時預覽 */}
-      <div
-        className={cn(
-          'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
-          t.expressionBox,
-        )}
-      >
-        <div className="flex min-h-[32px] flex-wrap items-center gap-1.5">
-          {selectedCards.length === 0 ? (
-            <span className="text-sm text-muted-foreground">
-              點選數字和符號組成算式...
-            </span>
-          ) : (
-            selectedCards.map((card, i) => (
-              <motion.button
-                key={i}
-                variants={fadeVariants}
-                initial="hidden"
-                animate="show"
-                onClick={chipsClickable ? () => onRemoveCard(i) : undefined}
-                className={cn(
-                  'rounded-lg px-3 py-1.5 font-display text-2xl transition-colors',
-                  chipsClickable
-                    ? 'cursor-pointer bg-zinc-100 hover:bg-red-100 hover:text-red-600 dark:bg-zinc-800'
-                    : 'cursor-default bg-zinc-100 dark:bg-zinc-800',
-                )}
-                title={chipsClickable ? '點擊移除' : undefined}
-              >
-                {cardLabel(card)}
-              </motion.button>
-            ))
-          )}
-        </div>
-        <AnimatePresence>
-          {livePreview !== null && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.15 }}
-              className={cn(
-                'text-right font-display text-lg font-bold',
-                isCorrect ? 'text-primary' : 'text-red-400',
-              )}
-            >
-              = {livePreview} {isCorrect ? '✓' : '✗'}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <ExpressionBar
+        className="max-w-sm"
+        tokens={selectedCards}
+        result={livePreview}
+        isFinal={selectedNumberOrder.size === currentNumbers.length}
+        placeholder="點選數字和符號組成算式..."
+        onRemoveToken={chipsClickable ? onRemoveCard : undefined}
+      />
 
       {/* 符號列 */}
-      <div className="flex gap-2.5">
+      <div className="flex gap-2">
         <Symbols onClick={symbol => onSelectCard({ symbol })} />
       </div>
 
@@ -232,10 +154,11 @@ export function PuzzlePlayArea({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn('h-10 flex-1', t.iconBtn)}
+                  className={ACTION_BUTTON_CLASS}
                   onClick={onClearSelection}
+                  aria-label="清除所選取的牌"
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>清除所選取的牌</TooltipContent>
@@ -247,10 +170,11 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('h-10 flex-1', t.iconBtn)}
+                    className={ACTION_BUTTON_CLASS}
                     onClick={onBackStep}
+                    aria-label="倒退一步"
                   >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>倒退一步</TooltipContent>
@@ -263,10 +187,18 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('h-10 flex-1', t.iconBtn)}
+                    className={`${ACTION_BUTTON_CLASS} flex-col gap-0 leading-tight`}
                     onClick={onSkip}
+                    aria-label={`跳過此題 (${skipPenaltyText})`}
                   >
-                    <SkipForward className="h-4 w-4" />
+                    {/* 直接顯示下次跳過扣幾秒，不只放在 tooltip */}
+                    <span className="flex items-center gap-1 text-sm font-bold">
+                      <SkipForward className="h-4 w-4" />
+                      跳過
+                    </span>
+                    <span className="font-display text-[13px] font-bold text-danger-ink">
+                      {skipPenaltyText}
+                    </span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>跳過此題 ({skipPenaltyText})</TooltipContent>
@@ -279,10 +211,11 @@ export function PuzzlePlayArea({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn('h-10 flex-1', t.iconBtn)}
+                    className={ACTION_BUTTON_CLASS}
                     onClick={() => setShowBackConfirm(true)}
+                    aria-label="返回上一頁"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>返回上一頁</TooltipContent>
@@ -293,7 +226,7 @@ export function PuzzlePlayArea({
         {/* 確認 / 出牌 CTA */}
         <Button
           variant="tactile"
-          className="h-12 w-full text-base"
+          className="w-full"
           onClick={() => {
             if (selectedCards.length === 0) {
               setShowSkipConfirm(true);

@@ -1,5 +1,6 @@
 import {
   Baloo_2,
+  Figtree,
   Noto_Sans,
   Noto_Sans_SC,
   Noto_Sans_TC,
@@ -46,6 +47,14 @@ const BODY_FONT = {
   en: fontNotoSans,
   'zh-CN': fontNotoSansSC,
 };
+
+// 介面文字的拉丁字元與數字；CJK 落到上面依語系載入的 Noto Sans
+const fontFigtree = Figtree({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-figtree',
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 // 展示字體：圓潤厚實，用於數字牌與大標題（拉丁字元／數字），中文自動 fallback 到 Noto Sans TC
 const fontBaloo = Baloo_2({
@@ -103,7 +112,8 @@ export default async function RootLayout({
   children,
   params,
 }: LayoutProps<'/[locale]'>) {
-  const { locale } = await params;  if (!hasLocale(routing.locales, locale)) notFound();
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
   return (
@@ -112,6 +122,7 @@ export default async function RootLayout({
         className={cn(
           'relative h-dvh font-noto antialiased',
           BODY_FONT[locale].variable,
+          fontFigtree.variable,
           fontBaloo.variable,
         )}
       >

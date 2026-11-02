@@ -20,8 +20,41 @@
   - 顏色變數在 .dark 底下會被覆寫，需在套用的元素上才取值（與 v3 行為一致）
 */
 @theme inline {
-  --font-noto: var(--font-noto-sans);
-  --font-display: var(--font-baloo), var(--font-noto-sans);
+  /* Figtree 只有拉丁字元，CJK 自動落到依語系載入的 Noto Sans */
+  --font-noto: var(--font-figtree), var(--font-noto-sans);
+  --font-display: var(--font-baloo), var(--font-figtree), var(--font-noto-sans);
+
+  /* 改版設計系統 tokens（值定義在下方 :root / .dark） */
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-edge: var(--primary-edge);
+  --color-primary-tint: var(--primary-tint);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-amber-tint: var(--amber-tint);
+  --color-on-amber: var(--on-amber);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-tint: var(--danger-tint);
+  --color-playcard: var(--playcard);
+  --color-playcard-line: var(--playcard-line);
+  --color-playcard-edge: var(--playcard-edge);
+  --color-playcard-ink: var(--playcard-ink);
+  --color-focus: var(--focus);
+
+  /*
+    牌桌模式四種牌色：只出現在牌面上。牌面在深色模式仍是紙牌色，所以只需要一套色值。
+    「青」偏藍，和主色 teal 相差 30° 以上且明度不同，避免混淆
+  */
+  --color-suit-red: #dc2626;
+  --color-suit-blue: #0369a1;
+  --color-suit-yellow: #a16207;
+  --color-suit-black: #18181b;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -100,49 +133,99 @@
 }
 
 @layer base {
+  /*
+    shadcn tokens（HSL 三元組）對齊改版設計系統：foreground = ink、muted-foreground = ink-2、border = line。
+    teal 實色底配白字只有 3.65:1，只能用在 ≥19px 粗體；小字的 teal 改用 primary-ink。
+  */
   :root {
     --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
+    --foreground: 173 30% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
+    --card-foreground: 173 30% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
+    --popover-foreground: 173 30% 11%;
     --primary: 175 84% 32%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
+    --secondary: 160 9% 96%;
+    --secondary-foreground: 173 30% 11%;
+    --muted: 160 9% 96%;
+    --muted-foreground: 169 6% 38%;
+    --accent: 160 9% 96%;
+    --accent-foreground: 173 30% 11%;
+    --destructive: 347 77% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 158 13% 88%;
+    --input: 162 9% 81%;
     --ring: 175 84% 32%;
     --radius: 0.75rem;
+
+    --surface: #ffffff;
+    --sunken: #f3f6f5;
+    --line: #dde5e2;
+    --line-strong: #c9d3d0;
+    --ink: #132321;
+    --ink-2: #5b6664;
+    --primary-ink: #0f766e;
+    --primary-edge: #0a6b63;
+    --primary-tint: #d5f0ec;
+    --amber: #f59e0b;
+    --amber-ink: #b45309;
+    --amber-tint: #fdf0d5;
+    --on-amber: #1c1917;
+    --danger: #e11d48;
+    --danger-ink: #be123c;
+    --danger-tint: #fde4e9;
+    --playcard: #ffffff;
+    --playcard-line: #cbd5d2;
+    --playcard-edge: #cbd5d2;
+    --playcard-ink: #132321;
+    --focus: #132321;
   }
 
+  /* 深色模式尚未啟用（沒有任何地方加上 .dark），等全站改版完成後再開 */
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
-    --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
-    --popover: 20 14.3% 4.1%;
-    --popover-foreground: 60 9.1% 97.8%;
+    --background: 240 10% 4%;
+    --foreground: 240 5% 96%;
+    --card: 240 6% 10%;
+    --card-foreground: 240 5% 96%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 240 5% 96%;
     --primary: 173 66% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 12 6.5% 15.1%;
-    --secondary-foreground: 60 9.1% 97.8%;
-    --muted: 12 6.5% 15.1%;
-    --muted-foreground: 24 5.4% 63.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 60 9.1% 97.8%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 12 6.5% 15.1%;
-    --input: 12 6.5% 15.1%;
+    --primary-foreground: 174 84% 10%;
+    --secondary: 240 6% 10%;
+    --secondary-foreground: 240 5% 96%;
+    --muted: 240 6% 10%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 6% 10%;
+    --accent-foreground: 240 5% 96%;
+    --destructive: 351 95% 71%;
+    --destructive-foreground: 240 10% 4%;
+    --border: 240 5% 19%;
+    --input: 240 5% 26%;
     --ring: 173 66% 45%;
+
+    --surface: #18181b;
+    --sunken: #111113;
+    --line: #2e2e33;
+    --line-strong: #3f3f46;
+    --ink: #f4f4f5;
+    --ink-2: #a1a1aa;
+    --primary-ink: #3ccfbe;
+    --primary-edge: #178276;
+    --primary-tint: #0f2e2b;
+    --amber: #fbbf24;
+    --amber-ink: #fbbf24;
+    --amber-tint: #2b2108;
+    --on-amber: #1c1917;
+    --danger: #fb7185;
+    --danger-ink: #fb7185;
+    --danger-tint: #2e1219;
+    /* 深色模式牌面維持紙牌色、只降亮度，牌桌四色因此只需要一套色值 */
+    --playcard: #e4e8e7;
+    --playcard-line: #c3cbc9;
+    --playcard-edge: #8e9996;
+    --playcard-ink: #132321;
+    --focus: #f4f4f5;
   }
 }
 

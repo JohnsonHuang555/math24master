@@ -81,7 +81,8 @@ export function JokerDeclareDialog({
                     type="button"
                     onClick={() => setColor(c)}
                     className={cn(
-                      'flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 bg-white font-bold dark:bg-zinc-800',
+                      // 牌色只在紙牌色底上校正過對比，深色模式也用 playcard 底
+                      'flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 bg-playcard font-bold',
                       style.text,
                       color === c
                         ? 'border-primary ring-2 ring-primary/30'

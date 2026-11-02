@@ -3,6 +3,11 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, LogOut, RotateCcw } from 'lucide-react';
+import { ExpressionBar } from '@/components/game/expression-bar';
+import {
+  EmptyCardSlot,
+  numberCardVariants,
+} from '@/components/game/number-card';
 import Symbols from '@/components/symbols';
 import {
   AlertDialog,
@@ -21,35 +26,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { calculateAnswer, cn } from '@/lib/utils';
+import { calculateAnswer } from '@/lib/utils';
 import { MatchCell } from '@/models/MatchBoard';
 import { SelectedCard } from '@/models/SelectedCard';
-import { Symbol } from '@/models/Symbol';
 
-function cardLabel(card: SelectedCard): string {
-  if (card.number) return String(card.number.value);
-  switch (card.symbol) {
-    case Symbol.Times:
-      return '×';
-    case Symbol.Divide:
-      return '÷';
-    default:
-      return card.symbol ?? '';
-  }
-}
-
-// 沿用經典模式 puzzle-play-area.tsx 的牌面/操作列色彩 token，維持全站牌面樣式一致
-const TOKENS = {
-  cardSelected:
-    'border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)] hover:border-red-400 hover:bg-red-400 hover:shadow-[0_5px_0_0_var(--color-red-600)]',
-  cardIdle:
-    'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
-  cardEmpty: 'border-dashed border-zinc-200 opacity-40 dark:border-zinc-700',
-  expressionBox:
-    'border-zinc-200 bg-white shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900',
-  iconBtn:
-    'border-2 border-zinc-200 bg-white text-zinc-500 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:bg-zinc-50 hover:text-primary active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
-};
+// 操作列的次要按鈕：與經典模式 puzzle-play-area.tsx 相同的平面樣式
+const ACTION_BUTTON_CLASS =
+  'h-12 flex-1 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink';
 
 export interface MatchPlayAreaProps {
   cells: MatchCell[];
@@ -93,8 +76,6 @@ export function MatchPlayArea({
     }
   }, [selectedCards]);
 
-  const isCorrect = livePreview !== null && Math.abs(livePreview - 24) < 1e-9;
-
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
       {/* HUD 插槽 */}
@@ -103,7 +84,7 @@ export function MatchPlayArea({
       </div>
 
       {/* 4x4 牌面 */}
-      <div className="grid w-full max-w-sm grid-cols-4 gap-3">
+      <div className="grid w-full max-w-sm grid-cols-4 gap-2.5">
         <AnimatePresence mode="popLayout">
           {cells.map(cell =>
             cell.card ? (
@@ -125,73 +106,34 @@ export function MatchPlayArea({
                 onClick={() => onSelectCard({ number: cell.card! })}
                 data-testid="match-card"
                 data-selected={selectedNumberIds.has(cell.card.id)}
-                className={cn(
-                  'aspect-square cursor-pointer select-none rounded-2xl border-2 font-display text-3xl font-semibold transition-colors',
-                  selectedNumberIds.has(cell.card.id)
-                    ? TOKENS.cardSelected
-                    : TOKENS.cardIdle,
-                )}
+                className={numberCardVariants({
+                  size: 'md',
+                  state: selectedNumberIds.has(cell.card.id)
+                    ? 'selected'
+                    : 'idle',
+                })}
               >
                 {cell.card.value}
               </motion.button>
             ) : (
-              <div
-                key={`empty-${cell.cellIndex}`}
-                className={cn(
-                  'aspect-square rounded-2xl border-2',
-                  TOKENS.cardEmpty,
-                )}
-              />
+              <EmptyCardSlot key={`empty-${cell.cellIndex}`} />
             ),
           )}
         </AnimatePresence>
       </div>
 
       {/* 算式列 + 即時預覽 */}
-      <div
-        className={cn(
-          'flex w-full max-w-sm flex-col gap-1 rounded-2xl border-2 px-4 py-3',
-          TOKENS.expressionBox,
-        )}
-      >
-        <div className="flex min-h-[32px] flex-wrap items-center gap-1.5">
-          {selectedCards.length === 0 ? (
-            <span className="text-sm text-muted-foreground">
-              點選 2~4 張牌和符號組成算式...
-            </span>
-          ) : (
-            selectedCards.map((card, i) => (
-              <motion.span
-                key={i}
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="cursor-default rounded-lg bg-zinc-100 px-3 py-1.5 font-display text-2xl dark:bg-zinc-800"
-              >
-                {cardLabel(card)}
-              </motion.span>
-            ))
-          )}
-        </div>
-        <AnimatePresence>
-          {livePreview !== null && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.15 }}
-              className={cn(
-                'text-right font-display text-lg font-bold',
-                isCorrect ? 'text-primary' : 'text-red-400',
-              )}
-            >
-              = {livePreview} {isCorrect ? '✓' : '✗'}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <ExpressionBar
+        className="max-w-sm"
+        tokens={selectedCards}
+        result={livePreview}
+        // 一次最多選 4 張；不到 4 張時還可能再加牌，不判定為錯
+        isFinal={selectedNumberIds.size >= 4}
+        placeholder="點選 2~4 張牌和符號組成算式..."
+      />
 
       {/* 符號列 */}
-      <div className="flex gap-2.5">
+      <div className="flex gap-2">
         <Symbols onClick={symbol => onSelectCard({ symbol })} />
       </div>
 
@@ -204,10 +146,11 @@ export function MatchPlayArea({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn('h-10 flex-1', TOKENS.iconBtn)}
+                  className={ACTION_BUTTON_CLASS}
                   onClick={onClearSelection}
+                  aria-label="清除所選取的牌"
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>清除所選取的牌</TooltipContent>
@@ -217,10 +160,11 @@ export function MatchPlayArea({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn('h-10 flex-1', TOKENS.iconBtn)}
+                  className={ACTION_BUTTON_CLASS}
                   onClick={onBackStep}
+                  aria-label="倒退一步"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>倒退一步</TooltipContent>
@@ -230,10 +174,11 @@ export function MatchPlayArea({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn('h-10 flex-1', TOKENS.iconBtn)}
+                  className={ACTION_BUTTON_CLASS}
                   onClick={() => setShowExitConfirm(true)}
+                  aria-label="返回上一頁"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>返回上一頁</TooltipContent>
@@ -241,11 +186,7 @@ export function MatchPlayArea({
           </div>
         </TooltipProvider>
 
-        <Button
-          variant="tactile"
-          className="h-12 w-full text-base"
-          onClick={onSubmit}
-        >
+        <Button variant="tactile" className="w-full" onClick={onSubmit}>
           確認消除
         </Button>
 

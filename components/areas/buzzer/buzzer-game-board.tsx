@@ -325,9 +325,11 @@ export default function BuzzerGameBoard({ roomId }: Props) {
           <BuzzerButton
             isLocked={myState?.isLocked ?? false}
             lockRemaining={lockRemaining}
+            lockTotal={roomInfo.settings.buzzerSettings?.lockSeconds}
             isBuzzerOpen={isBuzzerOpen}
             isAnswering={isAnswering}
             isCurrentAnswerer={false}
+            answeringPlayerName={answeringPlayer?.name}
             onBuzz={() => buzzIn(roomId)}
           />
         )}
