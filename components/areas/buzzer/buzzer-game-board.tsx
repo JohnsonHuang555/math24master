@@ -276,7 +276,8 @@ export default function BuzzerGameBoard({ roomId }: Props) {
       {/* 主內容區 */}
       <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-4 py-4 md:gap-5 md:py-6">
         {/* 公共牌 */}
-        <BuzzerPublicCards cards={publicCards} />
+        {/* 作答者的面板裡已經有這四張牌，不重複顯示 */}
+        {!isCurrentAnswerer && <BuzzerPublicCards cards={publicCards} />}
 
         {/* 作答中狀態列 */}
         <AnimatePresence>
