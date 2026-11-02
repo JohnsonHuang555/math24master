@@ -54,7 +54,7 @@ const CreateRoomModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+      <DialogContent sheet className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>建立房間</DialogTitle>
         </DialogHeader>
@@ -78,7 +78,10 @@ const CreateRoomModal = ({
             <Label htmlFor="max-players" className="text-right">
               玩家人數
             </Label>
-            <Select defaultValue={maxPlayers} onValueChange={v => setMaxPlayers(v)}>
+            <Select
+              defaultValue={maxPlayers}
+              onValueChange={v => setMaxPlayers(v)}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue id="max-players" placeholder="請選擇玩家人數" />
               </SelectTrigger>
@@ -125,7 +128,7 @@ const CreateRoomModal = ({
             </div>
             <label
               htmlFor="allow-password"
-              className="col-span-3 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="col-span-3 text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               是否設定房間密碼
             </label>

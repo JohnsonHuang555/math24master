@@ -23,7 +23,7 @@ export function TabletopHistoryDialog({
 }: TabletopHistoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px]">
+      <DialogContent sheet className="sm:max-w-[380px]">
         <DialogHeader>
           <DialogTitle>出牌紀錄</DialogTitle>
           <DialogDescription>
