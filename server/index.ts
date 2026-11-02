@@ -397,7 +397,7 @@ const startServer = () => {
               .emit(SocketEvent.RoomUpdate, { room: prevRoom });
             if (wp && rc <= 1) {
               io.sockets.to(prevRoomId).emit(SocketEvent.GameAborted, pName);
-              if (timerMap[prevRoomId]?.timer !== null) {
+              if (timerMap[prevRoomId]) {
                 clearInterval(timerMap[prevRoomId].timer as NodeJS.Timeout);
                 delete timerMap[prevRoomId];
               }
@@ -838,7 +838,7 @@ const startServer = () => {
 
           if (wasPlaying && remainingCount <= 1) {
             io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
-            if (timerMap[roomId]?.timer !== null) {
+            if (timerMap[roomId]) {
               clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
               delete timerMap[roomId];
             }
@@ -850,7 +850,7 @@ const startServer = () => {
                 _clearAndCreateTimer(roomId, room);
               }
             } else {
-              if (timerMap[roomId]?.timer !== null) {
+              if (timerMap[roomId]) {
                 clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
                 delete timerMap[roomId];
               }
@@ -883,7 +883,7 @@ const startServer = () => {
 
             if (wasPlaying && remainingCount <= 1) {
               io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
-              if (timerMap[roomId]?.timer !== null) {
+              if (timerMap[roomId]) {
                 clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
                 delete timerMap[roomId];
               }
@@ -900,7 +900,7 @@ const startServer = () => {
                   _clearAndCreateTimer(roomId, updatedRoom);
                 }
               } else {
-                if (timerMap[roomId]?.timer !== null) {
+                if (timerMap[roomId]) {
                   clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
                   delete timerMap[roomId];
                 }
@@ -925,7 +925,7 @@ const startServer = () => {
       io.sockets.to(roomId).emit(SocketEvent.RoomUpdate, { room });
       if (wasPlaying && remainingCount <= 1) {
         io.sockets.to(roomId).emit(SocketEvent.GameAborted, playerName);
-        if (timerMap[roomId]?.timer !== null) {
+        if (timerMap[roomId]) {
           clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
           delete timerMap[roomId];
         }
@@ -936,7 +936,7 @@ const startServer = () => {
             _clearAndCreateTimer(roomId, room);
           }
         } else {
-          if (timerMap[roomId]?.timer !== null) {
+          if (timerMap[roomId]) {
             clearInterval(timerMap[roomId].timer as NodeJS.Timeout);
             delete timerMap[roomId];
           }
