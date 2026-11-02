@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 import { enterFormula, readCardValues } from './play';
 import { solve24 } from './solver';
 
@@ -26,9 +26,7 @@ export async function playClassicToEnd(page: Page): Promise<number> {
       );
       await page.getByRole('button', { name: '出牌', exact: true }).click();
     } else {
-      await page
-        .getByRole('button', { name: /^(跳過換牌|結算)$/ })
-        .click();
+      await page.getByRole('button', { name: /^(跳過換牌|結算)$/ }).click();
     }
 
     // 等這一手結算完：換成新的一手（算式列回到提示文字）或進入結算畫面
@@ -49,9 +47,6 @@ export async function playClassicToEnd(page: Page): Promise<number> {
   }
 
   await expect(gameOver).toBeVisible();
-  const score = await page
-    .getByText('最終得分')
-    .locator('xpath=preceding-sibling::p[1]')
-    .textContent();
+  const score = await page.getByTestId('result-value').textContent();
   return Number(score);
 }

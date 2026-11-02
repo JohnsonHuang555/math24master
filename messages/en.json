@@ -125,6 +125,18 @@
       "rules": "Rules",
       "exit": "Leave",
       "soundComingSoon": "Sound (coming soon)"
+    },
+    "leave": {
+      "title": "Leave the game?",
+      "description": "Your progress in this game won't be saved.",
+      "stay": "Keep playing",
+      "leave": "Leave"
+    },
+    "scoring": {
+      "gainedUnit": "pts!",
+      "timesBonus": "Two × +1",
+      "divideBonus": "Two ÷ +1",
+      "scoringNow": "Scoring"
     }
   },
   "Achievements": {

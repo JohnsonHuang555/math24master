@@ -125,6 +125,18 @@
       "rules": "规则",
       "exit": "离开",
       "soundComingSoon": "音效（即将推出）"
+    },
+    "leave": {
+      "title": "确定要离开？",
+      "description": "离开后本局进度将不会保存。",
+      "stay": "继续游戏",
+      "leave": "离开"
+    },
+    "scoring": {
+      "gainedUnit": "分！",
+      "timesBonus": "2 张乘 +1",
+      "divideBonus": "2 张除 +1",
+      "scoringNow": "计分中"
     }
   },
   "Achievements": {
