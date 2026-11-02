@@ -27,7 +27,7 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <h3 className="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
       {children}
     </h3>
   );
@@ -64,7 +64,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent sheet className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-blue-500" />
@@ -78,7 +78,10 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
             <SectionTitle>{t('classic')}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               <StatItem label={t('plays')} value={classicPlays} />
-              <StatItem label={t('bestScore')} value={classicBestScore || '-'} />
+              <StatItem
+                label={t('bestScore')}
+                value={classicBestScore || '-'}
+              />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 opacity-70">
               <StatItem label={t('fastestPlay')} value={fastestPlayDisplay} />

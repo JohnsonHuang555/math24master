@@ -2,10 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { BookOpen, Flag, Play, Timer } from 'lucide-react';
+import { BookOpen, ChevronLeft, Flag, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import {
+  GameResultScreen,
+  RecordBadge,
+} from '@/components/game/game-result-screen';
+import { GameStartScreen } from '@/components/game/game-start-screen';
 import { GameTimer, TimerDelta } from '@/components/game/game-timer';
+import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
@@ -60,6 +66,7 @@ export default function ChallengePlayGame({
   const [timeDelta, setTimeDelta] = useState<TimerDelta | null>(null);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showEarlyEndConfirm, setShowEarlyEndConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const deltaTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -125,48 +132,38 @@ export default function ChallengePlayGame({
     showTimeDelta(-penalty);
   };
 
+  const ruleModal = (
+    <RuleModal
+      isOpen={isOpenRuleModal}
+      onOpenChange={setIsOpenRuleModal}
+      mode="challenge"
+    />
+  );
+
   // ── 開始畫面 ──
   if (status === 'idle') {
     if (autoStart) return null;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 px-4">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-400 text-white shadow-[0_5px_0_0_hsl(36,100%,34%)]">
-            <Timer className="h-8 w-8" />
-          </div>
-          <div>
-            <h1 className="font-display text-2xl font-black text-foreground">
-              挑戰模式
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              倒數 5 分鐘 · 無限關卡
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              答對加時遞減 · 連續跳過懲罰加重
-            </p>
-          </div>
-        </div>
-        {best && (
-          <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
-            <p className="text-xs text-muted-foreground">個人最佳</p>
-            <p className="font-display text-2xl font-bold text-foreground">
-              第 {best.stage} 關
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {best.totalScore} 分
-            </p>
-          </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onBack}>
-            返回
-          </Button>
-          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />
-            開始遊戲
-          </Button>
-        </div>
-      </div>
+      <>
+        {ruleModal}
+        <GameStartScreen
+          icon={Timer}
+          title="挑戰模式"
+          tagline="倒數 5 分鐘 · 無限關卡"
+          description="答對加時遞減 · 連續跳過懲罰加重"
+          stats={
+            best
+              ? [
+                  { label: '最高關卡', value: `第 ${best.stage} 關` },
+                  { label: '最高分', value: `${best.totalScore} 分` },
+                ]
+              : undefined
+          }
+          onBack={onBack}
+          onOpenRules={() => setIsOpenRuleModal(true)}
+          onStart={startGame}
+        />
+      </>
     );
   }
 
@@ -187,56 +184,42 @@ export default function ChallengePlayGame({
             setShowLoginPrompt(false);
           }}
         />
-        <div className="flex h-full flex-col items-center justify-center px-4">
-          <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(36,100%,72%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(36,100%,34%)]">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/30">
-              <Timer className="h-7 w-7 text-amber-500" />
-            </div>
-            <h2 className="font-display text-xl font-black text-foreground">
-              {finishReason === 'early' ? '提前結算！' : '時間到！'}
-            </h2>
-            <div className="mt-4 flex justify-center gap-8">
-              <div>
-                <p className="font-display text-4xl font-bold text-amber-500">
-                  {stage}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">最終關卡</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div>
-                <p className="font-display text-4xl font-bold text-foreground">
-                  {totalScore}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">總分</p>
-              </div>
-            </div>
-            {isNewBest && (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                  新紀錄！
-                </p>
-              </div>
-            )}
-            {best && !isNewBest && (
-              <p className="mt-3 text-sm text-muted-foreground">
-                個人最佳：第 {best.stage} 關（{best.totalScore} 分）
-              </p>
-            )}
-            <ResultRank
-              mode="challenge"
-              submit={leaderboardSubmit}
-              className="mt-6"
-            />
-            <div className="mt-3 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={onBack}>
-                返回選單
-              </Button>
-              <Button variant="tactile" className="flex-1" onClick={startGame}>
-                再挑戰
-              </Button>
-            </div>
-          </div>
-        </div>
+        <GameResultScreen
+          eyebrow={
+            finishReason === 'early' ? (
+              <>
+                <Flag aria-hidden />
+                提前結算！
+              </>
+            ) : (
+              <>
+                <Timer aria-hidden />
+                時間到！
+              </>
+            )
+          }
+          label="最終關卡"
+          value={`第 ${stage} 關`}
+          badge={isNewBest ? <RecordBadge>新紀錄！</RecordBadge> : null}
+          stats={[
+            { label: '總分', value: totalScore },
+            ...(best && best.stage > 0 && !isNewBest
+              ? [
+                  {
+                    label: '個人最佳',
+                    value: `第 ${best.stage} 關`,
+                    muted: true,
+                  },
+                ]
+              : []),
+          ]}
+          backLabel="返回選單"
+          onBack={onBack}
+          retryLabel="再挑戰"
+          onRetry={startGame}
+        >
+          <ResultRank mode="challenge" submit={leaderboardSubmit} />
+        </GameResultScreen>
       </>
     );
   }
@@ -244,10 +227,14 @@ export default function ChallengePlayGame({
   // ── 遊戲中 ──
   return (
     <>
-      <RuleModal
-        isOpen={isOpenRuleModal}
-        onOpenChange={setIsOpenRuleModal}
-        mode="challenge"
+      {ruleModal}
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        onLeave={() => {
+          quitGame();
+          onBack();
+        }}
       />
       <PuzzlePlayArea
         currentNumbers={currentNumbers}
@@ -257,16 +244,20 @@ export default function ChallengePlayGame({
         onClearSelection={clearSelection}
         onSubmit={submitAnswer}
         onSkip={handleSkip}
-        onBack={() => {
-          quitGame();
-          onBack();
-        }}
         showSkipButton={true}
         skipPenaltyText={`−${nextSkipPenalty} 秒`}
-        theme="orange"
       >
         {/* HUD */}
-        <div className="flex w-full items-center gap-1">
+        <div className="flex w-full items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 text-ink"
+            onClick={() => setShowLeaveConfirm(true)}
+            aria-label="離開"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
           <span className="flex-1 text-sm font-bold text-ink-2">挑戰模式</span>
           <Button
             variant="ghost"

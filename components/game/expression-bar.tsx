@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 
-const SYMBOL_LABEL: Record<Symbol, string> = {
+export const SYMBOL_LABEL: Record<Symbol, string> = {
   [Symbol.Plus]: '+',
   [Symbol.Minus]: '−',
   [Symbol.Times]: '×',

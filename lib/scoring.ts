@@ -1,6 +1,14 @@
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 
+/** 每個運算符號的基本分；括號不計分 */
+export const SYMBOL_SCORE: Partial<Record<Symbol, number>> = {
+  [Symbol.Plus]: 1,
+  [Symbol.Minus]: 1,
+  [Symbol.Times]: 2,
+  [Symbol.Divide]: 3,
+};
+
 /** 根據已選符號計算本回合得分 */
 export function calcRoundScore(symbols: SelectedCard[]): number {
   const plusMinusCount = symbols.filter(

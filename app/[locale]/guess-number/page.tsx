@@ -1,8 +1,16 @@
 'use client';
 
 import { memo, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, HelpCircle } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import {
+  BookOpen,
+  NotebookPen,
+  ScanEye,
+  Shuffle,
+  Sparkles,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import {
@@ -16,13 +24,56 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useGuessNumber } from '@/hooks/useGuessNumber';
 import type { HistoryEntry } from '@/hooks/useGuessNumber';
 import { Link } from '@/i18n/navigation';
-import type { ClueCard, LineClueCard } from '@/lib/guess-number';
+import type { ClueCard, GuessRating, LineClueCard } from '@/lib/guess-number';
 import { cn } from '@/lib/utils';
 
+/** 評級的顯示文字、對應回合數與五格評級條的格數 */
+const RATING_INFO: Record<
+  GuessRating,
+  { label: string; rounds: string; level: number }
+> = {
+  lucky: { label: '運氣爆棚！', rounds: '1 回合', level: 5 },
+  genius: { label: '邏輯天才！', rounds: '2–3 回合', level: 4 },
+  steady: { label: '穩健推理', rounds: '4–6 回合', level: 3 },
+  close: { label: '快追上了', rounds: '7–10 回合', level: 2 },
+  keepGoing: { label: '再接再厲', rounds: '10 回合以上', level: 1 },
+  miss: { label: '下次再試', rounds: '未猜中', level: 0 },
+};
+
+const RULE_RATINGS: GuessRating[] = [
+  'lucky',
+  'genius',
+  'steady',
+  'close',
+  'miss',
+];
+
+function RatingBar({
+  level,
+  className,
+}: {
+  level: number;
+  className?: string;
+}) {
+  return (
+    <span aria-hidden className={cn('flex gap-1.5', className)}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            'h-2.5 flex-1 rounded-full',
+            i < level ? 'bg-primary' : 'bg-line',
+          )}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** 透視鏡的數字盤：剩餘、排除、已猜三種狀態，排除與已猜不只靠顏色（刪除線、粗框） */
 const NumberBoard = memo(function NumberBoard({
   remaining,
   guessedNumbers,
@@ -38,12 +89,12 @@ const NumberBoard = memo(function NumberBoard({
         <div
           key={n}
           className={cn(
-            'flex h-6 w-6 items-center justify-center rounded text-[10px] font-medium transition-colors',
+            'flex aspect-square items-center justify-center rounded font-display text-[11px] font-bold',
             guessedSet.has(n)
-              ? 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-400 dark:bg-yellow-900/40 dark:text-yellow-300'
+              ? 'border-2 border-amber bg-surface text-ink'
               : remainingSet.has(n)
-                ? 'bg-white text-zinc-800 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700'
-                : 'bg-zinc-100 text-zinc-300 dark:bg-zinc-900 dark:text-zinc-600',
+                ? 'border border-line-strong bg-surface text-ink'
+                : 'bg-sunken text-ink-2/60 line-through',
           )}
         >
           {n}
@@ -79,21 +130,22 @@ function ClueCardButton({
   lastGuess: number | null;
   onClick: () => void;
 }) {
-  const isPeek = card.id === 'peek';
-  const isRedraw = card.id === 'redraw';
+  const isSpecial = card.id === 'peek' || card.id === 'redraw';
   const displayText =
     'question' in card ? formatCardQuestion(card, lastGuess) : card.description;
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={selected}
       className={cn(
-        'flex h-[100px] flex-1 flex-col items-center justify-center rounded-2xl border-2 px-2 py-3 text-center outline-hidden transition-all [-webkit-tap-highlight-color:transparent] focus:outline-hidden focus-visible:outline-hidden',
-        isRedraw || isPeek
-          ? 'border-amber-200 bg-amber-50 shadow-[0_4px_0_0_var(--color-amber-200)] dark:border-amber-700 dark:bg-amber-900/20 dark:shadow-[0_4px_0_0_var(--color-amber-800)]'
-          : selected
-            ? 'border-primary bg-primary text-primary-foreground shadow-[0_4px_0_0_hsl(175_84%_22%)]'
-            : 'border-zinc-200 bg-white shadow-[0_4px_0_0_rgba(0,0,0,0.06)] dark:border-zinc-700 dark:bg-zinc-800',
+        'flex min-h-[128px] w-[132px] shrink-0 flex-col gap-1.5 rounded-2xl border-2 p-3 text-left transition-[translate,box-shadow] duration-[90ms] [-webkit-tap-highlight-color:transparent] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+        selected
+          ? '-translate-y-1.5 border-primary-edge bg-primary text-primary-foreground shadow-[0_5px_0_0_var(--primary-edge)]'
+          : isSpecial
+            ? 'border-amber bg-amber-tint text-ink shadow-[0_4px_0_0_var(--amber)]'
+            : 'border-playcard-line bg-playcard text-playcard-ink shadow-[0_4px_0_0_var(--playcard-edge)]',
         disabled
           ? selected
             ? 'cursor-default'
@@ -101,15 +153,19 @@ function ClueCardButton({
           : 'active:translate-y-0.5 active:shadow-none',
       )}
     >
-      <span className="text-sm leading-tight font-bold">{card.name}</span>
+      {isSpecial && (
+        <span className="flex items-center gap-1 text-[11px] font-extrabold text-amber-ink">
+          <Sparkles aria-hidden className="h-3.5 w-3.5" />
+          特殊 · 限 1 次
+        </span>
+      )}
+      <span className="text-base leading-tight font-extrabold">
+        {card.name}
+      </span>
       <span
         className={cn(
-          'mt-1 text-xs leading-tight',
-          isRedraw || isPeek
-            ? 'text-amber-600 dark:text-amber-400'
-            : selected
-              ? 'text-teal-100'
-              : 'text-zinc-500 dark:text-zinc-400',
+          'text-[13px] leading-snug',
+          selected ? 'text-primary-foreground/85' : 'text-ink-2',
         )}
       >
         {displayText}
@@ -118,94 +174,80 @@ function ClueCardButton({
   );
 }
 
+function YesNoPill({ result }: { result: 'yes' | 'no' }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-5 items-center rounded-full px-1.5 text-[11px] font-extrabold',
+        result === 'yes'
+          ? 'bg-primary-ink text-white'
+          : 'border border-line-strong bg-sunken text-ink',
+      )}
+    >
+      {result === 'yes' ? '是' : '否'}
+    </span>
+  );
+}
+
 function HistoryChips({ history }: { history: HistoryEntry[] }) {
   if (history.length === 0) return null;
   return (
-    <div className="w-full max-w-lg">
-      <div className="flex scrollbar-none gap-1.5 overflow-x-auto px-0.5 py-1">
-        {history.map((e, i) => {
-          if (e.type === 'clue') {
-            return (
-              <span
-                key={i}
-                className={cn(
-                  'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-                  e.result === 'yes'
-                    ? 'bg-teal-50 text-teal-700 ring-1 ring-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:ring-teal-800'
-                    : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800',
-                )}
-              >
-                {e.question.replace('謎底', '').replace('嗎？', '')}
-                {e.result === 'yes' ? ' ✓' : ' ✗'}
-              </span>
-            );
-          }
-          if (e.type === 'peek') {
-            return (
-              <span
-                key={i}
-                className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-800"
-              >
-                🔍
-              </span>
-            );
-          }
-          if (e.type === 'guess') {
-            return (
-              <span
-                key={i}
-                className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-              >
-                猜{e.number}
-              </span>
-            );
-          }
-        })}
-      </div>
+    <div
+      aria-label="歷史紀錄"
+      className="flex scrollbar-none gap-1.5 overflow-x-auto px-4 py-1"
+    >
+      {history.map((e, i) => {
+        const chip =
+          'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink';
+        if (e.type === 'clue') {
+          return (
+            <span key={i} className={chip}>
+              <span className="text-ink-2">{e.round}</span>
+              {e.question.replace('謎底', '').replace('嗎？', '')}
+              <YesNoPill result={e.result} />
+            </span>
+          );
+        }
+        if (e.type === 'peek') {
+          return (
+            <span key={i} className={chip}>
+              <ScanEye aria-hidden className="h-4 w-4 text-amber-ink" />
+              透視鏡
+            </span>
+          );
+        }
+        return (
+          <span key={i} className={chip}>
+            <span className="font-display text-sm font-bold">
+              猜 {e.number}
+            </span>
+          </span>
+        );
+      })}
     </div>
   );
 }
 
-function ProgressDots({ roundCount }: { roundCount: number }) {
-  const filledClass =
-    roundCount >= 9
-      ? 'bg-red-500'
-      : roundCount >= 7
-        ? 'bg-amber-500'
-        : 'bg-teal-500';
-  const currentClass =
-    roundCount >= 9
-      ? 'bg-red-300 animate-pulse'
-      : roundCount >= 7
-        ? 'bg-amber-300 animate-pulse'
-        : 'bg-teal-300 animate-pulse';
-
+/** 回合進度：最後幾回合加上警示圖示，不只靠顏色變化 */
+function ProgressBar({ roundCount }: { roundCount: number }) {
+  const isLate = roundCount >= 7;
   return (
-    <div className="flex gap-1.5">
-      {Array.from({ length: 10 }, (_, i) => {
-        if (i < roundCount) {
-          return (
-            <div
-              key={i}
-              className={cn('h-2 flex-1 rounded-full', filledClass)}
-            />
-          );
-        }
-        if (i === roundCount) {
-          return (
-            <div
-              key={i}
-              className={cn('h-2 flex-1 rounded-full', currentClass)}
-            />
-          );
-        }
-        return (
-          <div
-            key={i}
-            className="h-2 flex-1 rounded-full bg-zinc-200 dark:bg-zinc-700"
-          />
-        );
-      })}
+    <div aria-hidden className="flex gap-1">
+      {Array.from({ length: 10 }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            'h-1.5 flex-1 rounded-[3px]',
+            i < roundCount
+              ? isLate
+                ? 'bg-amber'
+                : 'bg-primary'
+              : i === roundCount
+                ? 'bg-primary/45'
+                : 'bg-line',
+          )}
+        />
+      ))}
     </div>
   );
 }
@@ -246,6 +288,7 @@ export default function GuessNumberPage() {
   const [notesColumns, setNotesColumns] = useState<5 | 6>(5);
   const [dragSelectMode, setDragSelectMode] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const prevRoundCountRef = useRef(0);
   const prevClueResultRef = useRef<'yes' | 'no' | null>(null);
@@ -388,285 +431,347 @@ export default function GuessNumberPage() {
   if (!isMounted) {
     return (
       <div className="flex min-h-full items-center justify-center">
-        <p className="text-muted-foreground">載入中...</p>
+        <p className="text-ink-2">載入中...</p>
       </div>
     );
   }
 
-  return (
-    <div className="flex min-h-full flex-col items-center gap-5 px-4 py-6">
-      {/* 標題列 */}
-      <div className="flex w-full max-w-lg items-center justify-between">
-        <BackToHomeButton />
-        <h1 className="text-xl font-bold">猜數字</h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setRulesOpen(true)}
-            className="flex h-8 items-center gap-1 text-muted-foreground outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+  // ── 結算畫面 ──
+  if (gameOver && rating) {
+    const info = RATING_INFO[rating];
+    return (
+      <div className="mx-auto flex h-full w-full max-w-md flex-col gap-3.5 px-4 pt-4 pb-6">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2.5 text-center">
+          <span className="text-base font-bold text-ink-2">謎底是</span>
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+            className={cn(
+              'flex h-[140px] w-[140px] items-center justify-center rounded-[28px] border-[3px] bg-playcard',
+              isWin
+                ? 'border-primary shadow-[0_6px_0_0_var(--primary-edge)]'
+                : 'border-danger shadow-[0_6px_0_0_var(--danger-ink)]',
+            )}
           >
-            <HelpCircle size={16} />
-            <span className="text-xs">規則</span>
-          </button>
-          <button
-            onClick={() => setNotesOpen(true)}
-            className="flex h-8 items-center gap-1 text-muted-foreground outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-foreground"
+            <span className="font-display text-[80px] leading-none font-extrabold text-playcard-ink">
+              {answer}
+            </span>
+          </motion.div>
+          <h2 className="mt-2.5 text-2xl font-black text-ink">
+            {isWin ? '猜中了！' : '沒猜中'}
+          </h2>
+          <span className="text-[15px] text-ink-2">
+            共{' '}
+            <b className="font-display text-xl font-extrabold text-ink">
+              {roundCount}
+            </b>{' '}
+            回合
+          </span>
+          <RatingBar level={info.level} className="mt-2 w-[220px]" />
+          <span className="text-sm font-bold text-ink">
+            {info.label} · {info.rounds}
+          </span>
+        </div>
+        <div className="flex gap-2.5">
+          <Button variant="tactileOutline" className="flex-1 px-3" asChild>
+            <Link href="/">回首頁</Link>
+          </Button>
+          <Button
+            variant="tactile"
+            className="flex-[1.3] px-3"
+            onClick={handleRestart}
           >
-            <BookOpen size={16} />
-            <span className="text-xs">筆記</span>
-          </button>
+            再玩一次
+          </Button>
         </div>
       </div>
+    );
+  }
 
-      {/* 謎題展示區 */}
-      <AnimatePresence mode="wait">
-        {isPeeking ? (
-          <motion.div
-            key="peek-open"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full max-w-lg rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 shadow-[0_5px_0_0_var(--color-amber-200)] dark:border-amber-700 dark:bg-zinc-900 dark:shadow-[0_5px_0_0_var(--color-amber-800)]"
-          >
-            <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
-              透視中… 剩餘的數字為（{remaining.length} 個）
-            </p>
-            <NumberBoard
-              remaining={remaining}
-              guessedNumbers={guessedNumbers}
-            />
+  const isGuessing =
+    peekActive || (selectedCard !== null && selectedCard.id !== 'peek');
+  const hint = peekActive
+    ? '透視鏡已使用，請輸入猜測數字'
+    : selectedCard !== null && selectedCard.id !== 'peek'
+      ? '已選牌，請輸入猜測數字'
+      : redrawnThisRound
+        ? '已換牌，請選線索牌'
+        : '選擇一張牌使用';
+
+  return (
+    <div className="mx-auto flex h-full w-full max-w-md flex-col">
+      {/* 標題列 */}
+      <header className="flex items-center gap-0.5 px-2 pt-2">
+        <BackToHomeButton />
+        <h1 className="flex-1 pl-1 text-[17px] font-extrabold text-ink">
+          猜數字
+        </h1>
+        <Button
+          variant="ghost"
+          className="h-11 gap-1.5 px-2.5 text-sm font-bold text-ink"
+          onClick={() => setNotesOpen(true)}
+        >
+          <NotebookPen className="h-5 w-5" />
+          筆記
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 text-ink"
+          onClick={() => setRulesOpen(true)}
+          aria-label="規則"
+        >
+          <BookOpen className="h-5 w-5" />
+        </Button>
+      </header>
+
+      {/* 謎題展示區：透視中、線索結果、特殊牌提示、預設 */}
+      <div className="px-4 pt-2.5">
+        <AnimatePresence mode="wait" initial={false}>
+          {isPeeking ? (
             <motion.div
-              className="mt-2 h-1 rounded-full bg-amber-400"
-              initial={{ width: '100%' }}
-              animate={{ width: '0%' }}
-              transition={{ duration: 5, ease: 'linear' }}
-            />
-            <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded bg-white ring-1 ring-zinc-300 dark:bg-zinc-800" />
-                剩餘
+              key="peek-open"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="rounded-[20px] border-2 border-amber bg-amber-tint p-3"
+            >
+              <p className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-amber-ink">
+                <ScanEye aria-hidden className="h-4 w-4" />
+                透視中… 剩餘的數字（{remaining.length} 個）
+              </p>
+              <NumberBoard
+                remaining={remaining}
+                guessedNumbers={guessedNumbers}
+              />
+              <motion.div
+                className="mt-2 h-1 rounded-full bg-amber"
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: 5, ease: 'linear' }}
+              />
+              <div className="mt-2 flex gap-3.5 text-xs text-ink-2">
+                <span className="flex items-center gap-1">
+                  <span className="h-3.5 w-3.5 rounded border border-line-strong bg-surface" />
+                  剩餘
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-3.5 w-3.5 rounded bg-sunken" />
+                  排除
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-3.5 w-3.5 rounded border-2 border-amber" />
+                  已猜
+                </span>
+              </div>
+            </motion.div>
+          ) : clueResult !== null &&
+            selectedCard !== null &&
+            selectedCard.id !== 'peek' ? (
+            <motion.div
+              key="clue-result"
+              role="status"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                'flex items-center gap-4 rounded-[20px] border-2 p-[18px]',
+                clueResult === 'yes'
+                  ? 'border-primary bg-primary-tint'
+                  : 'border-line-strong bg-surface',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full text-[30px] font-black',
+                  clueResult === 'yes'
+                    ? 'bg-primary-ink text-white'
+                    : 'border-2 border-line-strong bg-sunken text-ink',
+                )}
+              >
+                {clueResult === 'yes' ? '是' : '否'}
               </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded bg-zinc-100 dark:bg-zinc-900" />
-                排除
+              <span className="flex min-w-0 flex-col gap-1">
+                <span
+                  className={cn(
+                    'text-[13px] font-bold',
+                    clueResult === 'yes' ? 'text-primary-ink' : 'text-ink-2',
+                  )}
+                >
+                  {'name' in selectedCard ? selectedCard.name : ''}
+                </span>
+                <span className="text-[17px] leading-snug font-bold text-ink">
+                  {'question' in selectedCard
+                    ? formatCardQuestion(
+                        selectedCard as LineClueCard,
+                        lastGuess,
+                      )
+                    : ''}
+                </span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded bg-yellow-100 ring-1 ring-yellow-400" />
-                已猜
+            </motion.div>
+          ) : (redrawnThisRound && !clueResult) ||
+            (peekActive && !clueResult) ? (
+            <motion.div
+              key="special"
+              role="status"
+              initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-4 rounded-[20px] border-2 border-amber bg-amber-tint p-[18px]"
+            >
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber text-on-amber">
+                {peekActive ? (
+                  <ScanEye aria-hidden className="h-7 w-7" />
+                ) : (
+                  <Shuffle aria-hidden className="h-7 w-7" />
+                )}
               </span>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="peek-closed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full max-w-lg rounded-2xl border-2 border-zinc-200 bg-white px-6 py-5 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.08)] dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <div className="font-display text-7xl font-bold tracking-tighter text-zinc-200 dark:text-zinc-700">
-              ??
-            </div>
-            <div className="mt-2 font-display text-2xl font-bold text-primary">
-              剩 {remaining.length} 個未猜
-            </div>
-            <div className="mt-1 text-xs text-zinc-400">
-              謎底是 10-99 之間的數字
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[13px] font-bold text-amber-ink">
+                  {peekActive ? '透視鏡' : '全面革新'}
+                </span>
+                <span className="text-base font-bold text-ink">
+                  {peekActive ? '已使用，請直接輸入猜測' : '已換牌，請選線索牌'}
+                </span>
+              </span>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="puzzle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-4 rounded-[20px] border border-line bg-surface p-[18px]"
+            >
+              <span
+                aria-hidden
+                className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[18px] border-2 border-dashed border-line-strong bg-sunken font-display text-[44px] font-extrabold text-ink-2"
+              >
+                ??
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="text-sm text-ink-2">
+                  謎底是 10–99 的兩位數
+                </span>
+                <span className="text-[15px] font-bold text-ink">
+                  剩{' '}
+                  <span className="font-display text-2xl font-extrabold">
+                    {remaining.length}
+                  </span>{' '}
+                  個未猜
+                </span>
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* 進度指示器 */}
-      <div className="w-full max-w-lg">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            第 {roundCount + 1} / 10 回合
+      {/* 進度 */}
+      <div className="flex flex-col gap-1.5 px-4 pt-3.5 pb-2">
+        <div className="flex justify-between text-[13px] font-bold text-ink-2">
+          <span className="flex items-center gap-1">
+            {roundCount >= 7 && (
+              <TriangleAlert aria-hidden className="h-4 w-4 text-amber-ink" />
+            )}
+            第{' '}
+            <span className="font-display text-[15px] text-ink">
+              {roundCount + 1}
+            </span>{' '}
+            / 10 回合
           </span>
-          <span className="text-xs text-muted-foreground">
-            已排除 {90 - remaining.length} 個
+          <span>
+            已排除{' '}
+            <span className="font-display text-[15px] text-ink">
+              {90 - remaining.length}
+            </span>{' '}
+            個
           </span>
         </div>
-        <ProgressDots roundCount={roundCount} />
+        <ProgressBar roundCount={roundCount} />
       </div>
 
       {/* 歷史 chip 列 */}
       <HistoryChips history={history} />
 
-      {/* 線索結果 banner */}
-      <div className="w-full max-w-lg">
-        <AnimatePresence>
-          {clueResult !== null &&
-            selectedCard !== null &&
-            selectedCard.id !== 'peek' && (
-              <motion.div
-                key="clue-banner"
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border p-3',
-                  clueResult === 'yes'
-                    ? 'border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/20'
-                    : 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20',
-                )}
+      {/* 底部操作區：選牌或輸入猜測 */}
+      <div className="mt-auto flex flex-col gap-3 pt-4 pb-6">
+        <span className="px-4 text-sm font-bold text-ink-2">{hint}</span>
+
+        {!isGuessing && !isRoundGuessed && (
+          <div className="flex scrollbar-none gap-2.5 overflow-x-auto px-4 pt-2.5 pb-1.5">
+            {visibleCards.map((card, i) => (
+              <ClueCardButton
+                key={`${card.id}-${i}-${roundCount}`}
+                card={card}
+                selected={selectedIdx === i}
+                disabled={getCardDisabled(card)}
+                lastGuess={lastGuess}
+                onClick={() => handleSelectCard(card, i)}
+              />
+            ))}
+          </div>
+        )}
+
+        {isGuessing && !isRoundGuessed && (
+          <div className="flex flex-col gap-3 px-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="guess-input"
+                className="text-sm font-bold text-ink"
               >
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={cn(
-                      'text-xs font-semibold',
-                      clueResult === 'yes' ? 'text-teal-600' : 'text-rose-600',
-                    )}
-                  >
-                    {'name' in selectedCard ? selectedCard.name : ''}
-                  </div>
-                  <div className="truncate text-sm text-zinc-600 dark:text-zinc-400">
-                    {'question' in selectedCard
-                      ? formatCardQuestion(
-                          selectedCard as LineClueCard,
-                          lastGuess,
-                        )
-                      : ''}
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    'shrink-0 text-3xl font-black',
-                    clueResult === 'yes' ? 'text-teal-500' : 'text-rose-500',
-                  )}
+                你的猜測
+              </label>
+              <input
+                id="guess-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="輸入 10-99"
+                value={inputValue}
+                onChange={e =>
+                  setInputValue(e.target.value.replace(/[^0-9]/g, ''))
+                }
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                maxLength={2}
+                aria-describedby={alreadyGuessed ? 'guess-hint' : undefined}
+                className={cn(
+                  'h-16 w-full rounded-2xl border-2 bg-surface px-4 text-center font-display text-[34px] font-extrabold text-ink placeholder:font-noto placeholder:text-base placeholder:font-normal placeholder:text-ink-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+                  alreadyGuessed ? 'border-amber' : 'border-line-strong',
+                )}
+              />
+              {alreadyGuessed && (
+                <span
+                  id="guess-hint"
+                  className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-ink"
                 >
-                  {clueResult === 'yes' ? '✓' : '✗'}
-                </div>
-              </motion.div>
-            )}
-          {redrawnThisRound && !clueResult && !peekActive && (
-            <motion.div
-              key="redraw-banner"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
+                  <TriangleAlert aria-hidden className="h-4 w-4" />
+                  你已猜過 {parsedGuess}，可繼續送出
+                </span>
+              )}
+            </div>
+            <Button
+              variant="tactile"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
             >
-              <span className="text-2xl">🔄</span>
-              <div>
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  全面革新
-                </div>
-                <div className="text-sm text-amber-600 dark:text-amber-500">
-                  已換牌，請選線索牌
-                </div>
-              </div>
-            </motion.div>
-          )}
-          {peekActive && !clueResult && (
-            <motion.div
-              key="peek-banner"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
-            >
-              <span className="text-2xl">🔍</span>
-              <div>
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  透視鏡
-                </div>
-                <div className="text-sm text-amber-600 dark:text-amber-500">
-                  已使用，請直接輸入猜測
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              送出
+            </Button>
+          </div>
+        )}
 
-      {/* 選牌區 */}
-      <div className="w-full max-w-lg">
-        <p className="mb-2 text-sm text-muted-foreground">
-          {peekActive
-            ? '透視鏡已使用，請輸入猜測數字'
-            : selectedCard !== null && selectedCard.id !== 'peek'
-              ? '已選牌，請輸入猜測數字'
-              : redrawnThisRound
-                ? '已換牌，請選線索牌'
-                : '選擇一張牌使用'}
-        </p>
-        <div className="flex gap-2">
-          {visibleCards.map((card, i) => (
-            <ClueCardButton
-              key={`${card.id}-${i}-${roundCount}`}
-              card={card}
-              selected={selectedIdx === i}
-              disabled={getCardDisabled(card)}
-              lastGuess={lastGuess}
-              onClick={() => handleSelectCard(card, i)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 猜測輸入 */}
-      <div className="w-full max-w-lg">
-        <div className="flex gap-2">
-          <Input
-            inputMode="numeric"
-            placeholder="輸入 10-99"
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value.replace(/[^0-9]/g, ''))}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            disabled={
-              (!peekActive &&
-                (selectedCard === null || selectedCard.id === 'peek')) ||
-              isRoundGuessed ||
-              gameOver
-            }
-            className="flex-3 text-center text-lg font-bold"
-            maxLength={2}
-          />
-          <Button
-            variant="tactile"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="flex-1 disabled:opacity-40"
-          >
-            送出
-          </Button>
-        </div>
-        <AnimatePresence>
-          {alreadyGuessed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="mt-1 text-sm text-yellow-500"
-            >
-              你已猜過 {parsedGuess}，可繼續送出
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* 下一回合 */}
-      <AnimatePresence>
         {isRoundGuessed && !gameOver && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full max-w-lg"
-          >
+          <div className="px-4">
             <Button
               variant="tactile"
               className="w-full"
               onClick={handleNextRound}
             >
-              下一回合 →
+              下一回合
             </Button>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
 
       {/* 選牌確認彈窗 */}
       <AlertDialog
@@ -700,333 +805,327 @@ export default function GuessNumberPage() {
       </AlertDialog>
 
       {/* 筆記抽屜 */}
-      <AnimatePresence>
-        {notesOpen && (
-          <>
-            <motion.div
-              key="notes-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setNotesOpen(false);
-                setDragSelectMode(false);
-              }}
-              className="fixed inset-0 z-40 bg-black/30"
-            />
-            <motion.div
-              key="notes-drawer"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed right-0 bottom-0 left-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900"
-            >
-              {/* 固定標題區（不參與滾動） */}
-              <div className="shrink-0 px-4 pt-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-bold">筆記</h2>
-                  <div className="flex gap-6">
-                    <button
-                      onClick={() => setNotesMarked(new Set())}
-                      className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
-                    >
-                      清除全部
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNotesOpen(false);
-                        setDragSelectMode(false);
-                      }}
-                      className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
-                    >
-                      關閉
-                    </button>
-                  </div>
-                </div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex overflow-hidden rounded border border-zinc-200 dark:border-zinc-700">
-                    {([5, 6] as const).map(col => (
-                      <button
-                        key={col}
-                        onClick={() => setNotesColumns(col)}
-                        className={cn(
-                          'px-2.5 py-1 text-xs outline-hidden [-webkit-tap-highlight-color:transparent]',
-                          notesColumns === col
-                            ? 'bg-teal-500 text-white'
-                            : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800',
-                        )}
-                      >
-                        {col} 列
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={handleToggleDragSelect}
-                    className={cn(
-                      'rounded border px-2.5 py-1 text-xs outline-hidden [-webkit-tap-highlight-color:transparent]',
-                      dragSelectMode
-                        ? 'border-teal-500 bg-teal-500 text-white'
-                        : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800',
-                    )}
-                  >
-                    ✎ 連選
-                  </button>
-                  <p className="ml-auto text-xs text-muted-foreground">
-                    {dragSelectMode ? '滑動連選中' : '點擊選取'}
-                  </p>
-                </div>
-              </div>
-              {/* 獨立滾動的數字區 */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-                <div
-                  className={cn(
-                    'grid gap-2 sm:gap-1',
-                    notesColumns === 5
-                      ? 'grid-cols-5 sm:grid-cols-10'
-                      : 'grid-cols-6 sm:grid-cols-10',
-                    dragSelectMode && 'touch-none',
-                  )}
-                  onPointerDown={handleNotesPointerDown}
-                  onPointerMove={
-                    dragSelectMode ? handleNotesPointerMove : undefined
-                  }
-                  onPointerUp={
-                    dragSelectMode ? handleNotesPointerUp : undefined
-                  }
-                  onPointerCancel={
-                    dragSelectMode ? handleNotesPointerUp : undefined
-                  }
-                >
-                  {Array.from({ length: 90 }, (_, i) => i + 10).map(n => (
-                    <motion.button
-                      key={n}
-                      layout
-                      transition={{
-                        layout: {
-                          type: 'spring',
-                          damping: 25,
-                          stiffness: 300,
-                          duration: 0.3,
-                        },
-                      }}
-                      data-note-num={n}
-                      className={cn(
-                        'flex h-11 w-full items-center justify-center rounded text-xs font-medium outline-hidden transition-colors [-webkit-tap-highlight-color:transparent] sm:h-8',
-                        notesMarked.has(n)
-                          ? 'bg-teal-500 text-white'
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
-                      )}
-                    >
-                      {n}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* 規則抽屜 */}
-      <AnimatePresence>
-        {rulesOpen && (
-          <>
-            <motion.div
-              key="rules-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setRulesOpen(false)}
-              className="fixed inset-0 z-40 bg-black/30"
-            />
-            <motion.div
-              key="rules-drawer"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed right-0 bottom-0 left-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-zinc-900"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-bold">遊戲規則</h2>
-                <button
-                  onClick={() => setRulesOpen(false)}
-                  className="text-xs text-zinc-400 outline-hidden [-webkit-tap-highlight-color:transparent] hover:text-zinc-600"
-                >
-                  關閉
-                </button>
-              </div>
-
-              {/* 遊戲目標 */}
-              <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
-                  遊戲目標
-                </h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                  利用線索牌推理出藏匿的兩位數（10-99），最多{' '}
-                  <span className="font-semibold">10 回合</span>內猜對即獲勝。
-                </p>
-              </section>
-
-              {/* 每回合流程 */}
-              <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
-                  每回合流程
-                </h3>
-                <ol className="space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
-                  <li className="flex gap-2">
-                    <span className="shrink-0 font-bold text-teal-500">1.</span>
-                    從手牌中選一張線索牌，系統回答「是」或「否」
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="shrink-0 font-bold text-teal-500">2.</span>
-                    根據線索縮小謎底範圍後，輸入你猜測的數字
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="shrink-0 font-bold text-teal-500">3.</span>
-                    猜錯則繼續下一回合；猜對立即獲勝
-                  </li>
-                </ol>
-              </section>
-
-              {/* 特殊牌 */}
-              <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
-                  特殊牌
-                </h3>
-                <div className="space-y-2">
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                      🔍 透視鏡
-                    </p>
-                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
-                      顯示目前所有可能為謎底的數字 5
-                      秒。每局限用一次，使用後本回合仍可猜數。
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                      🔄 全面革新
-                    </p>
-                    <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
-                      重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              {/* 線索牌一覽 */}
-              <section className="mb-4">
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
-                  線索牌一覽
-                </h3>
-                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                  {[
-                    ['半壁江山', '謎底 ≥ 55？'],
-                    ['陰陽雙極', '謎底是奇數？'],
-                    ['三陽開泰', '謎底是 3 的倍數？'],
-                    ['五福臨門', '謎底是 5 的倍數？'],
-                    ['七星高照', '謎底是 7 的倍數？'],
-                    ['黃金質數', '謎底是質數？'],
-                    ['複製貼上', '十位數 = 個位數？'],
-                    ['步步高升', '個位數 > 十位數？'],
-                    ['數位加總', '各位數之和是奇數？'],
-                    ['尾數偵測', '個位數 > 5？'],
-                    ['十位偵測', '十位數 > 5？'],
-                    ['數位之積', '十位數 × 個位數 > 20？'],
-                    ['高低雷達', '謎底 > 上一次猜的？'],
-                    ['黃金交叉', '謎底與上次猜的相差 ≤ 10？'],
-                    ['完美平方', '謎底是完全平方數？'],
-                    ['幸運之星', '謎底含有數字 7？'],
-                  ].map(([name, desc]) => (
-                    <div
-                      key={name}
-                      className="flex items-baseline gap-1.5 rounded px-2 py-1 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    >
-                      <span className="shrink-0 font-medium text-zinc-700 dark:text-zinc-300">
-                        {name}
-                      </span>
-                      <span className="text-zinc-400 dark:text-zinc-500">
-                        {desc}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* 評分 */}
-              <section>
-                <h3 className="mb-1.5 text-sm font-semibold text-teal-600 dark:text-teal-400">
-                  評分標準
-                </h3>
-                <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
-                  {[
-                    ['1 回合', '🎲 運氣爆棚！'],
-                    ['2-3 回合', '🧠 邏輯天才！'],
-                    ['4-6 回合', '👍 穩健推理'],
-                    ['7-10 回合', '💪 快追上了'],
-                    ['未猜中', '😤 下次再試'],
-                  ].map(([rounds, label]) => (
-                    <div key={rounds} className="flex items-center gap-2">
-                      <span className="w-16 shrink-0 text-zinc-400">
-                        {rounds}
-                      </span>
-                      <span>{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* 結算畫面 */}
-      <AnimatePresence>
-        {gameOver && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
+      <BottomSheet
+        open={notesOpen}
+        onClose={() => {
+          setNotesOpen(false);
+          setDragSelectMode(false);
+        }}
+        title="筆記"
+        actions={
+          <button
+            type="button"
+            onClick={() => setNotesMarked(new Set())}
+            className="h-11 rounded-xl px-2.5 text-sm font-bold text-danger-ink hover:bg-danger-tint"
           >
-            <div
-              className={cn(
-                'w-full max-w-sm rounded-2xl border-2 bg-white p-6 text-center dark:bg-zinc-900',
-                isWin ? 'border-teal-500' : 'border-rose-500',
-              )}
-            >
-              <p className="mb-1 text-sm text-muted-foreground">謎底是</p>
-              <div
+            清除全部
+          </button>
+        }
+      >
+        <div className="shrink-0 px-4 pt-2">
+          <div
+            role="radiogroup"
+            aria-label="標記方式"
+            className="flex gap-1 rounded-[14px] border border-line bg-sunken p-1"
+          >
+            {[
+              { value: false, label: '點擊選取' },
+              { value: true, label: '滑動連選' },
+            ].map(option => (
+              <button
+                key={option.label}
+                type="button"
+                role="radio"
+                aria-checked={dragSelectMode === option.value}
+                onClick={() => {
+                  if (dragSelectMode !== option.value) handleToggleDragSelect();
+                }}
                 className={cn(
-                  'mb-1 font-display text-6xl font-bold',
-                  isWin ? 'text-primary' : 'text-rose-600 dark:text-rose-400',
+                  'h-10 flex-1 rounded-[10px] text-sm font-bold',
+                  dragSelectMode === option.value
+                    ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--line-strong)]'
+                    : 'text-ink-2',
                 )}
               >
-                {answer}
-              </div>
-              <div className="mb-2 text-sm text-muted-foreground">
-                共 {roundCount} 回合
-              </div>
-              <div className="mb-6 text-2xl font-bold">{rating}</div>
-              <Button
-                variant="tactile"
-                className="w-full"
-                onClick={handleRestart}
-              >
-                再玩一次
-              </Button>
-              <Link
-                href="/"
-                className="mt-3 block text-sm text-muted-foreground underline-offset-4 hover:underline"
-              >
-                回首頁
-              </Link>
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-3.5 pt-2.5 text-xs text-ink-2">
+            <span className="flex items-center gap-1">
+              <span className="h-3.5 w-3.5 rounded border border-line bg-surface" />
+              可能
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-3.5 w-3.5 rounded bg-sunken" />
+              已排除
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-3.5 w-3.5 rounded border-2 border-amber" />
+              已猜
+            </span>
+            <span className="ml-auto flex overflow-hidden rounded-lg border border-line">
+              {([5, 6] as const).map(col => (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => setNotesColumns(col)}
+                  aria-pressed={notesColumns === col}
+                  className={cn(
+                    'h-8 px-2.5 text-xs font-bold',
+                    notesColumns === col
+                      ? 'bg-primary-tint text-primary-ink'
+                      : 'text-ink-2 hover:bg-sunken',
+                  )}
+                >
+                  {col} 列
+                </button>
+              ))}
+            </span>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-6">
+          <div
+            className={cn(
+              'grid gap-1.5 sm:gap-1',
+              notesColumns === 5
+                ? 'grid-cols-5 sm:grid-cols-10'
+                : 'grid-cols-6 sm:grid-cols-10',
+              dragSelectMode && 'touch-none',
+            )}
+            onPointerDown={handleNotesPointerDown}
+            onPointerMove={dragSelectMode ? handleNotesPointerMove : undefined}
+            onPointerUp={dragSelectMode ? handleNotesPointerUp : undefined}
+            onPointerCancel={dragSelectMode ? handleNotesPointerUp : undefined}
+          >
+            {Array.from({ length: 90 }, (_, i) => i + 10).map(n => {
+              const marked = notesMarked.has(n);
+              const guessed = guessedNumbers.includes(n);
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  data-note-num={n}
+                  aria-pressed={marked}
+                  className={cn(
+                    'flex h-11 w-full items-center justify-center rounded-[10px] font-display text-base font-bold [-webkit-tap-highlight-color:transparent] sm:h-9',
+                    marked
+                      ? 'bg-sunken text-ink-2/60 line-through'
+                      : 'border border-line bg-surface text-ink hover:bg-sunken',
+                    guessed && 'border-2 border-amber',
+                  )}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* 規則抽屜 */}
+      <BottomSheet
+        open={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        title="遊戲規則"
+      >
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-2 pb-8">
+          <RuleSection title="遊戲目標">
+            <p>
+              利用線索牌推理出藏匿的兩位數（10-99），最多{' '}
+              <b className="text-ink">10 回合</b>內猜對即獲勝。
+            </p>
+          </RuleSection>
+
+          <RuleSection title="每回合流程">
+            <ol className="flex flex-col gap-1.5">
+              {[
+                '從手牌中選一張線索牌，系統回答「是」或「否」',
+                '根據線索縮小謎底範圍後，輸入你猜測的數字',
+                '猜錯則繼續下一回合；猜對立即獲勝',
+              ].map((step, i) => (
+                <li key={step} className="flex gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-tint font-display text-xs font-extrabold text-primary-ink">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </RuleSection>
+
+          <RuleSection title="特殊牌">
+            <div className="flex flex-col gap-2">
+              {[
+                {
+                  Icon: ScanEye,
+                  name: '透視鏡',
+                  desc: '顯示目前所有可能為謎底的數字 5 秒。每局限用一次，使用後本回合仍可猜數。',
+                },
+                {
+                  Icon: Shuffle,
+                  name: '全面革新',
+                  desc: '重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。',
+                },
+              ].map(({ Icon, name, desc }) => (
+                <div
+                  key={name}
+                  className="flex gap-3 rounded-xl border border-amber bg-amber-tint px-3 py-2.5"
+                >
+                  <Icon
+                    aria-hidden
+                    className="mt-0.5 h-5 w-5 shrink-0 text-amber-ink"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-ink">{name}</p>
+                    <p className="mt-0.5 text-[13px] text-ink-2">{desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </RuleSection>
+
+          <RuleSection title="線索牌一覽">
+            <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
+              {[
+                ['半壁江山', '謎底 ≥ 55？'],
+                ['陰陽雙極', '謎底是奇數？'],
+                ['三陽開泰', '謎底是 3 的倍數？'],
+                ['五福臨門', '謎底是 5 的倍數？'],
+                ['七星高照', '謎底是 7 的倍數？'],
+                ['黃金質數', '謎底是質數？'],
+                ['複製貼上', '十位數 = 個位數？'],
+                ['步步高升', '個位數 > 十位數？'],
+                ['數位加總', '各位數之和是奇數？'],
+                ['尾數偵測', '個位數 > 5？'],
+                ['十位偵測', '十位數 > 5？'],
+                ['數位之積', '十位數 × 個位數 > 20？'],
+                ['高低雷達', '謎底 > 上一次猜的？'],
+                ['黃金交叉', '謎底與上次猜的相差 ≤ 10？'],
+                ['完美平方', '謎底是完全平方數？'],
+                ['幸運之星', '謎底含有數字 7？'],
+              ].map(([name, desc]) => (
+                <div
+                  key={name}
+                  className="flex items-baseline gap-2 py-0.5 text-[13px]"
+                >
+                  <span className="shrink-0 font-bold text-ink">{name}</span>
+                  <span>{desc}</span>
+                </div>
+              ))}
+            </div>
+          </RuleSection>
+
+          <RuleSection title="評分標準">
+            <div className="flex flex-col gap-2">
+              {RULE_RATINGS.map(key => {
+                const info = RATING_INFO[key];
+                return (
+                  <div key={key} className="flex items-center gap-3 text-sm">
+                    <span className="w-20 shrink-0 text-ink-2">
+                      {info.rounds}
+                    </span>
+                    <RatingBar level={info.level} className="w-20" />
+                    <span className="font-bold text-ink">{info.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </RuleSection>
+        </div>
+      </BottomSheet>
     </div>
+  );
+}
+
+function RuleSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-5 text-sm leading-relaxed text-ink-2">
+      <h3 className="mb-2 text-[15px] font-extrabold text-primary-ink">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * 底部抽屜：手機上規則與筆記都需要大面積內容，從底部滑出比置中 dialog 更好單手操作。
+ * reduced-motion 時只淡入
+ */
+function BottomSheet({
+  open,
+  onClose,
+  title,
+  actions,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            key="sheet-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-ink/45"
+          />
+          <motion.div
+            key="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            initial={reduceMotion ? { opacity: 0 } : { y: '100%' }}
+            animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[88vh] w-full max-w-2xl flex-col rounded-t-[28px] bg-surface shadow-[0_-8px_32px_rgba(16,36,33,0.16)]"
+          >
+            <div aria-hidden className="flex justify-center pt-2.5">
+              <span className="h-[5px] w-10 rounded-full bg-line-strong" />
+            </div>
+            <div className="flex shrink-0 items-center gap-1 py-1.5 pr-2 pl-5">
+              <h2 className="flex-1 text-xl font-extrabold text-ink">
+                {title}
+              </h2>
+              {actions}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 text-ink"
+                onClick={onClose}
+                aria-label="關閉"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            {children}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

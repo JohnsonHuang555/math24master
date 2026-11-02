@@ -2,19 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { LayoutGrid, Play, Share2, Trophy } from 'lucide-react';
+import { Ban, LayoutGrid, Share2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
 import { GameHud } from '@/components/game/game-hud';
+import {
+  GameResultScreen,
+  RecordBadge,
+  ResultSecondaryButton,
+} from '@/components/game/game-result-screen';
+import { GameStartScreen } from '@/components/game/game-start-screen';
+import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
-import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useMatchPlay from '@/hooks/useMatchPlay';
 import { renderMatchResultCard } from '@/lib/match-result-card';
 import { shareImage } from '@/lib/share';
+import { cn } from '@/lib/utils';
+import { MatchCell } from '@/models/MatchBoard';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
@@ -38,6 +46,7 @@ export default function MatchPlayGame({
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const prevScoreRef = useRef(0);
   const reduceMotion = useReducedMotion();
 
@@ -93,7 +102,7 @@ export default function MatchPlayGame({
   const isNewBestScore =
     screenStatus === 'finished' && isCleared && score > 0 && score >= bestScore;
 
-  // 消除成功時全螢幕「+N分！」彈出提示
+  // 消除成功時在牌面上彈出「+N 分！」
   useEffect(() => {
     if (screenStatus !== 'playing') return;
     if (score > prevScoreRef.current) {
@@ -154,49 +163,40 @@ export default function MatchPlayGame({
     }
   };
 
+  const ruleModal = (
+    <RuleModal
+      isOpen={isOpenRuleModal}
+      onOpenChange={setIsOpenRuleModal}
+      mode="match"
+    />
+  );
+
   // ── 開始畫面 ──
   if (screenStatus === 'idle') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 px-4">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-white shadow-[0_5px_0_0_hsl(175,84%,20%)]">
-            <LayoutGrid className="h-8 w-8" />
-          </div>
-          <div>
-            <h1 className="flex items-center justify-center gap-2 font-display text-2xl font-black text-foreground">
-              消消樂模式
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              16 張牌 · 任選 2~4 張湊 24
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              沒有時間限制 · 全部清除才計分上榜
-            </p>
-          </div>
-        </div>
-        {bestScore > 0 && (
-          <div className="w-full max-w-[240px] rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900/80">
-            <p className="text-xs text-muted-foreground">個人最佳</p>
-            <p className="font-display text-3xl font-bold text-foreground">
-              {bestScore} 分
-            </p>
-          </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onBack}>
-            返回
-          </Button>
-          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />
-            開始遊戲
-          </Button>
-        </div>
-      </div>
+      <>
+        {ruleModal}
+        <GameStartScreen
+          icon={LayoutGrid}
+          title="消消樂模式"
+          tagline="16 張牌 · 任選 2~4 張湊 24"
+          description="沒有時間限制 · 全部清除才計分上榜"
+          stats={
+            bestScore > 0
+              ? [{ label: '個人最佳', value: `${bestScore} 分` }]
+              : undefined
+          }
+          onBack={onBack}
+          onOpenRules={() => setIsOpenRuleModal(true)}
+          onStart={startGame}
+        />
+      </>
     );
   }
 
   // ── 結算畫面 ──
   if (screenStatus === 'finished') {
+    const remainingCards = cells.filter(cell => cell.card);
     return (
       <>
         <LoginPromptModal
@@ -212,130 +212,108 @@ export default function MatchPlayGame({
             setShowLoginPrompt(false);
           }}
         />
-        <div className="flex h-full flex-col items-center justify-center px-4">
-          <div className="w-full max-w-sm rounded-3xl border-2 border-zinc-200 bg-white/90 p-6 text-center shadow-[0_8px_0_0_hsl(175,84%,78%)] dark:border-zinc-700 dark:bg-zinc-900/80 dark:shadow-[0_8px_0_0_hsl(175,84%,20%)]">
-            {isCleared ? (
+        <GameResultScreen
+          hero={<MiniBoard cells={cells} cleared={isCleared} />}
+          eyebrow={isCleared ? '全清！' : '卡關了'}
+          detail={
+            !isCleared && (
               <>
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/30">
-                  <Trophy className="h-7 w-7 text-teal-500" />
-                </div>
-                <h2 className="font-display text-xl font-black text-foreground">
-                  全清！
-                </h2>
-                <div className="mt-4">
-                  <p className="font-display text-5xl font-bold text-primary">
-                    {score}
-                  </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    最終得分
-                  </p>
-                </div>
-                {isNewBestScore && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-900/20">
-                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                      新紀錄！
-                    </p>
-                  </div>
-                )}
-                {!isNewBestScore && bestScore > 0 && (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    個人最佳：{bestScore} 分
-                  </p>
-                )}
-                <Button
-                  variant="outline"
-                  className="mt-6 w-full gap-1.5"
-                  onClick={handleShareResult}
-                  disabled={isSharing}
-                >
-                  <Share2 className="h-4 w-4" />
-                  {isSharing ? '圖卡產生中...' : '分享成績'}
-                </Button>
-                <ResultRank
-                  mode="match"
-                  submit={leaderboardSubmit}
-                  className="mt-3"
-                />
-              </>
-            ) : (
-              <>
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/60">
-                  <LayoutGrid className="h-7 w-7 text-zinc-400" />
-                </div>
-                <h2 className="font-display text-xl font-black text-foreground">
-                  卡關了
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-[15px] leading-relaxed text-ink-2">
                   剩下 {remainingCount} 張牌怎麼選都湊不出 24
                 </p>
-                <div className="mt-4">
-                  <p className="font-display text-4xl font-bold text-foreground">
-                    {score}
-                  </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    本局得分（未計入排行榜）
-                  </p>
+                <div
+                  className="my-1 flex gap-2"
+                  aria-label={`剩下的牌：${remainingCards.map(c => c.card!.value).join('、')}`}
+                >
+                  {remainingCards.map(cell => (
+                    <span
+                      key={cell.card!.id}
+                      aria-hidden
+                      className="flex h-[60px] w-11 items-center justify-center rounded-[10px] border-2 border-playcard-line bg-playcard font-display text-2xl font-extrabold text-playcard-ink shadow-[0_3px_0_0_var(--playcard-edge)]"
+                    >
+                      {cell.card!.value}
+                    </span>
+                  ))}
                 </div>
               </>
-            )}
-            <div className="mt-3 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={onBack}>
-                返回選單
-              </Button>
-              <Button
-                variant="tactile"
-                className="flex-1"
-                onClick={() => {
-                  setScreenStatus('playing');
-                  handleRestart();
-                }}
+            )
+          }
+          label={isCleared ? undefined : '本局得分'}
+          value={score}
+          valueMuted={!isCleared}
+          badge={
+            !isCleared ? (
+              <span className="inline-flex h-7 items-center gap-[5px] rounded-full border border-line-strong bg-sunken px-2.5 text-[13px] font-bold text-ink">
+                <Ban aria-hidden className="h-4 w-4" />
+                未計入排行榜
+              </span>
+            ) : isNewBestScore ? (
+              <RecordBadge>新紀錄！</RecordBadge>
+            ) : bestScore > 0 ? (
+              <span className="text-sm text-ink-2">
+                個人最佳：
+                <b className="font-display font-extrabold text-ink">
+                  {bestScore} 分
+                </b>
+              </span>
+            ) : null
+          }
+          backLabel="返回選單"
+          onBack={onBack}
+          retryLabel="再來一局"
+          onRetry={() => {
+            setScreenStatus('playing');
+            handleRestart();
+          }}
+        >
+          {isCleared && (
+            <>
+              <ResultRank mode="match" submit={leaderboardSubmit} />
+              <ResultSecondaryButton
+                className="flex-none"
+                onClick={handleShareResult}
+                disabled={isSharing}
               >
-                再來一局
-              </Button>
-            </div>
-          </div>
-        </div>
+                <Share2 aria-hidden />
+                {isSharing ? '圖卡產生中...' : '分享成績'}
+              </ResultSecondaryButton>
+            </>
+          )}
+        </GameResultScreen>
       </>
     );
   }
 
   // ── 遊戲中 ──
-  const matchHud = (
-    <>
-      <AnimatePresence>
-        {scoreFlash !== null && (
-          <motion.div
-            className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.5, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={
-              reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.4, y: -24 }
-            }
-            transition={{ duration: reduceMotion ? 0 : 0.25 }}
-          >
-            <span className="font-display text-6xl font-black text-primary drop-shadow-lg">
-              +{scoreFlash}分！
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <GameHud
-        className="max-w-sm"
-        modeLabel="消消樂模式"
-        score={score}
-        remaining={remainingCount}
-        onOpenRules={() => setIsOpenRuleModal(true)}
-      />
-    </>
+  const boardOverlay = (
+    <AnimatePresence>
+      {scoreFlash !== null && (
+        <motion.div
+          role="status"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.5, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={
+            reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.2, y: -24 }
+          }
+          transition={{ duration: reduceMotion ? 0 : 0.25 }}
+        >
+          <span className="rounded-[20px] bg-surface px-5 py-1.5 font-display text-[72px] leading-none font-extrabold text-primary-ink shadow-[0_12px_32px_rgba(16,36,33,0.18)]">
+            +{scoreFlash}
+            <span className="ml-1 font-noto text-[32px] font-black">分！</span>
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   return (
     <>
-      <RuleModal
-        isOpen={isOpenRuleModal}
-        onOpenChange={setIsOpenRuleModal}
-        mode="match"
+      {ruleModal}
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        onLeave={onBack}
       />
       <LoginPromptModal
         isOpen={showLoginPrompt}
@@ -358,10 +336,43 @@ export default function MatchPlayGame({
         onBackStep={onBackStep}
         onSubmit={onSubmit}
         onRestart={handleRestart}
-        onExit={onBack}
+        boardOverlay={boardOverlay}
       >
-        {matchHud}
+        <GameHud
+          modeLabel="消消樂模式"
+          score={score}
+          remaining={remainingCount}
+          onExit={() => setShowLeaveConfirm(true)}
+          onOpenRules={() => setIsOpenRuleModal(true)}
+        />
       </MatchPlayArea>
     </>
+  );
+}
+
+/** 結算用的迷你牌面：全清時 16 格都是主色虛線；卡關時剩下的牌以實心格標出位置 */
+function MiniBoard({
+  cells,
+  cleared,
+}: {
+  cells: MatchCell[];
+  cleared: boolean;
+}) {
+  return (
+    <div aria-hidden className="grid grid-cols-4 gap-1">
+      {cells.map(cell => (
+        <span
+          key={cell.cellIndex}
+          className={cn(
+            'h-[22px] w-[22px] rounded-[5px]',
+            cleared
+              ? 'border-2 border-dashed border-primary'
+              : cell.card
+                ? 'border-[1.5px] border-playcard-line bg-playcard'
+                : 'border-[1.5px] border-dashed border-line-strong',
+          )}
+        />
+      ))}
+    </div>
   );
 }

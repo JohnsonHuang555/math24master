@@ -110,7 +110,19 @@ import Symbols from '@/components/symbols';
 |---|---|
 | `GameHud` | 頂部 HUD：模式名稱、分數滾動、剩餘張數 pill（最後一輪換成 amber 旗標）、規則、預留的音效鈕 |
 | `GameTimer` | 倒數計時：一般 / 低時限（粗框＋警示 pill＋脈動）/ 暫停（條紋進度條）；`delta` 顯示加扣秒數 pill |
-| `PlayerCard` | 多人玩家卡：頭像、暱稱（截斷）、次要資訊、右側「圖示＋文字」狀態 pill |
+| `PlayerCard` | 多人玩家卡：頭像、暱稱（截斷）、次要資訊、右側「圖示＋文字」狀態 pill（手機窄版只留圖示） |
+| `GameStartScreen` | 單人模式開始畫面：頂部返回與規則、圖示框、標題、最多兩格個人紀錄、底部固定主 CTA；`children` 放難度選擇等 |
+| `GameResultScreen` | 結算畫面：小標（有 `hero` 時放大成標題）、大數字（`data-testid="result-value"`）、紀錄標記、統計格、底部「返回 + 再來一局」；搭配 `RecordBadge`、`ResultSecondaryButton` |
+| `ScoreBreakdown` | 出牌成功的計分明細：每個運算符號依序跳出分數、加成 pill、總分；reduced-motion 一次顯示 |
+| `LeaveGameDialog` | 各遊戲共用的離開確認，可覆寫說明文字 |
+
+遊戲畫面版面（第三批改版後）：
+
+- 手機：HUD 在上，手牌、算式列、符號列、操作列集中在底部拇指區；中間空白放回饋（計分明細、錯誤原因）
+- 離開鈕一律放在頂部左側（`ChevronLeft` 44px），不放在操作列
+- 操作列：次要鈕 `h-14 w-[52px]` 平面，主 CTA `tactile flex-1`；算式等於 24 時 CTA 加勾勾與 `0_0_0_4px_var(--primary-tint)` 外圈
+- 錯誤回饋寫在畫面上（`role="alert"` 的 danger-tint 卡），不要只靠 toast
+- 對話框：內容多的（規則、成就、統計、紀錄、建立房間）加 `<DialogContent sheet>`，手機上變成底部抽屜；不可關閉的加 `hideClose`
 
 外框頁的共用寫法（第二批改版後）：
 
@@ -123,7 +135,7 @@ import Symbols from '@/components/symbols';
 牌桌模式的牌面用 `components/tabletop/tabletop-card.tsx`：牌色用 `text-suit-red` / `suit-blue` / `suit-yellow` / `suit-black`，形狀在左上角並在數字下方重複一次；Joker 未宣告為條紋底、已宣告為虛線邊＋J 標。
 
 - 符號鈕 48×48，6 顆一列剛好放進 360px 寬
-- 操作列次要按鈕：`h-12 rounded-xl border border-line-strong bg-surface`，圖示按鈕要有 `aria-label`
+- 操作列次要按鈕：`h-14 w-[52px] rounded-xl border border-line-strong bg-surface`，圖示按鈕要有 `aria-label`
 - 牌桌模式的牌選中時不填 teal（牌色是規則資訊），改為上浮＋teal 外圈
 
 ---

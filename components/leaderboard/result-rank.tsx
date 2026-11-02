@@ -67,22 +67,28 @@ export function ResultRank({ mode, submit, className }: ResultRankProps) {
 
   return (
     <>
-      <Button
-        variant="outline"
-        className={cn('w-full gap-1.5', className)}
+      <button
+        type="button"
+        className={cn(
+          'flex h-[52px] w-full items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 text-[15px] font-bold text-ink transition-colors hover:bg-sunken',
+          className,
+        )}
         onClick={() => setOpen(true)}
       >
-        <Trophy className="h-4 w-4 text-amber-500" />
-        {state.status === 'ranked'
-          ? t('rankAndView', { rank: state.row.rank })
-          : t('view')}
-      </Button>
+        <span className="flex items-center gap-2">
+          <Trophy aria-hidden className="h-5 w-5 text-amber-ink" />
+          {state.status === 'ranked'
+            ? t('rankAndView', { rank: state.row.rank })
+            : t('view')}
+        </span>
+        <ChevronRight aria-hidden className="h-5 w-5 text-ink-2" />
+      </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-amber-500" />
+              <Trophy aria-hidden className="h-5 w-5 text-amber-ink" />
               {title}
             </DialogTitle>
           </DialogHeader>
@@ -100,20 +106,18 @@ export function ResultRank({ mode, submit, className }: ResultRankProps) {
           />
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-bold text-muted-foreground">
-              {t('top3')}
-            </p>
+            <p className="text-xs font-bold text-ink-2">{t('top3')}</p>
             {loading ? (
               <div className="flex flex-col gap-1.5">
                 {Array.from({ length: 3 }, (_, i) => (
                   <div
                     key={i}
-                    className="h-12 animate-pulse rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/60"
+                    className="h-12 animate-pulse rounded-2xl bg-sunken"
                   />
                 ))}
               </div>
             ) : rows.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
+              <p className="py-4 text-center text-sm text-ink-2">
                 {t('empty')}
               </p>
             ) : (

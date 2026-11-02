@@ -582,32 +582,32 @@ describe('calcClueResult', () => {
 });
 
 describe('getGuessRating', () => {
-  it('isWin=false → 下次再試 😤 regardless of round count', () => {
-    expect(getGuessRating(1, false)).toBe('下次再試 😤');
-    expect(getGuessRating(10, false)).toBe('下次再試 😤');
+  it('沒猜中一律是 miss，不看回合數', () => {
+    expect(getGuessRating(1, false)).toBe('miss');
+    expect(getGuessRating(10, false)).toBe('miss');
   });
 
-  it('round 1 = 運氣爆棚！🎲', () => {
-    expect(getGuessRating(1, true)).toBe('運氣爆棚！🎲');
+  it('第 1 回合猜中 = lucky', () => {
+    expect(getGuessRating(1, true)).toBe('lucky');
   });
 
-  it('round 2–3 = 邏輯天才！🧠', () => {
-    expect(getGuessRating(2, true)).toBe('邏輯天才！🧠');
-    expect(getGuessRating(3, true)).toBe('邏輯天才！🧠');
+  it('2–3 回合 = genius', () => {
+    expect(getGuessRating(2, true)).toBe('genius');
+    expect(getGuessRating(3, true)).toBe('genius');
   });
 
-  it('round 4–6 = 穩健推理 👍', () => {
-    expect(getGuessRating(4, true)).toBe('穩健推理 👍');
-    expect(getGuessRating(6, true)).toBe('穩健推理 👍');
+  it('4–6 回合 = steady', () => {
+    expect(getGuessRating(4, true)).toBe('steady');
+    expect(getGuessRating(6, true)).toBe('steady');
   });
 
-  it('round 7–10 = 快追上了 💪', () => {
-    expect(getGuessRating(7, true)).toBe('快追上了 💪');
-    expect(getGuessRating(10, true)).toBe('快追上了 💪');
+  it('7–10 回合 = close', () => {
+    expect(getGuessRating(7, true)).toBe('close');
+    expect(getGuessRating(10, true)).toBe('close');
   });
 
-  it('round 11+ = 再接再厲 🌱', () => {
-    expect(getGuessRating(11, true)).toBe('再接再厲 🌱');
-    expect(getGuessRating(99, true)).toBe('再接再厲 🌱');
+  it('11 回合以上 = keepGoing', () => {
+    expect(getGuessRating(11, true)).toBe('keepGoing');
+    expect(getGuessRating(99, true)).toBe('keepGoing');
   });
 });

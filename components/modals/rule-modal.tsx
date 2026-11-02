@@ -364,7 +364,7 @@ export function RuleModal({
 }: RuleModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent sheet className="max-w-md">
         <DialogHeader>
           <DialogTitle>{RULE_TITLE[mode]}</DialogTitle>
         </DialogHeader>

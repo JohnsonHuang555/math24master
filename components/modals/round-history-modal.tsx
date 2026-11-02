@@ -74,7 +74,7 @@ export function RoundHistoryModal({
 }: RoundHistoryModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent sheet className="max-w-md">
         <DialogHeader>
           <DialogTitle>作答紀錄</DialogTitle>
         </DialogHeader>

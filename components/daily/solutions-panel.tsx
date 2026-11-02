@@ -1,23 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ChevronDown, CircleCheck } from 'lucide-react';
 import { type Solution } from '@/lib/daily-seed';
 import { cn } from '@/lib/utils';
 
 interface SolutionsPanelProps {
+  round: number;
+  numbers: number[];
   solutions: Solution[];
   userFormula: string;
 }
 
 const COLLAPSED_LIMIT = 5;
 
+/** 每日挑戰完成頁的一題：標題列可展開，列出這題的解法並標出玩家自己的解法 */
 export function SolutionsPanel({
+  round,
+  numbers,
   solutions,
   userFormula,
 }: SolutionsPanelProps) {
+  const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -30,81 +35,81 @@ export function SolutionsPanel({
   const hasMore = solutions.length > COLLAPSED_LIMIT;
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="border-b border-line last:border-b-0">
       <button
+        type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50"
+        className="flex min-h-14 w-full items-center gap-2.5 px-3.5 py-2 text-left transition-colors hover:bg-sunken"
         aria-expanded={isOpen}
       >
-        <span>
-          {isUnique
-            ? '🎯 今日唯一解法'
-            : `今日其他解法（共 ${solutions.length} 種）`}
+        <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary-tint px-2 text-xs font-bold text-primary-ink">
+          <CircleCheck aria-hidden className="h-3.5 w-3.5" />第 {round} 題
         </span>
-        <motion.div
+        <span className="flex-1 font-display text-lg font-bold text-ink">
+          {numbers.join(' · ')}
+        </span>
+        <span className="shrink-0 text-xs text-ink-2">
+          {isUnique ? '唯一解法' : `${solutions.length} 種解法`}
+        </span>
+        <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: reduceMotion ? 0 : 0.2 }}
         >
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </motion.div>
+          <ChevronDown aria-hidden className="h-5 w-5 text-ink-2" />
+        </motion.span>
       </button>
 
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
             key="solutions"
-            initial={{ height: 0, opacity: 0 }}
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="mt-1 rounded-lg border bg-muted/30 p-3">
-              {isUnique && (
-                <p className="mb-2 text-center text-xs text-muted-foreground">
-                  你找到了唯一解法！
-                </p>
-              )}
-              <ul className="space-y-1.5">
-                {displayedSolutions.map((s, i) => {
-                  const isUser = s.formula === userFormula;
-                  return (
-                    <li
-                      key={i}
-                      className={cn(
-                        'flex items-center justify-between rounded px-2 py-1 text-sm',
-                        isUser
-                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
-                          : '',
-                      )}
-                    >
-                      <span className="font-mono">
+            <ul className="flex flex-col gap-2 px-3.5 pb-3.5">
+              {displayedSolutions.map((s, i) => {
+                const isUser = s.formula === userFormula;
+                return (
+                  <li
+                    key={i}
+                    className={cn(
+                      'flex items-center justify-between gap-2 rounded-xl px-3 py-2.5',
+                      isUser
+                        ? 'border-[1.5px] border-primary bg-primary-tint'
+                        : 'bg-sunken',
+                    )}
+                  >
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-display text-lg font-extrabold text-ink">
                         {s.formula} = 24
-                        {isUser && (
-                          <span className="ml-1.5 text-xs font-semibold">
-                            ← 你的解法
-                          </span>
-                        )}
                       </span>
-                      <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                        {s.score} 分
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-
+                      {isUser && (
+                        <span className="text-xs font-bold text-primary-ink">
+                          你的解法
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-ink-2">
+                      {s.score} 分
+                    </span>
+                  </li>
+                );
+              })}
               {hasMore && !showAll && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 w-full text-xs"
-                  onClick={() => setShowAll(true)}
-                >
-                  查看全部 {solutions.length} 種解法
-                </Button>
+                <li>
+                  <button
+                    type="button"
+                    className="h-11 w-full rounded-xl text-sm font-bold text-primary-ink hover:bg-primary-tint"
+                    onClick={() => setShowAll(true)}
+                  >
+                    查看全部 {solutions.length} 種解法
+                  </button>
+                </li>
               )}
-            </div>
+            </ul>
           </motion.div>
         )}
       </AnimatePresence>

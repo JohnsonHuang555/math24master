@@ -98,12 +98,13 @@ export function PlayerCard({
       {status && (
         <span
           className={cn(
-            'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold whitespace-nowrap',
+            'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold whitespace-nowrap max-sm:px-1.5',
             STATUS_CLASS[status.kind],
           )}
         >
           {status.icon}
-          {status.label}
+          {/* 窄卡（手機兩欄）只留圖示，文字給螢幕閱讀器，避免把名字擠掉 */}
+          <span className="max-sm:sr-only">{status.label}</span>
         </span>
       )}
     </div>

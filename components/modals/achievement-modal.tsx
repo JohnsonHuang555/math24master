@@ -61,7 +61,7 @@ export function AchievementModal({ isOpen, onClose }: AchievementModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent sheet className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">

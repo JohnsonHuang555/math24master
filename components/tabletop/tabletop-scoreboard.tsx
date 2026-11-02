@@ -1,82 +1,103 @@
 'use client';
 
-import { Bot, FastForward, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TabletopGameState } from '@/models/Tabletop';
 
 type TabletopScoreboardProps = {
   game: TabletopGameState;
   thinkingSeat: number | null;
-  onSkipAnimation: () => void;
 };
 
+/**
+ * 三位玩家的分數與手牌數。手機上三格並排只放「N 分 · N 張」，
+ * 桌機側欄改成一人一列，多顯示目前狀態
+ */
 export function TabletopScoreboard({
   game,
   thinkingSeat,
-  onSkipAnimation,
 }: TabletopScoreboardProps) {
-  const round = Math.floor(game.turnsTaken / game.seats.length) + 1;
-  const isBotTurn = game.status === 'playing' && game.currentSeat !== 0;
-
   return (
-    <div className="flex w-full flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
-        <span className="font-display text-sm font-bold text-muted-foreground">
-          {game.finalRoundTurnsLeft !== undefined
-            ? '最後一圈'
-            : `第 ${round} 圈`}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          牌庫剩 {game.deck.length} 張
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {game.seats.map((seat, i) => {
-          const isCurrent = game.status === 'playing' && game.currentSeat === i;
-          const Icon = seat.isBot ? Bot : User;
-          return (
-            <div
-              key={seat.id}
+    <section
+      aria-label="計分板"
+      className="grid grid-cols-3 gap-1.5 lg:grid-cols-1 lg:gap-2.5"
+    >
+      {game.seats.map((seat, i) => {
+        const isCurrent = game.status === 'playing' && game.currentSeat === i;
+        const isThinking = thinkingSeat === i;
+        const Icon = seat.isBot ? Bot : User;
+        const status = isThinking
+          ? '思考中…'
+          : isCurrent
+            ? seat.isBot
+              ? '出牌中…'
+              : '你的回合'
+            : '等待中';
+        return (
+          <div
+            key={seat.id}
+            aria-current={isCurrent ? 'true' : undefined}
+            className={cn(
+              'flex min-w-0 flex-col gap-0.5 rounded-xl border px-2.5 py-1.5 lg:flex-row lg:items-center lg:gap-3 lg:rounded-2xl lg:px-3 lg:py-2.5',
+              isCurrent
+                ? seat.isBot
+                  ? 'border-2 border-amber bg-amber-tint'
+                  : 'border-2 border-primary bg-primary-tint'
+                : 'border-line bg-surface',
+            )}
+          >
+            <span
+              aria-hidden
               className={cn(
-                'rounded-2xl border-2 px-2 py-1.5 text-center transition-colors',
-                isCurrent
-                  ? 'border-primary bg-teal-50 dark:bg-teal-900/20'
-                  : 'border-zinc-200 bg-white/80 dark:border-zinc-700 dark:bg-zinc-900/60',
+                'hidden h-10 w-10 shrink-0 items-center justify-center rounded-full lg:flex',
+                seat.isBot
+                  ? 'bg-sunken text-ink-2'
+                  : 'bg-primary text-primary-foreground',
               )}
             >
-              <div className="flex items-center justify-center gap-1 text-xs font-bold text-muted-foreground">
-                <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="flex items-center gap-1 truncate text-[13px] font-bold text-ink lg:text-[15px]">
+                <Icon aria-hidden className="h-3.5 w-3.5 shrink-0 lg:hidden" />
                 {seat.name}
-              </div>
-              <div className="font-display text-xl font-black text-foreground tabular-nums">
+              </span>
+              <span
+                className={cn(
+                  'text-xs',
+                  // 手機只在輪到電腦時顯示狀態，其他時候顯示分數與張數
+                  isCurrent && seat.isBot
+                    ? 'font-bold text-amber-ink'
+                    : 'hidden lg:inline',
+                  isCurrent && !seat.isBot && 'font-bold text-primary-ink',
+                  !isCurrent && 'text-ink-2',
+                )}
+              >
+                {status}
+              </span>
+              <span
+                className={cn(
+                  'text-xs text-ink-2 lg:hidden',
+                  isCurrent && seat.isBot && 'hidden',
+                )}
+              >
+                <b className="font-display text-base font-extrabold text-ink">
+                  {seat.score}
+                </b>{' '}
+                分 · {seat.hand.length} 張
+              </span>
+            </span>
+            <span className="hidden flex-col items-end lg:flex">
+              <span className="font-display text-2xl leading-none font-extrabold text-ink tabular-nums">
                 {seat.score}
-              </div>
-              <div className="text-[10px] font-bold text-muted-foreground">
-                手牌 {seat.hand.length} 張
-              </div>
-              <div className="h-4 text-[10px] font-bold text-teal-700 dark:text-teal-400">
-                {thinkingSeat === i ? '思考中' : isCurrent ? '出牌中' : ''}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {isBotTurn && (
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 px-2 text-xs font-bold text-muted-foreground"
-            onClick={onSkipAnimation}
-          >
-            <FastForward className="h-3.5 w-3.5" />
-            略過動畫
-          </Button>
-        </div>
-      )}
-    </div>
+              </span>
+              <span className="text-xs text-ink-2">
+                手牌 {seat.hand.length}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </section>
   );
 }

@@ -51,18 +51,17 @@ export function TabletopHand({ hand, disabled, onPick }: TabletopHandProps) {
   }, [hand.length, updateFade]);
 
   return (
-    <section aria-label="手牌" className="flex w-full flex-col gap-1">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-black text-foreground">手牌</h2>
-        <span className="text-xs text-muted-foreground">{hand.length} 張</span>
-      </div>
+    <section aria-label="手牌" className="flex w-full flex-col gap-1.5">
+      <h2 className="px-1 text-[13px] font-extrabold text-ink-2">
+        手牌 {hand.length} 張
+      </h2>
       <div className="relative">
         <div
           ref={scrollRef}
           onScroll={updateFade}
           className="overflow-x-auto overscroll-x-contain pt-1 pb-2"
         >
-          <div className="mx-auto flex w-max gap-1.5 px-1">
+          <div className="flex w-max gap-1.5 px-1">
             {sortHand(hand).map(card => (
               <TabletopCard
                 key={card.id}
