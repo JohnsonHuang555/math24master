@@ -26,7 +26,11 @@ export type LineClueCard = {
   isDynamic?: boolean;
 };
 export type PeekCard = { id: PeekCardId; name: string; description: string };
-export type RedrawCard = { id: RedrawCardId; name: string; description: string };
+export type RedrawCard = {
+  id: RedrawCardId;
+  name: string;
+  description: string;
+};
 export type ClueCard = LineClueCard | PeekCard | RedrawCard;
 
 export const PEEK_CARD: PeekCard = {
@@ -50,10 +54,18 @@ export const LINE_CLUE_CARDS: LineClueCard[] = [
   { id: 'prime', name: '黃金質數', question: '謎底是質數嗎？' },
   { id: 'repeat', name: '複製貼上', question: '十位數與個位數相同嗎？' },
   { id: 'ones-gt-tens', name: '步步高升', question: '個位數大於十位數嗎？' },
-  { id: 'digit-sum-odd', name: '數位加總', question: '十位數＋個位數之和是奇數嗎？' },
+  {
+    id: 'digit-sum-odd',
+    name: '數位加總',
+    question: '十位數＋個位數之和是奇數嗎？',
+  },
   { id: 'last-digit-gt5', name: '尾數偵測', question: '個位數大於 5 嗎？' },
   { id: 'tens-gt5', name: '十位偵測', question: '十位數大於 5 嗎？' },
-  { id: 'digit-product-gt20', name: '數位之積', question: '十位數×個位數大於 20 嗎？' },
+  {
+    id: 'digit-product-gt20',
+    name: '數位之積',
+    question: '十位數×個位數大於 20 嗎？',
+  },
   {
     id: 'higher-than-last',
     name: '高低雷達',
@@ -67,10 +79,18 @@ export const LINE_CLUE_CARDS: LineClueCard[] = [
     isDynamic: true,
   },
   { id: 'perfect-square', name: '完美平方', question: '謎底是完全平方數嗎？' },
-  { id: 'lucky-seven', name: '幸運之星', question: '謎底的數字裡包含「7」嗎？' },
+  {
+    id: 'lucky-seven',
+    name: '幸運之星',
+    question: '謎底的數字裡包含「7」嗎？',
+  },
 ];
 
-export const ALL_CARDS: ClueCard[] = [...LINE_CLUE_CARDS, PEEK_CARD, REDRAW_CARD];
+export const ALL_CARDS: ClueCard[] = [
+  ...LINE_CLUE_CARDS,
+  PEEK_CARD,
+  REDRAW_CARD,
+];
 
 const PERFECT_SQUARES = new Set([16, 25, 36, 49, 64, 81]);
 
@@ -130,8 +150,8 @@ export function applyClue(
         : remaining.filter(n => n % 10 <= Math.floor(n / 10));
     case 'digit-sum-odd':
       return clueResult === 'yes'
-        ? remaining.filter(n => (Math.floor(n / 10) + n % 10) % 2 !== 0)
-        : remaining.filter(n => (Math.floor(n / 10) + n % 10) % 2 === 0);
+        ? remaining.filter(n => (Math.floor(n / 10) + (n % 10)) % 2 !== 0)
+        : remaining.filter(n => (Math.floor(n / 10) + (n % 10)) % 2 === 0);
     case 'last-digit-gt5':
       return clueResult === 'yes'
         ? remaining.filter(n => n % 10 > 5)
@@ -195,7 +215,7 @@ export function calcClueResult(
     case 'ones-gt-tens':
       return answer % 10 > Math.floor(answer / 10) ? 'yes' : 'no';
     case 'digit-sum-odd':
-      return (Math.floor(answer / 10) + answer % 10) % 2 !== 0 ? 'yes' : 'no';
+      return (Math.floor(answer / 10) + (answer % 10)) % 2 !== 0 ? 'yes' : 'no';
     case 'last-digit-gt5':
       return answer % 10 > 5 ? 'yes' : 'no';
     case 'tens-gt5':
@@ -255,11 +275,18 @@ export function drawCards(
   return pool.slice(0, 3);
 }
 
-export function getGuessRating(roundCount: number, isWin: boolean): string {
-  if (!isWin) return '下次再試 😤';
-  if (roundCount === 1) return '運氣爆棚！🎲';
-  if (roundCount <= 3) return '邏輯天才！🧠';
-  if (roundCount <= 6) return '穩健推理 👍';
-  if (roundCount <= 10) return '快追上了 💪';
-  return '再接再厲 🌱';
+/** 評級代碼；顯示文字由 UI 層對應（lib 不放玩家看到的文字） */
+export type GuessRating =
+  'lucky' | 'genius' | 'steady' | 'close' | 'keepGoing' | 'miss';
+
+export function getGuessRating(
+  roundCount: number,
+  isWin: boolean,
+): GuessRating {
+  if (!isWin) return 'miss';
+  if (roundCount === 1) return 'lucky';
+  if (roundCount <= 3) return 'genius';
+  if (roundCount <= 6) return 'steady';
+  if (roundCount <= 10) return 'close';
+  return 'keepGoing';
 }
