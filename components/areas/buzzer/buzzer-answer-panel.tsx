@@ -74,7 +74,7 @@ const BuzzerAnswerPanel = ({
 
   // 作答者互動面板
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-3 rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-800/90 md:gap-4 md:p-5">
+    <div className="flex w-full max-w-2xl flex-col gap-3 rounded-2xl border-2 border-zinc-200 bg-white/90 p-4 shadow-[0_5px_0_0_rgba(0,0,0,0.06)] backdrop-blur-xs md:gap-4 md:p-5 dark:border-zinc-700 dark:bg-zinc-800/90">
       {/* 數字牌選擇區 */}
       <div className="flex justify-center gap-2 md:gap-3">
         {publicCards.map(card => {
@@ -86,12 +86,11 @@ const BuzzerAnswerPanel = ({
               disabled={isUsed}
               onClick={() => onSelectCard(card)}
               data-testid="buzzer-card"
-              className={`flex h-14 w-12 items-center justify-center rounded-2xl border-2 font-display text-xl font-black transition-colors md:h-16 md:w-14 md:text-2xl
-                ${
-                  isUsed
-                    ? 'cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-600'
-                    : 'cursor-pointer border-amber-400 bg-white text-zinc-800 shadow-[0_3px_0_0_#d97706] hover:bg-amber-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700'
-                }`}
+              className={`flex h-14 w-12 items-center justify-center rounded-2xl border-2 font-display text-xl font-black transition-colors md:h-16 md:w-14 md:text-2xl ${
+                isUsed
+                  ? 'cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-600'
+                  : 'cursor-pointer border-amber-400 bg-white text-zinc-800 shadow-[0_3px_0_0_#d97706] hover:bg-amber-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700'
+              }`}
             >
               {card.value}
             </motion.button>
@@ -100,7 +99,7 @@ const BuzzerAnswerPanel = ({
       </div>
 
       {/* 算式顯示區 */}
-      <div className="flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-zinc-50 px-4 py-2.5 dark:bg-zinc-900 md:min-h-[52px] md:py-3">
+      <div className="flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-zinc-50 px-4 py-2.5 md:min-h-[52px] md:py-3 dark:bg-zinc-900">
         {selectedCards.length === 0 ? (
           <span className="text-sm text-muted-foreground">
             選擇數字與符號...
@@ -127,7 +126,7 @@ const BuzzerAnswerPanel = ({
             whileTap={reduceMotion ? undefined : { scale: 0.93 }}
             onClick={() => onSelectSymbol(sym.value)}
             data-testid={`symbol-${sym.value}`}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/5 font-display text-base font-black text-primary shadow-[0_3px_0_0_rgba(13,148,136,0.2)] hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10 md:h-11 md:w-11 md:text-lg"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/5 font-display text-base font-black text-primary shadow-[0_3px_0_0_rgba(13,148,136,0.2)] hover:bg-primary/10 md:h-11 md:w-11 md:text-lg dark:border-primary/40 dark:bg-primary/10"
           >
             {sym.label}
           </motion.button>

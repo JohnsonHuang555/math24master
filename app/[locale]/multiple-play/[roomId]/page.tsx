@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, ChevronLeft, Lock, Pencil, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import BuzzerGameBoard from '@/components/areas/buzzer/buzzer-game-board';
 import ChatArea from '@/components/areas/chat-area';
 import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
-import PlayersArea from '@/components/areas/players-area';
+import PlayersArea, {
+  WaitingRoomAction,
+} from '@/components/areas/players-area';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import EditRoomModal from '@/components/modals/edit-room-modal';
@@ -27,11 +29,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
+import { SystemMessageCode } from '@/models/Message';
 import { SocketEvent } from '@/models/SocketEvent';
 import { BuzzerPlayProvider } from '@/providers/buzzer-play-provider';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import { useGuestStore } from '@/stores/guest-store';
+
+type WaitingTab = 'players' | 'settings' | 'chat';
+
+const WAITING_TABS: { value: WaitingTab; label: string }[] = [
+  { value: 'players', label: '玩家' },
+  { value: 'settings', label: '設定' },
+  { value: 'chat', label: '聊天' },
+];
 
 export default function RoomPage() {
   const hardNavigate = useHardNavigate();
@@ -45,6 +57,8 @@ export default function RoomPage() {
     useState(false);
   const [playerName, setPlayerName] = useState<string>('');
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
+  const [waitingTab, setWaitingTab] = useState<WaitingTab>('players');
+  const reduceMotion = useReducedMotion();
 
   const {
     socket,
@@ -132,6 +146,20 @@ export default function RoomPage() {
       setIsOpenEnterRoomPasswordModal(true);
     });
   }, [socket, joinRoom]);
+
+  const leaveRoom = () => {
+    sessionStorage.removeItem('reconnectToken');
+    sessionStorage.removeItem('reconnectRoomId');
+    hardNavigate('/multiple-play');
+  };
+
+  // 最新一則系統訊息是開始倒數時，手機底部也顯示秒數（聊天分頁不一定開著）
+  const lastSystemMessage = [...messages].reverse().find(m => m.isSystem);
+  const countdownSeconds =
+    lastSystemMessage?.isSystem &&
+    lastSystemMessage.code === SystemMessageCode.GameStartsIn
+      ? Number(lastSystemMessage.params?.seconds)
+      : null;
 
   if (!roomInfo) {
     return (
@@ -329,16 +357,89 @@ export default function RoomPage() {
             }}
           />
 
-          {/* 等待大廳主體 */}
-          <div className="flex flex-1 items-center justify-center overflow-hidden px-4 py-6 md:px-8">
+          {/* 手機頂部列：離開、房名、編輯；桌機由右欄的房間設定負責 */}
+          <header className="flex items-center gap-1 px-2 pt-2 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11 shrink-0 text-ink"
+              onClick={leaveRoom}
+              aria-label="離開房間"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <strong className="flex items-center gap-1 truncate text-[17px] text-ink">
+                {roomInfo.password && (
+                  <Lock
+                    aria-label="有密碼"
+                    className="h-4 w-4 shrink-0 text-ink-2"
+                  />
+                )}
+                <span className="truncate">{roomInfo.roomName}</span>
+              </strong>
+              <span className="text-xs text-ink-2">
+                {roomInfo.settings.gameType === 'buzzer' ? '搶答' : '傳統'} ·{' '}
+                {roomInfo.maxPlayers} 人
+              </span>
+            </div>
+            {currentPlayer?.isMaster && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 text-ink"
+                onClick={() => setIsOpenEditRoomModal(true)}
+                aria-label="編輯房間"
+              >
+                <Pencil className="h-5 w-5" />
+              </Button>
+            )}
+          </header>
+
+          {/* 手機分頁：玩家／設定／聊天 */}
+          <div
+            role="tablist"
+            aria-label="等待大廳"
+            className="mx-4 mt-2 flex gap-1 rounded-[14px] border border-line bg-sunken p-1 md:hidden"
+          >
+            {WAITING_TABS.map(tab => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={waitingTab === tab.value}
+                onClick={() => setWaitingTab(tab.value)}
+                className={cn(
+                  'flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold',
+                  waitingTab === tab.value
+                    ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--line-strong)]'
+                    : 'text-ink-2',
+                )}
+              >
+                {tab.label}
+                {tab.value === 'players' && (
+                  <span className="rounded-full bg-sunken px-1.5 font-display text-xs text-ink">
+                    {roomInfo.players.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* 等待大廳主體：手機依分頁顯示一塊，桌機左欄玩家、右欄設定與聊天 */}
+          <div className="flex min-h-0 flex-1 justify-center overflow-y-auto px-4 pt-3.5 md:items-center md:overflow-hidden md:px-8 md:py-6">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="flex h-full w-full max-w-5xl flex-col gap-4 md:flex-row"
+              className="flex w-full max-w-5xl flex-col gap-4 md:h-full md:flex-row"
             >
-              {/* 左欄：玩家列表 */}
-              <div className="w-full md:w-[300px] md:shrink-0">
+              <div
+                className={cn(
+                  'w-full md:block md:w-[300px] md:shrink-0',
+                  waitingTab !== 'players' && 'max-md:hidden',
+                )}
+              >
                 <PlayersArea
                   players={roomInfo?.players}
                   currentPlayer={currentPlayer}
@@ -357,9 +458,13 @@ export default function RoomPage() {
                 />
               </div>
 
-              {/* 右欄：房間設定 + 聊天 */}
               <div className="flex min-h-0 flex-1 flex-col gap-4">
-                <div className="overflow-y-auto">
+                <div
+                  className={cn(
+                    'md:block md:min-h-0 md:flex-1 md:overflow-y-auto',
+                    waitingTab !== 'settings' && 'max-md:hidden',
+                  )}
+                >
                   <RoomInfoArea
                     isMaster={currentPlayer?.isMaster}
                     roomName={roomInfo.roomName}
@@ -367,22 +472,42 @@ export default function RoomPage() {
                     maxPlayers={roomInfo.maxPlayers}
                     roomSettings={roomInfo.settings}
                     playersCount={roomInfo.players.length}
-                    onLeaveRoom={() => {
-                      sessionStorage.removeItem('reconnectToken');
-                      sessionStorage.removeItem('reconnectRoomId');
-                      hardNavigate('/multiple-play');
-                    }}
+                    onLeaveRoom={leaveRoom}
                     onRoomSettingsChange={editRoomSettings}
                     onEditRoomName={() => setIsOpenEditRoomModal(true)}
                   />
                 </div>
                 <ChatArea
+                  className={cn(
+                    'md:h-[260px] md:flex-none',
+                    waitingTab !== 'chat' && 'max-md:hidden',
+                  )}
                   messages={messages}
                   onSend={sendMessage}
                   currentPlayerName={currentPlayer?.name}
                 />
               </div>
             </motion.div>
+          </div>
+
+          {/* 手機底部：狀態與主要按鈕，切到任何分頁都看得到 */}
+          <div className="px-4 pt-3 pb-6 md:hidden">
+            <WaitingRoomAction
+              players={roomInfo.players}
+              currentPlayer={currentPlayer}
+              onReady={onReadyGame}
+              onStart={onStartGame}
+              notice={
+                countdownSeconds !== null && (
+                  <span className="flex items-center gap-2 text-ink">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber font-display text-base font-extrabold text-on-amber">
+                      {countdownSeconds}
+                    </span>
+                    即將開始遊戲
+                  </span>
+                )
+              }
+            />
           </div>
         </main>
       )}

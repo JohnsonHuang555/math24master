@@ -186,7 +186,10 @@ const MainPlayArea = ({
   };
 
   const liveResult = selectedCards.length > 0 ? getCurrentAnswer() : null;
-  const isCorrect = liveResult !== null && typeof liveResult === 'number' && Math.abs(liveResult - 24) < 1e-9;
+  const isCorrect =
+    liveResult !== null &&
+    typeof liveResult === 'number' &&
+    Math.abs(liveResult - 24) < 1e-9;
 
   return (
     <>
@@ -209,7 +212,7 @@ const MainPlayArea = ({
             variants={fadeVariants}
             initial="hide"
             animate="show"
-            className="absolute top-[-75px] flex h-16 flex-col justify-center max-md:bottom-[-125px] max-md:top-auto"
+            className="absolute top-[-75px] flex h-16 flex-col justify-center max-md:top-auto max-md:bottom-[-125px]"
             onAnimationComplete={() => {
               setTimeout(() => {
                 onUpdateScore();
@@ -249,7 +252,9 @@ const MainPlayArea = ({
               : 'text-red-400',
         )}
       >
-        {liveResult === null ? '= ?' : `= ${liveResult} ${isCorrect ? '✓' : '✗'}`}
+        {liveResult === null
+          ? '= ?'
+          : `= ${liveResult} ${isCorrect ? '✓' : '✗'}`}
       </div>
 
       {!hideSymbols && (

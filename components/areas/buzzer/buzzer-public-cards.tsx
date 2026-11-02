@@ -25,7 +25,7 @@ const BuzzerPublicCards = ({ cards }: BuzzerPublicCardsProps) => {
               duration: 0.35,
               ease: 'easeOut',
             }}
-            className="flex h-20 w-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display font-black text-4xl text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 md:h-28 md:w-24 md:text-5xl"
+            className="flex h-20 w-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-4xl font-black text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] md:h-28 md:w-24 md:text-5xl dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             style={{ perspective: 600 }}
           >
             {card.value}

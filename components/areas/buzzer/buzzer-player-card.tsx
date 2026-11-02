@@ -74,7 +74,7 @@ const BuzzerPlayerCard = ({
 
   return (
     <PlayerCard
-      className="w-[240px] shrink-0"
+      className="w-full md:w-[240px] md:shrink-0"
       name={player.name}
       isSelf={isCurrentPlayer}
       selfLabel="（你）"

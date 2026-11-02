@@ -1,6 +1,7 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { AlarmClock, Pause, Timer } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type BuzzerRoundTimerProps = {
   roundSeconds: number | null;
@@ -8,81 +9,45 @@ type BuzzerRoundTimerProps = {
   isPaused: boolean;
 };
 
-const SIZE = 55;
-const STROKE = 7;
-const RADIUS = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
+/**
+ * 回合計時膠囊：一般、剩不到四分之一（警示）、暫停三種狀態。
+ * 警示不只換顏色，圖示也換成鬧鐘
+ */
 const BuzzerRoundTimer = ({
   roundSeconds,
   roundRemaining,
   isPaused,
 }: BuzzerRoundTimerProps) => {
-  const reduceMotion = useReducedMotion();
-
   if (roundSeconds === null || roundRemaining === null) return null;
 
   const ratio = Math.max(0, Math.min(1, roundRemaining / roundSeconds));
-
-  const getStrokeColor = () => {
-    if (ratio > 0.5) return 'hsl(175 84% 32%)';
-    if (ratio > 0.25) return 'hsl(43 96% 56%)';
-    return 'hsl(347 77% 50%)';
-  };
-
-  const getTextColorClass = () => {
-    if (ratio > 0.5) return 'text-primary';
-    if (ratio > 0.25) return 'text-amber-500';
-    return 'text-rose-500';
-  };
-
-  const dashOffset = CIRCUMFERENCE * (1 - ratio);
+  const isLow = !isPaused && ratio <= 0.25;
+  const minutes = Math.floor(roundRemaining / 60);
+  const seconds = String(roundRemaining % 60).padStart(2, '0');
+  const Icon = isPaused ? Pause : isLow ? AlarmClock : Timer;
 
   return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: SIZE, height: SIZE }}
+    <span
+      role="timer"
+      aria-live={isLow ? 'polite' : 'off'}
+      className={cn(
+        'inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[13px] font-bold',
+        isPaused
+          ? 'border-line-strong bg-sunken text-ink-2'
+          : isLow
+            ? 'border-danger bg-danger-tint text-danger-ink'
+            : 'border-line bg-surface text-ink',
+      )}
     >
-      <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          fill="none"
-          stroke="hsl(240 5% 90%)"
-          strokeWidth={STROKE}
-          className="dark:stroke-zinc-700"
-        />
-        <motion.circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          fill="none"
-          stroke={getStrokeColor()}
-          strokeWidth={STROKE}
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
-          animate={{ strokeDashoffset: dashOffset }}
-          transition={
-            reduceMotion
-              ? { duration: 0 }
-              : { duration: 0.5, ease: 'linear' }
-          }
-        />
-      </svg>
-
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {isPaused ? (
-          <span className="text-xs font-bold text-muted-foreground">暫停</span>
-        ) : (
-          <span
-            className={`font-display text-2xl font-black tabular-nums ${getTextColorClass()}`}
-          >
-            {roundRemaining}
-          </span>
-        )}
-      </div>
-    </div>
+      <Icon aria-hidden className="h-4 w-4" />
+      {isPaused ? (
+        '暫停'
+      ) : (
+        <span className="font-display text-[15px] tabular-nums">
+          {minutes}:{seconds}
+        </span>
+      )}
+    </span>
   );
 };
 

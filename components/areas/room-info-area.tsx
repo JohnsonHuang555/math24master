@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  BookOpen,
-  Lock,
-  LogOut,
-  Pencil,
-  Settings2,
-} from 'lucide-react';
+import { BookOpen, CircleHelp, Lock, LogOut, Pencil } from 'lucide-react';
 import HoverTip from '@/components/hover-tip';
 import {
   Select,
@@ -49,6 +43,7 @@ type SettingSelectProps = {
   children: React.ReactNode;
 };
 
+// 一列一項：左邊名稱與說明，右邊下拉選單；非房主看到的是唯讀值
 const SettingSelect = ({
   label,
   tooltip,
@@ -58,10 +53,10 @@ const SettingSelect = ({
   onValueChange,
   children,
 }: SettingSelectProps) => (
-  <div>
-    <div className="mb-1 flex items-center gap-1">
+  <div className="flex min-h-14 items-center gap-2 py-1.5">
+    <div className="flex min-w-0 flex-1 items-center gap-1">
       <Label
-        className={`text-xs font-medium text-muted-foreground${dimLabel ? ' opacity-40' : ''}`}
+        className={`text-sm font-semibold text-ink-2${dimLabel ? 'opacity-40' : ''}`}
       >
         {label}
       </Label>
@@ -69,14 +64,20 @@ const SettingSelect = ({
         <HoverTip
           content={<span className="block max-w-48 text-wrap">{tooltip}</span>}
         >
-          <span className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-zinc-300 text-[10px] leading-none text-muted-foreground dark:border-zinc-600">
-            ?
+          <span
+            aria-label={tooltip}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-ink-2 hover:bg-sunken"
+          >
+            <CircleHelp aria-hidden className="h-4 w-4" />
           </span>
         </HoverTip>
       )}
     </div>
     <Select disabled={disabled} value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="h-8 rounded-xl border-zinc-200 bg-white/60 text-xs dark:border-zinc-700 dark:bg-zinc-800/40">
+      <SelectTrigger
+        aria-label={label}
+        className="h-11 w-[150px] shrink-0 rounded-xl border-line-strong bg-surface text-sm font-bold text-ink disabled:cursor-default disabled:border-transparent disabled:bg-transparent disabled:opacity-100 [&:disabled>svg]:hidden"
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -108,58 +109,67 @@ const RoomInfoArea = ({
 }: RoomInfoAreaProps) => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
 
-  const bs: BuzzerSettings = roomSettings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+  const bs: BuzzerSettings =
+    roomSettings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const updateBuzzer = (patch: Partial<BuzzerSettings>) =>
     onRoomSettingsChange({ buzzerSettings: { ...bs, ...patch } });
   const roundUnlimited = bs.roundSeconds === null;
 
   return (
-    <div className="md:h-full grow rounded-2xl border-2 border-zinc-200 bg-white/50 p-4 backdrop-blur-xs dark:border-zinc-700 dark:bg-zinc-900/30">
+    <section
+      aria-label="房間設定"
+      className="grow rounded-[20px] border border-line bg-surface px-4 py-3 md:h-full"
+    >
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
 
-      {/* Header */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500 text-white">
-          <Settings2 className="h-4 w-4" />
+      {
+        <div className="mb-1 flex items-center gap-1">
+          {/* 手機頂部列已經有房名與編輯鈕，這裡改顯示區塊標題 */}
+          <h2 className="flex-1 text-base font-extrabold text-ink md:hidden">
+            房間設定
+          </h2>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 max-md:hidden">
+            {password && (
+              <Lock
+                aria-label="有密碼"
+                className="h-4 w-4 shrink-0 text-ink-2"
+              />
+            )}
+            <h2 className="truncate text-lg font-extrabold text-ink">
+              {roomName}
+            </h2>
+            {isMaster && (
+              <button
+                type="button"
+                onClick={onEditRoomName}
+                aria-label="編輯房間"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpenRuleModal(true)}
+            aria-label="遊戲規則"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
+          >
+            <BookOpen className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={onLeaveRoom}
+            aria-label="離開房間"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-danger-tint hover:text-danger-ink"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
         </div>
-        <div className="flex flex-1 items-center gap-1.5 min-w-0">
-          {password && (
-            <Lock className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-          )}
-          <span className="truncate font-display text-base font-black text-foreground">
-            {roomName}
-          </span>
-          {isMaster && (
-            <button
-              onClick={onEditRoomName}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <HoverTip content="遊戲規則">
-            <button
-              onClick={() => setIsOpenRuleModal(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-            >
-              <BookOpen className="h-4 w-4" />
-            </button>
-          </HoverTip>
-          <HoverTip content="離開房間">
-            <button
-              onClick={onLeaveRoom}
-              className="flex h-8 w-8 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </HoverTip>
-        </div>
-      </div>
+      }
 
-      {/* 設定表格 */}
-      <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+      {/* 設定清單 */}
+      <div className="flex flex-col divide-y divide-line">
         <SettingSelect
           label="玩家人數"
           disabled={!isMaster}
@@ -178,14 +188,14 @@ const RoomInfoArea = ({
             label="牌庫類型"
             disabled={!isMaster}
             value={roomSettings?.deckType}
-            onValueChange={v => onRoomSettingsChange({ deckType: v as DeckType })}
+            onValueChange={v =>
+              onRoomSettingsChange({ deckType: v as DeckType })
+            }
           >
             <SelectItem value={DeckType.Standard}>
               標準 (1-10 各 {playersCount * 3} 張)
             </SelectItem>
-            <SelectItem value={DeckType.Random}>
-              全部隨機
-            </SelectItem>
+            <SelectItem value={DeckType.Random}>全部隨機</SelectItem>
           </SettingSelect>
         )}
 
@@ -362,8 +372,7 @@ const RoomInfoArea = ({
               value={bs.scoreFloor === null ? 'none' : String(bs.scoreFloor)}
               onValueChange={v =>
                 updateBuzzer({
-                  scoreFloor:
-                    v === 'none' ? null : (Number(v) as 0 | -5 | -10),
+                  scoreFloor: v === 'none' ? null : (Number(v) as 0 | -5 | -10),
                 })
               }
             >
@@ -388,7 +397,7 @@ const RoomInfoArea = ({
           </>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 
