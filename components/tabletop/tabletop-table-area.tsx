@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Scissors } from 'lucide-react';
+import { Scissors, Sparkles } from 'lucide-react';
 import { TabletopCard } from '@/components/tabletop/tabletop-card';
 import { TabletopTiles } from '@/components/tabletop/tabletop-tiles';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ type TabletopTableAreaProps = {
   canEdit: boolean;
   onBreakSet: (setId: string) => void;
   onPickLoose: (card: NumberCard) => void;
+  /** 標題列右側的操作（電腦回合的「略過動畫」） */
+  headerAction?: React.ReactNode;
 };
 
 export function TabletopTableArea({
@@ -26,87 +28,93 @@ export function TabletopTableArea({
   canEdit,
   onBreakSet,
   onPickLoose,
+  headerAction,
 }: TabletopTableAreaProps) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section
-      aria-label="桌面"
-      className="flex w-full flex-col gap-2 rounded-2xl border-2 border-zinc-200 bg-white/60 p-3 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/40"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-black text-foreground">桌面</h2>
-        <span className="text-xs text-muted-foreground">
-          {table.length} 組牌組
-        </span>
+    <section aria-label="桌面" className="flex w-full flex-col gap-2">
+      <div className="flex min-h-9 items-center justify-between">
+        <h2 className="text-[13px] font-extrabold text-ink-2">
+          桌面 · {table.length} 組
+        </h2>
+        {headerAction}
       </div>
 
       {table.length === 0 ? (
         // 拆開最後一組時桌面也會是空的，這時提示改由下方的散牌區負責
         loose.length === 0 && (
-          <p className="py-4 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed border-line-strong px-4 py-5 text-center text-sm text-ink-2">
             桌面還是空的，用手牌組出第一組吧
           </p>
         )
       ) : (
-        <ul className="flex max-h-[34dvh] flex-col gap-1.5 overflow-y-auto pr-1">
+        <ul className="flex max-h-[34dvh] flex-col gap-2 overflow-y-auto px-0.5 pt-2.5 pb-1 lg:grid lg:max-h-none lg:grid-cols-2 lg:gap-3">
           <AnimatePresence initial={false}>
-            {table.map((set, i) => (
-              <motion.li
-                key={set.id}
-                layout={!reduceMotion}
-                initial={reduceMotion ? false : { opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -16 }}
-                transition={{ duration: 0.25 }}
-                className={cn(
-                  'flex items-center gap-2 rounded-2xl border-2 bg-white px-2 py-1.5 dark:bg-zinc-800/80',
-                  highlightSetIds.includes(set.id)
-                    ? 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/20'
-                    : 'border-zinc-100 dark:border-zinc-700',
-                )}
-              >
-                <span className="w-5 shrink-0 text-center font-display text-xs font-bold text-muted-foreground">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <TabletopTiles tiles={set.tiles} />
-                </div>
-                <span className="shrink-0 font-display text-xs font-bold text-muted-foreground tabular-nums">
-                  {scoreSet(set)} 分
-                </span>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 shrink-0 gap-1 px-2 text-xs font-bold text-muted-foreground hover:text-foreground"
-                    onClick={() => onBreakSet(set.id)}
-                  >
-                    <Scissors className="h-3.5 w-3.5" />
-                    拆開
-                  </Button>
-                )}
-              </motion.li>
-            ))}
+            {table.map(set => {
+              const isHighlighted = highlightSetIds.includes(set.id);
+              return (
+                <motion.li
+                  key={set.id}
+                  layout={!reduceMotion}
+                  initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -16 }}
+                  transition={{ duration: 0.25 }}
+                  className={cn(
+                    'relative flex min-h-14 items-center gap-2 rounded-[14px] bg-surface py-1.5 pr-1 pl-2.5',
+                    isHighlighted
+                      ? 'border-2 border-amber shadow-[0_0_0_3px_var(--amber-tint)]'
+                      : 'border border-line',
+                  )}
+                >
+                  {/* 變動的牌組不只靠外框顏色，另外加上文字標記 */}
+                  {isHighlighted && (
+                    <span className="absolute -top-2.5 right-2.5 inline-flex h-5 items-center gap-1 rounded-full bg-amber px-2 text-[11px] font-bold text-on-amber">
+                      <Sparkles aria-hidden className="h-3 w-3" />
+                      剛變動
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <TabletopTiles tiles={set.tiles} />
+                  </div>
+                  <span className="shrink-0 font-display text-sm font-extrabold text-ink-2 tabular-nums">
+                    {scoreSet(set)} 分
+                  </span>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      className="h-11 w-11 shrink-0 gap-1 px-0 text-sm font-bold text-ink hover:bg-sunken lg:w-auto lg:border lg:border-line-strong lg:px-3"
+                      onClick={() => onBreakSet(set.id)}
+                      aria-label="拆開"
+                    >
+                      <Scissors className="h-[18px] w-[18px]" />
+                      <span className="hidden lg:inline">拆開</span>
+                    </Button>
+                  )}
+                </motion.li>
+              );
+            })}
           </AnimatePresence>
         </ul>
       )}
 
       {loose.length > 0 && (
-        <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-2 dark:border-amber-700 dark:bg-amber-900/10">
-          <p className="mb-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
-            散牌區：要全部放回牌組才能結束回合
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {loose.map(card => (
-              <TabletopCard
-                key={card.id}
-                card={card}
-                size="sm"
-                onClick={() => onPickLoose(card)}
-              />
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border-2 border-dashed border-amber bg-amber-tint px-2.5 py-2">
+          <span className="shrink-0 text-[13px] font-extrabold text-amber-ink">
+            散牌區
+          </span>
+          {loose.map(card => (
+            <TabletopCard
+              key={card.id}
+              card={card}
+              size="sm"
+              onClick={() => onPickLoose(card)}
+            />
+          ))}
+          <span className="min-w-[140px] flex-1 text-xs leading-snug text-ink">
+            要全部放回牌組才能結束回合
+          </span>
         </div>
       )}
     </section>

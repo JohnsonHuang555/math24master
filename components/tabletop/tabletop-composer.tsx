@@ -1,9 +1,10 @@
 'use client';
 
-import { Check, CircleAlert, Delete, Eraser } from 'lucide-react';
+import { CircleAlert, CircleCheck, Delete, Eraser } from 'lucide-react';
 import { TabletopTiles } from '@/components/tabletop/tabletop-tiles';
 import { Button } from '@/components/ui/button';
 import { ComposerPreview, ComposerSymbol } from '@/lib/tabletop-turn-draft';
+import { cn } from '@/lib/utils';
 import { TabletopTile } from '@/models/Tabletop';
 
 const COMPOSER_SYMBOLS: {
@@ -18,6 +19,10 @@ const COMPOSER_SYMBOLS: {
   { symbol: '(', label: '(', name: '左括號' },
   { symbol: ')', label: ')', name: '右括號' },
 ];
+
+// 符號鍵：6 個符號加退格排成一行，手機 375px 也不會折行
+const KEY_CLASS =
+  'flex h-11 min-w-0 flex-1 items-center justify-center rounded-xl border border-line-strong bg-surface font-display text-[22px] font-bold text-ink transition-colors hover:bg-sunken active:translate-y-px disabled:opacity-45 lg:h-12 lg:w-12 lg:flex-none';
 
 type TabletopComposerProps = {
   composer: TabletopTile[];
@@ -38,42 +43,61 @@ export function TabletopComposer({
   onClear,
   onCommit,
 }: TabletopComposerProps) {
+  const isValid = !!preview?.validation.valid;
+  const reason =
+    preview && !preview.validation.valid ? preview.validation.reason : null;
+
   return (
     <section
       aria-label="組裝列"
-      className="flex w-full flex-col gap-2 rounded-2xl border-2 border-zinc-200 bg-white px-3 py-2.5 shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900"
+      className={cn(
+        'flex w-full flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-[18px] lg:border lg:border-line lg:bg-surface lg:p-3',
+        disabled && 'opacity-60',
+      )}
     >
-      <div className="flex min-h-11 items-center">
+      <div
+        className={cn(
+          'flex min-h-[58px] w-full items-center gap-2 rounded-[14px] px-2.5 py-1.5 lg:min-h-[68px] lg:basis-full lg:px-3.5',
+          // 組裝中的算式多半還不成立，框維持中性，只在下方用文字說明原因
+          isValid
+            ? 'border-2 border-primary bg-primary-tint'
+            : 'border border-line bg-sunken',
+        )}
+      >
         {composer.length === 0 ? (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-ink-2">
             點手牌或散牌，加上符號組成算式
           </span>
         ) : (
-          <TabletopTiles tiles={composer} />
+          <div className="min-w-0 flex-1">
+            <TabletopTiles tiles={composer} />
+          </div>
+        )}
+        {isValid && (
+          <span
+            aria-live="polite"
+            className="ml-auto flex shrink-0 flex-col items-end leading-tight"
+          >
+            <span className="flex items-center gap-1 text-[13px] font-extrabold text-primary-ink">
+              <CircleCheck aria-hidden className="h-4 w-4" />
+              等於 24
+            </span>
+            <span className="text-xs text-ink-2">預估 {preview!.score} 分</span>
+          </span>
         )}
       </div>
 
-      <div className="flex min-h-5 items-center justify-between gap-2 text-sm">
-        {preview?.validation.valid ? (
-          <>
-            <span className="flex items-center gap-1 font-bold text-teal-700 dark:text-teal-400">
-              <Check className="h-4 w-4" />
-              等於 24
-            </span>
-            <span className="font-display font-bold text-amber-700 dark:text-amber-400">
-              預估 {preview.score} 分
-            </span>
-          </>
-        ) : preview && !preview.validation.valid ? (
-          <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
-            <CircleAlert className="h-4 w-4 shrink-0" />
-            {preview.validation.reason}
-          </span>
-        ) : null}
-      </div>
+      {reason && (
+        <p
+          role="status"
+          className="flex items-center gap-1.5 text-[13px] font-semibold text-danger-ink lg:basis-full"
+        >
+          <CircleAlert aria-hidden className="h-4 w-4 shrink-0" />
+          {reason}
+        </p>
+      )}
 
-      {/* 共用的 Symbols 每顆 52px，6 顆在手機寬度會折成兩行，這裡改用較小的單行按鈕 */}
-      <div className="grid grid-cols-6 gap-1.5">
+      <div className="flex gap-1.5">
         {COMPOSER_SYMBOLS.map(({ symbol, label, name }) => (
           <button
             key={symbol}
@@ -82,38 +106,38 @@ export function TabletopComposer({
             data-testid={`symbol-${symbol}`}
             disabled={disabled}
             onClick={() => onAddSymbol(symbol)}
-            className="flex h-10 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white font-display text-xl font-bold text-zinc-700 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] transition-colors hover:border-primary/40 active:translate-y-0.5 active:shadow-none disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            className={KEY_CLASS}
           >
             {label}
           </button>
         ))}
-      </div>
-
-      <div className="flex gap-2">
-        <Button
-          variant="tactileOutline"
-          size="icon"
-          className="h-11 w-11 shrink-0"
+        <button
+          type="button"
           aria-label="退格"
           disabled={disabled || composer.length === 0}
           onClick={onBackspace}
+          className={KEY_CLASS}
         >
-          <Delete className="h-4 w-4" />
-        </Button>
-        {/* 原本只有 X 圖示，和上方的乘號太像容易誤按，改成橡皮擦 + 文字 */}
+          <Delete className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="flex gap-2 lg:flex-1">
+        {/* 只有 X 圖示時和乘號太像容易誤按，改用橡皮擦 */}
         <Button
-          variant="tactileOutline"
-          className="h-11 shrink-0 gap-1 px-3 text-base"
+          variant="outline"
+          size="icon"
+          className="h-[52px] w-[52px] shrink-0 rounded-xl border-line-strong bg-surface text-ink hover:bg-sunken"
+          aria-label="清空"
           disabled={disabled || composer.length === 0}
           onClick={onClear}
         >
-          <Eraser className="h-4 w-4" />
-          清空
+          <Eraser className="h-5 w-5" />
         </Button>
         <Button
-          variant="tactileOutline"
-          className="h-11 flex-1 text-base"
-          disabled={disabled || !preview?.validation.valid}
+          variant="tactile"
+          className="h-[52px] min-w-0 flex-1 text-lg"
+          disabled={disabled || !isValid}
           onClick={onCommit}
         >
           放上桌面
