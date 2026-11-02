@@ -1,14 +1,27 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  ChevronLeft,
+  CircleX,
+  Clock,
+  Copy,
+  Delete,
+  Flame,
+  Globe,
+  RotateCcw,
+} from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
+import { ExpressionBar } from '@/components/game/expression-bar';
+import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
+import { NumberCard } from '@/components/game/number-card';
+import Symbols from '@/components/symbols';
 import { Button } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
   type FormulaItem,
@@ -18,28 +31,43 @@ import {
   findAllSolutions,
   getDailyPuzzles,
   getDailyRecord,
+  getDailyStatus,
   getTodayDateString,
   saveDailyRecord,
 } from '@/lib/daily-seed';
+import { msUntilNextTaipeiDay } from '@/lib/date';
 import { playSound } from '@/lib/sound-manager';
 import { cn } from '@/lib/utils';
+import { SelectedCard } from '@/models/SelectedCard';
+import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 3;
 
-const SYMBOLS = [
-  { label: '+', value: '+' },
-  { label: '-', value: '-' },
-  { label: '×', value: '*' },
-  { label: '÷', value: '/' },
-  { label: '(', value: '(' },
-  { label: ')', value: ')' },
-] as const;
+// 操作列的次要按鈕：與經典模式相同的平面樣式
+const ACTION_BUTTON_CLASS =
+  'h-14 w-[52px] shrink-0 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink';
 
 type GameState = 'idle' | 'playing' | 'completed';
 
+/** 每日挑戰日是台灣日期（YYYY-MM-DD），以 UTC 解析避免玩家時區把日期往前推一天 */
+function formatDailyDate(
+  today: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+) {
+  if (!today) return '';
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: 'UTC',
+  }).format(new Date(`${today}T00:00:00Z`));
+}
+
 export default function DailyChallengePage() {
+  const locale = useLocale();
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
   const [today, setToday] = useState('');
   const [puzzles, setPuzzles] = useState<number[][]>([]);
@@ -55,6 +83,9 @@ export default function DailyChallengePage() {
     [],
   );
   const [userFormulas, setUserFormulas] = useState<string[]>([]);
+  // 答錯的原因；改動算式後清掉
+  const [wrongMessage, setWrongMessage] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const isSubmitting = useRef(false);
   const scoreSumRef = useRef(0);
 
@@ -74,15 +105,23 @@ export default function DailyChallengePage() {
         () => setSolutionsPerPuzzle(dailyPuzzles.map(p => findAllSolutions(p))),
         0,
       );
+    } else {
+      // 開始畫面顯示目前的連續天數（昨天有完成才算）
+      setStreak(getDailyStatus(currentDay).streak);
     }
   }, []);
 
   const cards = puzzles[currentRound] ?? [];
   const isPlaying = gameState === 'playing';
 
+  const updateFormula = (next: FormulaItem[]) => {
+    setFormula(next);
+    setWrongMessage(null);
+  };
+
   const startGame = () => {
     setCurrentRound(0);
-    setFormula([]);
+    updateFormula([]);
     setUsedCardIndices(new Set());
     scoreSumRef.current = 0;
     setUserFormulas([]);
@@ -92,7 +131,7 @@ export default function DailyChallengePage() {
   const handleAddNumber = (index: number) => {
     if (!isPlaying) return;
     if (usedCardIndices.has(index)) {
-      setFormula(
+      updateFormula(
         formula.filter(f => !(f.type === 'number' && f.cardIndex === index)),
       );
       setUsedCardIndices(prev => {
@@ -102,8 +141,8 @@ export default function DailyChallengePage() {
       });
     } else {
       playSound('select');
-      setFormula(prev => [
-        ...prev,
+      updateFormula([
+        ...formula,
         { type: 'number', value: cards[index], cardIndex: index },
       ]);
       setUsedCardIndices(prev => new Set([...prev, index]));
@@ -113,13 +152,13 @@ export default function DailyChallengePage() {
   const handleAddSymbol = (value: string) => {
     if (!isPlaying) return;
     playSound('select');
-    setFormula(prev => [...prev, { type: 'symbol', value }]);
+    updateFormula([...formula, { type: 'symbol', value }]);
   };
 
   const handleBack = () => {
     if (!isPlaying || formula.length === 0) return;
     const last = formula[formula.length - 1];
-    setFormula(formula.slice(0, -1));
+    updateFormula(formula.slice(0, -1));
     if (last.type === 'number') {
       setUsedCardIndices(prev => {
         const s = new Set(prev);
@@ -131,14 +170,23 @@ export default function DailyChallengePage() {
 
   const handleClear = () => {
     if (!isPlaying) return;
-    setFormula([]);
+    updateFormula([]);
     setUsedCardIndices(new Set());
   };
 
   const applyPenalty = (message: string) => {
     playSound('wrong');
-    toast.error(message);
+    setWrongMessage(message);
   };
+
+  const formulaDisplay = formula
+    .map(f => {
+      if (f.type === 'number') return f.value;
+      if (f.value === '*') return '×';
+      if (f.value === '/') return '÷';
+      return f.value;
+    })
+    .join(' ');
 
   const handleSubmit = () => {
     if (!isPlaying || isSubmitting.current) return;
@@ -172,7 +220,7 @@ export default function DailyChallengePage() {
     if (nextRound < TOTAL_ROUNDS) {
       toast.success(`第 ${currentRound + 1} 題完成！`);
       setCurrentRound(nextRound);
-      setFormula([]);
+      updateFormula([]);
       setUsedCardIndices(new Set());
       isSubmitting.current = false;
       return;
@@ -183,7 +231,6 @@ export default function DailyChallengePage() {
     setScore(scoreSumRef.current);
     setStreak(s);
     setGameState('completed');
-    toast.success(`完成！本日總分 ${scoreSumRef.current} 分`);
     unlockAchievement('daily_done');
     incrementDailyChallenge();
     useAchievementStore.getState().updateDailyStreak(s);
@@ -194,24 +241,17 @@ export default function DailyChallengePage() {
     );
   };
 
-  const formulaDisplay = formula
-    .map(f => {
-      if (f.type === 'number') return f.value;
-      if (f.value === '*') return '×';
-      if (f.value === '/') return '÷';
-      return f.value;
-    })
-    .join(' ');
-
-  const streakText =
-    streak === 1 ? '🔥 連續 1 天，好的開始！' : `🔥 連續 ${streak} 天`;
-
-  const scoreLine = score !== null ? `本日總分：${score} 分` : '已完成';
+  // 只取數字（zh 的 day 格式會帶「日」字）
+  const dayOfMonth = today ? Number(today.slice(8, 10)) : '';
+  const shortDate = formatDailyDate(today, locale, {
+    month: 'numeric',
+    day: 'numeric',
+  });
 
   const sharePreviewText =
-    `Math24 每日挑戰 ${today}\n` +
-    `${streakText} | ${scoreLine}\n\n` +
-    `🧮 #Math24Master math24master.com`;
+    `24點大師 每日挑戰 ${shortDate}\n` +
+    `本日 ${score ?? 0} 分 · 連續 ${streak} 天\n` +
+    `math24master.com`;
 
   const handleShare = async () => {
     try {
@@ -225,23 +265,42 @@ export default function DailyChallengePage() {
   // ── 開始畫面 ──
   if (gameState === 'idle') {
     return (
-      <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex h-14 shrink-0 items-center px-4">
+      <div className="mx-auto flex h-full w-full max-w-md flex-col px-4 pt-2 pb-6">
+        <header className="flex items-center">
           <BackToHomeButton />
         </header>
-        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-2xl font-bold">每日挑戰</h1>
-            <p className="text-sm text-muted-foreground">{today}</p>
+        <main className="flex flex-1 flex-col items-center justify-center gap-3.5 py-6 text-center">
+          <div
+            aria-hidden
+            className="w-24 overflow-hidden rounded-[18px] border-2 border-line-strong bg-surface shadow-[0_5px_0_0_var(--line-strong)]"
+          >
+            <div className="flex h-6 items-center justify-center bg-primary text-xs font-extrabold text-primary-foreground">
+              {formatDailyDate(today, locale, { month: 'short' })}
+            </div>
+            <div className="font-display text-[44px] leading-[64px] font-extrabold text-ink">
+              {dayOfMonth}
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
-            <p>每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄</p>
-          </div>
-          <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-            <Play className="h-4 w-4" />
+          <h1 className="mt-2.5 text-[32px] font-black text-ink">每日挑戰</h1>
+          <p className="text-[15px] leading-relaxed text-ink-2">
+            每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄
+          </p>
+          {streak > 0 && (
+            <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber-tint px-3 text-sm font-bold text-amber-ink">
+              <Flame aria-hidden className="h-4 w-4" />
+              連續 {streak} 天
+            </span>
+          )}
+        </main>
+        <div className="flex flex-col gap-3">
+          <p className="flex items-center justify-center gap-1.5 text-[13px] text-ink-2">
+            <Globe aria-hidden className="h-4 w-4" />
+            全球同題 · 台灣時間 00:00 換題
+          </p>
+          <Button variant="tactile" className="w-full" onClick={startGame}>
             開始挑戰
           </Button>
-        </main>
+        </div>
       </div>
     );
   }
@@ -250,184 +309,254 @@ export default function DailyChallengePage() {
   if (gameState === 'completed') {
     return (
       <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex h-14 shrink-0 items-center px-4">
-          <BackToHomeButton />
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-2xl font-bold">每日挑戰</h1>
-            <p className="text-sm text-muted-foreground">{today}</p>
-          </div>
+        <div className="mx-auto flex w-full max-w-md flex-col gap-3.5 px-4 pt-2 pb-8">
+          <header className="-mx-2 flex items-center gap-1">
+            <BackToHomeButton />
+            <span className="text-sm font-bold text-ink-2">
+              每日挑戰 · {shortDate}
+            </span>
+          </header>
+
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex w-full max-w-sm flex-col items-center gap-4"
+            className="flex flex-col items-center gap-1.5 pt-2.5"
           >
-            {/* 結算卡片 */}
-            <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-              <div className="font-display text-5xl font-black text-primary sm:text-6xl">
-                {score !== null ? score : '完成'}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                本日總分（共 {TOTAL_ROUNDS} 題）
-              </div>
-              <div className="mt-2 text-sm font-semibold">{streakText}</div>
-            </div>
-
-            {/* 分享預覽 */}
-            <pre className="w-full border-l-2 border-foreground pl-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
-              {sharePreviewText}
-            </pre>
-
-            <Button
-              variant="tactile"
-              className="w-full"
-              onClick={handleShare}
-              aria-label="複製分享文字到剪貼簿"
-            >
-              複製分享
-            </Button>
-
-            {/* 各題解法面板 */}
-            {solutionsPerPuzzle.map((solutions, i) => (
-              <div key={i} className="flex w-full flex-col gap-1">
-                <p className="text-xs font-semibold text-muted-foreground">
-                  第 {i + 1} 題（{puzzles[i]?.join('、')}）
-                </p>
-                <SolutionsPanel
-                  solutions={solutions}
-                  userFormula={userFormulas[i] ?? ''}
-                />
-              </div>
-            ))}
-
-            {/* CTA */}
-            <div className="flex w-full gap-3">
-              <Link href="/single-play" className="flex-1">
-                <Button variant="outline" className="w-full">
-                  繼續練習
-                </Button>
-              </Link>
-              <Link href="/multiple-play" className="flex-1">
-                <Button variant="outline" className="w-full">
-                  挑戰朋友
-                </Button>
-              </Link>
-            </div>
+            <span className="text-[15px] font-bold text-ink-2">
+              本日總分 · 共 {TOTAL_ROUNDS} 題
+            </span>
+            <span className="font-display text-[88px] leading-[0.95] font-extrabold text-ink tabular-nums">
+              {score ?? 0}
+            </span>
+            <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber px-3 text-sm font-bold text-on-amber">
+              <Flame aria-hidden className="h-4 w-4" />
+              連續 {streak} 天
+            </span>
           </motion.div>
-        </main>
+
+          {/* 分享預覽 */}
+          <pre className="rounded-2xl border border-dashed border-line-strong bg-sunken px-4 py-3.5 font-mono text-sm leading-[1.7] whitespace-pre-wrap text-ink">
+            {sharePreviewText}
+          </pre>
+          <Button
+            variant="tactileOutline"
+            className="h-12 gap-2 text-[15px]"
+            onClick={handleShare}
+            aria-label="複製分享文字到剪貼簿"
+          >
+            <Copy aria-hidden className="h-[18px] w-[18px]" />
+            複製分享
+          </Button>
+
+          <NextPuzzleCountdown />
+
+          <div className="flex gap-2.5">
+            <Button variant="tactileOutline" className="flex-1 px-3" asChild>
+              <Link href="/multiple-play">挑戰朋友</Link>
+            </Button>
+            <Button variant="tactile" className="flex-[1.2] px-3" asChild>
+              <Link href="/single-play">繼續練習</Link>
+            </Button>
+          </div>
+
+          {/* 各題解法 */}
+          {solutionsPerPuzzle.length > 0 && (
+            <section className="mt-3 flex flex-col gap-3.5">
+              <h2 className="text-xl font-extrabold text-ink">各題解法</h2>
+              <div className="overflow-hidden rounded-[18px] border border-line bg-surface">
+                {solutionsPerPuzzle.map((solutions, i) => (
+                  <SolutionsPanel
+                    key={i}
+                    round={i + 1}
+                    numbers={puzzles[i] ?? []}
+                    solutions={solutions}
+                    userFormula={userFormulas[i] ?? ''}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
     );
   }
 
   // ── 遊戲中 ──
+  const tokens: SelectedCard[] = formula.map(f =>
+    f.type === 'number'
+      ? { number: { id: String(f.cardIndex), value: f.value } }
+      : { symbol: f.value as Symbol },
+  );
+  const numberOrder = new Map(
+    formula
+      .filter(f => f.type === 'number')
+      .map((f, i) => [f.type === 'number' ? f.cardIndex : -1, i + 1] as const),
+  );
+  const isComplete = usedCardIndices.size === 4;
+  const liveResult = formula.length > 0 ? evaluateFormula(formula) : null;
+  const roundedResult =
+    liveResult === null ? null : Math.round(liveResult * 1e9) / 1e9;
+  const isReady =
+    isComplete && roundedResult !== null && Math.abs(roundedResult - 24) < 1e-9;
+
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <header className="flex h-14 shrink-0 items-center px-4">
-        <BackToHomeButton />
-      </header>
-      <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-        {/* 標題區 + HUD */}
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl font-bold">每日挑戰</h1>
-          <p className="text-sm text-muted-foreground">{today}</p>
-          <div className="mt-2 flex items-baseline gap-3">
-            <span className="font-display text-2xl font-bold text-foreground">
-              第 <span className="text-primary">{currentRound + 1}</span> /{' '}
-              {TOTAL_ROUNDS} 題
-            </span>
+    <div className="mx-auto flex h-full w-full max-w-md flex-col px-3 pt-2.5 pb-6 sm:px-4">
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        onLeave={() => router.push('/')}
+      />
+      <header className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 shrink-0 text-ink"
+          onClick={() => setShowLeaveConfirm(true)}
+          aria-label="離開"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex flex-1 flex-col gap-1.5 px-1.5">
+          <span className="text-[13px] font-bold text-ink-2">
+            每日挑戰 · 第{' '}
+            <span className="font-display text-[15px] text-ink">
+              {currentRound + 1}
+            </span>{' '}
+            / {TOTAL_ROUNDS} 題
+          </span>
+          <div aria-hidden className="flex gap-1.5">
+            {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'h-1.5 flex-1 rounded-full',
+                  i < currentRound
+                    ? 'bg-primary'
+                    : i === currentRound
+                      ? 'bg-primary/45'
+                      : 'bg-line',
+                )}
+              />
+            ))}
           </div>
         </div>
+        <span className="w-11" />
+      </header>
 
-        {/* 牌組顯示 */}
-        <div className="flex gap-4">
-          {cards.map((card, index) => (
-            <button
-              key={`${currentRound}-${index}`}
-              onClick={() => handleAddNumber(index)}
-              className={cn(
-                'flex h-20 w-14 items-center justify-center rounded-2xl border-2 font-display text-2xl font-bold transition-all',
-                usedCardIndices.has(index)
-                  ? 'scale-95 border-primary bg-primary text-primary-foreground shadow-[0_5px_0_0_hsl(175_84%_22%)]'
-                  : 'border-zinc-200 bg-white text-zinc-800 shadow-[0_5px_0_0_rgba(0,0,0,0.08)] hover:scale-105 hover:border-primary/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100',
-              )}
-            >
-              {card}
-            </button>
-          ))}
+      <div className="flex flex-1 items-start justify-center py-4">
+        {wrongMessage && (
+          <motion.div
+            key={wrongMessage}
+            role="alert"
+            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex w-full items-center gap-3 rounded-2xl border-2 border-danger bg-danger-tint px-4 py-3.5"
+          >
+            <CircleX aria-hidden className="h-6 w-6 shrink-0 text-danger-ink" />
+            <div className="flex flex-1 flex-col gap-0.5">
+              <strong className="text-base text-danger-ink">
+                {wrongMessage}
+              </strong>
+              <span className="text-[13px] text-ink">修改算式後再出牌</span>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex justify-center gap-2 pt-2">
+          {cards.map((card, index) => {
+            const order = numberOrder.get(index);
+            return (
+              <NumberCard
+                key={`${currentRound}-${index}`}
+                value={card}
+                state={order !== undefined ? 'selected' : 'idle'}
+                order={order}
+                onClick={() => handleAddNumber(index)}
+                data-testid="daily-card"
+                data-selected={order !== undefined}
+              />
+            );
+          })}
         </div>
 
-        {/* 公式顯示框 */}
-        <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white px-4 font-display text-lg font-medium shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-          {formulaDisplay || (
-            <span className="text-sm text-muted-foreground">組合你的算式</span>
-          )}
+        <ExpressionBar
+          tokens={tokens}
+          result={roundedResult}
+          isFinal={isComplete}
+          placeholder="組合你的算式"
+        />
+
+        <div className="flex justify-center gap-2">
+          <Symbols onClick={symbol => handleAddSymbol(symbol)} />
         </div>
 
-        {/* 符號按鈕 */}
-        <div className="grid grid-cols-3 gap-2">
-          {SYMBOLS.map(({ label, value }) => (
-            <Button
-              key={value}
-              variant="outline"
-              className="h-12 w-16 rounded-2xl border-2 border-zinc-200 bg-white font-display text-lg shadow-[0_3px_0_0_rgba(0,0,0,0.06)] hover:border-primary/40 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800"
-              onClick={() => handleAddSymbol(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-
-        {/* 操作按鈕 */}
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Button
             variant="outline"
+            size="icon"
+            className={ACTION_BUTTON_CLASS}
             disabled={formula.length === 0}
-            onClick={handleBack}
+            onClick={handleClear}
+            aria-label="清除"
           >
-            <Image
-              src="/backspace.svg"
-              alt="backspace"
-              width={18}
-              height={18}
-              priority
-              className="mr-1"
-            />
-            倒退
+            <RotateCcw className="h-5 w-5" />
           </Button>
           <Button
             variant="outline"
+            size="icon"
+            className={ACTION_BUTTON_CLASS}
             disabled={formula.length === 0}
-            onClick={handleClear}
+            onClick={handleBack}
+            aria-label="倒退"
           >
-            <Image
-              src="/reset.svg"
-              alt="reset"
-              width={20}
-              height={20}
-              priority
-              className="mr-1"
-            />
-            清除
+            <Delete className="h-5 w-5" />
           </Button>
           <Button
             variant="tactile"
+            className={cn(
+              'min-w-0 flex-1',
+              isReady &&
+                'shadow-[0_5px_0_0_var(--primary-edge),0_0_0_4px_var(--primary-tint)]',
+            )}
             disabled={formula.length === 0}
             onClick={handleSubmit}
           >
-            <Image
-              src="/card-play.svg"
-              alt="submit"
-              width={16}
-              height={16}
-              priority
-              className="mr-1"
-            />
             出牌
           </Button>
         </div>
-      </main>
+      </div>
     </div>
+  );
+}
+
+/** 距離台灣時間 00:00 換題的倒數，每秒更新 */
+function NextPuzzleCountdown() {
+  const [ms, setMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const tick = () => setMs(msUntilNextTaipeiDay());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (ms === null) return null;
+  const total = Math.floor(ms / 1000);
+  const hh = String(Math.floor(total / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const ss = String(total % 60).padStart(2, '0');
+
+  return (
+    <p className="flex items-center justify-center gap-2 text-[13px] text-ink-2">
+      <Clock aria-hidden className="h-4 w-4" />
+      下一組題目
+      <span className="font-display text-[15px] font-extrabold text-ink tabular-nums">
+        {hh}:{mm}:{ss}
+      </span>
+      後
+    </p>
   );
 }

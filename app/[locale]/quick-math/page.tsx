@@ -1,18 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
+  ArrowLeftRight,
   Calculator,
-  Check,
-  Delete,
-  Play,
-  RotateCcw,
-  Superscript,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleX,
+  Plus,
   Trophy,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { BackToHomeButton } from '@/components/back-to-home-button';
+import {
+  GameResultScreen,
+  RecordBadge,
+} from '@/components/game/game-result-screen';
+import { GameStartScreen } from '@/components/game/game-start-screen';
+import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
@@ -35,31 +42,19 @@ const QUICK_MATH_MODE_CONFIG = [
     value: 'basic' as const,
     label: '初階模式',
     tagline: '純四則運算 · 熟悉基本節奏',
-    chips: ['加減乘除', '10 題遞增難度'],
-    Icon: Calculator,
-    color: {
-      icon: 'bg-teal-500',
-      chip: 'bg-teal-50 border-teal-200 text-teal-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(175,84%,78%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(175,84%,78%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(175,84%,78%)]',
-    },
+    glyph: '+−',
   },
   {
     value: 'advanced' as const,
     label: '進階模式',
     tagline: '混入平方、階乘、根號 · 更燒腦',
-    chips: ['額外符號：x² · x! · √x', '10 題遞增難度'],
-    Icon: Superscript,
-    color: {
-      icon: 'bg-amber-400',
-      chip: 'bg-amber-50 border-amber-200 text-amber-700',
-      shadow: 'shadow-[0_8px_0_0_hsl(36,100%,72%)]',
-      hoverShadow: 'hover:shadow-[0_10px_0_0_hsl(36,100%,72%)]',
-      activeShadow: 'active:shadow-[0_3px_0_0_hsl(36,100%,72%)]',
-    },
+    glyph: 'x²',
   },
 ] as const;
+
+// 數字鍵：平面加淺厚度，按下時下沉，觸控區 62px 高
+const KEY_CLASS =
+  'flex h-[62px] items-center justify-center rounded-[14px] border border-line-strong bg-surface font-display text-[30px] font-bold text-ink shadow-[0_3px_0_0_var(--line-strong)] transition-[translate,box-shadow] duration-[90ms] hover:bg-sunken active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--line-strong)] disabled:opacity-45';
 
 export default function QuickMathPage() {
   const {
@@ -85,6 +80,14 @@ export default function QuickMathPage() {
   } = useQuickMath();
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  // 剛送出的答案；答錯時 hook 會清空輸入，畫面用這個顯示被劃掉的答案
+  const [lastSubmitted, setLastSubmitted] = useState('');
+
+  const handleSubmit = useCallback(() => {
+    setLastSubmitted(inputValue);
+    submitAnswer();
+  }, [inputValue, submitAnswer]);
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
@@ -166,162 +169,143 @@ export default function QuickMathPage() {
       } else if (e.key === 'Enter') {
         // 阻止焦點停在鍵盤按鈕上時 Enter 觸發該按鈕的 click（造成重複輸入）
         e.preventDefault();
-        submitAnswer();
+        handleSubmit();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [gameState, pressDigit, backspace, submitAnswer]);
+  }, [gameState, pressDigit, backspace, handleSubmit]);
 
   // ── 模式選擇畫面 ──
   if (gameState === 'mode-select') {
     return (
       <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex h-14 shrink-0 items-center px-4">
-          <BackToHomeButton />
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <h1 className="font-display text-3xl font-black tracking-tight text-foreground">
-              選擇模式
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              挑選適合你的心算快答玩法
+        <div className="mx-auto flex w-full max-w-md flex-col px-4 pt-2 pb-8">
+          <header className="-mx-2 flex items-center">
+            <BackToHomeButton />
+            <span className="flex-1" />
+            <Link
+              href={leaderboardHref('quickmath')}
+              aria-label="排行榜"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
+            >
+              <Trophy className="h-5 w-5" />
+            </Link>
+          </header>
+          <div className="flex flex-col gap-1.5 pt-2">
+            <h1 className="text-[28px] font-black text-ink">心算快答</h1>
+            <p className="text-[15px] text-ink-2">
+              {TOTAL_QUESTIONS} 題連續快答 · 全球排行榜
             </p>
           </div>
 
-          <div className="flex w-full max-w-lg flex-col gap-4">
-            {QUICK_MATH_MODE_CONFIG.map((cfg, i) => {
+          <div className="flex flex-col gap-3 pt-5">
+            <span className="text-sm font-bold text-ink-2">選擇模式</span>
+            {QUICK_MATH_MODE_CONFIG.map(cfg => {
               const best =
                 cfg.value === 'advanced'
                   ? quickMathAdvancedBestSeconds
                   : quickMathBestSeconds;
               return (
-                <motion.button
+                <button
                   key={cfg.value}
-                  initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: i * 0.07,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  whileHover={reduceMotion ? undefined : { y: -4 }}
-                  whileTap={reduceMotion ? undefined : { y: 2 }}
-                  onClick={() => {
-                    setTimeout(() => selectMode(cfg.value), 500);
-                  }}
-                  className={cn(
-                    'w-full cursor-pointer rounded-3xl border-2 border-zinc-200 bg-white/90 p-5 text-left backdrop-blur-xs transition-shadow dark:bg-zinc-900/80',
-                    cfg.color.shadow,
-                    cfg.color.hoverShadow,
-                    cfg.color.activeShadow,
-                  )}
+                  type="button"
+                  onClick={() => selectMode(cfg.value)}
+                  className="group flex w-full flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-[18px] text-left transition-[border-color,translate] duration-[90ms] hover:border-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0.5"
                 >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={cn(
-                        'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white',
-                        cfg.color.icon,
-                      )}
+                  <span className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint font-display text-2xl font-extrabold text-primary-ink"
                     >
-                      <cfg.Icon className="h-7 w-7" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-display text-xl font-black text-foreground">
+                      {cfg.glyph}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <strong className="text-[19px] text-ink">
                         {cfg.label}
+                      </strong>
+                      <span className="text-sm text-ink-2">{cfg.tagline}</span>
+                    </span>
+                    <ChevronRight
+                      aria-hidden
+                      className="h-5 w-5 shrink-0 text-ink-2 group-hover:text-primary-ink"
+                    />
+                  </span>
+                  {best > 0 ? (
+                    <span className="flex items-center justify-between border-t border-line pt-2.5">
+                      <span className="text-[13px] font-semibold text-ink-2">
+                        個人最佳
                       </span>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {cfg.tagline}
-                      </p>
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {cfg.chips.map(chip => (
-                          <span
-                            key={chip}
-                            className={cn(
-                              'rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                              cfg.color.chip,
-                            )}
-                          >
-                            {chip}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {best > 0 && (
-                    <div className="mt-4 border-t border-zinc-100 pt-3.5 dark:border-zinc-800">
-                      <p className="text-xs text-muted-foreground">個人最佳</p>
-                      <p className="font-display text-xl font-bold text-foreground">
+                      <span className="font-display text-[22px] font-extrabold text-ink tabular-nums">
                         {formatTimePrecise(best)}
-                      </p>
-                    </div>
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-[13px] text-ink-2">尚無紀錄</span>
                   )}
-                </motion.button>
+                </button>
               );
             })}
           </div>
-        </main>
+        </div>
       </div>
     );
   }
 
+  const modeLabel = mode === 'advanced' ? '進階' : '初階';
+
   // ── 開始畫面 ──
   if (gameState === 'idle') {
     return (
-      <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex h-14 shrink-0 items-center px-4">
-          <BackToHomeButton />
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-2xl font-bold">心算快答</h1>
-            <p className="text-sm text-muted-foreground">
-              {TOTAL_QUESTIONS} 題連續快答 · 全球排行榜
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
-            <p>每題一道算式，心算後輸入答案</p>
-            <p>
-              難度逐題提升 · 答錯 +{WRONG_PENALTY_SECONDS} 秒可重試 ·
-              全部答完即結束
-            </p>
+      <GameStartScreen
+        icon={Calculator}
+        title="心算快答"
+        tagline={`${TOTAL_QUESTIONS} 題連續快答 · ${modeLabel}`}
+        description={
+          <>
+            每題一道算式，心算後輸入答案
+            <br />
+            難度逐題提升 · 答錯 +{WRONG_PENALTY_SECONDS} 秒可重試
             {mode === 'advanced' && (
-              <p className="text-xs">
-                本局為進階模式，題目會混入平方、階乘、根號
-              </p>
+              <>
+                <br />
+                題目會混入平方、階乘、根號
+              </>
             )}
-            <p className="text-xs">依總花費時間排名，最速紀錄寫入排行榜</p>
-          </div>
-          {bestSeconds > 0 && (
-            <div className="rounded-2xl border-2 border-zinc-200 bg-white px-5 py-3 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="text-xs text-muted-foreground">個人最佳</p>
-              <p className="font-display text-2xl font-black text-primary">
-                {formatTimePrecise(bestSeconds)}
-              </p>
-            </div>
-          )}
-          <div className="flex gap-3">
-            <Button variant="outline" className="gap-1.5" asChild>
-              <Link href={leaderboardHref(leaderboardMode)}>
-                <Trophy className="h-4 w-4" />
-                排行榜
-              </Link>
-            </Button>
-            <Button variant="tactile" className="gap-1.5" onClick={startGame}>
-              <Play className="h-4 w-4" />
-              開始挑戰
-            </Button>
-          </div>
-          <button
-            onClick={changeMode}
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            <br />
+            依總花費時間排名
+          </>
+        }
+        stats={
+          bestSeconds > 0
+            ? [{ label: '個人最佳', value: formatTimePrecise(bestSeconds) }]
+            : undefined
+        }
+        onBack={changeMode}
+        onStart={startGame}
+        startLabel="開始挑戰"
+      >
+        <div className="mt-1 flex gap-1">
+          <Button
+            variant="ghost"
+            className="h-11 gap-1.5 px-3 font-bold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
+            asChild
           >
+            <Link href={leaderboardHref(leaderboardMode)}>
+              <Trophy className="h-4 w-4" />
+              排行榜
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-11 gap-1.5 px-3 font-bold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
+            onClick={changeMode}
+          >
+            <ArrowLeftRight className="h-4 w-4" />
             切換模式
-          </button>
-        </main>
-      </div>
+          </Button>
+        </div>
+      </GameStartScreen>
     );
   }
 
@@ -337,7 +321,7 @@ export default function QuickMathPage() {
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-md"
+              className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-ink/85 backdrop-blur-md"
             >
               <motion.span
                 key={countdownValue}
@@ -345,7 +329,7 @@ export default function QuickMathPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={reduceMotion ? undefined : { scale: 0.7, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 280, damping: 18 }}
-                className="font-display text-[120px] leading-none font-black text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+                className="font-display text-[120px] leading-none font-extrabold text-white"
               >
                 {countdownValue}
               </motion.span>
@@ -353,7 +337,7 @@ export default function QuickMathPage() {
                 initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
-                className="mt-4 font-display text-2xl font-black tracking-widest text-white/60"
+                className="mt-4 font-display text-2xl font-extrabold tracking-widest text-white/70"
               >
                 Ready ?
               </motion.p>
@@ -366,172 +350,231 @@ export default function QuickMathPage() {
 
   // ── 結算畫面 ──
   if (gameState === 'completed') {
+    const isBest =
+      bestSeconds > 0 && finalSeconds !== null && finalSeconds <= bestSeconds;
     return (
-      <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex h-14 shrink-0 items-center px-4">
-          <BackToHomeButton />
-        </header>
-        <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-2xl font-bold">心算快答</h1>
-            <p className="text-sm text-muted-foreground">挑戰完成</p>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex w-full max-w-sm flex-col items-center gap-4"
-          >
-            <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-5 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-              <div className="font-display text-5xl font-black text-primary sm:text-6xl">
-                {finalSeconds !== null
-                  ? formatTimePrecise(finalSeconds)
-                  : '完成'}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {TOTAL_QUESTIONS} 題完成時間
-              </div>
+      <>
+        <LoginPromptModal
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          onSkip={() => {
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+          onSkipForever={() => {
+            setSkipLoginPrompt(true);
+            clearPendingScore();
+            setShowLoginPrompt(false);
+          }}
+        />
+        <GameResultScreen
+          eyebrow={`挑戰完成 · ${modeLabel}`}
+          label={`${TOTAL_QUESTIONS} 題完成時間`}
+          value={finalSeconds !== null ? formatTimePrecise(finalSeconds) : '—'}
+          badge={
+            <span className="flex flex-col items-center gap-2">
               {penaltySeconds > 0 ? (
-                <div className="mt-2 text-sm font-semibold text-red-500">
-                  含答錯罰時 +{penaltySeconds} 秒
-                </div>
+                <span className="text-sm text-ink-2">
+                  含答錯罰時{' '}
+                  <b className="font-display font-extrabold text-danger-ink">
+                    +{penaltySeconds} 秒
+                  </b>
+                </span>
               ) : (
-                <div className="mt-2 text-sm font-semibold text-primary">
+                <span className="flex items-center gap-1 text-sm font-bold text-primary-ink">
+                  <CircleCheck aria-hidden className="h-4 w-4" />
                   全程零失誤！
-                </div>
+                </span>
               )}
-              {bestSeconds > 0 &&
-                finalSeconds !== null &&
-                finalSeconds <= bestSeconds && (
-                  <div className="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    個人最佳紀錄！
-                  </div>
-                )}
-            </div>
-
-            <ResultRank mode={leaderboardMode} submit={leaderboardSubmit} />
-            <Button
-              variant="tactile"
-              className="w-full gap-1.5"
-              onClick={() => {
-                restart();
-                startGame();
-              }}
-            >
-              <RotateCcw className="h-4 w-4" />
-              再玩一次
-            </Button>
-          </motion.div>
-          <LoginPromptModal
-            isOpen={showLoginPrompt}
-            onClose={() => setShowLoginPrompt(false)}
-            onSkip={() => {
-              clearPendingScore();
-              setShowLoginPrompt(false);
-            }}
-            onSkipForever={() => {
-              setSkipLoginPrompt(true);
-              clearPendingScore();
-              setShowLoginPrompt(false);
-            }}
-          />
-        </main>
-      </div>
+              {isBest && <RecordBadge>個人最佳紀錄</RecordBadge>}
+            </span>
+          }
+          backLabel="切換模式"
+          onBack={changeMode}
+          retryLabel="再玩一次"
+          onRetry={() => {
+            restart();
+            startGame();
+          }}
+        >
+          <ResultRank mode={leaderboardMode} submit={leaderboardSubmit} />
+        </GameResultScreen>
+      </>
     );
   }
 
   // ── 遊戲中 ──
+  const showWrong = wrongFlash && inputValue === '' && lastSubmitted !== '';
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-5 p-4">
-      {/* HUD */}
-      <div className="flex flex-col items-center gap-1">
-        <div className="relative flex items-baseline gap-3">
-          <span className="font-display text-4xl font-bold text-primary tabular-nums">
-            {formatTimePrecise(displaySeconds)}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            第 <b className="font-bold text-foreground">{currentIndex + 1}</b> /{' '}
-            {TOTAL_QUESTIONS} 題
-          </span>
-          {/* 答錯 +3s 飄字 */}
-          <AnimatePresence>
-            {wrongFlash && (
-              <motion.span
-                key="penalty-flash"
-                initial={{ opacity: 1, y: 0 }}
-                animate={{ opacity: 1, y: -8 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="absolute top-0 -right-12 font-display text-lg font-black text-red-500"
-              >
-                +{WRONG_PENALTY_SECONDS}s
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
+    <div className="mx-auto flex h-full w-full max-w-md flex-col">
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        onLeave={() => {
+          restart();
+          changeMode();
+        }}
+      />
+      <header className="flex items-center gap-1 px-2 pt-2.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 shrink-0 text-ink"
+          onClick={() => setShowLeaveConfirm(true)}
+          aria-label="離開"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span
+          role="timer"
+          className="flex-1 font-display text-[30px] font-extrabold text-ink tabular-nums"
+        >
+          {formatTimePrecise(displaySeconds)}
+        </span>
         {penaltySeconds > 0 && (
-          <p className="text-xs font-semibold text-red-500">
-            累計罰時 +{penaltySeconds} 秒
-          </p>
+          <span
+            className={cn(
+              'mr-2 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[13px] font-bold',
+              wrongFlash
+                ? 'bg-danger text-white'
+                : 'bg-danger-tint text-danger-ink',
+            )}
+          >
+            罰時
+            <span className="font-display text-[15px]">
+              +{penaltySeconds} 秒
+            </span>
+          </span>
         )}
+      </header>
+
+      <div className="flex flex-col gap-1.5 px-4 pt-2">
+        <span className="text-[13px] font-bold text-ink-2">
+          第 {currentIndex + 1} / {TOTAL_QUESTIONS} 題
+        </span>
+        <div aria-hidden className="flex gap-1">
+          {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => (
+            <span
+              key={i}
+              className={cn(
+                'h-1.5 flex-1 rounded-[3px]',
+                i < currentIndex
+                  ? 'bg-primary'
+                  : i === currentIndex
+                    ? 'bg-primary/45'
+                    : 'bg-line',
+              )}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* 題目卡 */}
+      {/* 題目卡；答錯時短暫晃動，reduced-motion 不晃 */}
       <motion.div
         animate={
           wrongFlash && !reduceMotion ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }
         }
         transition={{ duration: 0.4 }}
-        className="w-full max-w-sm rounded-2xl border-2 border-zinc-200 bg-white px-6 py-8 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900"
+        className="relative mx-4 mt-[22px] rounded-[22px] border border-line bg-surface px-4 py-7 text-center"
       >
-        <p className="font-display text-3xl font-black tracking-wide text-foreground sm:text-4xl">
+        <p className="font-display text-[clamp(36px,12vw,52px)] leading-none font-extrabold text-ink">
           {currentQuestion?.display} = ?
         </p>
+        <AnimatePresence>
+          {wrongFlash && (
+            <motion.span
+              key="penalty-flash"
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute -top-3.5 right-3.5 inline-flex h-[30px] items-center gap-1 rounded-full bg-danger px-2.5 text-white"
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              <span className="font-display text-base font-extrabold">
+                {WRONG_PENALTY_SECONDS} 秒
+              </span>
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.div>
 
-      {/* 答案顯示框 */}
-      <div className="flex h-12 w-full max-w-xs items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white px-4 font-display text-2xl font-bold tabular-nums shadow-[0_4px_0_0_rgba(0,0,0,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
-        {inputValue || (
-          <span className="text-sm font-normal text-muted-foreground">
-            輸入答案
+      {/* 答案框 */}
+      {showWrong ? (
+        <div
+          role="alert"
+          className="mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-2.5 rounded-[18px] border-2 border-danger bg-danger-tint text-danger-ink"
+        >
+          <CircleX aria-hidden className="h-6 w-6" />
+          <span className="font-display text-[40px] font-extrabold line-through decoration-[3px]">
+            {lastSubmitted}
           </span>
-        )}
-      </div>
+          <span className="text-sm font-bold">再試一次</span>
+        </div>
+      ) : (
+        <div
+          aria-label="你的答案"
+          className="mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-0.5 rounded-[18px] border-2 border-primary bg-surface"
+        >
+          {inputValue ? (
+            <span className="font-display text-[44px] font-extrabold text-ink tabular-nums">
+              {inputValue}
+            </span>
+          ) : (
+            <span className="text-[15px] text-ink-2">輸入答案</span>
+          )}
+          <span
+            aria-hidden
+            className="h-10 w-[3px] animate-pulse rounded-sm bg-primary motion-reduce:animate-none"
+          />
+        </div>
+      )}
 
-      {/* 數字鍵盤 */}
-      <div className="grid w-full max-w-xs grid-cols-3 gap-2">
-        {KEYPAD_DIGITS.map(digit => (
+      {/* 數字鍵盤：固定在底部，像原生計算機 */}
+      <div className="mt-auto border-t border-line bg-sunken px-4 pt-3.5 pb-6">
+        <div className="grid grid-cols-3 gap-2">
+          {KEYPAD_DIGITS.map(digit => (
+            <button
+              key={digit}
+              type="button"
+              onClick={() => pressDigit(digit)}
+              className={KEY_CLASS}
+            >
+              {digit}
+            </button>
+          ))}
           <button
-            key={digit}
-            onClick={() => pressDigit(digit)}
-            className="flex h-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-2xl font-bold text-zinc-800 shadow-[0_4px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-primary/50 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            type="button"
+            onClick={clearInput}
+            disabled={inputValue === ''}
+            aria-label="清除輸入"
+            className={cn(
+              KEY_CLASS,
+              'font-noto text-base font-bold text-ink-2',
+            )}
           >
-            {digit}
+            清除
           </button>
-        ))}
-        <button
-          onClick={clearInput}
-          disabled={inputValue === ''}
-          aria-label="清除輸入"
-          className="flex h-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white text-zinc-500 shadow-[0_4px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-red-300 active:translate-y-0.5 active:shadow-none disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
-        >
-          <Delete className="h-6 w-6" />
-        </button>
-        <button
-          onClick={() => pressDigit(0)}
-          className="flex h-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white font-display text-2xl font-bold text-zinc-800 shadow-[0_4px_0_0_rgba(0,0,0,0.08)] transition-all hover:border-primary/50 active:translate-y-0.5 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-        >
-          0
-        </button>
-        <Button
-          variant="tactile"
-          disabled={inputValue === ''}
-          onClick={submitAnswer}
-          aria-label="送出答案"
-          className="h-14 rounded-2xl"
-        >
-          <Check className="h-6 w-6" />
-        </Button>
+          <button
+            type="button"
+            onClick={() => pressDigit(0)}
+            className={KEY_CLASS}
+          >
+            0
+          </button>
+          <button
+            type="button"
+            disabled={inputValue === ''}
+            onClick={handleSubmit}
+            aria-label="送出答案"
+            className={cn(
+              KEY_CLASS,
+              'border-primary-edge bg-primary font-noto text-xl font-extrabold text-primary-foreground shadow-[0_3px_0_0_var(--primary-edge)] hover:bg-primary',
+            )}
+          >
+            送出
+          </button>
+        </div>
       </div>
     </div>
   );

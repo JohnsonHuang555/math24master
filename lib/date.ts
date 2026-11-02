@@ -14,3 +14,12 @@ export function getTaipeiDateString(offsetDays = 0): string {
   const d = new Date(Date.now() + offsetDays * 86400000);
   return TAIPEI_FORMATTER.format(d);
 }
+
+const TAIPEI_OFFSET_MS = 8 * 3600000;
+const DAY_MS = 86400000;
+
+/** 距離下一個台灣時間 00:00（每日挑戰換題）還有幾毫秒；台灣沒有夏令時間，固定 UTC+8 */
+export function msUntilNextTaipeiDay(now = Date.now()): number {
+  const taipeiNow = now + TAIPEI_OFFSET_MS;
+  return DAY_MS - (((taipeiNow % DAY_MS) + DAY_MS) % DAY_MS);
+}
