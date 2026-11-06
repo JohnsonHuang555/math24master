@@ -341,6 +341,7 @@ export default function MatchPlayGame({
         desktopBar={
           <GameDesktopBar
             title="消消樂模式"
+            escHint
             score={score}
             remaining={remainingCount}
             onExit={() => setShowLeaveConfirm(true)}

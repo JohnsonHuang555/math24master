@@ -59,21 +59,17 @@ export const NumberCard = React.forwardRef<HTMLButtonElement, NumberCardProps>(
         ref={ref}
         type="button"
         disabled={disabled}
+        data-shortcut={shortcut}
         className={cn(
           numberCardVariants({ size, state: resolvedState }),
+          // 快捷鍵用偽元素顯示，不會混進牌值的文字內容
+          shortcut &&
+            'lg:after:absolute lg:after:right-2.5 lg:after:bottom-2 lg:after:font-noto lg:after:text-xs lg:after:font-bold lg:after:opacity-60 lg:after:content-[attr(data-shortcut)]',
           className,
         )}
         {...props}
       >
         {value}
-        {shortcut && (
-          <kbd
-            aria-hidden
-            className="absolute right-2.5 bottom-2 hidden font-noto text-xs font-bold opacity-60 lg:block"
-          >
-            {shortcut}
-          </kbd>
-        )}
         {resolvedState === 'selected' && order !== undefined && (
           <SelectionBadge order={order} />
         )}

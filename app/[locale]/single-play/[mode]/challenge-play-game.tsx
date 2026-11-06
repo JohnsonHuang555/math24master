@@ -271,6 +271,7 @@ export default function ChallengePlayGame({
         desktopBar={
           <GameDesktopBar
             title="挑戰模式"
+            escHint
             onExit={() => setShowLeaveConfirm(true)}
             onOpenRules={() => setIsOpenRuleModal(true)}
             actions={

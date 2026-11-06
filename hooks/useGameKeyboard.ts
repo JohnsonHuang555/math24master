@@ -22,8 +22,8 @@ type GameKeyboardHandlers = {
 };
 
 /**
- * 桌機的遊戲快捷鍵。輸入框打字、對話框開著或按著修飾鍵時不攔截；
- * 焦點在按鈕上按 Enter / 空白鍵時交給瀏覽器觸發按鈕本身，避免重複動作
+ * 桌機的遊戲快捷鍵。輸入框打字、對話框開著或按著修飾鍵時不攔截。
+ * Enter 一律當出牌（即使焦點在剛點過的牌上）；空白鍵維持瀏覽器預設，觸發焦點所在的按鈕
  */
 export function useGameKeyboard(
   enabled: boolean,
@@ -54,7 +54,8 @@ export function useGameKeyboard(
         e.preventDefault();
         h.onBackspace();
       } else if (e.key === 'Enter' && h.onEnter) {
-        if (target?.closest('button, a')) return;
+        // 焦點常停在剛點過的牌或符號上，Enter 一律當出牌，不讓瀏覽器再點一次那顆按鈕
+        if (target?.closest('a')) return;
         e.preventDefault();
         h.onEnter();
       } else if (e.key === 'Escape' && h.onEscape) {

@@ -138,6 +138,8 @@ type GameDesktopBarProps = {
   onExit?: () => void;
   /** 離開鈕的文字，預設「離開」；不在對局中的頁面可改成「首頁」 */
   exitLabel?: string;
+  /** 這個畫面按 Esc 會觸發離開時才顯示 Esc 提示 */
+  escHint?: boolean;
   onOpenRules?: () => void;
   /** 規則右側的額外按鈕（如提前結算） */
   actions?: React.ReactNode;
@@ -156,6 +158,7 @@ export function GameDesktopBar({
   center,
   onExit,
   exitLabel,
+  escHint,
   onOpenRules,
   actions,
   className,
@@ -189,7 +192,7 @@ export function GameDesktopBar({
         >
           <ChevronLeft className="h-5 w-5" />
           {exitLabel ?? t('exit')}
-          <Kbd>Esc</Kbd>
+          {escHint && <Kbd>Esc</Kbd>}
         </Button>
       )}
       <strong className="ml-1.5 text-[17px] whitespace-nowrap text-ink">

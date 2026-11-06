@@ -528,6 +528,7 @@ export default function ClassicPlayGame({
         desktopBar={
           <GameDesktopBar
             title="經典模式"
+            escHint
             score={currentScore}
             remaining={remainCards}
             isLastRound={isLastRound}

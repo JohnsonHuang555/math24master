@@ -35,7 +35,10 @@ const Symbols = ({ onClick, disabled, showShortcuts }: SymbolsProps) => {
           onClick={() => onClick(config.symbol)}
           data-testid={`symbol-${config.symbol}`}
           aria-label={t(config.name)}
+          data-shortcut={showShortcuts ? config.key : undefined}
           className={cn(
+            showShortcuts &&
+              'lg:after:absolute lg:after:right-1.5 lg:after:bottom-1 lg:after:font-noto lg:after:text-[10px] lg:after:font-bold lg:after:text-ink-2 lg:after:content-[attr(data-shortcut)]',
             'relative flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong bg-surface font-display text-[26px] leading-none font-bold text-ink transition-[transform,background-color,border-color] duration-[90ms] ease-out lg:h-[60px] lg:w-[68px] lg:rounded-[14px] lg:text-[30px]',
             'hover:bg-sunken active:translate-y-px active:border-primary active:bg-primary-tint',
             'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
@@ -43,14 +46,6 @@ const Symbols = ({ onClick, disabled, showShortcuts }: SymbolsProps) => {
           )}
         >
           {config.label}
-          {showShortcuts && (
-            <kbd
-              aria-hidden
-              className="absolute right-1.5 bottom-1 hidden font-noto text-[10px] font-bold text-ink-2 lg:block"
-            >
-              {config.key}
-            </kbd>
-          )}
         </button>
       ))}
     </>
