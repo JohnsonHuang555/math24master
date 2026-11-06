@@ -50,7 +50,7 @@ export function ExpressionBar({
   return (
     <div
       className={cn(
-        'flex min-h-16 w-full items-center gap-2 rounded-2xl border bg-sunken px-3.5 py-2',
+        'flex min-h-16 w-full items-center gap-2 rounded-2xl border bg-sunken px-3.5 py-2 lg:min-h-[76px] lg:gap-2.5 lg:rounded-[18px] lg:px-5',
         isCorrect
           ? 'border-2 border-primary bg-primary-tint px-[13px]'
           : isWrong
@@ -78,7 +78,7 @@ export function ExpressionBar({
         <span
           aria-live="polite"
           className={cn(
-            'ml-auto flex shrink-0 items-center gap-1.5 font-display text-2xl leading-none font-extrabold',
+            'ml-auto flex shrink-0 items-center gap-1.5 font-display text-2xl leading-none font-extrabold lg:gap-2 lg:text-[32px]',
             isCorrect
               ? 'text-primary-ink'
               : isWrong
@@ -130,8 +130,8 @@ function ExpressionToken({
   const className = cn(
     'font-display text-[22px] leading-none font-extrabold',
     isNumber
-      ? 'flex h-10 min-w-8 items-center justify-center rounded-lg border-[1.5px] border-playcard-line bg-playcard px-1 text-playcard-ink shadow-[0_2px_0_0_var(--playcard-edge)]'
-      : 'px-0.5 text-ink-2',
+      ? 'flex h-10 min-w-8 items-center justify-center rounded-lg border-[1.5px] border-playcard-line bg-playcard px-1 text-playcard-ink shadow-[0_2px_0_0_var(--playcard-edge)] lg:h-[50px] lg:min-w-[38px] lg:rounded-[10px] lg:text-[26px] lg:shadow-[0_3px_0_0_var(--playcard-edge)]'
+      : 'px-0.5 text-ink-2 lg:text-[28px]',
   );
 
   if (!onRemove) return <span className={className}>{label}</span>;

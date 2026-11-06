@@ -127,7 +127,9 @@
       "lastRound": "最後一輪！",
       "rules": "規則",
       "exit": "離開",
-      "soundComingSoon": "音效（即將推出）"
+      "soundComingSoon": "音效（即將推出）",
+      "scoreLabel": "得分",
+      "remainingRich": "剩 <n>{count}</n> 張"
     },
     "leave": {
       "title": "確定要離開？",

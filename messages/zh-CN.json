@@ -127,7 +127,9 @@
       "lastRound": "最后一轮！",
       "rules": "规则",
       "exit": "离开",
-      "soundComingSoon": "音效（即将推出）"
+      "soundComingSoon": "音效（即将推出）",
+      "scoreLabel": "得分",
+      "remainingRich": "剩 <n>{count}</n> 张"
     },
     "leave": {
       "title": "确定要离开？",

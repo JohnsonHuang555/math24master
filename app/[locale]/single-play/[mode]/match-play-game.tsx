@@ -6,7 +6,7 @@ import { Ban, LayoutGrid, Share2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
-import { GameHud } from '@/components/game/game-hud';
+import { GameDesktopBar, GameHud } from '@/components/game/game-hud';
 import {
   GameResultScreen,
   RecordBadge,
@@ -337,6 +337,16 @@ export default function MatchPlayGame({
         onSubmit={onSubmit}
         onRestart={handleRestart}
         boardOverlay={boardOverlay}
+        onEscape={() => setShowLeaveConfirm(true)}
+        desktopBar={
+          <GameDesktopBar
+            title="消消樂模式"
+            score={score}
+            remaining={remainingCount}
+            onExit={() => setShowLeaveConfirm(true)}
+            onOpenRules={() => setIsOpenRuleModal(true)}
+          />
+        }
       >
         <GameHud
           modeLabel="消消樂模式"

@@ -127,7 +127,9 @@
       "lastRound": "Final round!",
       "rules": "Rules",
       "exit": "Leave",
-      "soundComingSoon": "Sound (coming soon)"
+      "soundComingSoon": "Sound (coming soon)",
+      "scoreLabel": "Score",
+      "remainingRich": "<n>{count}</n> left"
     },
     "leave": {
       "title": "Leave the game?",

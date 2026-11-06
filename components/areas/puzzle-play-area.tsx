@@ -17,20 +17,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/ui/kbd';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { fadeVariants } from '@/lib/animation-variants';
 import { calculateAnswer, cn } from '@/lib/utils';
 import { NumberCard as NumberCardModel } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
 
-// 操作列的次要按鈕：平面樣式，厚度只留給數字牌與主 CTA
-const ACTION_BUTTON_CLASS =
-  'h-14 w-[52px] shrink-0 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink';
+/**
+ * 操作列的次要按鈕：手機為 52px 平面圖示鈕；桌機加上文字標籤，改成有厚度的外框鈕
+ */
+export const ACTION_BUTTON_CLASS =
+  'h-14 w-[52px] shrink-0 gap-2 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink lg:h-[60px] lg:w-auto lg:rounded-2xl lg:border-2 lg:px-[18px] lg:text-base lg:font-bold lg:shadow-[0_4px_0_0_var(--line-strong)]';
 
 export interface PuzzlePlayAreaProps {
   currentNumbers: NumberCardModel[];
@@ -43,21 +47,31 @@ export interface PuzzlePlayAreaProps {
   showSkipButton?: boolean;
   /** 跳過懲罰的顯示文字（如 '−15 秒'），供按鈕與確認彈窗使用 */
   skipPenaltyText?: string;
-  /** 頂部 HUD */
+  /** 手機頂部 HUD；桌機改用 desktopBar */
   children?: React.ReactNode;
+  /** 桌機頂部整條工具列 */
+  desktopBar?: React.ReactNode;
+  /** 手機在 HUD 下方、桌機在牌的上方（挑戰模式的計時器） */
+  banner?: React.ReactNode;
+  /** 桌機右側欄（經典模式的本局作答） */
+  aside?: React.ReactNode;
   /** HUD 與手牌之間的空白區，放計分明細等回饋 */
   stage?: React.ReactNode;
   submitLabel?: string;
   onBackStep?: () => void;
+  /** 桌機按 Esc 時觸發（通常是打開離開確認） */
+  onEscape?: () => void;
   /** 計分動畫中：所有操作 disabled，CTA 顯示 busyLabel */
   busy?: boolean;
   busyLabel?: string;
+  /** 手機在操作列下方、桌機排進操作列（經典模式的跳過換牌） */
   footerSlot?: React.ReactNode;
 }
 
 /**
- * 經典與挑戰模式的遊戲版面：HUD 在上，手牌、算式、符號與操作集中在底部拇指區。
- * 算式等於 24 時主 CTA 加上勾勾與外圈，引導出牌
+ * 經典與挑戰模式的遊戲版面。
+ * 手機：HUD 在上，手牌、算式、符號與操作集中在底部拇指區。
+ * 桌機：頂部整條工具列，中間 640px 欄位放大牌面，可用鍵盤操作（1–4、符號、⌫、Enter、Esc）
  */
 export function PuzzlePlayArea({
   currentNumbers,
@@ -70,9 +84,13 @@ export function PuzzlePlayArea({
   showSkipButton = false,
   skipPenaltyText = '−15 秒',
   children,
+  desktopBar,
+  banner,
+  aside,
   stage,
   submitLabel = '確認',
   onBackStep,
+  onEscape,
   busy = false,
   busyLabel,
   footerSlot,
@@ -104,150 +122,197 @@ export function PuzzlePlayArea({
   // 有倒退鍵時，算式格只供顯示，不另外提供點擊移除
   const chipsClickable = !onBackStep && !busy;
 
+  const handleSubmit = () => {
+    if (selectedCards.length === 0) {
+      setShowSkipConfirm(true);
+    } else {
+      onSubmit();
+    }
+  };
+
+  useGameKeyboard(!busy, {
+    onDigit: index => {
+      const card = currentNumbers[index];
+      if (card) onSelectCard({ number: card });
+    },
+    onSymbol: symbol => onSelectCard({ symbol }),
+    onBackspace: onBackStep,
+    onEnter: handleSubmit,
+    onEscape,
+  });
+
   return (
-    <div className="mx-auto flex h-full w-full max-w-md flex-col px-3 pt-2.5 pb-6 sm:px-4">
-      <div className="flex w-full flex-col gap-1.5">{children}</div>
+    <div className="flex h-full flex-col">
+      {desktopBar && <div className="hidden lg:block">{desktopBar}</div>}
 
-      <div className="flex min-h-4 flex-1 items-center justify-center py-3">
-        {stage}
-      </div>
-
-      <div className="flex w-full flex-col gap-3">
-        {/* 數字牌 */}
-        <div
-          className={cn(
-            'flex justify-center gap-2 pt-2 transition-opacity',
-            busy && 'pointer-events-none opacity-35',
+      <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-3 pt-2.5 pb-6 sm:px-4 lg:max-w-none lg:flex-row lg:gap-6 lg:p-6">
+        <div className="flex min-w-0 flex-1 flex-col lg:items-center lg:justify-center lg:gap-6">
+          <div
+            className={cn(
+              'flex w-full flex-col gap-1.5',
+              desktopBar && 'lg:hidden',
+            )}
+          >
+            {children}
+          </div>
+          {banner && (
+            <div className="mt-1.5 w-full lg:mt-0 lg:w-[640px]">{banner}</div>
           )}
-        >
-          {currentNumbers.map(card => {
-            const order = selectedNumberOrder.get(card.id);
-            return (
-              <motion.div
-                key={card.id}
-                variants={fadeVariants}
-                initial="hidden"
-                animate="show"
-              >
-                <NumberCard
-                  value={card.value}
-                  state={
-                    busy
-                      ? 'disabled'
-                      : order !== undefined
-                        ? 'selected'
-                        : 'idle'
-                  }
-                  order={busy ? undefined : order}
-                  onClick={() => onSelectCard({ number: card })}
-                  data-testid="hand-card"
-                  data-selected={order !== undefined}
+
+          <div className="flex min-h-4 flex-1 items-center justify-center py-3 lg:w-[640px] lg:flex-none lg:py-0">
+            {stage}
+          </div>
+
+          <div className="flex w-full flex-col gap-3 lg:w-[640px] lg:items-center lg:gap-6">
+            {/* 數字牌 */}
+            <div
+              className={cn(
+                'flex justify-center gap-2 pt-2 transition-opacity lg:gap-4 lg:pt-3',
+                busy && 'pointer-events-none opacity-35',
+              )}
+            >
+              {currentNumbers.map((card, index) => {
+                const order = selectedNumberOrder.get(card.id);
+                return (
+                  <motion.div
+                    key={card.id}
+                    variants={fadeVariants}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    <NumberCard
+                      value={card.value}
+                      state={
+                        busy
+                          ? 'disabled'
+                          : order !== undefined
+                            ? 'selected'
+                            : 'idle'
+                      }
+                      order={busy ? undefined : order}
+                      shortcut={String(index + 1)}
+                      onClick={() => onSelectCard({ number: card })}
+                      data-testid="hand-card"
+                      data-selected={order !== undefined}
+                    />
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {!busy && (
+              <>
+                <ExpressionBar
+                  tokens={selectedCards}
+                  result={livePreview}
+                  isFinal={usedAllCards}
+                  placeholder="點選數字和符號組成算式..."
+                  onRemoveToken={chipsClickable ? onRemoveCard : undefined}
                 />
-              </motion.div>
-            );
-          })}
+                <div className="flex justify-center gap-2 lg:gap-2.5">
+                  <Symbols
+                    showShortcuts
+                    onClick={symbol => onSelectCard({ symbol })}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* 操作列：手機為平面圖示鈕 + 大 CTA；桌機加上文字與快捷鍵 */}
+            <TooltipProvider>
+              <div className="flex w-full flex-wrap gap-2 lg:flex-nowrap lg:gap-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={ACTION_BUTTON_CLASS}
+                      onClick={onClearSelection}
+                      disabled={busy}
+                      aria-label="清除所選取的牌"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                      <span className="hidden lg:inline">清除</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>清除所選取的牌</TooltipContent>
+                </Tooltip>
+                {onBackStep && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={ACTION_BUTTON_CLASS}
+                        onClick={onBackStep}
+                        disabled={busy}
+                        aria-label="倒退一步"
+                      >
+                        <Delete className="h-5 w-5" />
+                        <span className="hidden lg:inline">倒退</span>
+                        <Kbd>⌫</Kbd>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>倒退一步</TooltipContent>
+                  </Tooltip>
+                )}
+                {showSkipButton && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          ACTION_BUTTON_CLASS,
+                          'w-auto flex-col gap-0 px-2.5 leading-tight lg:flex-row lg:gap-2',
+                        )}
+                        onClick={onSkip}
+                        disabled={busy}
+                        aria-label={`跳過此題 (${skipPenaltyText})`}
+                      >
+                        {/* 直接顯示下次跳過扣幾秒，不只放在 tooltip */}
+                        <span className="flex items-center gap-1 text-sm font-bold lg:text-base">
+                          <SkipForward className="h-4 w-4 lg:h-5 lg:w-5" />
+                          跳過
+                        </span>
+                        <span className="font-display text-[13px] font-bold text-danger-ink lg:text-base lg:font-extrabold">
+                          {skipPenaltyText}
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      跳過此題 ({skipPenaltyText})
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Button
+                  variant="tactile"
+                  className={cn(
+                    'min-w-0 flex-1 gap-2 lg:order-last lg:h-[60px] lg:rounded-2xl',
+                    isReady &&
+                      !busy &&
+                      'shadow-[0_5px_0_0_var(--primary-edge),0_0_0_4px_var(--primary-tint)]',
+                  )}
+                  disabled={busy}
+                  onClick={handleSubmit}
+                >
+                  {isReady && !busy && (
+                    <Check aria-hidden className="h-5 w-5" />
+                  )}
+                  {busy ? (busyLabel ?? submitLabel) : submitLabel}
+                  {!busy && <Kbd>Enter</Kbd>}
+                </Button>
+                {/* 頁尾插槽（經典：跳過換牌）；手機排在操作列下方、計分中保留高度，桌機排進操作列 */}
+                <div className="flex min-h-11 basis-full justify-center lg:basis-auto lg:empty:hidden">
+                  {footerSlot}
+                </div>
+              </div>
+            </TooltipProvider>
+          </div>
         </div>
 
-        {!busy && (
-          <>
-            <ExpressionBar
-              tokens={selectedCards}
-              result={livePreview}
-              isFinal={usedAllCards}
-              placeholder="點選數字和符號組成算式..."
-              onRemoveToken={chipsClickable ? onRemoveCard : undefined}
-            />
-            <div className="flex justify-center gap-2">
-              <Symbols onClick={symbol => onSelectCard({ symbol })} />
-            </div>
-          </>
+        {aside && (
+          <aside className="hidden w-[300px] shrink-0 flex-col gap-3 rounded-[20px] border border-line bg-surface p-5 lg:flex">
+            {aside}
+          </aside>
         )}
-
-        {/* 操作列：平面次要按鈕 + 大 CTA */}
-        <TooltipProvider>
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={ACTION_BUTTON_CLASS}
-                  onClick={onClearSelection}
-                  disabled={busy}
-                  aria-label="清除所選取的牌"
-                >
-                  <RotateCcw className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>清除所選取的牌</TooltipContent>
-            </Tooltip>
-            {onBackStep && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={ACTION_BUTTON_CLASS}
-                    onClick={onBackStep}
-                    disabled={busy}
-                    aria-label="倒退一步"
-                  >
-                    <Delete className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>倒退一步</TooltipContent>
-              </Tooltip>
-            )}
-            {showSkipButton && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      ACTION_BUTTON_CLASS,
-                      'w-auto flex-col gap-0 px-2.5 leading-tight',
-                    )}
-                    onClick={onSkip}
-                    disabled={busy}
-                    aria-label={`跳過此題 (${skipPenaltyText})`}
-                  >
-                    {/* 直接顯示下次跳過扣幾秒，不只放在 tooltip */}
-                    <span className="flex items-center gap-1 text-sm font-bold">
-                      <SkipForward className="h-4 w-4" />
-                      跳過
-                    </span>
-                    <span className="font-display text-[13px] font-bold text-danger-ink">
-                      {skipPenaltyText}
-                    </span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>跳過此題 ({skipPenaltyText})</TooltipContent>
-              </Tooltip>
-            )}
-            <Button
-              variant="tactile"
-              className={cn(
-                'min-w-0 flex-1 gap-2',
-                isReady &&
-                  !busy &&
-                  'shadow-[0_5px_0_0_var(--primary-edge),0_0_0_4px_var(--primary-tint)]',
-              )}
-              disabled={busy}
-              onClick={() => {
-                if (selectedCards.length === 0) {
-                  setShowSkipConfirm(true);
-                } else {
-                  onSubmit();
-                }
-              }}
-            >
-              {isReady && !busy && <Check aria-hidden className="h-5 w-5" />}
-              {busy ? (busyLabel ?? submitLabel) : submitLabel}
-            </Button>
-          </div>
-        </TooltipProvider>
-        {/* 頁尾插槽 (classic: 跳過換牌)；計分中保留高度避免版面跳動 */}
-        <div className="flex min-h-11 justify-center">{footerSlot}</div>
       </div>
 
       {/* 未作答確認彈窗 */}
