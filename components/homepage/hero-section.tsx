@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Award, BarChart2, Trophy, Users } from 'lucide-react';
+import { BarChart2, Trophy, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
@@ -19,13 +19,9 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 type HeroSectionProps = {
   onOpenStatsModal: () => void;
-  onOpenAchievementModal: () => void;
 };
 
-const HeroSection = ({
-  onOpenStatsModal,
-  onOpenAchievementModal,
-}: HeroSectionProps) => {
+const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
   const reduceMotion = useReducedMotion();
   const hardNavigate = useHardNavigate();
   const t = useTranslations('Home');
@@ -38,12 +34,7 @@ const HeroSection = ({
       icon: BarChart2,
       onClick: onOpenStatsModal,
     },
-    {
-      key: 'achievements',
-      label: t('achievements'),
-      icon: Award,
-      onClick: onOpenAchievementModal,
-    },
+    // 成就功能尚未規劃完成，入口先隱藏（AchievementModal 與 Home.achievements 文案保留）
   ];
 
   // 手機只有圖示，桌機為「圖示＋文字」

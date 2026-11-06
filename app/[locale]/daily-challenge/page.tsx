@@ -9,7 +9,6 @@ import {
   Copy,
   Delete,
   Flame,
-  Globe,
   RotateCcw,
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
@@ -303,10 +302,6 @@ export default function DailyChallengePage() {
           )}
         </main>
         <div className="flex flex-col gap-3">
-          <p className="flex items-center justify-center gap-1.5 text-[13px] text-ink-2">
-            <Globe aria-hidden className="h-4 w-4" />
-            全球同題 · 台灣時間 00:00 換題
-          </p>
           <Button variant="tactile" className="w-full" onClick={startGame}>
             開始挑戰
           </Button>
