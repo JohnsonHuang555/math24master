@@ -12,7 +12,7 @@ const Footer = () => {
 
   return (
     <footer className="border-t border-line bg-surface px-4 pt-6 pb-10 md:px-10">
-      <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
+      <div className="mx-auto flex max-w-4xl flex-col gap-3.5 lg:max-w-[1040px] lg:flex-row lg:items-center lg:gap-5">
         <Image
           src="/logo.webp"
           alt={t('logoAlt')}
@@ -21,7 +21,10 @@ const Footer = () => {
           className="h-6 w-auto self-start"
         />
         {routing.locales.length > 1 && (
-          <nav aria-label={tLocale('label')} className="flex flex-wrap gap-1">
+          <nav
+            aria-label={tLocale('label')}
+            className="flex flex-wrap gap-1 lg:order-3"
+          >
             {routing.locales.map(item => (
               <Link
                 key={item}
@@ -41,7 +44,9 @@ const Footer = () => {
             ))}
           </nav>
         )}
-        <p className="text-[13px] text-ink-2">{t('footer')}</p>
+        <p className="text-[13px] text-ink-2 lg:order-2 lg:flex-1">
+          {t('footer')}
+        </p>
       </div>
     </footer>
   );

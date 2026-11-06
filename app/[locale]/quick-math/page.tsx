@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { BackToHomeButton } from '@/components/back-to-home-button';
+import { GameDesktopBar } from '@/components/game/game-hud';
 import {
   GameResultScreen,
   RecordBadge,
@@ -23,6 +24,7 @@ import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/ui/kbd';
 import { LeaderboardMode } from '@/hooks/useLeaderboard';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { WRONG_PENALTY_SECONDS, useQuickMath } from '@/hooks/useQuickMath';
@@ -170,11 +172,13 @@ export default function QuickMathPage() {
         // 阻止焦點停在鍵盤按鈕上時 Enter 觸發該按鈕的 click（造成重複輸入）
         e.preventDefault();
         handleSubmit();
+      } else if (e.key === 'Escape') {
+        clearInput();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [gameState, pressDigit, backspace, handleSubmit]);
+  }, [gameState, pressDigit, backspace, handleSubmit, clearInput]);
 
   // ── 模式選擇畫面 ──
   if (gameState === 'mode-select') {
@@ -406,174 +410,205 @@ export default function QuickMathPage() {
   // ── 遊戲中 ──
   const showWrong = wrongFlash && inputValue === '' && lastSubmitted !== '';
 
-  return (
-    <div className="mx-auto flex h-full w-full max-w-md flex-col">
-      <LeaveGameDialog
-        open={showLeaveConfirm}
-        onOpenChange={setShowLeaveConfirm}
-        onLeave={() => {
-          restart();
-          changeMode();
-        }}
-      />
-      <header className="flex items-center gap-1 px-2 pt-2.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11 shrink-0 text-ink"
-          onClick={() => setShowLeaveConfirm(true)}
-          aria-label="離開"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <span
-          role="timer"
-          className="flex-1 font-display text-[30px] font-extrabold text-ink tabular-nums"
-        >
-          {formatTimePrecise(displaySeconds)}
-        </span>
-        {penaltySeconds > 0 && (
-          <span
-            className={cn(
-              'mr-2 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[13px] font-bold',
-              wrongFlash
-                ? 'bg-danger text-white'
-                : 'bg-danger-tint text-danger-ink',
-            )}
-          >
-            罰時
-            <span className="font-display text-[15px]">
-              +{penaltySeconds} 秒
-            </span>
-          </span>
-        )}
-      </header>
-
-      <div className="flex flex-col gap-1.5 px-4 pt-2">
-        <span className="text-[13px] font-bold text-ink-2">
-          第 {currentIndex + 1} / {TOTAL_QUESTIONS} 題
-        </span>
-        <div aria-hidden className="flex gap-1">
-          {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => (
-            <span
-              key={i}
-              className={cn(
-                'h-1.5 flex-1 rounded-[3px]',
-                i < currentIndex
-                  ? 'bg-primary'
-                  : i === currentIndex
-                    ? 'bg-primary/45'
-                    : 'bg-line',
-              )}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 題目卡；答錯時短暫晃動，reduced-motion 不晃 */}
-      <motion.div
-        animate={
-          wrongFlash && !reduceMotion ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }
-        }
-        transition={{ duration: 0.4 }}
-        className="relative mx-4 mt-[22px] rounded-[22px] border border-line bg-surface px-4 py-7 text-center"
-      >
-        <p className="font-display text-[clamp(36px,12vw,52px)] leading-none font-extrabold text-ink">
-          {currentQuestion?.display} = ?
-        </p>
-        <AnimatePresence>
-          {wrongFlash && (
-            <motion.span
-              key="penalty-flash"
-              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="absolute -top-3.5 right-3.5 inline-flex h-[30px] items-center gap-1 rounded-full bg-danger px-2.5 text-white"
-            >
-              <Plus aria-hidden className="h-4 w-4" />
-              <span className="font-display text-base font-extrabold">
-                {WRONG_PENALTY_SECONDS} 秒
-              </span>
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* 答案框 */}
-      {showWrong ? (
-        <div
-          role="alert"
-          className="mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-2.5 rounded-[18px] border-2 border-danger bg-danger-tint text-danger-ink"
-        >
-          <CircleX aria-hidden className="h-6 w-6" />
-          <span className="font-display text-[40px] font-extrabold line-through decoration-[3px]">
-            {lastSubmitted}
-          </span>
-          <span className="text-sm font-bold">再試一次</span>
-        </div>
-      ) : (
-        <div
-          aria-label="你的答案"
-          className="mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-0.5 rounded-[18px] border-2 border-primary bg-surface"
-        >
-          {inputValue ? (
-            <span className="font-display text-[44px] font-extrabold text-ink tabular-nums">
-              {inputValue}
-            </span>
-          ) : (
-            <span className="text-[15px] text-ink-2">輸入答案</span>
-          )}
-          <span
-            aria-hidden
-            className="h-10 w-[3px] animate-pulse rounded-sm bg-primary motion-reduce:animate-none"
-          />
-        </div>
+  const penaltyPill = penaltySeconds > 0 && (
+    <span
+      className={cn(
+        'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[13px] font-bold lg:h-[34px] lg:px-3 lg:text-sm',
+        wrongFlash ? 'bg-danger text-white' : 'bg-danger-tint text-danger-ink',
       )}
+    >
+      罰時
+      <span className="font-display text-[15px] lg:text-[17px]">
+        +{penaltySeconds} 秒
+      </span>
+    </span>
+  );
 
-      {/* 數字鍵盤：固定在底部，像原生計算機 */}
-      <div className="mt-auto border-t border-line bg-sunken px-4 pt-3.5 pb-6">
-        <div className="grid grid-cols-3 gap-2">
-          {KEYPAD_DIGITS.map(digit => (
+  return (
+    <div className="flex h-full flex-col">
+      <GameDesktopBar
+        className="hidden lg:flex"
+        title={`心算快答 · ${modeLabel}`}
+        onExit={() => setShowLeaveConfirm(true)}
+        center={
+          <span className="flex items-center gap-2.5">
+            <span
+              role="timer"
+              className="font-display text-[34px] font-extrabold text-ink tabular-nums"
+            >
+              {formatTimePrecise(displaySeconds)}
+            </span>
+            {penaltyPill}
+          </span>
+        }
+      />
+      <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col lg:max-w-none lg:flex-row lg:items-center lg:justify-center lg:gap-14 lg:p-6">
+        <LeaveGameDialog
+          open={showLeaveConfirm}
+          onOpenChange={setShowLeaveConfirm}
+          onLeave={() => {
+            restart();
+            changeMode();
+          }}
+        />
+        <div className="flex flex-col lg:w-[600px] lg:gap-5">
+          <header className="flex items-center gap-1 px-2 pt-2.5 lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11 shrink-0 text-ink"
+              onClick={() => setShowLeaveConfirm(true)}
+              aria-label="離開"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <span
+              role="timer"
+              className="flex-1 font-display text-[30px] font-extrabold text-ink tabular-nums"
+            >
+              {formatTimePrecise(displaySeconds)}
+            </span>
+            <span className="mr-2">{penaltyPill}</span>
+          </header>
+
+          <div className="flex flex-col gap-1.5 px-4 pt-2 lg:gap-2 lg:px-0 lg:pt-0">
+            <span className="text-[13px] font-bold text-ink-2 lg:text-sm">
+              第 {currentIndex + 1} / {TOTAL_QUESTIONS} 題
+            </span>
+            <div aria-hidden className="flex gap-1">
+              {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-[3px]',
+                    i < currentIndex
+                      ? 'bg-primary'
+                      : i === currentIndex
+                        ? 'bg-primary/45'
+                        : 'bg-line',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* 題目卡；答錯時短暫晃動，reduced-motion 不晃 */}
+          <motion.div
+            animate={
+              wrongFlash && !reduceMotion
+                ? { x: [0, -6, 6, -4, 4, 0] }
+                : { x: 0 }
+            }
+            transition={{ duration: 0.4 }}
+            className="relative mx-4 mt-[22px] rounded-[22px] border border-line bg-surface px-4 py-7 text-center lg:mx-0 lg:mt-0 lg:rounded-[26px] lg:py-12"
+          >
+            <p className="font-display text-[clamp(36px,12vw,52px)] leading-none font-extrabold text-ink lg:text-[84px]">
+              {currentQuestion?.display} = ?
+            </p>
+            <AnimatePresence>
+              {wrongFlash && (
+                <motion.span
+                  key="penalty-flash"
+                  initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute -top-3.5 right-3.5 inline-flex h-[30px] items-center gap-1 rounded-full bg-danger px-2.5 text-white"
+                >
+                  <Plus aria-hidden className="h-4 w-4" />
+                  <span className="font-display text-base font-extrabold">
+                    {WRONG_PENALTY_SECONDS} 秒
+                  </span>
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* 答案框 */}
+          {showWrong ? (
+            <div
+              role="alert"
+              className="mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-2.5 rounded-[18px] border-2 border-danger bg-danger-tint text-danger-ink lg:mx-0 lg:mt-0 lg:h-[92px] lg:rounded-[22px] lg:border-[3px]"
+            >
+              <CircleX aria-hidden className="h-6 w-6" />
+              <span className="font-display text-[40px] font-extrabold line-through decoration-[3px]">
+                {lastSubmitted}
+              </span>
+              <span className="text-sm font-bold">再試一次</span>
+            </div>
+          ) : (
+            <div
+              aria-label="你的答案"
+              className="relative mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-0.5 rounded-[18px] border-2 border-primary bg-surface lg:mx-0 lg:mt-0 lg:h-[92px] lg:rounded-[22px] lg:border-[3px]"
+            >
+              {inputValue ? (
+                <span className="font-display text-[44px] font-extrabold text-ink tabular-nums">
+                  {inputValue}
+                </span>
+              ) : (
+                <span className="text-[15px] text-ink-2">輸入答案</span>
+              )}
+              <span
+                aria-hidden
+                className="h-10 w-[3px] animate-pulse rounded-sm bg-primary motion-reduce:animate-none lg:h-[52px] lg:w-1"
+              />
+              <span className="absolute right-5 hidden items-center gap-1.5 text-[13px] text-ink-2 lg:flex">
+                <Kbd>Enter</Kbd> 送出
+              </span>
+            </div>
+          )}
+          <p className="hidden items-center justify-center gap-1.5 text-[13px] text-ink-2 lg:flex">
+            直接用鍵盤輸入數字 · <Kbd>⌫</Kbd> 刪除 · <Kbd>Esc</Kbd> 清除
+          </p>
+        </div>
+
+        {/* 數字鍵盤：固定在底部，像原生計算機 */}
+        <div className="mt-auto border-t border-line bg-sunken px-4 pt-3.5 pb-6 lg:mt-0 lg:w-[300px] lg:rounded-[22px] lg:border lg:p-[18px]">
+          <div
+            aria-label="數字鍵盤"
+            className="grid grid-cols-3 gap-2 lg:gap-2.5"
+          >
+            {KEYPAD_DIGITS.map(digit => (
+              <button
+                key={digit}
+                type="button"
+                onClick={() => pressDigit(digit)}
+                className={KEY_CLASS}
+              >
+                {digit}
+              </button>
+            ))}
             <button
-              key={digit}
               type="button"
-              onClick={() => pressDigit(digit)}
+              onClick={clearInput}
+              disabled={inputValue === ''}
+              aria-label="清除輸入"
+              className={cn(
+                KEY_CLASS,
+                'font-noto text-base font-bold text-ink-2',
+              )}
+            >
+              清除
+            </button>
+            <button
+              type="button"
+              onClick={() => pressDigit(0)}
               className={KEY_CLASS}
             >
-              {digit}
+              0
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={clearInput}
-            disabled={inputValue === ''}
-            aria-label="清除輸入"
-            className={cn(
-              KEY_CLASS,
-              'font-noto text-base font-bold text-ink-2',
-            )}
-          >
-            清除
-          </button>
-          <button
-            type="button"
-            onClick={() => pressDigit(0)}
-            className={KEY_CLASS}
-          >
-            0
-          </button>
-          <button
-            type="button"
-            disabled={inputValue === ''}
-            onClick={handleSubmit}
-            aria-label="送出答案"
-            className={cn(
-              KEY_CLASS,
-              'border-primary-edge bg-primary font-noto text-xl font-extrabold text-primary-foreground shadow-[0_3px_0_0_var(--primary-edge)] hover:bg-primary',
-            )}
-          >
-            送出
-          </button>
+            <button
+              type="button"
+              disabled={inputValue === ''}
+              onClick={handleSubmit}
+              aria-label="送出答案"
+              className={cn(
+                KEY_CLASS,
+                'border-primary-edge bg-primary font-noto text-xl font-extrabold text-primary-foreground shadow-[0_3px_0_0_var(--primary-edge)] hover:bg-primary',
+              )}
+            >
+              送出
+            </button>
+          </div>
         </div>
       </div>
     </div>

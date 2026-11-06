@@ -124,6 +124,13 @@ import Symbols from '@/components/symbols';
 - 錯誤回饋寫在畫面上（`role="alert"` 的 danger-tint 卡），不要只靠 toast
 - 對話框：內容多的（規則、成就、統計、紀錄、建立房間）加 `<DialogContent sheet>`，手機上變成底部抽屜；不可關閉的加 `hideClose`
 
+桌機版（lg 以上）：
+
+- 外框頁頂部用 `SiteHeader`（`components/layouts/site-header.tsx`），手機各頁保留自己的精簡頂部列並加 `lg:hidden`
+- 遊戲頁頂部用 `GameDesktopBar`（`components/game/game-hud.tsx`）；手機的 `GameHud` 傳給 `PuzzlePlayArea` 的 children，桌機的放 `desktopBar`
+- 鍵盤操作用 `useGameKeyboard`：1–9 選牌、`+ - * / ( )`、⌫、Enter 出牌、Esc 離開。只有真的綁了 Esc 離開的畫面才傳 `escHint`
+- 快捷鍵提示：按鈕內用 `<Kbd>`（已 `aria-hidden`，不混進按鈕名稱）；牌與符號鍵用 `shortcut` / `showShortcuts`，以偽元素顯示，不混進牌值的 textContent（E2E 靠它讀牌）
+
 外框頁的共用寫法（第二批改版後）：
 
 - 次頁面頂部：`<BackToHomeButton />`（44px 圖示鈕）＋ `flex-1` 空白＋右側工具；標題左對齊 `text-[28px] font-black`、副標 `text-[15px] text-ink-2`

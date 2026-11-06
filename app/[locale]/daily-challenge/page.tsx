@@ -9,18 +9,21 @@ import {
   Copy,
   Delete,
   Flame,
-  Globe,
   RotateCcw,
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
+import { ACTION_BUTTON_CLASS } from '@/components/areas/puzzle-play-area';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { SolutionsPanel } from '@/components/daily/solutions-panel';
 import { ExpressionBar } from '@/components/game/expression-bar';
+import { GameDesktopBar } from '@/components/game/game-hud';
 import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { NumberCard } from '@/components/game/number-card';
 import Symbols from '@/components/symbols';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/ui/kbd';
+import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
@@ -44,10 +47,6 @@ import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 3;
-
-// 操作列的次要按鈕：與經典模式相同的平面樣式
-const ACTION_BUTTON_CLASS =
-  'h-14 w-[52px] shrink-0 rounded-xl border border-line-strong bg-surface text-ink shadow-none hover:bg-sunken hover:text-ink';
 
 type GameState = 'idle' | 'playing' | 'completed';
 
@@ -262,6 +261,16 @@ export default function DailyChallengePage() {
     }
   };
 
+  useGameKeyboard(gameState === 'playing', {
+    onDigit: index => {
+      if (index < cards.length) handleAddNumber(index);
+    },
+    onSymbol: symbol => handleAddSymbol(symbol),
+    onBackspace: handleBack,
+    onEnter: handleSubmit,
+    onEscape: () => setShowLeaveConfirm(true),
+  });
+
   // ── 開始畫面 ──
   if (gameState === 'idle') {
     return (
@@ -293,10 +302,6 @@ export default function DailyChallengePage() {
           )}
         </main>
         <div className="flex flex-col gap-3">
-          <p className="flex items-center justify-center gap-1.5 text-[13px] text-ink-2">
-            <Globe aria-hidden className="h-4 w-4" />
-            全球同題 · 台灣時間 00:00 換題
-          </p>
           <Button variant="tactile" className="w-full" onClick={startGame}>
             開始挑戰
           </Button>
@@ -309,60 +314,72 @@ export default function DailyChallengePage() {
   if (gameState === 'completed') {
     return (
       <div className="flex h-full flex-col overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-md flex-col gap-3.5 px-4 pt-2 pb-8">
-          <header className="-mx-2 flex items-center gap-1">
-            <BackToHomeButton />
-            <span className="text-sm font-bold text-ink-2">
-              每日挑戰 · {shortDate}
-            </span>
-          </header>
+        <GameDesktopBar
+          className="hidden lg:flex"
+          title={`每日挑戰 · ${shortDate}`}
+          exitLabel="首頁"
+          onExit={() => router.push('/')}
+          center={<NextPuzzleCountdown />}
+        />
+        {/* 手機一欄；桌機左邊成績與分享、右邊各題解法 */}
+        <div className="mx-auto flex w-full max-w-md flex-col gap-3.5 px-4 pt-2 pb-8 lg:grid lg:max-w-[1200px] lg:grid-cols-[440px_minmax(0,1fr)] lg:items-start lg:gap-6 lg:px-10 lg:py-7">
+          <div className="flex flex-col gap-3.5 lg:rounded-[22px] lg:border lg:border-line lg:bg-surface lg:p-6">
+            <header className="-mx-2 flex items-center gap-1 lg:hidden">
+              <BackToHomeButton />
+              <span className="text-sm font-bold text-ink-2">
+                每日挑戰 · {shortDate}
+              </span>
+            </header>
 
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col items-center gap-1.5 pt-2.5"
-          >
-            <span className="text-[15px] font-bold text-ink-2">
-              本日總分 · 共 {TOTAL_ROUNDS} 題
-            </span>
-            <span className="font-display text-[88px] leading-[0.95] font-extrabold text-ink tabular-nums">
-              {score ?? 0}
-            </span>
-            <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber px-3 text-sm font-bold text-on-amber">
-              <Flame aria-hidden className="h-4 w-4" />
-              連續 {streak} 天
-            </span>
-          </motion.div>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center gap-1.5 pt-2.5 lg:gap-3.5 lg:pt-2"
+            >
+              <span className="text-[15px] font-bold text-ink-2">
+                本日總分 · 共 {TOTAL_ROUNDS} 題
+              </span>
+              <span className="font-display text-[88px] leading-[0.95] font-extrabold text-ink tabular-nums lg:text-[104px]">
+                {score ?? 0}
+              </span>
+              <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber px-3 text-sm font-bold text-on-amber lg:h-[34px] lg:text-[15px]">
+                <Flame aria-hidden className="h-4 w-4" />
+                連續 {streak} 天
+              </span>
+            </motion.div>
 
-          {/* 分享預覽 */}
-          <pre className="rounded-2xl border border-dashed border-line-strong bg-sunken px-4 py-3.5 font-mono text-sm leading-[1.7] whitespace-pre-wrap text-ink">
-            {sharePreviewText}
-          </pre>
-          <Button
-            variant="tactileOutline"
-            className="h-12 gap-2 text-[15px]"
-            onClick={handleShare}
-            aria-label="複製分享文字到剪貼簿"
-          >
-            <Copy aria-hidden className="h-[18px] w-[18px]" />
-            複製分享
-          </Button>
-
-          <NextPuzzleCountdown />
-
-          <div className="flex gap-2.5">
-            <Button variant="tactileOutline" className="flex-1 px-3" asChild>
-              <Link href="/multiple-play">挑戰朋友</Link>
+            {/* 分享預覽 */}
+            <pre className="rounded-2xl border border-dashed border-line-strong bg-sunken px-4 py-3.5 font-mono text-sm leading-[1.7] whitespace-pre-wrap text-ink lg:mt-2.5">
+              {sharePreviewText}
+            </pre>
+            <Button
+              variant="tactileOutline"
+              className="h-12 gap-2 text-[15px] lg:h-[52px]"
+              onClick={handleShare}
+              aria-label="複製分享文字到剪貼簿"
+            >
+              <Copy aria-hidden className="h-[18px] w-[18px]" />
+              複製分享
             </Button>
-            <Button variant="tactile" className="flex-[1.2] px-3" asChild>
-              <Link href="/single-play">繼續練習</Link>
-            </Button>
+
+            <div className="lg:hidden">
+              <NextPuzzleCountdown />
+            </div>
+
+            <div className="flex gap-2.5 lg:mt-2 lg:gap-3">
+              <Button variant="tactileOutline" className="flex-1 px-3" asChild>
+                <Link href="/multiple-play">挑戰朋友</Link>
+              </Button>
+              <Button variant="tactile" className="flex-[1.2] px-3" asChild>
+                <Link href="/single-play">繼續練習</Link>
+              </Button>
+            </div>
           </div>
 
           {/* 各題解法 */}
           {solutionsPerPuzzle.length > 0 && (
-            <section className="mt-3 flex flex-col gap-3.5">
+            <section className="mt-3 flex flex-col gap-3.5 lg:mt-0 lg:rounded-[22px] lg:border lg:border-line lg:bg-surface lg:p-6">
               <h2 className="text-xl font-extrabold text-ink">各題解法</h2>
               <div className="overflow-hidden rounded-[18px] border border-line bg-surface">
                 {solutionsPerPuzzle.map((solutions, i) => (
@@ -401,131 +418,148 @@ export default function DailyChallengePage() {
     isComplete && roundedResult !== null && Math.abs(roundedResult - 24) < 1e-9;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-md flex-col px-3 pt-2.5 pb-6 sm:px-4">
-      <LeaveGameDialog
-        open={showLeaveConfirm}
-        onOpenChange={setShowLeaveConfirm}
-        onLeave={() => router.push('/')}
+    <div className="flex h-full flex-col">
+      <GameDesktopBar
+        className="hidden lg:flex"
+        title={`每日挑戰 · 第 ${currentRound + 1} / ${TOTAL_ROUNDS} 題`}
+        onExit={() => setShowLeaveConfirm(true)}
+        escHint
       />
-      <header className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11 shrink-0 text-ink"
-          onClick={() => setShowLeaveConfirm(true)}
-          aria-label="離開"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex flex-1 flex-col gap-1.5 px-1.5">
-          <span className="text-[13px] font-bold text-ink-2">
-            每日挑戰 · 第{' '}
-            <span className="font-display text-[15px] text-ink">
-              {currentRound + 1}
-            </span>{' '}
-            / {TOTAL_ROUNDS} 題
-          </span>
-          <div aria-hidden className="flex gap-1.5">
-            {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  'h-1.5 flex-1 rounded-full',
-                  i < currentRound
-                    ? 'bg-primary'
-                    : i === currentRound
-                      ? 'bg-primary/45'
-                      : 'bg-line',
-                )}
-              />
-            ))}
-          </div>
-        </div>
-        <span className="w-11" />
-      </header>
-
-      <div className="flex flex-1 items-start justify-center py-4">
-        {wrongMessage && (
-          <motion.div
-            key={wrongMessage}
-            role="alert"
-            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex w-full items-center gap-3 rounded-2xl border-2 border-danger bg-danger-tint px-4 py-3.5"
-          >
-            <CircleX aria-hidden className="h-6 w-6 shrink-0 text-danger-ink" />
-            <div className="flex flex-1 flex-col gap-0.5">
-              <strong className="text-base text-danger-ink">
-                {wrongMessage}
-              </strong>
-              <span className="text-[13px] text-ink">修改算式後再出牌</span>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      <div className="flex w-full flex-col gap-3">
-        <div className="flex justify-center gap-2 pt-2">
-          {cards.map((card, index) => {
-            const order = numberOrder.get(index);
-            return (
-              <NumberCard
-                key={`${currentRound}-${index}`}
-                value={card}
-                state={order !== undefined ? 'selected' : 'idle'}
-                order={order}
-                onClick={() => handleAddNumber(index)}
-                data-testid="daily-card"
-                data-selected={order !== undefined}
-              />
-            );
-          })}
-        </div>
-
-        <ExpressionBar
-          tokens={tokens}
-          result={roundedResult}
-          isFinal={isComplete}
-          placeholder="組合你的算式"
+      <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-3 pt-2.5 pb-6 sm:px-4 lg:max-w-[640px] lg:justify-center lg:gap-6 lg:p-6">
+        <LeaveGameDialog
+          open={showLeaveConfirm}
+          onOpenChange={setShowLeaveConfirm}
+          onLeave={() => router.push('/')}
         />
+        <header className="flex items-center gap-1 lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 shrink-0 text-ink"
+            onClick={() => setShowLeaveConfirm(true)}
+            aria-label="離開"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex flex-1 flex-col gap-1.5 px-1.5">
+            <span className="text-[13px] font-bold text-ink-2">
+              每日挑戰 · 第{' '}
+              <span className="font-display text-[15px] text-ink">
+                {currentRound + 1}
+              </span>{' '}
+              / {TOTAL_ROUNDS} 題
+            </span>
+            <div aria-hidden className="flex gap-1.5">
+              {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-full',
+                    i < currentRound
+                      ? 'bg-primary'
+                      : i === currentRound
+                        ? 'bg-primary/45'
+                        : 'bg-line',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+          <span className="w-11" />
+        </header>
 
-        <div className="flex justify-center gap-2">
-          <Symbols onClick={symbol => handleAddSymbol(symbol)} />
+        <div className="flex flex-1 items-start justify-center py-4 lg:flex-none lg:py-0">
+          {wrongMessage && (
+            <motion.div
+              key={wrongMessage}
+              role="alert"
+              initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex w-full items-center gap-3 rounded-2xl border-2 border-danger bg-danger-tint px-4 py-3.5"
+            >
+              <CircleX
+                aria-hidden
+                className="h-6 w-6 shrink-0 text-danger-ink"
+              />
+              <div className="flex flex-1 flex-col gap-0.5">
+                <strong className="text-base text-danger-ink">
+                  {wrongMessage}
+                </strong>
+                <span className="text-[13px] text-ink">修改算式後再出牌</span>
+              </div>
+            </motion.div>
+          )}
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className={ACTION_BUTTON_CLASS}
-            disabled={formula.length === 0}
-            onClick={handleClear}
-            aria-label="清除"
-          >
-            <RotateCcw className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={ACTION_BUTTON_CLASS}
-            disabled={formula.length === 0}
-            onClick={handleBack}
-            aria-label="倒退"
-          >
-            <Delete className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="tactile"
-            className={cn(
-              'min-w-0 flex-1',
-              isReady &&
-                'shadow-[0_5px_0_0_var(--primary-edge),0_0_0_4px_var(--primary-tint)]',
-            )}
-            disabled={formula.length === 0}
-            onClick={handleSubmit}
-          >
-            出牌
-          </Button>
+        <div className="flex w-full flex-col gap-3 lg:items-center lg:gap-6">
+          <div className="flex justify-center gap-2 pt-2 lg:gap-4 lg:pt-3">
+            {cards.map((card, index) => {
+              const order = numberOrder.get(index);
+              return (
+                <NumberCard
+                  key={`${currentRound}-${index}`}
+                  value={card}
+                  state={order !== undefined ? 'selected' : 'idle'}
+                  order={order}
+                  shortcut={String(index + 1)}
+                  onClick={() => handleAddNumber(index)}
+                  data-testid="daily-card"
+                  data-selected={order !== undefined}
+                />
+              );
+            })}
+          </div>
+
+          <ExpressionBar
+            tokens={tokens}
+            result={roundedResult}
+            isFinal={isComplete}
+            placeholder="組合你的算式"
+          />
+
+          <div className="flex justify-center gap-2">
+            <Symbols
+              showShortcuts
+              onClick={symbol => handleAddSymbol(symbol)}
+            />
+          </div>
+
+          <div className="flex w-full gap-2 lg:gap-3">
+            <Button
+              variant="outline"
+              className={ACTION_BUTTON_CLASS}
+              disabled={formula.length === 0}
+              onClick={handleClear}
+              aria-label="清除"
+            >
+              <RotateCcw className="h-5 w-5" />
+              <span className="hidden lg:inline">清除</span>
+            </Button>
+            <Button
+              variant="outline"
+              className={ACTION_BUTTON_CLASS}
+              disabled={formula.length === 0}
+              onClick={handleBack}
+              aria-label="倒退"
+            >
+              <Delete className="h-5 w-5" />
+              <span className="hidden lg:inline">倒退</span>
+              <Kbd>⌫</Kbd>
+            </Button>
+            <Button
+              variant="tactile"
+              className={cn(
+                'min-w-0 flex-1 gap-2 lg:h-[60px] lg:rounded-2xl',
+                isReady &&
+                  'shadow-[0_5px_0_0_var(--primary-edge),0_0_0_4px_var(--primary-tint)]',
+              )}
+              disabled={formula.length === 0}
+              onClick={handleSubmit}
+            >
+              出牌
+              <Kbd>Enter</Kbd>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

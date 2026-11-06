@@ -5,6 +5,7 @@ import { useReducedMotion } from 'framer-motion';
 import { BookOpen, ChevronLeft, Flag, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
+import { GameDesktopBar } from '@/components/game/game-hud';
 import {
   GameResultScreen,
   RecordBadge,
@@ -246,6 +247,45 @@ export default function ChallengePlayGame({
         onSkip={handleSkip}
         showSkipButton={true}
         skipPenaltyText={`−${nextSkipPenalty} 秒`}
+        onEscape={() => setShowLeaveConfirm(true)}
+        banner={
+          <GameTimer
+            seconds={seconds}
+            maxSeconds={5 * 60}
+            delta={timeDelta}
+            aside={
+              <span className="ml-auto flex items-baseline gap-2 text-[13px] text-ink-2">
+                <span className="font-display text-xl leading-none font-extrabold text-ink">
+                  第 {stage} 關
+                </span>
+                <span>
+                  <b className="font-display font-bold text-ink">
+                    {totalScore}
+                  </b>{' '}
+                  分
+                </span>
+              </span>
+            }
+          />
+        }
+        desktopBar={
+          <GameDesktopBar
+            title="挑戰模式"
+            escHint
+            onExit={() => setShowLeaveConfirm(true)}
+            onOpenRules={() => setIsOpenRuleModal(true)}
+            actions={
+              <Button
+                variant="ghost"
+                className="h-11 gap-1.5 border border-line-strong px-3 text-sm font-semibold text-ink"
+                onClick={() => setShowEarlyEndConfirm(true)}
+              >
+                <Flag className="h-5 w-5" />
+                提前結算
+              </Button>
+            }
+          />
+        }
       >
         {/* HUD */}
         <div className="flex w-full items-center gap-0.5">
@@ -277,22 +317,6 @@ export default function ChallengePlayGame({
             提前結算
           </Button>
         </div>
-        <GameTimer
-          seconds={seconds}
-          maxSeconds={5 * 60}
-          delta={timeDelta}
-          aside={
-            <span className="ml-auto flex items-baseline gap-2 text-[13px] text-ink-2">
-              <span className="font-display text-xl leading-none font-extrabold text-ink">
-                第 {stage} 關
-              </span>
-              <span>
-                <b className="font-display font-bold text-ink">{totalScore}</b>{' '}
-                分
-              </span>
-            </span>
-          }
-        />
       </PuzzlePlayArea>
 
       <AlertDialog

@@ -15,7 +15,7 @@ import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
-import { GameHud } from '@/components/game/game-hud';
+import { GameDesktopBar, GameHud } from '@/components/game/game-hud';
 import {
   GameResultScreen,
   RecordBadge,
@@ -404,7 +404,7 @@ export default function ClassicPlayGame({
     <Button
       variant="ghost"
       disabled={disabledActions}
-      className="h-11 gap-1.5 px-3 text-[15px] font-bold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
+      className="h-11 gap-1.5 px-3 text-[15px] font-bold text-primary-ink hover:bg-primary-tint hover:text-primary-ink lg:h-[60px] lg:rounded-2xl lg:border-2 lg:border-line-strong lg:bg-surface lg:px-[18px] lg:text-base lg:shadow-[0_4px_0_0_var(--line-strong)] lg:hover:bg-sunken"
       onClick={onSkipHand}
     >
       {isLastRound ? (
@@ -416,12 +416,79 @@ export default function ClassicPlayGame({
     </Button>
   );
 
+  // 桌機右側欄：本局已出的每一手，最新的在最上面
+  const historyAside = (
+    <>
+      <div className="flex items-center justify-between">
+        <strong className="text-base text-ink">本局作答</strong>
+        <span className="text-[13px] text-ink-2">
+          已出{' '}
+          <span className="font-display text-[15px] text-ink">
+            {roundHistory.length}
+          </span>{' '}
+          手
+        </span>
+      </div>
+      <ol className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        {roundHistory.length === 0 ? (
+          <li className="py-6 text-center text-sm text-ink-2">
+            出牌後會列在這裡
+          </li>
+        ) : (
+          [...roundHistory].reverse().map(record => (
+            <li
+              key={record.round}
+              className="flex flex-col gap-1.5 rounded-[14px] bg-sunken p-3"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-ink-2">
+                <span>第 {record.round} 手</span>
+                {record.isPerfect && (
+                  <span className="inline-flex h-[22px] items-center gap-1 rounded-full bg-amber px-[7px] text-[11px] text-on-amber">
+                    <Star aria-hidden className="h-3 w-3" />
+                    完美手
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate font-display text-[15px] font-extrabold text-ink">
+                  {record.playerFormula}
+                </span>
+                <span className="shrink-0 font-display text-lg font-extrabold text-primary-ink">
+                  +{record.playerScore}
+                </span>
+              </div>
+              {!record.isPerfect && record.bestScore > record.playerScore && (
+                <span className="text-xs font-semibold text-amber-ink">
+                  最佳解可多得 {record.bestScore - record.playerScore} 分
+                </span>
+              )}
+            </li>
+          ))
+        )}
+      </ol>
+      {roundHistory.length > 0 && (
+        <Button
+          variant="ghost"
+          className="mt-auto h-11 border border-line text-sm font-semibold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
+          onClick={() => setShowRoundHistory(true)}
+        >
+          查看完整作答紀錄
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <>
       <RuleModal
         isOpen={isOpenRuleModal}
         onOpenChange={setIsOpenRuleModal}
         mode="classic"
+      />
+      <RoundHistoryModal
+        isOpen={showRoundHistory}
+        onOpenChange={setShowRoundHistory}
+        roundHistory={roundHistory}
       />
       <LeaveGameDialog
         open={showLeaveConfirm}
@@ -456,6 +523,19 @@ export default function ClassicPlayGame({
         busyLabel={tScoring('scoringNow')}
         stage={stage}
         footerSlot={isScoring ? null : classicFooter}
+        onEscape={isScoring ? undefined : () => setShowLeaveConfirm(true)}
+        aside={historyAside}
+        desktopBar={
+          <GameDesktopBar
+            title="經典模式"
+            escHint
+            score={currentScore}
+            remaining={remainCards}
+            isLastRound={isLastRound}
+            onExit={isScoring ? undefined : () => setShowLeaveConfirm(true)}
+            onOpenRules={() => setIsOpenRuleModal(true)}
+          />
+        }
       >
         <GameHud
           modeLabel="經典模式"

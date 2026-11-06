@@ -5,22 +5,24 @@ import { Symbol } from '@/models/Symbol';
 type SymbolsProps = {
   onClick: (symbol: Symbol) => void;
   disabled?: boolean;
+  /** 桌機在按鈕右下角標出對應的鍵盤按鍵 */
+  showShortcuts?: boolean;
 };
 
 const SYMBOLS = [
-  { symbol: Symbol.Plus, label: '+', name: 'plus' },
-  { symbol: Symbol.Minus, label: '−', name: 'minus' },
-  { symbol: Symbol.Times, label: '×', name: 'times' },
-  { symbol: Symbol.Divide, label: '÷', name: 'divide' },
-  { symbol: Symbol.LeftBracket, label: '(', name: 'leftParen' },
-  { symbol: Symbol.RightBracket, label: ')', name: 'rightParen' },
+  { symbol: Symbol.Plus, label: '+', name: 'plus', key: '+' },
+  { symbol: Symbol.Minus, label: '−', name: 'minus', key: '-' },
+  { symbol: Symbol.Times, label: '×', name: 'times', key: '*' },
+  { symbol: Symbol.Divide, label: '÷', name: 'divide', key: '/' },
+  { symbol: Symbol.LeftBracket, label: '(', name: 'leftParen', key: '(' },
+  { symbol: Symbol.RightBracket, label: ')', name: 'rightParen', key: ')' },
 ] as const;
 
 /**
  * 運算符號按鈕列。平面樣式：厚度只留給數字牌與主 CTA。
  * 6 × 48 + 5 × 8 = 328px，剛好放進 360px 寬扣掉左右 16px 邊距
  */
-const Symbols = ({ onClick, disabled }: SymbolsProps) => {
+const Symbols = ({ onClick, disabled, showShortcuts }: SymbolsProps) => {
   const t = useTranslations('GameUI.symbols');
 
   return (
@@ -33,8 +35,11 @@ const Symbols = ({ onClick, disabled }: SymbolsProps) => {
           onClick={() => onClick(config.symbol)}
           data-testid={`symbol-${config.symbol}`}
           aria-label={t(config.name)}
+          data-shortcut={showShortcuts ? config.key : undefined}
           className={cn(
-            'flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong bg-surface font-display text-[26px] leading-none font-bold text-ink transition-[transform,background-color,border-color] duration-[90ms] ease-out',
+            showShortcuts &&
+              'lg:after:absolute lg:after:right-1.5 lg:after:bottom-1 lg:after:font-noto lg:after:text-[10px] lg:after:font-bold lg:after:text-ink-2 lg:after:content-[attr(data-shortcut)]',
+            'relative flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong bg-surface font-display text-[26px] leading-none font-bold text-ink transition-[transform,background-color,border-color] duration-[90ms] ease-out lg:h-[60px] lg:w-[68px] lg:rounded-[14px] lg:text-[30px]',
             'hover:bg-sunken active:translate-y-px active:border-primary active:bg-primary-tint',
             'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
             'disabled:cursor-not-allowed disabled:opacity-45',

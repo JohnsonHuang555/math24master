@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   BookOpen,
@@ -24,7 +25,7 @@ import { PlayerNameModal } from '@/components/modals/player-name-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
@@ -97,6 +98,26 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
         </>
       )}
     </button>
+  );
+}
+
+/** 房間數：手機在列表上方，桌機在搜尋列右側 */
+function RoomCount({
+  count,
+  isSearching,
+  className,
+}: {
+  count: number;
+  isSearching: boolean;
+  className?: string;
+}) {
+  return (
+    <span className={cn('text-sm font-bold text-ink-2', className)}>
+      <span className="font-display text-base text-ink lg:text-lg">
+        {count}
+      </span>{' '}
+      {isSearching ? '個房間符合' : '個房間'}
+    </span>
   );
 }
 
@@ -230,9 +251,19 @@ export default function MultiplePlayPage() {
 
       {/* 頁面捲動容器 */}
       <div className="flex h-full flex-col overflow-y-auto">
-        <header className="flex shrink-0 items-center gap-0.5 px-2 pt-2">
-          <BackToHomeButton />
-          <span className="flex-1" />
+        {/* 手機：回首頁＋工具；桌機：整條頂部列，logo 回首頁 */}
+        <header className="flex shrink-0 items-center gap-0.5 px-2 pt-2 lg:h-16 lg:gap-1 lg:border-b lg:border-line lg:bg-surface/75 lg:px-10 lg:pt-0">
+          <BackToHomeButton className="lg:hidden" />
+          <Link href="/" className="mr-auto hidden rounded-xl lg:block">
+            <Image
+              src="/logo.webp"
+              alt="24點大師"
+              width={100}
+              height={30}
+              className="h-7 w-auto"
+            />
+          </Link>
+          <span className="flex-1 lg:hidden" />
           <Button
             variant="ghost"
             className="h-11 w-11 px-0 font-bold text-ink md:w-auto md:gap-1.5 md:px-3"
@@ -260,17 +291,30 @@ export default function MultiplePlayPage() {
           </button>
         </header>
 
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col pb-10">
-          <div className="flex flex-col gap-1.5 px-4 pt-2 pb-[18px] md:px-8">
-            <h1 className="text-[28px] font-black tracking-tight text-ink">
-              多人對戰
-            </h1>
-            <p className="text-[15px] text-ink-2">加入房間或建立你的專屬對局</p>
+        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col pb-10 lg:max-w-[1120px]">
+          <div className="flex items-end gap-4 px-4 pt-2 pb-[18px] md:px-8 lg:px-10 lg:pt-9 lg:pb-[22px]">
+            <BackToHomeButton className="hidden border border-line bg-surface lg:flex" />
+            <div className="flex flex-1 flex-col gap-1.5 lg:gap-1">
+              <h1 className="text-[28px] font-black tracking-tight text-ink lg:text-4xl">
+                多人對戰
+              </h1>
+              <p className="text-[15px] text-ink-2 lg:text-base">
+                加入房間或建立你的專屬對局
+              </p>
+            </div>
+            <Button
+              variant="tactile"
+              className="hidden h-[52px] gap-2 px-6 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)] lg:flex"
+              onClick={() => openCreateRoom('')}
+            >
+              <Plus className="h-5 w-5" />
+              建立房間
+            </Button>
           </div>
 
           {/* 搜尋 + 建立 */}
-          <div className="flex gap-2.5 px-4 md:px-8">
-            <div className="relative min-w-0 flex-1 md:max-w-xs">
+          <div className="flex items-center gap-2.5 px-4 md:px-8 lg:gap-3 lg:px-10">
+            <div className="relative min-w-0 flex-1 md:max-w-xs lg:w-[380px] lg:max-w-none lg:flex-none">
               <label htmlFor="room-search" className="sr-only">
                 搜尋房間
               </label>
@@ -288,17 +332,23 @@ export default function MultiplePlayPage() {
             </div>
             <Button
               variant="tactile"
-              className="h-12 gap-1.5 px-4 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)]"
+              className="h-12 gap-1.5 px-4 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)] lg:hidden"
               onClick={() => openCreateRoom('')}
             >
               <Plus className="h-5 w-5" />
               <span className="hidden sm:inline">建立房間</span>
               <span className="sm:hidden">建立</span>
             </Button>
+
+            <RoomCount
+              className="ml-auto hidden lg:inline"
+              count={filteredRooms.length}
+              isSearching={isSearching}
+            />
           </div>
 
-          {/* 房間計數 */}
-          <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8">
+          {/* 房間計數（手機） */}
+          <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8 lg:hidden">
             <span className="text-sm font-bold text-ink-2">
               <span className="font-display text-base text-ink">
                 {filteredRooms.length}
@@ -309,7 +359,7 @@ export default function MultiplePlayPage() {
 
           {/* 房間列表 */}
           {filteredRooms.length > 0 ? (
-            <div className="grid gap-2.5 px-4 sm:grid-cols-2 md:px-8 lg:grid-cols-3">
+            <div className="grid gap-2.5 px-4 sm:grid-cols-2 md:px-8 lg:gap-3.5 lg:px-10 lg:pt-[22px]">
               {filteredRooms.map((room, i) => (
                 <motion.div
                   key={room.roomId}

@@ -79,7 +79,7 @@ export function GameTimer({
         <Timer
           aria-hidden
           className={cn(
-            'h-6 w-6 shrink-0',
+            'h-6 w-6 shrink-0 lg:h-[26px] lg:w-[26px]',
             isLow ? 'text-danger-ink' : 'text-ink-2',
           )}
         />
@@ -89,7 +89,7 @@ export function GameTimer({
           animate={{ scale: 1 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            'font-display text-[44px] leading-none font-extrabold tabular-nums',
+            'font-display text-[44px] leading-none font-extrabold tabular-nums lg:text-[60px]',
             paused ? 'text-ink-2' : isLow ? 'text-danger-ink' : 'text-ink',
           )}
         >

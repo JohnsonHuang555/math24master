@@ -56,11 +56,11 @@ const MoreModesSection = () => {
 
   return (
     <section className="px-4 pt-2 pb-8 md:px-10 md:pb-14">
-      <div className="mx-auto flex max-w-4xl flex-col gap-3">
-        <h2 className="mb-1 text-xl font-extrabold text-ink md:text-2xl">
+      <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:max-w-[1040px] lg:gap-[18px]">
+        <h2 className="mb-1 text-xl font-extrabold text-ink md:text-2xl lg:text-[26px]">
           {t('title')}
         </h2>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 lg:gap-5">
           <GameModeCard
             href="/daily-challenge"
             icon={CalendarDays}

@@ -47,7 +47,7 @@ export function canMake24(nums: number[]): boolean {
   return false;
 }
 
-/** 每日挑戰的「今天」以台灣時區為界（全球同題） */
+/** 每日挑戰的「今天」以台灣時區為界（全球同步） */
 export function getTodayDateString(): string {
   return getTaipeiDateString();
 }

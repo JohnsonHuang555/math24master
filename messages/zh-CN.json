@@ -50,13 +50,16 @@
     "steps": {
       "title": "怎么玩",
       "draw": {
-        "title": "抽牌"
+        "title": "抽牌",
+        "description": "每手 4 张数字牌"
       },
       "make24": {
-        "title": "凑 24"
+        "title": "凑 24",
+        "description": "用 + − × ÷ 与括号"
       },
       "score": {
-        "title": "得分"
+        "title": "得分",
+        "description": "越难的符号分数越高"
       }
     },
     "footer": "#24点大师, Created by Johnson Huang 2026"
@@ -124,7 +127,9 @@
       "lastRound": "最后一轮！",
       "rules": "规则",
       "exit": "离开",
-      "soundComingSoon": "音效（即将推出）"
+      "soundComingSoon": "音效（即将推出）",
+      "scoreLabel": "得分",
+      "remainingRich": "剩 <n>{count}</n> 张"
     },
     "leave": {
       "title": "确定要离开？",

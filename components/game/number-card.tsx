@@ -13,10 +13,10 @@ export const numberCardVariants = cva(
   {
     variants: {
       size: {
-        // 手牌：360px 寬時 4 × 74 + 3 × 8 = 320px，430px 寬放大為 80 × 108
-        lg: 'h-[100px] w-[74px] rounded-[14px] text-[40px] shadow-[0_5px_0_0_var(--playcard-edge)] min-[430px]:h-[108px] min-[430px]:w-[80px]',
+        // 手牌：360px 寬時 4 × 74 + 3 × 8 = 320px，430px 寬放大為 80 × 108，桌機 108 × 148
+        lg: 'h-[100px] w-[74px] rounded-[14px] text-[40px] shadow-[0_5px_0_0_var(--playcard-edge)] min-[430px]:h-[108px] min-[430px]:w-[80px] lg:h-[148px] lg:w-[108px] lg:rounded-[18px] lg:border-[2.5px] lg:text-[60px] lg:shadow-[0_7px_0_0_var(--playcard-edge)]',
         // 4×4 牌面：寬度由格線決定
-        md: 'aspect-square w-full rounded-xl text-[30px] shadow-[0_4px_0_0_var(--playcard-edge)]',
+        md: 'aspect-square w-full rounded-xl text-[30px] shadow-[0_4px_0_0_var(--playcard-edge)] lg:rounded-[18px] lg:border-[2.5px] lg:text-5xl lg:shadow-[0_6px_0_0_var(--playcard-edge)]',
         // 桌面牌組
         sm: 'h-12 w-9 rounded-lg border-[1.5px] text-xl shadow-[0_3px_0_0_var(--playcard-edge)]',
         // 紀錄列表
@@ -44,18 +44,27 @@ export type NumberCardProps = Omit<
     value: React.ReactNode;
     /** 選中時角標顯示的順序（第幾個被選） */
     order?: number;
+    /** 桌機鍵盤快捷鍵，顯示在牌的右下角 */
+    shortcut?: string;
   };
 
 export const NumberCard = React.forwardRef<HTMLButtonElement, NumberCardProps>(
-  ({ value, size, state, order, className, disabled, ...props }, ref) => {
+  (
+    { value, size, state, order, shortcut, className, disabled, ...props },
+    ref,
+  ) => {
     const resolvedState = disabled ? 'disabled' : state;
     return (
       <button
         ref={ref}
         type="button"
         disabled={disabled}
+        data-shortcut={shortcut}
         className={cn(
           numberCardVariants({ size, state: resolvedState }),
+          // 快捷鍵用偽元素顯示，不會混進牌值的文字內容
+          shortcut &&
+            'lg:after:absolute lg:after:right-2.5 lg:after:bottom-2 lg:after:font-noto lg:after:text-xs lg:after:font-bold lg:after:opacity-60 lg:after:content-[attr(data-shortcut)]',
           className,
         )}
         {...props}
@@ -89,7 +98,7 @@ export function EmptyCardSlot({ className }: { className?: string }) {
     <div
       aria-hidden
       className={cn(
-        'aspect-square w-full rounded-xl border-2 border-dashed border-line-strong',
+        'aspect-square w-full rounded-xl border-2 border-dashed border-line-strong lg:rounded-[18px] lg:border-[2.5px]',
         className,
       )}
     />
