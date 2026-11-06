@@ -50,13 +50,16 @@
     "steps": {
       "title": "怎麼玩",
       "draw": {
-        "title": "抽牌"
+        "title": "抽牌",
+        "description": "每手 4 張數字牌"
       },
       "make24": {
-        "title": "湊 24"
+        "title": "湊 24",
+        "description": "用 + − × ÷ 與括號"
       },
       "score": {
-        "title": "得分"
+        "title": "得分",
+        "description": "越難的符號分數越高"
       }
     },
     "footer": "#24點大師, Created by Johnson Huang 2026"

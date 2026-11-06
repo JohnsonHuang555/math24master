@@ -50,13 +50,16 @@
     "steps": {
       "title": "How to play",
       "draw": {
-        "title": "Draw"
+        "title": "Draw",
+        "description": "4 number cards per hand"
       },
       "make24": {
-        "title": "Make 24"
+        "title": "Make 24",
+        "description": "Use + − × ÷ and brackets"
       },
       "score": {
-        "title": "Score"
+        "title": "Score",
+        "description": "Harder operators score more"
       }
     },
     "footer": "#Math24Master, Created by Johnson Huang 2026"
