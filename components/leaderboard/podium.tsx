@@ -8,12 +8,15 @@ import { PlayerAvatar } from './player-avatar';
 import { RankMedal, isMedalRank } from './rank-medal';
 import { useLeaderboardLabels } from './use-leaderboard-labels';
 
-// 依「位置」決定台座高度（中間最高），獎牌則依實際名次（並列時可能兩個金牌）
-const SLOTS = [
-  { index: 1, pedestal: 'h-[70px] lg:h-20', avatar: 48, medal: 34 },
-  { index: 0, pedestal: 'h-[100px] lg:h-28', avatar: 56, medal: 40 },
-  { index: 2, pedestal: 'h-[52px] lg:h-[60px]', avatar: 48, medal: 34 },
-];
+// 位置固定為「第 2 位、第 1 位、第 3 位」由左到右；台座高度、頭像大小與冠軍樣式則依實際名次，
+// 並列時同名次的人台座一樣高（例如三人並列第一，三座都是最高的金色台座）
+const SLOT_ORDER = [1, 0, 2];
+
+const RANK_STYLE = {
+  1: { pedestal: 'h-[100px] lg:h-28', avatar: 56, medal: 40 },
+  2: { pedestal: 'h-[70px] lg:h-20', avatar: 48, medal: 34 },
+  3: { pedestal: 'h-[52px] lg:h-[60px]', avatar: 48, medal: 34 },
+} as const;
 
 type PodiumProps = {
   rows: LeaderboardRow[];
@@ -32,11 +35,12 @@ export function Podium({ rows, mode, myId, className }: PodiumProps) {
       aria-label={t('top3')}
       className={cn('flex items-end justify-center gap-2 lg:gap-4', className)}
     >
-      {SLOTS.map(({ index, pedestal, avatar, medal }, i) => {
+      {SLOT_ORDER.map((index, i) => {
         const row = rows[index];
         if (!row) return <div key={index} className="w-[104px] lg:w-[150px]" />;
         const rank = isMedalRank(row.rank) ? row.rank : 3;
-        const isFirst = index === 0;
+        const { pedestal, avatar, medal } = RANK_STYLE[rank];
+        const isFirst = rank === 1;
         const isMe = row.userId === myId;
         return (
           <motion.div
