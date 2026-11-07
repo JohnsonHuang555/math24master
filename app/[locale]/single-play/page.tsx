@@ -115,7 +115,7 @@ export default function SinglePlayPage() {
     return <MatchPlayGame onBack={() => setActiveMode(null)} autoStart />;
   }
   if (activeMode === 'tabletop') {
-    return <TabletopPlayGame onBack={() => setActiveMode(null)} />;
+    return <TabletopPlayGame onBack={() => setActiveMode(null)} autoStart />;
   }
 
   return (
