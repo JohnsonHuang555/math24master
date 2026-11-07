@@ -6,9 +6,9 @@ import {
   TABLETOP_LEFTOVER_CARD_PENALTY,
   TABLETOP_LEFTOVER_JOKER_PENALTY,
   TABLETOP_MAX_SET_SIZE,
+  TABLETOP_MIN_SCORE_PER_CARD,
   TABLETOP_MIN_SET_SIZE,
   TABLETOP_WENT_OUT_BONUS,
-  TabletopDifficulty,
   TabletopGameState,
   TabletopSeat,
   TabletopSet,
@@ -18,9 +18,7 @@ const SEAT_NAMES = ['你', 'Bot A', 'Bot B'];
 const GAME_ENDED = '這局已經結束';
 
 /** 開新的一局：玩家與 2 個 Bot 各發 TABLETOP_HAND_SIZE 張，玩家先手 */
-export function createTabletopGame(
-  difficulty: TabletopDifficulty,
-): TabletopGameState {
+export function createTabletopGame(): TabletopGameState {
   let deck = createTabletopDeck();
   const seats: TabletopSeat[] = SEAT_NAMES.map((name, i) => {
     const { drawn, remaining } = draw(deck, TABLETOP_HAND_SIZE);
@@ -28,9 +26,9 @@ export function createTabletopGame(
     return { id: `seat-${i}`, name, isBot: i > 0, hand: drawn, score: 0 };
   });
   return {
-    difficulty,
     deck,
     table: [],
+    tablePeakScore: 0,
     seats,
     currentSeat: 0,
     turnsTaken: 0,
@@ -171,6 +169,25 @@ export function scoreSet(set: TabletopSet): number {
   );
 }
 
+/** 桌面總分 = 桌上每一組牌組分數的總和 */
+export function scoreTable(table: TabletopSet[]): number {
+  return table.reduce((sum, s) => sum + scoreSet(s), 0);
+}
+
+/**
+ * 回合得分 = 新桌面總分超過本局最高紀錄的部分，每張打出的手牌至少 TABLETOP_MIN_SCORE_PER_CARD 分。
+ * 以最高紀錄而不是上一回合的總分為準，避免「先拆成低分組、下回合再重組回高分」來回刷分
+ * （見 docs/adr/0010-tabletop-score-table-gain.md）
+ */
+export function scoreTurn(
+  tablePeakScore: number,
+  proposedTable: TabletopSet[],
+  handCardsPlayed: number,
+): number {
+  const gain = Math.max(scoreTable(proposedTable) - tablePeakScore, 0);
+  return Math.max(gain, handCardsPlayed * TABLETOP_MIN_SCORE_PER_CARD);
+}
+
 export type SubmitTurnResult =
   | { success: true; state: TabletopGameState; scoreGained: number }
   | { success: false; error: string };
@@ -226,7 +243,15 @@ export function submitTurn(
       error: `每回合只能完成一組牌組（你的手牌分散在 ${completedSets.length} 組）`,
     };
   }
-  const scoreGained = scoreSet(completedSets[0]);
+  const scoreGained = scoreTurn(
+    state.tablePeakScore,
+    proposedTable,
+    playedIds.size,
+  );
+  const tablePeakScore = Math.max(
+    state.tablePeakScore,
+    scoreTable(proposedTable),
+  );
 
   // 不補牌：手牌只會越來越少，出完就結束這局
   const seats = state.seats.map((s, i) =>
@@ -238,7 +263,12 @@ export function submitTurn(
         }
       : s,
   );
-  const next: TabletopGameState = { ...state, table: proposedTable, seats };
+  const next: TabletopGameState = {
+    ...state,
+    table: proposedTable,
+    tablePeakScore,
+    seats,
+  };
 
   if (seats[state.currentSeat].hand.length === 0) {
     return {

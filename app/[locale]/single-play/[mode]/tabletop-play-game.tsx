@@ -12,61 +12,52 @@ import {
   History,
   Info,
   RotateCcw,
+  Shapes,
   TriangleAlert,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { GameDesktopBar } from '@/components/game/game-hud';
 import {
   GameResultScreen,
   RecordBadge,
 } from '@/components/game/game-result-screen';
+import { GameStartScreen } from '@/components/game/game-start-screen';
 import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { RankMedal } from '@/components/leaderboard/rank-medal';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { JokerDeclareDialog } from '@/components/tabletop/joker-declare-dialog';
-import { TabletopBetaNotice } from '@/components/tabletop/tabletop-beta-notice';
-import { TabletopCard } from '@/components/tabletop/tabletop-card';
 import { TabletopComposer } from '@/components/tabletop/tabletop-composer';
 import { TabletopHand } from '@/components/tabletop/tabletop-hand';
 import { TabletopHistoryDialog } from '@/components/tabletop/tabletop-history-dialog';
 import { TabletopScoreboard } from '@/components/tabletop/tabletop-scoreboard';
 import { TabletopTableArea } from '@/components/tabletop/tabletop-table-area';
 import { Button } from '@/components/ui/button';
+import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useTabletopPlay from '@/hooks/useTabletopPlay';
 import type { LeaderboardMode } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 import { NumberCard } from '@/models/Player';
-import { TabletopDifficulty } from '@/models/Tabletop';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
 import { useStatsStore } from '@/stores/stats-store';
 
-const DIFFICULTIES: {
-  value: TabletopDifficulty;
-  label: string;
-  description: string;
-}[] = [
-  { value: 'easy', label: '簡單', description: '電腦只會接牌，出牌比較隨興' },
-  { value: 'normal', label: '普通', description: '電腦會拆開一組牌組重組' },
-  { value: 'hard', label: '困難', description: '電腦會同時拆開兩組牌組' },
-];
-
-// 開始畫面的裝飾牌：紅、青、黃各一張，呈現牌色與形狀
-const SAMPLE_CARDS: NumberCard[] = [
-  { id: 'sample-1', value: 8, color: 'red' },
-  { id: 'sample-2', value: 3, color: 'blue' },
-  { id: 'sample-3', value: 1, color: 'yellow' },
-];
+// 牌桌模式只有一種難度，沿用原本「困難」的排行榜 collection（見 docs/adr/0010）
+const LEADERBOARD_MODE: LeaderboardMode = 'tabletop_hard';
 
 interface TabletopPlayGameProps {
   onBack: () => void;
+  /** 從模式選單進入時直接開局，和其他單人模式一致 */
+  autoStart?: boolean;
 }
 
-export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
-  const [difficulty, setDifficulty] = useState<TabletopDifficulty>('normal');
+export default function TabletopPlayGame({
+  onBack,
+  autoStart,
+}: TabletopPlayGameProps) {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isOpenHistory, setIsOpenHistory] = useState(false);
@@ -74,6 +65,15 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
 
   const play = useTabletopPlay();
   const { game, draft } = play;
+
+  useEffect(() => {
+    if (autoStart) play.startGame();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 桌機：Esc 打開離開確認（對話框開著時 useGameKeyboard 不攔截）
+  useGameKeyboard(game?.status === 'playing', {
+    onEscape: () => setShowExitConfirm(true),
+  });
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
@@ -84,7 +84,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const {
-    tabletopBestScores,
+    tabletopBestScore: bestScore,
     updateTabletopBestScore,
     incrementTabletopPlays,
   } = useStatsStore();
@@ -94,20 +94,18 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
   const playerScore =
     game?.result?.standings.find(s => s.seatId === game.seats[0].id)?.score ??
     0;
-  const leaderboardMode: LeaderboardMode = `tabletop_${game?.difficulty ?? difficulty}`;
-  const bestScore = tabletopBestScores[game?.difficulty ?? difficulty];
   const isNewBestScore = isEnded && playerScore > 0 && playerScore >= bestScore;
 
   useEffect(() => {
     if (!isEnded || !game) return;
     incrementTabletopPlays();
-    updateTabletopBestScore(game.difficulty, playerScore);
+    updateTabletopBestScore(playerScore);
   }, [isEnded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 剩牌扣分可能讓最終分數變成 0 以下，這種成績不上榜（API 也會拒絕負分）
   const canSubmit = isAuthenticated && isEnded && playerScore > 0;
   const leaderboardSubmit = useLeaderboardSubmit(
-    leaderboardMode,
+    LEADERBOARD_MODE,
     canSubmit ? { score: playerScore } : null,
     canSubmit,
   );
@@ -122,7 +120,10 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
       playerScore <= 0
     )
       return;
-    setPendingScore({ mode: leaderboardMode, payload: { score: playerScore } });
+    setPendingScore({
+      mode: LEADERBOARD_MODE,
+      payload: { score: playerScore },
+    });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isEnded, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -135,123 +136,26 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
     />
   );
 
-  // ── 開始畫面：選難度 ──
+  // ── 開始畫面 ──
   if (!game) {
     return (
-      <div className="mx-auto flex h-full w-full max-w-md flex-col overflow-y-auto px-4 pt-2 pb-6">
+      <>
         {ruleModal}
-        <header className="-mx-2 flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 text-ink"
-            onClick={onBack}
-            aria-label="返回"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <span className="flex-1" />
-          <Button
-            variant="ghost"
-            className="h-11 gap-1 px-2.5 text-sm font-bold text-ink"
-            onClick={() => setIsOpenRuleModal(true)}
-          >
-            <BookOpen className="h-5 w-5" />
-            查看規則
-          </Button>
-        </header>
-
-        <div className="flex flex-col gap-2.5 px-1 pt-4">
-          <div aria-hidden className="flex gap-1.5">
-            {SAMPLE_CARDS.map((card, i) => (
-              <span
-                key={card.id}
-                className={cn(
-                  i === 0 && '-rotate-6',
-                  i === SAMPLE_CARDS.length - 1 && 'rotate-6',
-                )}
-              >
-                <TabletopCard card={card} size="sm" />
-              </span>
-            ))}
-          </div>
-          <span className="flex items-center gap-2">
-            <h1 className="text-[30px] font-black text-ink">牌桌模式</h1>
-            <span className="rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber">
-              BETA
-            </span>
-          </span>
-          <p className="text-base font-bold text-ink">
-            改編自拉密 · 和 2 個電腦搶先出完手牌
-          </p>
-          <p className="text-sm leading-relaxed text-ink-2">
-            每回合湊一組 24，可以拆開桌上的算式重新組合
-          </p>
-        </div>
-
-        <div
-          className="flex flex-col gap-2 pt-5"
-          role="radiogroup"
-          aria-label="難度"
-        >
-          {DIFFICULTIES.map(d => {
-            const checked = difficulty === d.value;
-            const best = tabletopBestScores[d.value];
-            return (
-              <button
-                key={d.value}
-                type="button"
-                role="radio"
-                aria-checked={checked}
-                onClick={() => setDifficulty(d.value)}
-                className={cn(
-                  'flex min-h-16 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
-                  checked
-                    ? 'border-2 border-primary bg-primary-tint'
-                    : 'border border-line bg-surface hover:bg-sunken',
-                )}
-              >
-                <span
-                  aria-hidden
-                  className={cn(
-                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2',
-                    checked ? 'border-primary-ink' : 'border-line-strong',
-                  )}
-                >
-                  {checked && (
-                    <span className="h-2.5 w-2.5 rounded-full bg-primary-ink" />
-                  )}
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <strong className="text-base text-ink">{d.label}</strong>
-                  <span className="text-[13px] text-ink-2">
-                    {d.description}
-                  </span>
-                </span>
-                {best > 0 && (
-                  <span className="shrink-0 text-[13px] text-ink-2">
-                    最佳{' '}
-                    <b className="font-display font-extrabold text-ink">
-                      {best}
-                    </b>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3 pt-6">
-          <TabletopBetaNotice className="justify-center bg-transparent py-0 text-[13px]" />
-          <Button
-            variant="tactile"
-            className="w-full"
-            onClick={() => play.startGame(difficulty)}
-          >
-            開始遊戲
-          </Button>
-        </div>
-      </div>
+        <GameStartScreen
+          icon={Shapes}
+          title="牌桌模式"
+          tagline="改編自拉密 · 和 2 個電腦搶先出完手牌"
+          description="每回合湊一組 24，可以拆開桌上的算式重新組合"
+          stats={
+            bestScore > 0
+              ? [{ label: '個人最佳', value: `${bestScore} 分` }]
+              : undefined
+          }
+          onBack={onBack}
+          onOpenRules={() => setIsOpenRuleModal(true)}
+          onStart={play.startGame}
+        />
+      </>
     );
   }
 
@@ -261,8 +165,6 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
       s => s.seatId === game.seats[0].id,
     );
     const rank = playerStanding?.rank ?? 3;
-    const difficultyLabel =
-      DIFFICULTIES.find(d => d.value === game.difficulty)?.label ?? '';
     return (
       <>
         <LoginPromptModal
@@ -283,7 +185,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             className="h-auto min-h-full"
             hero={<RankMedal rank={rank} size={56} />}
             eyebrow={rank === 1 ? '你贏了！' : `第 ${rank} 名`}
-            label={`你的總分 · ${difficultyLabel}`}
+            label="你的總分"
             value={playerStanding?.score ?? 0}
             badge={
               isNewBestScore ? (
@@ -300,7 +202,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             backLabel="返回選單"
             onBack={onBack}
             retryLabel="再來一局"
-            onRetry={() => play.startGame(game.difficulty)}
+            onRetry={play.startGame}
           >
             <table className="w-full overflow-hidden rounded-2xl border border-line bg-surface text-[13px]">
               <thead className="bg-sunken text-ink-2">
@@ -358,8 +260,7 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
             <p className="text-center text-xs text-ink-2">
               剩牌：數字牌每張 −1、Joker 每張 −5
             </p>
-            <TabletopBetaNotice className="justify-center bg-transparent py-0 text-[13px]" />
-            <ResultRank mode={leaderboardMode} submit={leaderboardSubmit} />
+            <ResultRank mode={LEADERBOARD_MODE} submit={leaderboardSubmit} />
           </GameResultScreen>
         </div>
       </>
@@ -370,8 +271,6 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
   const canEdit = play.isPlayerTurn;
   const isBotTurn = game.status === 'playing' && game.currentSeat !== 0;
   const round = Math.floor(game.turnsTaken / game.seats.length) + 1;
-  const difficultyLabel =
-    DIFFICULTIES.find(d => d.value === game.difficulty)?.label ?? '';
   // Joker 不論來自手牌或拆開的牌組，加進組裝列前都要先宣告
   const pickCard = (card: NumberCard) => {
     if (card.isJoker) setPendingJokerId(card.id);
@@ -413,25 +312,17 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
         description="離開後本局不計分，進度也不會保存。"
       />
 
-      {/* 頂部列 */}
-      <header className="flex items-center gap-0.5 px-2 pt-1.5 lg:gap-2 lg:border-b lg:border-line lg:bg-surface/70 lg:px-6 lg:py-2.5">
+      {/* 頂部列：手機 */}
+      <header className="flex items-center gap-0.5 px-2 pt-1.5 lg:hidden">
         <Button
           variant="ghost"
-          className="h-11 w-11 shrink-0 gap-1 px-0 text-ink lg:w-auto lg:px-3 lg:font-bold"
+          className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setShowExitConfirm(true)}
           aria-label="離開"
         >
           <ChevronLeft className="h-5 w-5" />
-          <span className="hidden lg:inline">離開</span>
         </Button>
-        <span className="hidden items-center gap-2 lg:flex">
-          <strong className="text-base text-ink">牌桌模式</strong>
-          <span className="rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber">
-            BETA
-          </span>
-          <span className="text-sm text-ink-2">· {difficultyLabel}</span>
-        </span>
-        <span className="flex-1 text-[13px] font-bold text-ink-2 lg:ml-auto lg:flex-none lg:pr-2 lg:text-sm">
+        <span className="flex-1 text-[13px] font-bold text-ink-2">
           {game.finalRoundTurnsLeft !== undefined ? (
             <span className="inline-flex items-center gap-1 text-amber-ink">
               <Flag aria-hidden className="h-4 w-4" />
@@ -440,37 +331,63 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
           ) : (
             <>
               第{' '}
-              <span className="font-display text-[15px] text-ink lg:text-[17px]">
-                {round}
-              </span>{' '}
+              <span className="font-display text-[15px] text-ink">{round}</span>{' '}
               圈
             </>
           )}{' '}
           · 牌庫剩{' '}
-          <span className="font-display text-[15px] text-ink lg:text-[17px]">
+          <span className="font-display text-[15px] text-ink">
             {game.deck.length}
           </span>{' '}
           張
         </span>
         <Button
           variant="ghost"
-          className="h-11 w-11 shrink-0 gap-1 px-0 text-ink lg:w-auto lg:px-3 lg:font-bold"
+          className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setIsOpenHistory(true)}
           aria-label="紀錄"
         >
           <History className="h-5 w-5" />
-          <span className="hidden lg:inline">紀錄</span>
         </Button>
         <Button
           variant="ghost"
-          className="h-11 w-11 shrink-0 gap-1 px-0 text-ink lg:w-auto lg:px-3 lg:font-bold"
+          className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setIsOpenRuleModal(true)}
           aria-label="規則"
         >
           <BookOpen className="h-5 w-5" />
-          <span className="hidden lg:inline">規則</span>
         </Button>
       </header>
+
+      {/* 頂部列：桌機，和其他單人模式共用 */}
+      <GameDesktopBar
+        className="hidden lg:flex"
+        title="牌桌模式"
+        escHint
+        score={game.seats[0].score}
+        remaining={game.deck.length}
+        isLastRound={game.finalRoundTurnsLeft !== undefined}
+        center={
+          game.finalRoundTurnsLeft === undefined && (
+            <span className="ml-2 inline-flex h-[34px] items-center rounded-full bg-sunken px-3 text-sm font-bold whitespace-nowrap text-ink">
+              第&nbsp;<span className="font-display text-base">{round}</span>
+              &nbsp;圈
+            </span>
+          )
+        }
+        onExit={() => setShowExitConfirm(true)}
+        onOpenRules={() => setIsOpenRuleModal(true)}
+        actions={
+          <Button
+            variant="ghost"
+            className="h-11 gap-1.5 px-3 text-sm font-semibold text-ink"
+            onClick={() => setIsOpenHistory(true)}
+          >
+            <History className="h-5 w-5" />
+            紀錄
+          </Button>
+        }
+      />
 
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-2.5 px-3 pt-1.5 lg:grid lg:max-w-none lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pt-5">
         <aside className="lg:flex lg:flex-col lg:gap-2.5">
@@ -567,6 +484,11 @@ export default function TabletopPlayGame({ onBack }: TabletopPlayGameProps) {
               onClick={play.onEndTurn}
             >
               結束回合
+              {play.turnScorePreview !== null && (
+                <span className="font-display text-base font-extrabold tabular-nums">
+                  +{play.turnScorePreview}
+                </span>
+              )}
             </Button>
           </div>
         </div>

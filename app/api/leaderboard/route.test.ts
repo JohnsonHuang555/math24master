@@ -57,33 +57,37 @@ function saved(collection: string) {
 beforeEach(() => store.clear());
 
 describe('POST /api/leaderboard - 牌桌模式', () => {
-  it('寫入對應難度的 collection', async () => {
+  it('寫入牌桌的 collection', async () => {
     const res = await post('tabletop_hard', { score: 52 });
 
     expect(await res.json()).toEqual({ ok: true, updated: true });
     expect(saved('leaderboard_tabletop_hard')).toMatchObject({ score: 52 });
-    expect(saved('leaderboard_tabletop_easy')).toBeUndefined();
   });
 
-  it('超過單局上限 2590 分時拒絕', async () => {
-    expect((await post('tabletop_normal', { score: 2591 })).status).toBe(400);
-    expect((await post('tabletop_normal', { score: 2590 })).status).toBe(200);
+  it('超過單局上限 750 分時拒絕', async () => {
+    expect((await post('tabletop_hard', { score: 751 })).status).toBe(400);
+    expect((await post('tabletop_hard', { score: 750 })).status).toBe(200);
+  });
+
+  it('已移除的簡單、普通難度不接受', async () => {
+    expect((await post('tabletop_easy', { score: 40 })).status).toBe(400);
+    expect((await post('tabletop_normal', { score: 40 })).status).toBe(400);
   });
 
   it('分數比舊紀錄低或相同時不覆寫', async () => {
-    await post('tabletop_easy', { score: 40 });
+    await post('tabletop_hard', { score: 40 });
 
-    const res = await post('tabletop_easy', { score: 40 });
+    const res = await post('tabletop_hard', { score: 40 });
 
     expect(await res.json()).toEqual({ ok: true, updated: false });
-    expect(saved('leaderboard_tabletop_easy')).toMatchObject({ score: 40 });
+    expect(saved('leaderboard_tabletop_hard')).toMatchObject({ score: 40 });
   });
 
   it('分數比舊紀錄高時覆寫', async () => {
-    await post('tabletop_easy', { score: 40 });
-    await post('tabletop_easy', { score: 41 });
+    await post('tabletop_hard', { score: 40 });
+    await post('tabletop_hard', { score: 41 });
 
-    expect(saved('leaderboard_tabletop_easy')).toMatchObject({ score: 41 });
+    expect(saved('leaderboard_tabletop_hard')).toMatchObject({ score: 41 });
   });
 });
 

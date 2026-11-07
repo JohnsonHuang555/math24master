@@ -21,9 +21,6 @@ const BOARD_ICON: Record<string, LucideIcon> = {
   tabletop: Shapes,
 };
 
-// 測試期的模式另外標 Beta
-const BETA_BOARDS = new Set(['tabletop']);
-
 type ModeTabsProps = {
   board: Board;
   onChange: (boardId: string) => void;
@@ -78,7 +75,6 @@ export function ModeTabs({
                 <Icon aria-hidden className="h-[18px] w-[18px]" />
               </span>
               {boardLabel(b)}
-              {BETA_BOARDS.has(b.id) && <BetaTag className="ml-auto" />}
             </button>
           );
         })}
@@ -172,18 +168,5 @@ export function LevelSegment({
         );
       })}
     </div>
-  );
-}
-
-function BetaTag({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        'rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber uppercase',
-        className,
-      )}
-    >
-      Beta
-    </span>
   );
 }

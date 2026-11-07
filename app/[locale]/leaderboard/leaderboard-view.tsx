@@ -13,7 +13,6 @@ import {
 import { MyRankCard } from '@/components/leaderboard/my-rank-card';
 import { Podium } from '@/components/leaderboard/podium';
 import { RankingList } from '@/components/leaderboard/ranking-list';
-import { TabletopBetaNotice } from '@/components/tabletop/tabletop-beta-notice';
 import { Button } from '@/components/ui/button';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { useMyRank } from '@/hooks/useMyRank';
@@ -92,7 +91,7 @@ export default function LeaderboardView() {
               className="lg:hidden"
             />
 
-            {(board.levels.length > 1 || board.id === 'tabletop') && (
+            {board.levels.length > 1 && (
               <div className="flex flex-col gap-3 px-4 pt-3 lg:flex-row lg:items-center lg:gap-4 lg:px-0 lg:pt-0 lg:pb-5">
                 <LevelSegment
                   board={board}
@@ -100,7 +99,6 @@ export default function LeaderboardView() {
                   onChange={handleChange}
                   className="lg:w-auto"
                 />
-                {board.id === 'tabletop' && <TabletopBetaNotice />}
               </div>
             )}
 

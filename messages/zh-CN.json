@@ -249,10 +249,7 @@
     },
     "levels": {
       "basic": "基础",
-      "advanced": "高级",
-      "easy": "简单",
-      "normal": "普通",
-      "hard": "困难"
+      "advanced": "高级"
     },
     "record": {
       "stage": "第 {stage} 关",
@@ -274,8 +271,7 @@
     "view": "查看排行榜",
     "newRecord": "新纪录",
     "top3": "前 3 名",
-    "viewFull": "查看完整排行榜",
-    "tabletopBeta": "测试版：排行榜将于 {date} 重置"
+    "viewFull": "查看完整排行榜"
   },
   "ServerError": {
     "UNEXPECTED": "发生错误，请稍后再试",

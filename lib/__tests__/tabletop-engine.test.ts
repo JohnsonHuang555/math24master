@@ -3,6 +3,8 @@ import {
   createTabletopGame,
   drawCard,
   scoreSet,
+  scoreTable,
+  scoreTurn,
   submitTurn,
   validateSet,
 } from '@/lib/tabletop-engine';
@@ -60,11 +62,14 @@ function makeGame(opts: {
   currentSeat?: number;
   turnsTaken?: number;
   scores?: number[];
+  tablePeakScore?: number;
 }): TabletopGameState {
+  const table = opts.table ?? [];
   return {
-    difficulty: 'normal',
     deck: opts.deck ?? deckOf(20),
-    table: opts.table ?? [],
+    table,
+    // 正常對局中最高紀錄至少等於目前的桌面總分
+    tablePeakScore: opts.tablePeakScore ?? scoreTable(table),
     seats: [0, 1, 2].map(i => ({
       id: `seat-${i}`,
       name: `seat-${i}`,
@@ -124,7 +129,7 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
     });
   });
 
-  it('手牌只進到 1 組時，其他牌組可以一起重排；只有含手牌的那一組計分', () => {
+  it('手牌只進到 1 組時，其他牌組可以一起重排；得分是桌面總分增加的部分', () => {
     const r8 = card('r8', 8, 'red');
     const b2 = card('b2', 2, 'red');
     const k8 = card('k8', 8, 'red');
@@ -139,8 +144,9 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
       table: [t1, t2],
     });
 
+    // 原桌面：t1 = 8 × 2 + 8 同色 (2 + 1) × 2 = 6；t2 = 4 × 6 × 1 同色 (4 + 雙乘號 1) × 2 = 10，合計 16
     // t1 接上手牌 r1：(8 × 2 + 8) × 1，符號 × + × = 5 + 雙乘號 1 + 4 張 1 = 7，同色 ×2 = 14
-    // （若 t2 也誤算進來：6 × 4 ÷ 1 同色 (2 + 3) × 2 = 10，合計會是 24）
+    // t2 重排成 6 × 4 ÷ 1 同色 (2 + 3) × 2 = 10；新桌面合計 24，比原本多 8
     const t1Extended = set('t1', [
       L,
       n(r8),
@@ -159,7 +165,63 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.scoreGained).toBe(14);
+    expect(result.scoreGained).toBe(8);
+    expect(result.state.tablePeakScore).toBe(24);
+  });
+});
+
+describe('submitTurn - 回合得分以桌面總分的最高紀錄為準', () => {
+  it('新桌面總分超過最高紀錄時，得分是超過的部分，並更新最高紀錄', () => {
+    const { cards, set: newSet } = redSet();
+    const game = makeGame({
+      hands: [[...cards, card('keep', 9, 'blue')]],
+      table: [],
+    });
+
+    const result = submitTurn(game, [newSet]);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.scoreGained).toBe(6);
+    expect(result.state.tablePeakScore).toBe(6);
+  });
+
+  it('先把桌面拆成低分、再重組回原本的高分時，不會再得一次分，只拿保底', () => {
+    // 桌面曾經到過 30 分，之後被拆成較低分的組合（目前只剩 6 分）
+    const { cards, set: newSet } = redSet();
+    const game = makeGame({
+      hands: [[...cards, card('keep', 9, 'blue')]],
+      table: [redSet('t').set],
+      tablePeakScore: 30,
+    });
+
+    // 新桌面 12 分，沒有超過最高紀錄 30：保底每張手牌 1 分 × 3 張
+    const result = submitTurn(game, [redSet('t').set, newSet]);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.scoreGained).toBe(3);
+    expect(result.state.seats[0].score).toBe(3);
+    // 最高紀錄不會因為桌面總分下降而降低
+    expect(result.state.tablePeakScore).toBe(30);
+  });
+});
+
+describe('scoreTurn', () => {
+  const six = redSet().set; // 6 分
+
+  it('得分 = 新桌面總分 − 最高紀錄', () => {
+    expect(scoreTurn(0, [six, redSet('b').set], 1)).toBe(12);
+    expect(scoreTurn(10, [six, redSet('b').set], 1)).toBe(2);
+  });
+
+  it('沒有超過最高紀錄時，每張打出的手牌保底 1 分', () => {
+    expect(scoreTurn(12, [six, redSet('b').set], 1)).toBe(1);
+    expect(scoreTurn(50, [six], 2)).toBe(2);
+  });
+
+  it('超過的部分比保底少時取保底', () => {
+    expect(scoreTurn(10, [six, redSet('b').set], 3)).toBe(3);
   });
 });
 
@@ -437,12 +499,13 @@ describe('一局結束後', () => {
 
 describe('createTabletopGame', () => {
   it('1 位玩家與 2 個 Bot 各發 10 張，其餘 76 張留在牌庫，玩家先手', () => {
-    const game = createTabletopGame('normal');
+    const game = createTabletopGame();
 
     expect(game.seats.map(s => s.isBot)).toEqual([false, true, true]);
     expect(game.seats.map(s => s.hand.length)).toEqual([10, 10, 10]);
     expect(game.deck).toHaveLength(76);
     expect(game.table).toEqual([]);
+    expect(game.tablePeakScore).toBe(0);
     expect(game.currentSeat).toBe(0);
     expect(game.turnsTaken).toBe(0);
     expect(game.status).toBe('playing');

@@ -1,10 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { colorPattern, scoreSet } from '@/lib/tabletop-engine';
+import { colorPattern, scoreSet, scoreTurn } from '@/lib/tabletop-engine';
 import { CardColor, NumberCard } from '@/models/Player';
 import {
   TABLETOP_MAX_SET_SIZE,
   TABLETOP_MIN_SET_SIZE,
-  TabletopDifficulty,
   TabletopGameState,
   TabletopOperator,
   TabletopSet,
@@ -245,7 +244,11 @@ export type BotAction = {
 export type BotMove =
   { type: 'draw' } | { type: 'play'; table: TabletopSet[]; action: BotAction };
 
-type Candidate = { action: BotAction; table: TabletopSet[] };
+// score 在產生候選時還不知道（要看整個桌面），由 chooseBotMove 補上
+type Candidate = {
+  action: Omit<BotAction, 'score'>;
+  table: TabletopSet[];
+};
 
 type BotConfig = {
   maxExtendCards: number; // 接牌時最多接幾張手牌
@@ -254,25 +257,12 @@ type BotConfig = {
   maxSolves: number; // 每次思考最多解幾次算式（搜尋上限）
 };
 
-const BOT_CONFIG: Record<TabletopDifficulty, BotConfig> = {
-  easy: {
-    maxExtendCards: 1,
-    maxRegroupSets: 0,
-    maxRegroupHandCards: 0,
-    maxSolves: 1000,
-  },
-  normal: {
-    maxExtendCards: 2,
-    maxRegroupSets: 1,
-    maxRegroupHandCards: 3,
-    maxSolves: 3000,
-  },
-  hard: {
-    maxExtendCards: 2,
-    maxRegroupSets: 2,
-    maxRegroupHandCards: 3,
-    maxSolves: 8000,
-  },
+// 牌桌模式只有一種難度（原本的「困難」），見 docs/adr/0010
+const BOT_CONFIG: BotConfig = {
+  maxExtendCards: 2,
+  maxRegroupSets: 2,
+  maxRegroupHandCards: 3,
+  maxSolves: 8000,
 };
 
 function cardsOf(set: TabletopSet): NumberCard[] {
@@ -304,26 +294,26 @@ function subsets<T>(items: T[], size: number): T[][] {
 }
 
 /** 決定 Bot 這回合怎麼走（每回合只完成一組牌組）；回傳的 table 直接交給 submitTurn */
-export function chooseBotMove(
-  state: TabletopGameState,
-  rng: () => number = Math.random,
-): BotMove {
-  const config = BOT_CONFIG[state.difficulty];
+export function chooseBotMove(state: TabletopGameState): BotMove {
   const hand = state.seats[state.currentSeat].hand;
-  const candidates = generateCandidates(state.table, hand, config);
+  const candidates = generateCandidates(state.table, hand, BOT_CONFIG);
   if (candidates.length === 0) return { type: 'draw' };
 
-  // 簡單從可行的走法中隨機挑；普通／困難挑分數最高的（同分時出較多手牌）
-  const chosen =
-    state.difficulty === 'easy'
-      ? candidates[Math.floor(rng() * candidates.length)]
-      : candidates.reduce((best, c) =>
-          c.action.score > best.action.score ||
-          (c.action.score === best.action.score &&
-            c.action.handCardsUsed > best.action.handCardsUsed)
-            ? c
-            : best,
-        );
+  // 以規則引擎的回合得分評估，挑分數最高的（同分時出較多手牌）
+  const scored = candidates.map(c => ({
+    table: c.table,
+    action: {
+      ...c.action,
+      score: scoreTurn(state.tablePeakScore, c.table, c.action.handCardsUsed),
+    },
+  }));
+  const chosen = scored.reduce((best, c) =>
+    c.action.score > best.action.score ||
+    (c.action.score === best.action.score &&
+      c.action.handCardsUsed > best.action.handCardsUsed)
+      ? c
+      : best,
+  );
   return { type: 'play', table: chosen.table, action: chosen.action };
 }
 
@@ -370,7 +360,6 @@ function generateCandidates(
           fromSetIds: [],
           sets: [set],
           handCardsUsed: used.length,
-          score: scoreSet(set),
         },
         table: [...table, set],
       });
@@ -392,7 +381,6 @@ function generateCandidates(
             fromSetIds: [target.id],
             sets: [set],
             handCardsUsed: used.length,
-            score: scoreSet(set),
           },
           table: table.map((s, i) => (i === index ? set : s)),
         });
@@ -423,7 +411,6 @@ function generateCandidates(
               fromSetIds: targets.map(t => t.id),
               sets,
               handCardsUsed: used.length,
-              score: scoreSets(sets, used),
             },
             table: [...table.filter(s => !targetIds.has(s.id)), ...sets],
           });
@@ -433,14 +420,6 @@ function generateCandidates(
   }
 
   return candidates;
-}
-
-/** 與規則引擎一致：只有用到本回合手牌的牌組計分 */
-function scoreSets(sets: TabletopSet[], used: NumberCard[]): number {
-  const usedIds = new Set(used.map(c => c.id));
-  return sets
-    .filter(s => cardsOf(s).some(c => usedIds.has(c.id)))
-    .reduce((sum, s) => sum + scoreSet(s), 0);
 }
 
 /** 把所有牌切成每組 3～5 張、每組都等於 24 的牌組；切不完時回傳 null */

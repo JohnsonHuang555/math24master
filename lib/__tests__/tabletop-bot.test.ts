@@ -6,15 +6,12 @@ import {
   createTabletopGame,
   drawCard,
   scoreSet,
+  scoreTable,
   submitTurn,
   validateSet,
 } from '@/lib/tabletop-engine';
 import { CardColor, NumberCard } from '@/models/Player';
-import {
-  TabletopDifficulty,
-  TabletopGameState,
-  TabletopSet,
-} from '@/models/Tabletop';
+import { TabletopGameState, TabletopSet } from '@/models/Tabletop';
 
 function card(id: string, value: number, color: CardColor = 'red'): NumberCard {
   return { id, value, color };
@@ -26,10 +23,6 @@ function seededRng(seed: number): () => number {
     s = (s * 1664525 + 1013904223) >>> 0;
     return s / 0x100000000;
   };
-}
-
-function cardIdsOfTable(table: TabletopSet[]): string[] {
-  return table.flatMap(cardIds).sort();
 }
 
 function joker(id: string, value?: number, color?: CardColor): NumberCard {
@@ -58,12 +51,12 @@ function cardIds(set: TabletopSet): string[] {
 function botTurn(opts: {
   hand: NumberCard[];
   table?: TabletopSet[];
-  difficulty?: TabletopDifficulty;
 }): TabletopGameState {
+  const table = opts.table ?? [];
   return {
-    difficulty: opts.difficulty ?? 'normal',
     deck: [card('deck-1', 13, 'black')],
-    table: opts.table ?? [],
+    table,
+    tablePeakScore: scoreTable(table),
     seats: [0, 1, 2].map(i => ({
       id: `seat-${i}`,
       name: `seat-${i}`,
@@ -83,32 +76,24 @@ function applyMove(state: TabletopGameState, move: BotMove) {
 }
 
 describe('chooseBotMove - 基本', () => {
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：手牌和桌面都湊不出 24 時抽牌',
-    difficulty => {
-      const state = botTurn({
-        hand: [card('a', 1), card('b', 1), card('c', 1)],
-        difficulty,
-      });
-      expect(chooseBotMove(state)).toEqual({ type: 'draw' });
-    },
-  );
+  it('手牌和桌面都湊不出 24 時抽牌', () => {
+    const state = botTurn({
+      hand: [card('a', 1), card('b', 1), card('c', 1)],
+    });
+    expect(chooseBotMove(state)).toEqual({ type: 'draw' });
+  });
 
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：手牌湊得出牌組時出牌，而且規則引擎接受',
-    difficulty => {
-      const state = botTurn({
-        hand: [card('a', 8), card('b', 2), card('c', 8), card('d', 13)],
-        difficulty,
-      });
+  it('手牌湊得出牌組時出牌，而且規則引擎接受', () => {
+    const state = botTurn({
+      hand: [card('a', 8), card('b', 2), card('c', 8), card('d', 13)],
+    });
 
-      const move = chooseBotMove(state);
+    const move = chooseBotMove(state);
 
-      expect(move.type).toBe('play');
-      const result = applyMove(state, move);
-      expect(result.success, result.success ? '' : result.error).toBe(true);
-    },
-  );
+    expect(move.type).toBe('play');
+    const result = applyMove(state, move);
+    expect(result.success, result.success ? '' : result.error).toBe(true);
+  });
 });
 
 const n = (c: NumberCard) => ({ type: 'number' as const, card: c });
@@ -129,27 +114,24 @@ function tableSet824(): TabletopSet {
 }
 
 describe('chooseBotMove - 接牌', () => {
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：手牌自己湊不出時，把 1 張手牌接進桌上的牌組',
-    difficulty => {
-      const hand = [
-        card('h1', 1),
-        card('h13a', 13, 'yellow'),
-        card('h13b', 13, 'blue'),
-      ];
-      expect(canMake24(hand.map(c => c.value))).toBe(false); // 前提：手牌自己湊不出
-      const state = botTurn({ hand, table: [tableSet824()], difficulty });
+  it('手牌自己湊不出時，把 1 張手牌接進桌上的牌組', () => {
+    const hand = [
+      card('h1', 1),
+      card('h13a', 13, 'yellow'),
+      card('h13b', 13, 'blue'),
+    ];
+    expect(canMake24(hand.map(c => c.value))).toBe(false); // 前提：手牌自己湊不出
+    const state = botTurn({ hand, table: [tableSet824()] });
 
-      const move = chooseBotMove(state);
+    const move = chooseBotMove(state);
 
-      expect(move.type).toBe('play');
-      if (move.type !== 'play') return;
-      expect(move.action.kind).toBe('extend');
-      expect(move.table).toHaveLength(1);
-      const result = applyMove(state, move);
-      expect(result.success, result.success ? '' : result.error).toBe(true);
-    },
-  );
+    expect(move.type).toBe('play');
+    if (move.type !== 'play') return;
+    expect(move.action.kind).toBe('extend');
+    expect(move.table).toHaveLength(1);
+    const result = applyMove(state, move);
+    expect(result.success, result.success ? '' : result.error).toBe(true);
+  });
 });
 
 /** 用 solveSet 把指定牌值排成桌上的牌組（solveSet 本身另有測試） */
@@ -167,88 +149,69 @@ function tableSetOf(
 }
 
 describe('chooseBotMove - 重新宣告桌上的 Joker', () => {
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：接牌時可以把桌上的 Joker 重新宣告成需要的值',
-    difficulty => {
-      // 桌上 (紅1 + 紅2) × Joker(紅8)；Joker 固定為 8 時接不上紅 11，改宣告成其他值才行
-      expect(canMake24([1, 2, 8, 11])).toBe(false);
-      const table: TabletopSet = {
-        id: 't1',
-        tiles: [
-          { type: 'bracket', bracket: '(' },
-          n(card('t1c', 1)),
-          op('+'),
-          n(card('t2c', 2)),
-          { type: 'bracket', bracket: ')' },
-          op('*'),
-          n(joker('tj', 8, 'red')),
-        ],
-      };
-      const state = botTurn({
-        hand: [card('h11', 11)],
-        table: [table],
-        difficulty,
-      });
+  it('接牌時可以把桌上的 Joker 重新宣告成需要的值', () => {
+    // 桌上 (紅1 + 紅2) × Joker(紅8)；Joker 固定為 8 時接不上紅 11，改宣告成其他值才行
+    expect(canMake24([1, 2, 8, 11])).toBe(false);
+    const table: TabletopSet = {
+      id: 't1',
+      tiles: [
+        { type: 'bracket', bracket: '(' },
+        n(card('t1c', 1)),
+        op('+'),
+        n(card('t2c', 2)),
+        { type: 'bracket', bracket: ')' },
+        op('*'),
+        n(joker('tj', 8, 'red')),
+      ],
+    };
+    const state = botTurn({
+      hand: [card('h11', 11)],
+      table: [table],
+    });
 
-      const move = chooseBotMove(state);
+    const move = chooseBotMove(state);
 
-      expect(move.type).toBe('play');
-      if (move.type !== 'play') return;
-      const result = applyMove(state, move);
-      expect(result.success, result.success ? '' : result.error).toBe(true);
-      const jokerTile = move.table
-        .flatMap(s => s.tiles)
-        .find(t => t.type === 'number' && t.card.id === 'tj');
-      expect(jokerTile).toMatchObject({ card: { jokerDeclaredColor: 'red' } });
-      expect(jokerTile).not.toMatchObject({ card: { jokerDeclaredValue: 8 } });
-    },
-  );
+    expect(move.type).toBe('play');
+    if (move.type !== 'play') return;
+    const result = applyMove(state, move);
+    expect(result.success, result.success ? '' : result.error).toBe(true);
+    const jokerTile = move.table
+      .flatMap(s => s.tiles)
+      .find(t => t.type === 'number' && t.card.id === 'tj');
+    expect(jokerTile).toMatchObject({ card: { jokerDeclaredColor: 'red' } });
+    expect(jokerTile).not.toMatchObject({ card: { jokerDeclaredValue: 8 } });
+  });
 });
 
 describe('chooseBotMove - 拆組（拆 1 組和手牌重組）', () => {
   // 桌上 5 張的牌組不能再接牌，手牌只有 1 張也組不成新組；
   // 唯一的出路是拆開重組：{1, 5, 4} 與 {2, 3, 4}
-  function scenario(difficulty: TabletopDifficulty) {
+  it('拆開桌上的牌組，和手牌重組成 2 組', () => {
     const table = [tableSetOf('t1', [1, 2, 3, 4, 5], ['red'])];
-    return botTurn({ hand: [card('h4', 4, 'red')], table, difficulty });
-  }
+    const state = botTurn({ hand: [card('h4', 4, 'red')], table });
 
-  it.each(['normal', 'hard'] as const)(
-    '%s：拆開桌上的牌組，和手牌重組成 2 組',
-    difficulty => {
-      const state = scenario(difficulty);
+    const move = chooseBotMove(state);
 
-      const move = chooseBotMove(state);
-
-      expect(move.type).toBe('play');
-      if (move.type !== 'play') return;
-      expect(move.action).toMatchObject({
-        kind: 'regroup',
-        fromSetIds: ['t1'],
-      });
-      expect(move.table).toHaveLength(2);
-      const result = applyMove(state, move);
-      expect(result.success, result.success ? '' : result.error).toBe(true);
-    },
-  );
-
-  it('easy：不會拆組，只能抽牌', () => {
-    expect(chooseBotMove(scenario('easy'))).toEqual({ type: 'draw' });
+    expect(move.type).toBe('play');
+    if (move.type !== 'play') return;
+    expect(move.action).toMatchObject({
+      kind: 'regroup',
+      fromSetIds: ['t1'],
+    });
+    expect(move.table).toHaveLength(2);
+    const result = applyMove(state, move);
+    expect(result.success, result.success ? '' : result.error).toBe(true);
   });
 });
 
 describe('chooseBotMove - 合組（拆 2 組和手牌重組）', () => {
   // 單獨拆 A 或 B 加上手牌 6 都無法重組，兩組合起來才行
-  function scenario(difficulty: TabletopDifficulty) {
+  it('同時拆 2 組，和手牌重組', () => {
     const table = [
       tableSetOf('A', [3, 4, 11, 12, 13], ['red']),
       tableSetOf('B', [1, 2, 7, 12, 13], ['red']),
     ];
-    return botTurn({ hand: [card('h6', 6, 'red')], table, difficulty });
-  }
-
-  it('hard：同時拆 2 組，和手牌重組', () => {
-    const state = scenario('hard');
+    const state = botTurn({ hand: [card('h6', 6, 'red')], table });
 
     const move = chooseBotMove(state);
 
@@ -259,48 +222,26 @@ describe('chooseBotMove - 合組（拆 2 組和手牌重組）', () => {
     const result = applyMove(state, move);
     expect(result.success, result.success ? '' : result.error).toBe(true);
   });
-
-  it.each(['easy', 'normal'] as const)(
-    '%s：不會同時拆 2 組，只能抽牌',
-    difficulty => {
-      expect(chooseBotMove(scenario(difficulty))).toEqual({ type: 'draw' });
-    },
-  );
 });
 
 describe('chooseBotMove - 選擇策略', () => {
-  // 桌上 紅1 紅2 紅12：只接紅 1 → 22 分；只接紅 9 → 8 分；兩張一起接 → 18 分
+  // 桌上 紅1 紅2 紅12 是 14 分（12 ÷ (1 ÷ 2)）。只接紅 1 → 22 分，桌面多 8；
+  // 只接紅 9 → 8 分，桌面沒有創新高，只拿保底 1；兩張一起接 → 18 分，桌面多 4
   const table = () => [tableSetOf('t1', [1, 2, 12], ['red'])];
   const r1 = () => card('r1', 1, 'red');
   const r9 = () => card('r9', 9, 'red');
 
-  it.each(['normal', 'hard'] as const)(
-    '%s：挑分數最高的一組，即使它用的手牌比較少',
-    difficulty => {
-      const state = botTurn({ hand: [r1(), r9()], table: table(), difficulty });
+  it('挑回合得分最高的走法，即使它用的手牌比較少', () => {
+    const state = botTurn({ hand: [r1(), r9()], table: table() });
 
-      const move = chooseBotMove(state);
+    const move = chooseBotMove(state);
 
-      expect(move.type).toBe('play');
-      if (move.type !== 'play') return;
-      expect(move.action).toMatchObject({ handCardsUsed: 1, score: 22 });
-    },
-  );
-
-  it('easy：從可行的走法中隨機挑，不同的隨機數會挑到不同的走法', () => {
-    const state = botTurn({
-      hand: [r1(), r9()],
-      table: table(),
-      difficulty: 'easy',
-    });
-
-    const first = chooseBotMove(state, () => 0);
-    const last = chooseBotMove(state, () => 0.999);
-
-    expect(first.type).toBe('play');
-    expect(last.type).toBe('play');
-    if (first.type !== 'play' || last.type !== 'play') return;
-    expect(cardIdsOfTable(first.table)).not.toEqual(cardIdsOfTable(last.table));
+    expect(move.type).toBe('play');
+    if (move.type !== 'play') return;
+    expect(move.action).toMatchObject({ handCardsUsed: 1, score: 8 });
+    // 與規則引擎實際給的分數一致
+    const result = submitTurn(state, move.table);
+    expect(result.success && result.scoreGained).toBe(8);
   });
 });
 
@@ -315,51 +256,42 @@ describe('chooseBotMove - 每回合只完成一組', () => {
     card('f', 1, 'blue'),
   ];
 
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：手牌能組成兩組時，這回合只出其中一組',
-    difficulty => {
-      const state = botTurn({ hand: hand(), difficulty });
+  it('手牌能組成兩組時，這回合只出其中一組', () => {
+    const state = botTurn({ hand: hand() });
 
-      const move = chooseBotMove(state, () => 0);
+    const move = chooseBotMove(state);
 
-      expect(move.type).toBe('play');
-      if (move.type !== 'play') return;
-      // 規則引擎會拒絕手牌分散在兩組的桌面；這裡確認只多出一組新牌組
-      expect(move.table).toHaveLength(1);
-      const result = applyMove(state, move);
-      expect(result.success, result.success ? '' : result.error).toBe(true);
-    },
-  );
+    expect(move.type).toBe('play');
+    if (move.type !== 'play') return;
+    // 規則引擎會拒絕手牌分散在兩組的桌面；這裡確認只多出一組新牌組
+    expect(move.table).toHaveLength(1);
+    const result = applyMove(state, move);
+    expect(result.success, result.success ? '' : result.error).toBe(true);
+  });
 });
 
 describe('chooseBotMove - 完整牌局', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it.each(['easy', 'normal', 'hard'] as const)(
-    '%s：三個座位都由 Bot 操作，每一步規則引擎都接受，牌局正常結束',
-    difficulty => {
-      for (let seed = 1; seed <= 5; seed++) {
-        vi.spyOn(Math, 'random').mockImplementation(seededRng(seed));
-        let state = createTabletopGame(difficulty);
-        let turns = 0;
-        while (state.status === 'playing') {
-          const move = chooseBotMove(state);
-          const result = applyMove(state, move);
-          expect(
-            result.success,
-            result.success ? '' : `seed ${seed}：${result.error}`,
-          ).toBe(true);
-          if (!result.success) return;
-          state = result.state;
-          expect(++turns, `seed ${seed} 超過 500 回合仍未結束`).toBeLessThan(
-            500,
-          );
-        }
-        vi.restoreAllMocks();
+  it('三個座位都由 Bot 操作，每一步規則引擎都接受，牌局正常結束', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      vi.spyOn(Math, 'random').mockImplementation(seededRng(seed));
+      let state = createTabletopGame();
+      let turns = 0;
+      while (state.status === 'playing') {
+        const move = chooseBotMove(state);
+        const result = applyMove(state, move);
+        expect(
+          result.success,
+          result.success ? '' : `seed ${seed}：${result.error}`,
+        ).toBe(true);
+        if (!result.success) return;
+        state = result.state;
+        expect(++turns, `seed ${seed} 超過 500 回合仍未結束`).toBeLessThan(500);
       }
-    },
-    120_000,
-  );
+      vi.restoreAllMocks();
+    }
+  }, 120_000);
 });
 
 describe('solveSet', () => {

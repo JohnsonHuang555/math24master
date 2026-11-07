@@ -9,9 +9,7 @@ export const COLLECTION: Record<Mode, string> = {
   // 進階模式獨立 collection，理由見 docs/adr/0003-advanced-mode-separate-leaderboard-collection.md
   quickmath_advanced: 'leaderboard_quickmath_advanced',
   match: 'leaderboard_matching',
-  // 牌桌模式三個難度各自一個 collection，同樣依 ADR 0003 的慣例
-  tabletop_easy: 'leaderboard_tabletop_easy',
-  tabletop_normal: 'leaderboard_tabletop_normal',
+  // 牌桌模式只剩一種難度，沿用原本困難的 collection（見 docs/adr/0010）
   tabletop_hard: 'leaderboard_tabletop_hard',
 };
 
@@ -21,8 +19,6 @@ export const ORDER_FIELD: Record<Mode, string> = {
   quickmath: 'seconds',
   quickmath_advanced: 'seconds',
   match: 'score',
-  tabletop_easy: 'score',
-  tabletop_normal: 'score',
   tabletop_hard: 'score',
 };
 
@@ -32,8 +28,6 @@ export const ORDER_DIR: Record<Mode, FirebaseFirestore.OrderByDirection> = {
   quickmath: 'asc',
   quickmath_advanced: 'asc',
   match: 'desc',
-  tabletop_easy: 'desc',
-  tabletop_normal: 'desc',
   tabletop_hard: 'desc',
 };
 
@@ -43,8 +37,6 @@ export const ZERO_FILTER_FIELD: Partial<Record<Mode, string>> = {
   classic: 'score',
   challenge: 'totalScore',
   match: 'score',
-  tabletop_easy: 'score',
-  tabletop_normal: 'score',
   tabletop_hard: 'score',
 };
 
@@ -54,12 +46,10 @@ export const SCORE_MAX: Partial<Record<Mode, number>> = {
   classic: 66,
   // 16 張拆成 4 組各 4 張，每組理論最高 10 分（連三個除號：3+3+3+1）
   match: 40,
-  // 每組最高 30 分（5 張同色、4 個除號：(12+1+2)×2）。每組至少要有 1 張自己的手牌，
-  // 一人最多打出 10 張起始手牌 + 76 張牌庫 = 86 張，所以最多 86 組，再加出完加分 10
-  // （見 specs/game-tabletop.spec.md）
-  tabletop_easy: 2590,
-  tabletop_normal: 2590,
-  tabletop_hard: 2590,
+  // 回合得分只算桌面總分超過本局最高紀錄的部分，所以整局得分 ≤ 桌面最高總分 + 保底。
+  // 106 張牌最多約 21 組 × 每組 30 分 ≈ 640，加上保底（最多 86 張 × 1）與出完加分 10，約 736
+  // （見 docs/adr/0010-tabletop-score-table-gain.md）
+  tabletop_hard: 750,
 };
 
 export function isScoreMode(mode: Mode): boolean {

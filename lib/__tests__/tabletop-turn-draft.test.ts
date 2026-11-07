@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { scoreTable } from '@/lib/tabletop-engine';
 import {
   ComposerSymbol,
   TurnDraft,
@@ -24,7 +25,7 @@ function game(opts: {
   table?: TabletopSet[];
 }): TabletopGameState {
   return {
-    difficulty: 'normal',
+    tablePeakScore: scoreTable(opts.table ?? []),
     deck: Array.from({ length: 20 }, (_, i) => card(`deck-${i}`, 13, 'black')),
     table: opts.table ?? [],
     seats: [0, 1, 2].map(i => ({
@@ -269,7 +270,8 @@ describe('拆開桌上的牌組', () => {
     const end = checkEndTurn(state, draft);
     expect(end.ok).toBe(true);
     if (!end.ok) return;
-    expect(end.scoreGained).toBe(14); // × + × = 5 + 雙乘號 1 + 4 張 1 = 7，同色 ×2
+    // 新組 (× + × = 5 + 雙乘號 1 + 4 張 1 = 7) × 同色 2 = 14，原本的 8 × 2 + 8 是 6 分，桌面總分多 8
+    expect(end.scoreGained).toBe(8);
   });
 
   it('本回合剛放上桌面的牌組再拆開時，原本是手牌的牌回到手牌', () => {
