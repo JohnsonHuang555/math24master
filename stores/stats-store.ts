@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { TabletopDifficulty } from '@/models/Tabletop';
 
 type StatsStore = {
   // 經典模式
@@ -24,7 +23,7 @@ type StatsStore = {
 
   // 牌桌模式
   tabletopPlays: number; // 完賽場次（中途離開不算）
-  tabletopBestScores: Record<TabletopDifficulty, number>; // 各難度最高分
+  tabletopBestScore: number; // 最高分（v6 起改為差額計分，舊紀錄不沿用）
 
   // 每日挑戰
   dailyChallengeCompletes: number;
@@ -53,10 +52,7 @@ type StatsStore = {
   updateMatchBestScore: (score: number) => void;
 
   incrementTabletopPlays: () => void;
-  updateTabletopBestScore: (
-    difficulty: TabletopDifficulty,
-    score: number,
-  ) => void;
+  updateTabletopBestScore: (score: number) => void;
 
   incrementDailyChallenge: () => void;
 
@@ -86,7 +82,7 @@ export const useStatsStore = create<StatsStore>()(
       matchBestScore: 0,
 
       tabletopPlays: 0,
-      tabletopBestScores: { easy: 0, normal: 0, hard: 0 },
+      tabletopBestScore: 0,
 
       dailyChallengeCompletes: 0,
 
@@ -148,10 +144,9 @@ export const useStatsStore = create<StatsStore>()(
       incrementTabletopPlays: () =>
         set(state => ({ tabletopPlays: state.tabletopPlays + 1 })),
 
-      updateTabletopBestScore: (difficulty, score) => {
-        const best = get().tabletopBestScores;
-        if (score > best[difficulty]) {
-          set({ tabletopBestScores: { ...best, [difficulty]: score } });
+      updateTabletopBestScore: score => {
+        if (score > get().tabletopBestScore) {
+          set({ tabletopBestScore: score });
         }
       },
 
@@ -184,28 +179,35 @@ export const useStatsStore = create<StatsStore>()(
     }),
     {
       name: 'player-stats',
-      version: 5,
-      migrate: persistedState => ({
-        classicPlays: 0,
-        classicBestScore: 0,
-        classicFastestPlayMs: 0,
-        classicTotalSkips: 0,
-        normalPlays: 0,
-        normalBestSeconds: 0,
-        normalPerfectRuns: 0,
-        challengePlays: 0,
-        challengeBestStage: 0,
-        matchPlays: 0,
-        matchBestScore: 0,
-        tabletopPlays: 0,
-        tabletopBestScores: { easy: 0, normal: 0, hard: 0 },
-        dailyChallengeCompletes: 0,
-        quickMathPlays: 0,
-        quickMathBestSeconds: 0,
-        quickMathAdvancedPlays: 0,
-        quickMathAdvancedBestSeconds: 0,
-        ...(persistedState as Partial<StatsStore> | undefined),
-      }),
+      // v6：牌桌模式改為差額計分、只剩一種難度，舊的各難度最高分直接丟棄
+      version: 6,
+      migrate: persistedState => {
+        const { tabletopBestScores: _legacy, ...rest } =
+          (persistedState as
+            | (Partial<StatsStore> & { tabletopBestScores?: unknown })
+            | undefined) ?? {};
+        return {
+          classicPlays: 0,
+          classicBestScore: 0,
+          classicFastestPlayMs: 0,
+          classicTotalSkips: 0,
+          normalPlays: 0,
+          normalBestSeconds: 0,
+          normalPerfectRuns: 0,
+          challengePlays: 0,
+          challengeBestStage: 0,
+          matchPlays: 0,
+          matchBestScore: 0,
+          tabletopPlays: 0,
+          tabletopBestScore: 0,
+          dailyChallengeCompletes: 0,
+          quickMathPlays: 0,
+          quickMathBestSeconds: 0,
+          quickMathAdvancedPlays: 0,
+          quickMathAdvancedBestSeconds: 0,
+          ...rest,
+        };
+      },
     },
   ),
 );

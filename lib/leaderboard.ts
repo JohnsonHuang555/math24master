@@ -7,8 +7,7 @@ export type LeaderboardMode =
   | 'match'
   | 'quickmath'
   | 'quickmath_advanced'
-  | 'tabletop_easy'
-  | 'tabletop_normal'
+  // 牌桌模式只剩一種難度，沿用原本困難的 collection（見 docs/adr/0010）
   | 'tabletop_hard';
 
 export interface LeaderboardRow {
@@ -25,7 +24,7 @@ export interface LeaderboardRow {
 
 // 顯示名稱在 messages 的 Leaderboard.boards / Leaderboard.levels
 export type BoardLevel = {
-  id: 'default' | 'basic' | 'advanced' | 'easy' | 'normal' | 'hard';
+  id: 'default' | 'basic' | 'advanced';
   mode: LeaderboardMode;
 };
 
@@ -63,11 +62,7 @@ export const BOARDS: Board[] = [
   {
     id: 'tabletop',
     playHref: '/single-play',
-    levels: [
-      { id: 'easy', mode: 'tabletop_easy' },
-      { id: 'normal', mode: 'tabletop_normal' },
-      { id: 'hard', mode: 'tabletop_hard' },
-    ],
+    levels: [{ id: 'default', mode: 'tabletop_hard' }],
   },
 ];
 

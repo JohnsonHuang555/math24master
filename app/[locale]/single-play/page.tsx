@@ -54,7 +54,7 @@ const MODE_CONFIG = [
   {
     value: 'tabletop' as const,
     label: '牌桌模式',
-    badge: 'Beta' as string | undefined,
+    badge: undefined as string | undefined,
     tagline: '改編自拉密 · 對戰電腦搶先出完',
     chips: ['拆開重組桌上算式', '同色或全異色', '和 2 個電腦搶分'],
     Icon: Shapes,
@@ -69,17 +69,8 @@ export default function SinglePlayPage() {
     classicBestScore,
     challengeBestStage,
     matchBestScore,
-    tabletopBestScores,
+    tabletopBestScore,
   } = useStatsStore();
-
-  // 三個難度的分數不能互相比較，顯示最高難度的那筆紀錄
-  const tabletopBest = (
-    [
-      ['hard', '困難'],
-      ['normal', '普通'],
-      ['easy', '簡單'],
-    ] as const
-  ).find(([d]) => tabletopBestScores[d] > 0);
 
   // 消消樂模式牌局的反向構造需要先窮舉可解組合，趁玩家瀏覽模式選單的空檔背景預熱，
   // 避免點「開始遊戲」時卡頓（詳見 lib/match-board-generator.ts）
@@ -110,12 +101,8 @@ export default function SinglePlayPage() {
           ? { value: `第 ${challengeBestStage} 關` }
           : null,
       match: matchBestScore > 0 ? { value: `${matchBestScore} 分` } : null,
-      tabletop: tabletopBest
-        ? {
-            prefix: tabletopBest[1],
-            value: `${tabletopBestScores[tabletopBest[0]]} 分`,
-          }
-        : null,
+      tabletop:
+        tabletopBestScore > 0 ? { value: `${tabletopBestScore} 分` } : null,
     };
 
   if (activeMode === 'challenge') {

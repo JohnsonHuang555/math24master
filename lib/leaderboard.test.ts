@@ -62,9 +62,7 @@ describe('formatRecord', () => {
     expect(formatRecord('classic', { score: 18 }, format)).toBe('18 pts');
     expect(formatRecord('match', { score: 40 }, format)).toBe('40 pts');
     expect(formatRecord('challenge', { stage: 7 }, format)).toBe('stage 7');
-    expect(formatRecord('quickmath', { seconds: 75.3 }, format)).toBe(
-      '1:15.3',
-    );
+    expect(formatRecord('quickmath', { seconds: 75.3 }, format)).toBe('1:15.3');
     expect(formatRecord('quickmath_advanced', { seconds: 9 }, format)).toBe(
       '0:09.0',
     );
@@ -72,28 +70,21 @@ describe('formatRecord', () => {
 });
 
 describe('牌桌模式排行榜', () => {
-  it('簡單、普通、困難三個難度屬於同一個「牌桌」排行榜', () => {
-    for (const [mode, levelId] of [
-      ['tabletop_easy', 'easy'],
-      ['tabletop_normal', 'normal'],
-      ['tabletop_hard', 'hard'],
-    ] as const) {
-      const { board, level } = findBoardByMode(mode);
-      expect(board.id).toBe('tabletop');
-      expect(level.id).toBe(levelId);
-    }
+  it('只有一種難度，排行榜不分難度', () => {
+    const { board, level } = findBoardByMode('tabletop_hard');
+    expect(board.id).toBe('tabletop');
+    expect(board.levels).toHaveLength(1);
+    expect(level.id).toBe('default');
   });
 
-  it('排行榜網址帶難度', () => {
-    expect(leaderboardHref('tabletop_hard')).toBe(
-      '/leaderboard?mode=tabletop&level=hard',
-    );
+  it('排行榜網址不帶難度', () => {
+    expect(leaderboardHref('tabletop_hard')).toBe('/leaderboard?mode=tabletop');
   });
 
   it('成績以分數顯示', () => {
     expect(
       formatRecord(
-        'tabletop_normal',
+        'tabletop_hard',
         { score: 52 },
         { stage: n => `stage ${n}`, score: n => `${n} pts` },
       ),

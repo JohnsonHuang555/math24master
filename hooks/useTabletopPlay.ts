@@ -22,7 +22,7 @@ import {
   previewComposer,
   startDraft,
 } from '@/lib/tabletop-turn-draft';
-import { TabletopDifficulty, TabletopGameState } from '@/models/Tabletop';
+import { TabletopGameState } from '@/models/Tabletop';
 
 const PLAYER_SEAT = 0;
 // Bot 回合的播放節奏（毫秒）：思考 → 套用並高亮改動的牌組 → 換下一位
@@ -115,9 +115,9 @@ const useTabletopPlay = () => {
     }
   }, []);
 
-  const startGame = useCallback((difficulty: TabletopDifficulty) => {
+  const startGame = useCallback(() => {
     runTokenRef.current += 1;
-    const state = createTabletopGame(difficulty);
+    const state = createTabletopGame();
     setGame(state);
     setDraft(startDraft(state));
     setLog([]);
@@ -254,6 +254,8 @@ const useTabletopPlay = () => {
     lastGained,
     preview: draft ? previewComposer(draft) : null,
     canEndTurn: endTurnCheck?.ok ?? false,
+    // 現在結束回合可以拿到的分數（回合得分見 docs/adr/0010）
+    turnScorePreview: endTurnCheck?.ok ? endTurnCheck.scoreGained : null,
     endTurnBlocker:
       endTurnCheck && !endTurnCheck.ok ? endTurnCheck.error : null,
     hasDraftChanges,

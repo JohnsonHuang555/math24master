@@ -249,10 +249,7 @@
     },
     "levels": {
       "basic": "Basic",
-      "advanced": "Advanced",
-      "easy": "Easy",
-      "normal": "Normal",
-      "hard": "Hard"
+      "advanced": "Advanced"
     },
     "record": {
       "stage": "Stage {stage}",
@@ -274,8 +271,7 @@
     "view": "View leaderboard",
     "newRecord": "New record",
     "top3": "Top 3",
-    "viewFull": "View full leaderboard",
-    "tabletopBeta": "Beta: the leaderboard will be reset on {date}"
+    "viewFull": "View full leaderboard"
   },
   "ServerError": {
     "UNEXPECTED": "Something went wrong. Please try again later.",

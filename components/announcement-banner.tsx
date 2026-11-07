@@ -21,7 +21,6 @@ const ANNOUNCEMENTS: Announcement[] = [
     key: 'announcement-tabletop-mode-v1',
     id: 'tabletop',
     icon: Shapes,
-    badge: 'Beta',
     href: '/single-play',
   },
   {
