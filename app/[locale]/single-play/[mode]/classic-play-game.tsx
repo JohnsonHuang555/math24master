@@ -31,6 +31,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useSinglePlay from '@/hooks/useSinglePlay';
+import { trackShare } from '@/lib/analytics';
 import { renderClassicResultCard } from '@/lib/classic-result-card';
 import { shareImage } from '@/lib/share';
 import { cn } from '@/lib/utils';
@@ -212,6 +213,7 @@ export default function ClassicPlayGame({
         title: 'Math24 經典模式',
         text: `Math24 經典模式挑戰結果：${currentScore} 分（評級 ${grade}）\n來 math24master.com 挑戰看看`,
       });
+      trackShare('classic', outcome);
       if (outcome === 'downloaded') {
         toast.success('圖卡已下載，快分享到限動或聊天吧！');
       } else if (outcome === 'failed') {

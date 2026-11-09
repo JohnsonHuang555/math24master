@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
   type ClueCard,
   type LineClueCard,
@@ -68,8 +69,20 @@ export function useGuessNumber() {
 
   useEffect(() => {
     setState(createInitialState());
+    trackGameStart('guess_number');
     return () => clearTimeout(peekTimerRef.current);
   }, []);
+
+  // 結束判定寫在 setState 的 updater 裡（不能放副作用），改由狀態變化送出事件
+  const gameOver = state?.gameOver ?? false;
+  const isWin = state?.isWin ?? false;
+  useEffect(() => {
+    if (gameOver) {
+      trackGameComplete('guess_number', { result: isWin ? 'win' : 'lose' });
+    }
+    // isWin 與 gameOver 在同一次更新寫入，只需在 gameOver 變成 true 時送一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameOver]);
 
   const selectCard = useCallback((card: ClueCard) => {
     if (card.id === 'peek') {
@@ -219,6 +232,7 @@ export function useGuessNumber() {
   const restart = useCallback(() => {
     clearTimeout(peekTimerRef.current);
     setState(createInitialState());
+    trackGameStart('guess_number');
   }, []);
 
   return {

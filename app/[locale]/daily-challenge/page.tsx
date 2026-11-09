@@ -26,6 +26,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import { trackGameComplete, trackGameStart, trackShare } from '@/lib/analytics';
 import {
   type FormulaItem,
   type Solution,
@@ -125,6 +126,7 @@ export default function DailyChallengePage() {
     scoreSumRef.current = 0;
     setUserFormulas([]);
     setGameState('playing');
+    trackGameStart('daily');
   };
 
   const handleAddNumber = (index: number) => {
@@ -230,6 +232,7 @@ export default function DailyChallengePage() {
     setScore(scoreSumRef.current);
     setStreak(s);
     setGameState('completed');
+    trackGameComplete('daily', { streak: s });
     unlockAchievement('daily_done');
     incrementDailyChallenge();
     useAchievementStore.getState().updateDailyStreak(s);
@@ -255,8 +258,10 @@ export default function DailyChallengePage() {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(sharePreviewText);
+      trackShare('daily', 'copied');
       toast.success('已複製到剪貼簿！');
     } catch {
+      trackShare('daily', 'failed');
       toast.error('無法自動複製，請手動複製上方文字', { duration: Infinity });
     }
   };

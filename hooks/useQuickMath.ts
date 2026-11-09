@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
   QuickMathMode,
   QuickMathQuestion,
@@ -96,6 +97,7 @@ export function useQuickMath() {
     setGameState('countdown');
     setCountdownValue(COUNTDOWN_START);
     playSound('select');
+    trackGameStart('quick_math', { variant: mode });
 
     countdownIntervalRef.current = setInterval(() => {
       setCountdownValue(prev => {
@@ -178,7 +180,8 @@ export function useQuickMath() {
     setJustFinished(true);
     setGameState('completed');
     playSound('gameOverWin');
-  }, [gameState, inputValue, questions, currentIndex, elapsedSeconds]);
+    trackGameComplete('quick_math', { variant: mode });
+  }, [gameState, inputValue, questions, currentIndex, elapsedSeconds, mode]);
 
   const restart = useCallback(() => {
     setGameState('idle');

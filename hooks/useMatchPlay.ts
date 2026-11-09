@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
   backCard,
   createInitialBoard,
@@ -27,6 +28,7 @@ const useMatchPlay = () => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
     setBoard(createInitialBoard());
+    trackGameStart('match');
   }, []);
 
   const selectedCardNumbers = useMemo(
@@ -94,8 +96,10 @@ const useMatchPlay = () => {
 
     if (result.cleared) {
       playSound('gameOverWin');
+      trackGameComplete('match', { result: 'cleared' });
     } else if (result.board.status === 'stuck') {
       playSound('gameOverEnd');
+      trackGameComplete('match', { result: 'stuck' });
     } else {
       playSound('correct');
     }
@@ -105,6 +109,7 @@ const useMatchPlay = () => {
   /** 隨時可呼叫，不限次數；UI 層會先跳確認彈窗才呼叫這個 */
   const onRestart = () => {
     setBoard(createInitialBoard());
+    trackGameStart('match');
   };
 
   const remainingCount =

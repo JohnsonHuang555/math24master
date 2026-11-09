@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useTimer } from '@/hooks/useTimer';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { generateOnePuzzle } from '@/lib/puzzle-generator';
 import { calcRoundScore } from '@/lib/scoring';
 import { calculateAnswer } from '@/lib/utils';
@@ -142,6 +143,7 @@ export function useChallengePlay() {
       if (answeredCount >= 1) unlockAchievement('challenge_first');
       if (answeredCount >= 10) unlockAchievement('challenge_stage_10');
 
+      trackGameComplete('challenge', { reason, stage: answeredCount });
       setStatus('finished');
     },
     [pause],
@@ -162,6 +164,7 @@ export function useChallengePlay() {
     setNextSkipPenalty(getSkipPenalty(0));
     resetTimer();
     setStatus('playing');
+    trackGameStart('challenge');
     requestAnimationFrame(() => start());
   }, [resetTimer, start]);
 
