@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { playSound } from '@/lib/sound-manager';
 import { BotAction, chooseBotMove } from '@/lib/tabletop-bot';
 import {
@@ -124,7 +125,14 @@ const useTabletopPlay = () => {
     setHighlightSetIds([]);
     setThinkingSeat(null);
     setLastGained(null);
+    trackGameStart('tabletop');
   }, []);
+
+  // 一局可能在玩家回合或 Bot 回合結束，統一從狀態變化送出完成事件
+  const gameStatus = game?.status;
+  useEffect(() => {
+    if (gameStatus === 'ended') trackGameComplete('tabletop');
+  }, [gameStatus]);
 
   // 離開畫面時讓還在播放的 Bot 回合停下
   useEffect(

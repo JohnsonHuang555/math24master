@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useGameActions } from '@/hooks/useGameActions';
 import { unlockAchievement } from '@/lib/achievement-manager';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
   backCard,
   createInitialRoom,
@@ -59,6 +60,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     hasStartedRef.current = true;
 
     setRoomInfo(createInitialRoom(difficulty));
+    trackGameStart('classic');
   }, [difficulty]);
 
   useEffect(() => {
@@ -70,6 +72,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
   useEffect(() => {
     if (isGameOver) {
       playSound('gameOverEnd');
+      trackGameComplete('classic');
       useStatsStore.getState().incrementClassicPlays();
       // 成就：精準（本局未跳過）
       const skipCount = useAchievementStore.getState().singleSkipCount;

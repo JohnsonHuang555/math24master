@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Socket, io } from 'socket.io-client';
 import { useGameActions } from '@/hooks/useGameActions';
 import { useServerErrorText } from '@/i18n/server-messages';
+import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
@@ -284,6 +285,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         isPenaltyGameOver?: boolean;
       }) => {
         playSound('gameOverWin');
+        trackGameComplete('multiplayer', { variant: 'classic' });
         setGameOverData({ name, score, players, isPenaltyGameOver });
       },
     );
@@ -296,6 +298,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       SocketEvent.BuzzerGameOver,
       (data: { winner: { id: string; name: string; score: number }; players: { id: string; name: string; score: number }[] }) => {
         playSound('gameOverWin');
+        trackGameComplete('multiplayer', { variant: 'buzzer' });
         setGameOverData({
           name: data.winner.name,
           score: data.winner.score,
@@ -310,6 +313,17 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       toast.warning('最後一回合囉');
     }
   }, [isLastRound]);
+
+  // 房間從等待進入遊戲中時算一次開局（每位玩家各送一次）
+  const roomStatus = roomInfo?.status;
+  const roomGameType = roomInfo?.settings.gameType;
+  useEffect(() => {
+    if (roomStatus === GameStatus.Playing) {
+      trackGameStart('multiplayer', { variant: roomGameType });
+    }
+    // 只在狀態切換時送，gameType 在開局後不會變
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomStatus]);
 
   const searchRooms = useCallback(
     (payload?: { roomName: string; showEmpty: boolean }) => {

@@ -19,6 +19,7 @@ import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useMatchPlay from '@/hooks/useMatchPlay';
+import { trackShare } from '@/lib/analytics';
 import { renderMatchResultCard } from '@/lib/match-result-card';
 import { shareImage } from '@/lib/share';
 import { cn } from '@/lib/utils';
@@ -153,6 +154,7 @@ export default function MatchPlayGame({
         title: 'Math24 消消樂模式',
         text: `Math24 消消樂模式全清結果：${score} 分\n來 math24master.com 挑戰看看`,
       });
+      trackShare('match', outcome);
       if (outcome === 'downloaded') {
         toast.success('圖卡已下載，快分享到限動或聊天吧！');
       } else if (outcome === 'failed') {
