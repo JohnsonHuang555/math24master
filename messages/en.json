@@ -303,5 +303,52 @@
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "Game countdown cancelled.",
     "GAME_STARTS_IN": "Game starts in {seconds}s"
+  },
+  "Metadata": {
+    "siteName": "Math24 Master",
+    "breadcrumbHome": "Home",
+    "home": {
+      "title": "Math24 Master - Play the 24 Game Online Free",
+      "description": "Play the 24 game online for free: use four number cards with +, −, ×, ÷ to make 24. Daily puzzles, timed challenges, mental math, multiplayer battles and a global leaderboard.",
+      "gameDescription": "A math puzzle game where you combine four number cards with +, −, ×, ÷ to make 24, solo or against friends",
+      "faq": {
+        "whatQuestion": "What is the 24 game?",
+        "whatAnswer": "The 24 game is a math puzzle: use 4 number cards (1 to 13) with addition, subtraction, multiplication and division so the result equals 24.",
+        "rulesQuestion": "What are the rules of the 24 game?",
+        "rulesAnswer": "Pick number cards and operators from your hand to build an equation that equals 24. + and − score 1 point, × scores 2 and ÷ scores 3, so harder operations earn more.",
+        "howQuestion": "How do I play the 24 game?",
+        "howAnswer": "Open Math24 Master and choose single player or multiplayer. Select number cards from your hand, combine them with + − × ÷ and parentheses, and play an equation that equals 24 to score."
+      }
+    },
+    "singlePlay": {
+      "name": "Single Player",
+      "title": "Single Player 24 Game - Classic, Challenge, Matching & Tabletop | Math24 Master",
+      "description": "Play the 24 game solo: rack up points in Classic, race the clock in Challenge, clear a 16-card board in Matching, or take on AI opponents in Tabletop. Free online."
+    },
+    "multiplePlay": {
+      "name": "Multiplayer",
+      "title": "Multiplayer 24 Game - Play Online with Friends | Math24 Master",
+      "description": "Create a room and invite friends, or join someone else's, and race to make 24 in real time. Free online, no download."
+    },
+    "dailyChallenge": {
+      "name": "Daily Challenge",
+      "title": "Daily 24 Game Challenge - 3 New Puzzles a Day | Math24 Master",
+      "description": "Three new 24 game puzzles every day, the same for everyone. Keep your streak going and see who scores higher."
+    },
+    "quickMath": {
+      "name": "Quick Math",
+      "title": "Mental Math Game - Quick Math Timed Challenge | Math24 Master",
+      "description": "Answer 10 arithmetic questions against the clock. Wrong answers add a time penalty. Train your mental math and climb the global leaderboard."
+    },
+    "guessNumber": {
+      "name": "Guess the Number",
+      "title": "Guess the Number - Logic Puzzle Game | Math24 Master",
+      "description": "Use clue cards to narrow it down and deduce a secret number from 10 to 99 within 10 rounds. Train your logical reasoning."
+    },
+    "leaderboard": {
+      "name": "Global Leaderboard",
+      "title": "Global Leaderboard | Math24 Master",
+      "description": "See global rankings for Classic, Challenge, Matching, Tabletop and Quick Math, and find out where you stand."
+    }
   }
 }

@@ -8,6 +8,7 @@ Math24 益智遊戲：用數字牌搭配加減乘除湊出 24 的桌遊改編，
 
 **Math24 Master (24點大師)**:
 產品名稱。中文介面用「24點大師」，其他語系一律用「Math24 Master」。
+「24 Game」是英文對這類遊戲的通稱，可以用來描述玩法（例如 Play the 24 Game），但不能當成產品名稱。
 _Avoid_: 24 Points Master、Math 24
 
 **消消樂模式 (Matching Mode)**:

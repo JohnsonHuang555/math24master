@@ -8,14 +8,16 @@ import {
 import { notFound } from 'next/navigation';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AchievementToaster } from '@/components/achievement-toaster';
 import { GoogleAnalytics } from '@/components/analytics';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
 import { SessionProvider } from '@/components/session-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { HTML_LANG } from '@/i18n/locales';
+import { resolveLocale } from '@/i18n/page-metadata';
 import { routing } from '@/i18n/routing';
+import { SITE_URL } from '@/i18n/seo';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import '../globals.css';
@@ -70,20 +72,22 @@ export const viewport: Viewport = {
   themeColor: '#0d9488',
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://math24master.com'),
-  openGraph: {
-    siteName: '24點大師',
-    type: 'website',
-    locale: 'zh',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '24點遊戲 - 免費線上益智數學遊戲 | 24點大師',
-    description:
-      '免費線上24點遊戲。用四張牌的加減乘除算出24，支援單人挑戰與多人即時對戰。考驗數學運算與邏輯思維的益智遊戲。',
-    images: ['https://math24master.com/logo.webp'],
-  },
+// 各頁的 title、description、canonical 與分享卡片由頁面自己的 generateMetadata 提供（見 i18n/seo.ts）
+export async function generateMetadata({
+  params,
+}: LayoutProps<'/[locale]'>): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'Metadata' });
+  const siteName = t('siteName');
+  return {
+    ...baseMetadata,
+    applicationName: siteName,
+    appleWebApp: { ...baseMetadata.appleWebApp, title: siteName },
+  };
+}
+
+const baseMetadata = {
+  metadataBase: new URL(SITE_URL),
   robots: {
     index: true,
     follow: true,
@@ -92,17 +96,15 @@ export const metadata: Metadata = {
     'max-video-preview': -1,
     googleBot: 'index, follow',
   },
-  applicationName: '24點大師',
   manifest: '/manifest.json',
   icons: {
     apple: '/icons/icon-192.png',
   },
   appleWebApp: {
-    title: '24點大師',
     statusBarStyle: 'default',
     capable: true,
   },
-};
+} satisfies Metadata;
 
 export function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }));

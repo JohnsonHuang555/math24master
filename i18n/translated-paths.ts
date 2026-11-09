@@ -7,6 +7,11 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './locales';
  */
 const TRANSLATED_PATHS = ['/', '/leaderboard'];
 
+/** 不含語系前綴的路徑是否已經翻譯完成，可以讓所有語系版本都被收錄 */
+export function isTranslatedPath(path: string): boolean {
+  return TRANSLATED_PATHS.includes(path);
+}
+
 /** 網址路徑在搜尋引擎眼中是否還沒翻譯完（只針對非預設語系的網址） */
 export function isUntranslatedPage(pathname: string): boolean {
   const [, first, ...rest] = pathname.split('/');
@@ -14,5 +19,5 @@ export function isUntranslatedPage(pathname: string): boolean {
   if (!locale || locale === DEFAULT_LOCALE) return false;
 
   const path = `/${rest.join('/')}`.replace(/\/$/, '') || '/';
-  return !TRANSLATED_PATHS.includes(path);
+  return !isTranslatedPath(path);
 }
