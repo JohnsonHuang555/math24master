@@ -622,6 +622,53 @@
     "LOOSE_CARDS_REMAINING": "散牌區還有 {count} 張牌，要放回牌組",
     "inSet": "第 {index} 組：{reason}"
   },
+  "QuickMath": {
+    "title": "心算快答",
+    "subtitle": "{count} 題連續快答 · 全球排行榜",
+    "chooseLevel": "選擇模式",
+    "levels": {
+      "basic": {
+        "label": "初階模式",
+        "short": "初階",
+        "tagline": "純四則運算 · 熟悉基本節奏"
+      },
+      "advanced": {
+        "label": "進階模式",
+        "short": "進階",
+        "tagline": "混入平方、階乘、根號 · 更燒腦"
+      }
+    },
+    "personalBest": "個人最佳",
+    "noRecord": "尚無紀錄",
+    "startTagline": "{count} 題連續快答 · {level}",
+    "startDescription": "每題一道算式，心算後輸入答案<br></br>難度逐題提升 · 答錯 +{penalty} 秒可重試",
+    "advancedNote": "題目會混入平方、階乘、根號",
+    "rankedByTime": "依總花費時間排名",
+    "start": "開始挑戰",
+    "changeLevel": "切換模式",
+    "completed": "挑戰完成 · {level}",
+    "finishTime": "{count} 題完成時間",
+    "penaltyIncluded": "含答錯罰時 <b>+{seconds} 秒</b>",
+    "flawless": "全程零失誤！",
+    "personalRecord": "個人最佳紀錄",
+    "playAgain": "再玩一次",
+    "penalty": "罰時",
+    "penaltyValue": "+{seconds} 秒",
+    "penaltyFlash": "{seconds} 秒",
+    "desktopTitle": "心算快答 · {level}",
+    "progress": "第 {current} / {total} 題",
+    "tryAgain": "再試一次",
+    "yourAnswer": "你的答案",
+    "enterAnswer": "輸入答案",
+    "submitHint": "<kbd>Enter</kbd> 送出",
+    "keyboardHint": "直接用鍵盤輸入數字 · <kbd>⌫</kbd> 刪除 · <kbd>Esc</kbd> 清除",
+    "keypad": "數字鍵盤",
+    "clearInput": "清除輸入",
+    "clear": "清除",
+    "submitAnswer": "送出答案",
+    "submit": "送出",
+    "correct": "答對！"
+  },
   "RoundHistory": {
     "title": "作答紀錄",
     "empty": "本局沒有作答紀錄",

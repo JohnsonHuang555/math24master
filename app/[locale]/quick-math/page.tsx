@@ -13,6 +13,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { GameDesktopBar } from '@/components/game/game-hud';
 import {
@@ -39,19 +40,10 @@ import { useStatsStore } from '@/stores/stats-store';
 
 const KEYPAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
+// 文案在 messages 的 QuickMath.levels
 const QUICK_MATH_MODE_CONFIG = [
-  {
-    value: 'basic' as const,
-    label: '初階模式',
-    tagline: '純四則運算 · 熟悉基本節奏',
-    glyph: '+−',
-  },
-  {
-    value: 'advanced' as const,
-    label: '進階模式',
-    tagline: '混入平方、階乘、根號 · 更燒腦',
-    glyph: 'x²',
-  },
+  { value: 'basic' as const, glyph: '+−' },
+  { value: 'advanced' as const, glyph: 'x²' },
 ] as const;
 
 // 數字鍵：平面加淺厚度，按下時下沉，觸控區 62px 高
@@ -59,6 +51,9 @@ const KEY_CLASS =
   'flex h-[62px] items-center justify-center rounded-[14px] border border-line-strong bg-surface font-display text-[30px] font-bold text-ink shadow-[0_3px_0_0_var(--line-strong)] transition-[translate,box-shadow] duration-[90ms] hover:bg-sunken active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--line-strong)] disabled:opacity-45';
 
 export default function QuickMathPage() {
+  const t = useTranslations('QuickMath');
+  const tHome = useTranslations('Home');
+  const tHud = useTranslations('GameUI.hud');
   const {
     gameState,
     mode,
@@ -190,21 +185,23 @@ export default function QuickMathPage() {
             <span className="flex-1" />
             <Link
               href={leaderboardHref('quickmath')}
-              aria-label="排行榜"
+              aria-label={tHome('leaderboard')}
               className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
             >
               <Trophy className="h-5 w-5" />
             </Link>
           </header>
           <div className="flex flex-col gap-1.5 pt-2">
-            <h1 className="text-[28px] font-black text-ink">心算快答</h1>
+            <h1 className="text-[28px] font-black text-ink">{t('title')}</h1>
             <p className="text-[15px] text-ink-2">
-              {TOTAL_QUESTIONS} 題連續快答 · 全球排行榜
+              {t('subtitle', { count: TOTAL_QUESTIONS })}
             </p>
           </div>
 
           <div className="flex flex-col gap-3 pt-5">
-            <span className="text-sm font-bold text-ink-2">選擇模式</span>
+            <span className="text-sm font-bold text-ink-2">
+              {t('chooseLevel')}
+            </span>
             {QUICK_MATH_MODE_CONFIG.map(cfg => {
               const best =
                 cfg.value === 'advanced'
@@ -226,9 +223,11 @@ export default function QuickMathPage() {
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <strong className="text-[19px] text-ink">
-                        {cfg.label}
+                        {t(`levels.${cfg.value}.label`)}
                       </strong>
-                      <span className="text-sm text-ink-2">{cfg.tagline}</span>
+                      <span className="text-sm text-ink-2">
+                        {t(`levels.${cfg.value}.tagline`)}
+                      </span>
                     </span>
                     <ChevronRight
                       aria-hidden
@@ -238,14 +237,16 @@ export default function QuickMathPage() {
                   {best > 0 ? (
                     <span className="flex items-center justify-between border-t border-line pt-2.5">
                       <span className="text-[13px] font-semibold text-ink-2">
-                        個人最佳
+                        {t('personalBest')}
                       </span>
                       <span className="font-display text-[22px] font-extrabold text-ink tabular-nums">
                         {formatTimePrecise(best)}
                       </span>
                     </span>
                   ) : (
-                    <span className="text-[13px] text-ink-2">尚無紀錄</span>
+                    <span className="text-[13px] text-ink-2">
+                      {t('noRecord')}
+                    </span>
                   )}
                 </button>
               );
@@ -256,38 +257,49 @@ export default function QuickMathPage() {
     );
   }
 
-  const modeLabel = mode === 'advanced' ? '進階' : '初階';
+  const modeLabel = t(
+    `levels.${mode === 'advanced' ? 'advanced' : 'basic'}.short`,
+  );
 
   // ── 開始畫面 ──
   if (gameState === 'idle') {
     return (
       <GameStartScreen
         icon={Calculator}
-        title="心算快答"
-        tagline={`${TOTAL_QUESTIONS} 題連續快答 · ${modeLabel}`}
+        title={t('title')}
+        tagline={t('startTagline', {
+          count: TOTAL_QUESTIONS,
+          level: modeLabel,
+        })}
         description={
           <>
-            每題一道算式，心算後輸入答案
-            <br />
-            難度逐題提升 · 答錯 +{WRONG_PENALTY_SECONDS} 秒可重試
+            {t.rich('startDescription', {
+              penalty: WRONG_PENALTY_SECONDS,
+              br: () => <br />,
+            })}
             {mode === 'advanced' && (
               <>
                 <br />
-                題目會混入平方、階乘、根號
+                {t('advancedNote')}
               </>
             )}
             <br />
-            依總花費時間排名
+            {t('rankedByTime')}
           </>
         }
         stats={
           bestSeconds > 0
-            ? [{ label: '個人最佳', value: formatTimePrecise(bestSeconds) }]
+            ? [
+                {
+                  label: t('personalBest'),
+                  value: formatTimePrecise(bestSeconds),
+                },
+              ]
             : undefined
         }
         onBack={changeMode}
         onStart={startGame}
-        startLabel="開始挑戰"
+        startLabel={t('start')}
       >
         <div className="mt-1 flex gap-1">
           <Button
@@ -297,7 +309,7 @@ export default function QuickMathPage() {
           >
             <Link href={leaderboardHref(leaderboardMode)}>
               <Trophy className="h-4 w-4" />
-              排行榜
+              {tHome('leaderboard')}
             </Link>
           </Button>
           <Button
@@ -306,7 +318,7 @@ export default function QuickMathPage() {
             onClick={changeMode}
           >
             <ArrowLeftRight className="h-4 w-4" />
-            切換模式
+            {t('changeLevel')}
           </Button>
         </div>
       </GameStartScreen>
@@ -372,30 +384,34 @@ export default function QuickMathPage() {
           }}
         />
         <GameResultScreen
-          eyebrow={`挑戰完成 · ${modeLabel}`}
-          label={`${TOTAL_QUESTIONS} 題完成時間`}
+          eyebrow={t('completed', { level: modeLabel })}
+          label={t('finishTime', { count: TOTAL_QUESTIONS })}
           value={finalSeconds !== null ? formatTimePrecise(finalSeconds) : '—'}
           badge={
             <span className="flex flex-col items-center gap-2">
               {penaltySeconds > 0 ? (
                 <span className="text-sm text-ink-2">
-                  含答錯罰時{' '}
-                  <b className="font-display font-extrabold text-danger-ink">
-                    +{penaltySeconds} 秒
-                  </b>
+                  {t.rich('penaltyIncluded', {
+                    seconds: penaltySeconds,
+                    b: chunks => (
+                      <b className="font-display font-extrabold text-danger-ink">
+                        {chunks}
+                      </b>
+                    ),
+                  })}
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-sm font-bold text-primary-ink">
                   <CircleCheck aria-hidden className="h-4 w-4" />
-                  全程零失誤！
+                  {t('flawless')}
                 </span>
               )}
-              {isBest && <RecordBadge>個人最佳紀錄</RecordBadge>}
+              {isBest && <RecordBadge>{t('personalRecord')}</RecordBadge>}
             </span>
           }
-          backLabel="切換模式"
+          backLabel={t('changeLevel')}
           onBack={changeMode}
-          retryLabel="再玩一次"
+          retryLabel={t('playAgain')}
           onRetry={() => {
             restart();
             startGame();
@@ -417,9 +433,9 @@ export default function QuickMathPage() {
         wrongFlash ? 'bg-danger text-white' : 'bg-danger-tint text-danger-ink',
       )}
     >
-      罰時
+      {t('penalty')}
       <span className="font-display text-[15px] lg:text-[17px]">
-        +{penaltySeconds} 秒
+        {t('penaltyValue', { seconds: penaltySeconds })}
       </span>
     </span>
   );
@@ -428,7 +444,7 @@ export default function QuickMathPage() {
     <div className="flex h-full flex-col">
       <GameDesktopBar
         className="hidden lg:flex"
-        title={`心算快答 · ${modeLabel}`}
+        title={t('desktopTitle', { level: modeLabel })}
         onExit={() => setShowLeaveConfirm(true)}
         center={
           <span className="flex items-center gap-2.5">
@@ -458,7 +474,7 @@ export default function QuickMathPage() {
               size="icon"
               className="h-11 w-11 shrink-0 text-ink"
               onClick={() => setShowLeaveConfirm(true)}
-              aria-label="離開"
+              aria-label={tHud('exit')}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -473,7 +489,10 @@ export default function QuickMathPage() {
 
           <div className="flex flex-col gap-1.5 px-4 pt-2 lg:gap-2 lg:px-0 lg:pt-0">
             <span className="text-[13px] font-bold text-ink-2 lg:text-sm">
-              第 {currentIndex + 1} / {TOTAL_QUESTIONS} 題
+              {t('progress', {
+                current: currentIndex + 1,
+                total: TOTAL_QUESTIONS,
+              })}
             </span>
             <div aria-hidden className="flex gap-1">
               {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => (
@@ -516,7 +535,7 @@ export default function QuickMathPage() {
                 >
                   <Plus aria-hidden className="h-4 w-4" />
                   <span className="font-display text-base font-extrabold">
-                    {WRONG_PENALTY_SECONDS} 秒
+                    {t('penaltyFlash', { seconds: WRONG_PENALTY_SECONDS })}
                   </span>
                 </motion.span>
               )}
@@ -533,11 +552,11 @@ export default function QuickMathPage() {
               <span className="font-display text-[40px] font-extrabold line-through decoration-[3px]">
                 {lastSubmitted}
               </span>
-              <span className="text-sm font-bold">再試一次</span>
+              <span className="text-sm font-bold">{t('tryAgain')}</span>
             </div>
           ) : (
             <div
-              aria-label="你的答案"
+              aria-label={t('yourAnswer')}
               className="relative mx-4 mt-3.5 flex h-[72px] items-center justify-center gap-0.5 rounded-[18px] border-2 border-primary bg-surface lg:mx-0 lg:mt-0 lg:h-[92px] lg:rounded-[22px] lg:border-[3px]"
             >
               {inputValue ? (
@@ -545,26 +564,28 @@ export default function QuickMathPage() {
                   {inputValue}
                 </span>
               ) : (
-                <span className="text-[15px] text-ink-2">輸入答案</span>
+                <span className="text-[15px] text-ink-2">
+                  {t('enterAnswer')}
+                </span>
               )}
               <span
                 aria-hidden
                 className="h-10 w-[3px] animate-pulse rounded-sm bg-primary motion-reduce:animate-none lg:h-[52px] lg:w-1"
               />
               <span className="absolute right-5 hidden items-center gap-1.5 text-[13px] text-ink-2 lg:flex">
-                <Kbd>Enter</Kbd> 送出
+                {t.rich('submitHint', { kbd: chunks => <Kbd>{chunks}</Kbd> })}
               </span>
             </div>
           )}
           <p className="hidden items-center justify-center gap-1.5 text-[13px] text-ink-2 lg:flex">
-            直接用鍵盤輸入數字 · <Kbd>⌫</Kbd> 刪除 · <Kbd>Esc</Kbd> 清除
+            {t.rich('keyboardHint', { kbd: chunks => <Kbd>{chunks}</Kbd> })}
           </p>
         </div>
 
         {/* 數字鍵盤：固定在底部，像原生計算機 */}
         <div className="mt-auto border-t border-line bg-sunken px-4 pt-3.5 pb-6 lg:mt-0 lg:w-[300px] lg:rounded-[22px] lg:border lg:p-[18px]">
           <div
-            aria-label="數字鍵盤"
+            aria-label={t('keypad')}
             className="grid grid-cols-3 gap-2 lg:gap-2.5"
           >
             {KEYPAD_DIGITS.map(digit => (
@@ -581,13 +602,13 @@ export default function QuickMathPage() {
               type="button"
               onClick={clearInput}
               disabled={inputValue === ''}
-              aria-label="清除輸入"
+              aria-label={t('clearInput')}
               className={cn(
                 KEY_CLASS,
                 'font-noto text-base font-bold text-ink-2',
               )}
             >
-              清除
+              {t('clear')}
             </button>
             <button
               type="button"
@@ -600,13 +621,13 @@ export default function QuickMathPage() {
               type="button"
               disabled={inputValue === ''}
               onClick={handleSubmit}
-              aria-label="送出答案"
+              aria-label={t('submitAnswer')}
               className={cn(
                 KEY_CLASS,
                 'border-primary-edge bg-primary font-noto text-xl font-extrabold text-primary-foreground shadow-[0_3px_0_0_var(--primary-edge)] hover:bg-primary',
               )}
             >
-              送出
+              {t('submit')}
             </button>
           </div>
         </div>

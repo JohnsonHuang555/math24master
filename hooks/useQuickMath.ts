@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
@@ -17,15 +18,12 @@ const COUNTDOWN_START = 3;
 const WRONG_FLASH_MS = 600;
 
 export type QuickMathState =
-  | 'mode-select'
-  | 'idle'
-  | 'countdown'
-  | 'playing'
-  | 'completed';
+  'mode-select' | 'idle' | 'countdown' | 'playing' | 'completed';
 
 const round10 = (x: number) => Math.round(x * 10) / 10;
 
 export function useQuickMath() {
+  const t = useTranslations('QuickMath');
   const [gameState, setGameState] = useState<QuickMathState>('mode-select');
   const [mode, setMode] = useState<QuickMathMode>('basic');
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
@@ -166,7 +164,7 @@ export function useQuickMath() {
     // 答對
     setInputValue('');
     // 快答節奏快，縮短顯示時間避免 toast 堆疊
-    toast.success('答對！', { duration: 1200 });
+    toast.success(t('correct'), { duration: 1200 });
     if (currentIndex + 1 < TOTAL_QUESTIONS) {
       playSound('correct');
       setCurrentIndex(currentIndex + 1);
@@ -181,7 +179,7 @@ export function useQuickMath() {
     setGameState('completed');
     playSound('gameOverWin');
     trackGameComplete('quick_math', { variant: mode });
-  }, [gameState, inputValue, questions, currentIndex, elapsedSeconds, mode]);
+  }, [gameState, inputValue, questions, currentIndex, elapsedSeconds, mode, t]);
 
   const restart = useCallback(() => {
     setGameState('idle');
