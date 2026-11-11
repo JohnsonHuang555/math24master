@@ -26,13 +26,16 @@ const useMatchPlay = () => {
   const tToast = useTranslations('GameUI.toast');
   // 引擎回傳錯誤代碼，在這裡翻成玩家的語言（見 docs/adr/0009）
   const errorText = useServerErrorText();
-  const [board, setBoard] = useState<MatchBoardState>();
+  // 第一次渲染就備好牌面：牌面元件只在點選模式後於瀏覽器端掛上，不會有 SSR 不一致；
+  // 若等 effect 才產生，牌會在掛上後才「進場」，開局時整片彈一下像重新產生
+  const [board, setBoard] = useState<MatchBoardState | undefined>(() =>
+    createInitialBoard(),
+  );
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
-    setBoard(createInitialBoard());
     trackGameStart('match');
   }, []);
 
