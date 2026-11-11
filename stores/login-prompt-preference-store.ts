@@ -6,12 +6,13 @@ type LoginPromptPreferenceStore = {
   setSkipLoginPrompt: (v: boolean) => void;
 };
 
-export const useLoginPromptPreferenceStore = create<LoginPromptPreferenceStore>()(
-  persist(
-    set => ({
-      skipLoginPrompt: false,
-      setSkipLoginPrompt: (v: boolean) => set({ skipLoginPrompt: v }),
-    }),
-    { name: 'login-prompt-preference' },
-  ),
-);
+export const useLoginPromptPreferenceStore =
+  create<LoginPromptPreferenceStore>()(
+    persist(
+      set => ({
+        skipLoginPrompt: false,
+        setSkipLoginPrompt: (v: boolean) => set({ skipLoginPrompt: v }),
+      }),
+      { name: 'login-prompt-preference' },
+    ),
+  );

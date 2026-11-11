@@ -15,6 +15,9 @@
     "start:socket": "cross-env NODE_ENV=production tsx server/index.ts",
     "test": "vitest",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "test:e2e": "playwright test",
     "i18n:zh-cn": "tsx scripts/generate-zh-cn.ts"
   },

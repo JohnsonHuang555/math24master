@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import { useGuestStore } from '@/stores/guest-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
 
@@ -25,7 +25,12 @@ export function PendingScoreSubmitter() {
 
     const body = hasGoogle
       ? { mode: pendingScore.mode, payload: pendingScore.payload }
-      : { mode: pendingScore.mode, payload: pendingScore.payload, guestId, guestName };
+      : {
+          mode: pendingScore.mode,
+          payload: pendingScore.payload,
+          guestId,
+          guestName,
+        };
 
     fetch('/api/leaderboard', {
       method: 'POST',

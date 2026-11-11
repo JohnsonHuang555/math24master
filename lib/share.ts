@@ -1,10 +1,6 @@
 /** 分享結果，可被各模式的結算畫面共用 */
 export type ShareOutcome =
-  | 'shared'
-  | 'copied'
-  | 'downloaded'
-  | 'cancelled'
-  | 'failed';
+  'shared' | 'copied' | 'downloaded' | 'cancelled' | 'failed';
 
 /**
  * 分享文字到系統分享選單（手機上可直接分享至 LINE / IG / Messenger 等 App）；

@@ -8,8 +8,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { BuzzerPlayerState } from '@/models/Room';
 import { NumberCard } from '@/models/Player';
+import { BuzzerPlayerState } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useMultiplePlay } from './multiple-play-provider';
@@ -72,13 +72,18 @@ const BuzzerPlayContext = createContext<BuzzerPlayContextType | null>(null);
 
 export function useBuzzerPlay() {
   const ctx = useContext(BuzzerPlayContext);
-  if (!ctx) throw new Error('useBuzzerPlay must be used inside BuzzerPlayProvider');
+  if (!ctx)
+    throw new Error('useBuzzerPlay must be used inside BuzzerPlayProvider');
   return ctx;
 }
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
-export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) {
+export function BuzzerPlayProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { socket, roomInfo } = useMultiplePlay();
 
   const [publicCards, setPublicCards] = useState<NumberCard[]>([]);
@@ -89,26 +94,41 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
 
   const [isBuzzerOpen, setIsBuzzerOpen] = useState(false);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
-  const [currentAnswerPlayerId, setCurrentAnswerPlayerId] = useState<string | null>(null);
+  const [currentAnswerPlayerId, setCurrentAnswerPlayerId] = useState<
+    string | null
+  >(null);
   const [answerSeconds, setAnswerSeconds] = useState(15);
   const [answerRemaining, setAnswerRemaining] = useState<number | null>(null);
 
-  const [playerStates, setPlayerStates] = useState<{ [id: string]: BuzzerPlayerState }>({});
+  const [playerStates, setPlayerStates] = useState<{
+    [id: string]: BuzzerPlayerState;
+  }>({});
   const [noSolutionVotes, setNoSolutionVotes] = useState<string[]>([]);
 
-  const [lastAnswerResult, setLastAnswerResult] = useState<BuzzerAnswerResultData | null>(null);
-  const [roundTimeoutNotification, setRoundTimeoutNotification] = useState<{ penaltyPoints: number } | null>(null);
-  const [answerSelectedCards, setAnswerSelectedCards] = useState<SelectedCard[]>([]);
+  const [lastAnswerResult, setLastAnswerResult] =
+    useState<BuzzerAnswerResultData | null>(null);
+  const [roundTimeoutNotification, setRoundTimeoutNotification] = useState<{
+    penaltyPoints: number;
+  } | null>(null);
+  const [answerSelectedCards, setAnswerSelectedCards] = useState<
+    SelectedCard[]
+  >([]);
 
   // client-side 倒數計時 refs
   const roundTickRef = useRef<NodeJS.Timeout | null>(null);
   const answerTickRef = useRef<NodeJS.Timeout | null>(null);
 
   const _clearRoundTick = () => {
-    if (roundTickRef.current) { clearInterval(roundTickRef.current); roundTickRef.current = null; }
+    if (roundTickRef.current) {
+      clearInterval(roundTickRef.current);
+      roundTickRef.current = null;
+    }
   };
   const _clearAnswerTick = () => {
-    if (answerTickRef.current) { clearInterval(answerTickRef.current); answerTickRef.current = null; }
+    if (answerTickRef.current) {
+      clearInterval(answerTickRef.current);
+      answerTickRef.current = null;
+    }
   };
 
   const _startRoundTick = (remaining: number) => {
@@ -117,7 +137,10 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
     if (remaining <= 0) return;
     roundTickRef.current = setInterval(() => {
       setRoundRemaining(prev => {
-        if (prev === null || prev <= 1) { _clearRoundTick(); return 0; }
+        if (prev === null || prev <= 1) {
+          _clearRoundTick();
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
@@ -128,7 +151,10 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
     setAnswerRemaining(seconds);
     answerTickRef.current = setInterval(() => {
       setAnswerRemaining(prev => {
-        if (prev === null || prev <= 1) { _clearAnswerTick(); return 0; }
+        if (prev === null || prev <= 1) {
+          _clearAnswerTick();
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
@@ -137,22 +163,25 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on(SocketEvent.BuzzerRoundStart, ({ publicCards: cards, roundNumber: num, roundSeconds: secs }) => {
-      setPublicCards(cards);
-      setRoundNumber(num);
-      setRoundSeconds(secs);
-      setRoundRemaining(secs);
-      setRoundTimerPaused(false);
-      setIsBuzzerOpen(false);
-      setCountdownValue(null);
-      setCurrentAnswerPlayerId(null);
-      setAnswerRemaining(null);
-      setNoSolutionVotes([]);
-      setLastAnswerResult(null);
-      setAnswerSelectedCards([]);
-      _clearRoundTick();
-      _clearAnswerTick();
-    });
+    socket.on(
+      SocketEvent.BuzzerRoundStart,
+      ({ publicCards: cards, roundNumber: num, roundSeconds: secs }) => {
+        setPublicCards(cards);
+        setRoundNumber(num);
+        setRoundSeconds(secs);
+        setRoundRemaining(secs);
+        setRoundTimerPaused(false);
+        setIsBuzzerOpen(false);
+        setCountdownValue(null);
+        setCurrentAnswerPlayerId(null);
+        setAnswerRemaining(null);
+        setNoSolutionVotes([]);
+        setLastAnswerResult(null);
+        setAnswerSelectedCards([]);
+        _clearRoundTick();
+        _clearAnswerTick();
+      },
+    );
 
     socket.on(SocketEvent.BuzzerCountdown, ({ countdown }) => {
       setCountdownValue(countdown);
@@ -163,16 +192,23 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
       setIsBuzzerOpen(true);
     });
 
-    socket.on(SocketEvent.BuzzerBuzzInSuccess, ({ playerId, answerSeconds: secs }) => {
-      setCurrentAnswerPlayerId(playerId);
-      setAnswerSeconds(secs);
-      _startAnswerTick(secs);
-    });
+    socket.on(
+      SocketEvent.BuzzerBuzzInSuccess,
+      ({ playerId, answerSeconds: secs }) => {
+        setCurrentAnswerPlayerId(playerId);
+        setAnswerSeconds(secs);
+        _startAnswerTick(secs);
+      },
+    );
 
     socket.on(SocketEvent.BuzzerRoundTimerPaused, ({ elapsedSeconds }) => {
       setRoundTimerPaused(true);
       _clearRoundTick();
-      setRoundRemaining(prev => (prev !== null && roundSeconds !== null ? roundSeconds - elapsedSeconds : prev));
+      setRoundRemaining(prev =>
+        prev !== null && roundSeconds !== null
+          ? roundSeconds - elapsedSeconds
+          : prev,
+      );
     });
 
     socket.on(SocketEvent.BuzzerRoundTimerResumed, ({ remainingSeconds }) => {
@@ -184,35 +220,50 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
       _startRoundTick(remainingSeconds);
     });
 
-    socket.on(SocketEvent.BuzzerAnswerResult, (data: BuzzerAnswerResultData) => {
-      setLastAnswerResult(data);
-      setAnswerSelectedCards([]);
-      _clearAnswerTick();
-      setAnswerRemaining(null);
+    socket.on(
+      SocketEvent.BuzzerAnswerResult,
+      (data: BuzzerAnswerResultData) => {
+        setLastAnswerResult(data);
+        setAnswerSelectedCards([]);
+        _clearAnswerTick();
+        setAnswerRemaining(null);
 
-      // 更新 playerStates 中的 streak
-      setPlayerStates(prev => ({
-        ...prev,
-        [data.playerId]: {
-          ...(prev[data.playerId] ?? { isLocked: false, lockUntil: null, streak: 0 }),
-          streak: data.isCorrect ? data.streak : 0,
-        },
-      }));
+        // 更新 playerStates 中的 streak
+        setPlayerStates(prev => ({
+          ...prev,
+          [data.playerId]: {
+            ...(prev[data.playerId] ?? {
+              isLocked: false,
+              lockUntil: null,
+              streak: 0,
+            }),
+            streak: data.isCorrect ? data.streak : 0,
+          },
+        }));
 
-      setTimeout(() => setLastAnswerResult(null), 3000);
-    });
+        setTimeout(() => setLastAnswerResult(null), 3000);
+      },
+    );
 
     socket.on(SocketEvent.BuzzerPlayerLocked, ({ playerId, lockUntil }) => {
       setPlayerStates(prev => ({
         ...prev,
-        [playerId]: { ...(prev[playerId] ?? { streak: 0 }), isLocked: true, lockUntil },
+        [playerId]: {
+          ...(prev[playerId] ?? { streak: 0 }),
+          isLocked: true,
+          lockUntil,
+        },
       }));
     });
 
     socket.on(SocketEvent.BuzzerPlayerUnlocked, ({ playerId }) => {
       setPlayerStates(prev => ({
         ...prev,
-        [playerId]: { ...(prev[playerId] ?? { streak: 0, lockUntil: null }), isLocked: false, lockUntil: null },
+        [playerId]: {
+          ...(prev[playerId] ?? { streak: 0, lockUntil: null }),
+          isLocked: false,
+          lockUntil: null,
+        },
       }));
     });
 
@@ -227,14 +278,17 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
       _clearAnswerTick();
     });
 
-    socket.on(SocketEvent.BuzzerRoundTimeout, ({ penaltyPoints }: { penaltyPoints: number; players: unknown[] }) => {
-      _clearRoundTick();
-      setRoundRemaining(0);
-      if (penaltyPoints > 0) {
-        setRoundTimeoutNotification({ penaltyPoints });
-        setTimeout(() => setRoundTimeoutNotification(null), 3000);
-      }
-    });
+    socket.on(
+      SocketEvent.BuzzerRoundTimeout,
+      ({ penaltyPoints }: { penaltyPoints: number; players: unknown[] }) => {
+        _clearRoundTick();
+        setRoundRemaining(0);
+        if (penaltyPoints > 0) {
+          setRoundTimeoutNotification({ penaltyPoints });
+          setTimeout(() => setRoundTimeoutNotification(null), 3000);
+        }
+      },
+    );
 
     socket.on(SocketEvent.BuzzerSelectionUpdate, ({ selectedCards }) => {
       setAnswerSelectedCards(selectedCards);
@@ -268,45 +322,62 @@ export function BuzzerPlayProvider({ children }: { children: React.ReactNode }) 
     }
   }, [roomInfo?.buzzerState?.playerStates]);
 
-  const buzzIn = useCallback((roomId: string) => {
-    socket?.emit(SocketEvent.BuzzerBuzzIn, { roomId });
-  }, [socket]);
+  const buzzIn = useCallback(
+    (roomId: string) => {
+      socket?.emit(SocketEvent.BuzzerBuzzIn, { roomId });
+    },
+    [socket],
+  );
 
-  const submitAnswer = useCallback((roomId: string, selectedCards: SelectedCard[]) => {
-    socket?.emit(SocketEvent.BuzzerSubmitAnswer, { roomId, selectedCards });
-  }, [socket]);
+  const submitAnswer = useCallback(
+    (roomId: string, selectedCards: SelectedCard[]) => {
+      socket?.emit(SocketEvent.BuzzerSubmitAnswer, { roomId, selectedCards });
+    },
+    [socket],
+  );
 
-  const voteNoSolution = useCallback((roomId: string) => {
-    socket?.emit(SocketEvent.BuzzerVoteNoSolution, { roomId });
-  }, [socket]);
+  const voteNoSolution = useCallback(
+    (roomId: string) => {
+      socket?.emit(SocketEvent.BuzzerVoteNoSolution, { roomId });
+    },
+    [socket],
+  );
 
-  const updateSelection = useCallback((roomId: string, selectedCards: SelectedCard[]) => {
-    socket?.emit(SocketEvent.BuzzerSelectionUpdate, { roomId, selectedCards });
-  }, [socket]);
+  const updateSelection = useCallback(
+    (roomId: string, selectedCards: SelectedCard[]) => {
+      socket?.emit(SocketEvent.BuzzerSelectionUpdate, {
+        roomId,
+        selectedCards,
+      });
+    },
+    [socket],
+  );
 
   return (
-    <BuzzerPlayContext.Provider value={{
-      publicCards,
-      roundNumber,
-      roundSeconds,
-      roundRemaining,
-      roundTimerPaused,
-      isBuzzerOpen,
-      countdownValue,
-      currentAnswerPlayerId,
-      answerSeconds,
-      answerRemaining,
-      playerStates,
-      noSolutionVotes,
-      totalPlayers: roomInfo?.players.length ?? 0,
-      lastAnswerResult,
-      roundTimeoutNotification,
-      answerSelectedCards,
-      buzzIn,
-      submitAnswer,
-      voteNoSolution,
-      updateSelection,
-    }}>
+    <BuzzerPlayContext.Provider
+      value={{
+        publicCards,
+        roundNumber,
+        roundSeconds,
+        roundRemaining,
+        roundTimerPaused,
+        isBuzzerOpen,
+        countdownValue,
+        currentAnswerPlayerId,
+        answerSeconds,
+        answerRemaining,
+        playerStates,
+        noSolutionVotes,
+        totalPlayers: roomInfo?.players.length ?? 0,
+        lastAnswerResult,
+        roundTimeoutNotification,
+        answerSelectedCards,
+        buzzIn,
+        submitAnswer,
+        voteNoSolution,
+        updateSelection,
+      }}
+    >
       {children}
     </BuzzerPlayContext.Provider>
   );

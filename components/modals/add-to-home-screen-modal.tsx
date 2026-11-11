@@ -90,7 +90,7 @@ export function AddToHomeScreenModal({
           />
           <label
             htmlFor="dont-remind-a2hs"
-            className="cursor-pointer select-none text-sm text-muted-foreground"
+            className="cursor-pointer text-sm text-muted-foreground select-none"
           >
             {tCommon('dontRemindAgain')}
           </label>

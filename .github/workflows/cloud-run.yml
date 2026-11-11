@@ -19,21 +19,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: code checkout
+        uses: actions/checkout@v2
 
-    - name: code checkout
-      uses: actions/checkout@v2
+      - name: install the gcloud cli
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: ${{ secrets.GOOGLE_PROJECT }}
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          export_default_credentials: true
 
-    - name: install the gcloud cli
-      uses: google-github-actions/setup-gcloud@v0
-      with:
-        project_id: ${{ secrets.GOOGLE_PROJECT }}
-        service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-        export_default_credentials: true
-
-    - name: build and push the docker image
-      env:
-        GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-      run: |
-        gcloud auth configure-docker asia-east1-docker.pkg.dev
-        docker build -t asia-east1-docker.pkg.dev/$GOOGLE_PROJECT/prod/webapp:latest .
-        docker push asia-east1-docker.pkg.dev/$GOOGLE_PROJECT/prod/webapp:latest
+      - name: build and push the docker image
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+        run: |
+          gcloud auth configure-docker asia-east1-docker.pkg.dev
+          docker build -t asia-east1-docker.pkg.dev/$GOOGLE_PROJECT/prod/webapp:latest .
+          docker push asia-east1-docker.pkg.dev/$GOOGLE_PROJECT/prod/webapp:latest

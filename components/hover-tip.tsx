@@ -20,7 +20,9 @@ const HoverTip = ({ children, content, notPointer }: HoverTipProps) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn('inline-flex', notPointer && 'cursor-auto')}>{children}</span>
+          <span className={cn('inline-flex', notPointer && 'cursor-auto')}>
+            {children}
+          </span>
         </TooltipTrigger>
         <TooltipContent>{content}</TooltipContent>
       </Tooltip>

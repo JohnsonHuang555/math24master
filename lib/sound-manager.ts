@@ -1,12 +1,7 @@
 import { useSoundStore } from '@/stores/sound-store';
 
 export type SoundType =
-  | 'select'
-  | 'correct'
-  | 'wrong'
-  | 'skip'
-  | 'gameOverWin'
-  | 'gameOverEnd';
+  'select' | 'correct' | 'wrong' | 'skip' | 'gameOverWin' | 'gameOverEnd';
 
 let _audioContext: AudioContext | null = null;
 

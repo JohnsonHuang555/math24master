@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { type Browser, type Page, expect, test } from '@playwright/test';
 import { enterFormula, readCardValues } from './helpers/play';
 import { solve24 } from './helpers/solver';
 

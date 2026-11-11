@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { calcRoundScore } from './scoring';
-import { Symbol } from '@/models/Symbol';
 import type { SelectedCard } from '@/models/SelectedCard';
+import { Symbol } from '@/models/Symbol';
+import { calcRoundScore } from './scoring';
 
 const sym = (symbol: Symbol): SelectedCard => ({ symbol });
 
@@ -26,16 +26,12 @@ describe('calcRoundScore', () => {
 
   it('2× gives +1 bonus', () => {
     // 2 × = 2+2+1 = 5
-    expect(
-      calcRoundScore([sym(Symbol.Times), sym(Symbol.Times)]),
-    ).toBe(5);
+    expect(calcRoundScore([sym(Symbol.Times), sym(Symbol.Times)])).toBe(5);
   });
 
   it('2÷ gives +1 bonus', () => {
     // 2 ÷ = 3+3+1 = 7
-    expect(
-      calcRoundScore([sym(Symbol.Divide), sym(Symbol.Divide)]),
-    ).toBe(7);
+    expect(calcRoundScore([sym(Symbol.Divide), sym(Symbol.Divide)])).toBe(7);
   });
 
   it('2× and 2÷ give independent bonuses', () => {
@@ -58,8 +54,6 @@ describe('calcRoundScore', () => {
   });
 
   it('ignores bracket symbols', () => {
-    expect(
-      calcRoundScore([sym(Symbol.LeftBracket), sym(Symbol.Plus)]),
-    ).toBe(1);
+    expect(calcRoundScore([sym(Symbol.LeftBracket), sym(Symbol.Plus)])).toBe(1);
   });
 });

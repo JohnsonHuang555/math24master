@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { ArrowLeft, Trophy } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,7 +25,12 @@ type LoginPromptModalProps = {
   onSkipForever: () => void;
 };
 
-export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: LoginPromptModalProps) {
+export function LoginPromptModal({
+  isOpen,
+  onClose,
+  onSkip,
+  onSkipForever,
+}: LoginPromptModalProps) {
   const [view, setView] = useState<View>('choose');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +68,7 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
         {view === 'choose' && (
           <>
             <DialogHeader>
-              <div className="flex items-center justify-center mb-2">
+              <div className="mb-2 flex items-center justify-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
                   <Trophy className="h-6 w-6 text-amber-500" />
                 </div>
@@ -90,7 +95,7 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                 {tCommon('guestLogin')}
               </Button>
             </div>
-            <div className="flex justify-center items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Checkbox
                 id="dont-remind"
                 checked={dontRemind}
@@ -98,7 +103,7 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
               />
               <label
                 htmlFor="dont-remind"
-                className="text-sm text-muted-foreground cursor-pointer select-none"
+                className="cursor-pointer text-sm text-muted-foreground select-none"
               >
                 {tCommon('dontRemindAgain')}
               </label>
@@ -123,7 +128,10 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => { setView('choose'); setName(''); }}
+                  onClick={() => {
+                    setView('choose');
+                    setName('');
+                  }}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -144,11 +152,17 @@ export function LoginPromptModal({ isOpen, onClose, onSkip, onSkipForever }: Log
             <DialogFooter>
               <Button
                 variant="secondary"
-                onClick={() => { setView('choose'); setName(''); }}
+                onClick={() => {
+                  setView('choose');
+                  setName('');
+                }}
               >
                 {tCommon('back')}
               </Button>
-              <Button onClick={handleGuestConfirm} disabled={trimmed.length < 2}>
+              <Button
+                onClick={handleGuestConfirm}
+                disabled={trimmed.length < 2}
+              >
                 {tCommon('confirm')}
               </Button>
             </DialogFooter>

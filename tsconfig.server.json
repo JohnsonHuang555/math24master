@@ -6,7 +6,7 @@
     "isolatedModules": false,
     "noEmit": false,
     "experimentalDecorators": true,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": false
   },
   "ts-node": {
     "esm": true
