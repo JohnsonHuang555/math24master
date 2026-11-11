@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, CircleCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type Solution } from '@/lib/daily-seed';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ export function SolutionsPanel({
   userFormula,
 }: SolutionsPanelProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Daily.solutions');
   const [isOpen, setIsOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -43,13 +45,14 @@ export function SolutionsPanel({
         aria-expanded={isOpen}
       >
         <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary-tint px-2 text-xs font-bold text-primary-ink">
-          <CircleCheck aria-hidden className="h-3.5 w-3.5" />第 {round} 題
+          <CircleCheck aria-hidden className="h-3.5 w-3.5" />
+          {t('puzzle', { round })}
         </span>
         <span className="flex-1 font-display text-lg font-bold text-ink">
           {numbers.join(' · ')}
         </span>
         <span className="shrink-0 text-xs text-ink-2">
-          {isUnique ? '唯一解法' : `${solutions.length} 種解法`}
+          {isUnique ? t('unique') : t('count', { count: solutions.length })}
         </span>
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
@@ -88,12 +91,12 @@ export function SolutionsPanel({
                       </span>
                       {isUser && (
                         <span className="text-xs font-bold text-primary-ink">
-                          你的解法
+                          {t('yours')}
                         </span>
                       )}
                     </span>
                     <span className="shrink-0 text-xs font-semibold text-ink-2">
-                      {s.score} 分
+                      {t('points', { score: s.score })}
                     </span>
                   </li>
                 );
@@ -105,7 +108,7 @@ export function SolutionsPanel({
                     className="h-11 w-full rounded-xl text-sm font-bold text-primary-ink hover:bg-primary-tint"
                     onClick={() => setShowAll(true)}
                   >
-                    查看全部 {solutions.length} 種解法
+                    {t('showAll', { count: solutions.length })}
                   </button>
                 </li>
               )}
