@@ -622,6 +622,53 @@
     "LOOSE_CARDS_REMAINING": "{count, plural, one {# loose card needs} other {# loose cards need}} to go back into a set",
     "inSet": "Set {index}: {reason}"
   },
+  "QuickMath": {
+    "title": "Quick Math",
+    "subtitle": "{count} questions in a row · Global leaderboard",
+    "chooseLevel": "Choose a level",
+    "levels": {
+      "basic": {
+        "label": "Basic",
+        "short": "Basic",
+        "tagline": "Arithmetic only · Find your rhythm"
+      },
+      "advanced": {
+        "label": "Advanced",
+        "short": "Advanced",
+        "tagline": "Adds squares, factorials and roots · Tougher"
+      }
+    },
+    "personalBest": "Personal best",
+    "noRecord": "No record yet",
+    "startTagline": "{count} questions in a row · {level}",
+    "startDescription": "Solve each equation in your head and type the answer<br></br>Questions get harder · A wrong answer adds {penalty}s, then try again",
+    "advancedNote": "Includes squares, factorials and roots",
+    "rankedByTime": "Ranked by total time",
+    "start": "Start",
+    "changeLevel": "Change level",
+    "completed": "Complete · {level}",
+    "finishTime": "Time for {count} questions",
+    "penaltyIncluded": "Includes a <b>+{seconds}s</b> penalty",
+    "flawless": "Flawless run!",
+    "personalRecord": "Personal best!",
+    "playAgain": "Play again",
+    "penalty": "Penalty",
+    "penaltyValue": "+{seconds}s",
+    "penaltyFlash": "{seconds}s",
+    "desktopTitle": "Quick Math · {level}",
+    "progress": "Question {current} of {total}",
+    "tryAgain": "Try again",
+    "yourAnswer": "Your answer",
+    "enterAnswer": "Type your answer",
+    "submitHint": "<kbd>Enter</kbd> Submit",
+    "keyboardHint": "Type numbers on your keyboard · <kbd>⌫</kbd> Delete · <kbd>Esc</kbd> Clear",
+    "keypad": "Number pad",
+    "clearInput": "Clear input",
+    "clear": "Clear",
+    "submitAnswer": "Submit answer",
+    "submit": "Submit",
+    "correct": "Correct!"
+  },
   "RoundHistory": {
     "title": "Answer history",
     "empty": "No answers this game",
