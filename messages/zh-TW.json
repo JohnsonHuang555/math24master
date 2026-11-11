@@ -149,6 +149,7 @@
     },
     "puzzle": {
       "placeholder": "點選數字和符號組成算式...",
+      "submit": "確認",
       "clearSelection": "清除所選取的牌",
       "clear": "清除",
       "undoStep": "倒退一步",
@@ -442,6 +443,28 @@
       "sixHands": "六手戰績",
       "cta": "來 Math24Master 挑戰看看"
     }
+  },
+  "Challenge": {
+    "startDescription": "答對加時遞減 · 連續跳過懲罰加重",
+    "bestStage": "最高關卡",
+    "bestScore": "最高分",
+    "stage": "第 {stage} 關",
+    "points": "{score} 分",
+    "hudPoints": "<b>{score}</b> 分",
+    "endedEarly": "提前結算！",
+    "timeUp": "時間到！",
+    "finalStage": "最終關卡",
+    "newRecord": "新紀錄！",
+    "totalScore": "總分",
+    "personalBest": "個人最佳",
+    "backToMenu": "返回選單",
+    "retry": "再挑戰",
+    "endEarly": "提前結算",
+    "endEarlyTitle": "確定要提前結算？",
+    "endEarlyDescription": "提前結算後遊戲將立即結束，計分以目前關卡為準。",
+    "endNow": "結算",
+    "correct": "答對！+{score}pt +{bonus}秒",
+    "wrongAnswer": "答案 {answer} 不等於 24"
   },
   "RoundHistory": {
     "title": "作答紀錄",

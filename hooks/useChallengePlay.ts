@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useTimer } from '@/hooks/useTimer';
 import { unlockAchievement } from '@/lib/achievement-manager';
@@ -65,6 +66,8 @@ function generateNextPuzzle(nextStage: number): NumberCard[] {
 }
 
 export function useChallengePlay() {
+  const t = useTranslations('Challenge');
+  const tError = useTranslations('ServerError');
   const [status, setStatus] = useState<ChallengePlayStatus>('idle');
   const [finishReason, setFinishReason] =
     useState<ChallengeFinishReason>('timeout');
@@ -193,12 +196,12 @@ export function useChallengePlay() {
     try {
       answer = calculateAnswer(selectedCards);
     } catch {
-      toast.error('算式有誤');
+      toast.error(tError('INVALID_EQUATION'));
       return;
     }
 
     if (Math.abs(answer - 24) > 1e-9) {
-      toast.error(`答案 ${answer} 不等於 24`);
+      toast.error(t('wrongAnswer', { answer }));
       return;
     }
 
@@ -206,7 +209,7 @@ export function useChallengePlay() {
     const symbolCards = selectedCards.filter(c => c.symbol);
     const roundScore = calcRoundScore(symbolCards);
     const bonus = getStageBonus(stageRef.current);
-    toast.success(`答對！+${roundScore}pt +${bonus}秒`);
+    toast.success(t('correct', { score: roundScore, bonus }));
     setTotalScore(prev => prev + roundScore);
     setSelectedCards([]);
     addSeconds(bonus);
@@ -217,7 +220,7 @@ export function useChallengePlay() {
       setCurrentNumbers(generateNextPuzzle(next));
       return next;
     });
-  }, [selectedCards, addSeconds]);
+  }, [selectedCards, addSeconds, t, tError]);
 
   const skipPuzzle = useCallback((): number => {
     // 跳過扣時（懲罰遞增）、不計關數，只換一組新牌

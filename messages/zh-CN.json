@@ -149,6 +149,7 @@
     },
     "puzzle": {
       "placeholder": "点击数字和符号组成算式...",
+      "submit": "确认",
       "clearSelection": "清除所选取的牌",
       "clear": "清除",
       "undoStep": "倒退一步",
@@ -442,6 +443,28 @@
       "sixHands": "六手战绩",
       "cta": "来 Math24Master 挑战看看"
     }
+  },
+  "Challenge": {
+    "startDescription": "答对加时递减 · 连续跳过惩罚加重",
+    "bestStage": "最高关卡",
+    "bestScore": "最高分",
+    "stage": "第 {stage} 关",
+    "points": "{score} 分",
+    "hudPoints": "<b>{score}</b> 分",
+    "endedEarly": "提前结算！",
+    "timeUp": "时间到！",
+    "finalStage": "最终关卡",
+    "newRecord": "新纪录！",
+    "totalScore": "总分",
+    "personalBest": "个人最佳",
+    "backToMenu": "返回菜单",
+    "retry": "再挑战",
+    "endEarly": "提前结算",
+    "endEarlyTitle": "确定要提前结算？",
+    "endEarlyDescription": "提前结算后游戏将立即结束，计分以目前关卡为准。",
+    "endNow": "结算",
+    "correct": "答对！+{score}pt +{bonus}秒",
+    "wrongAnswer": "答案 {answer} 不等于 24"
   },
   "RoundHistory": {
     "title": "作答纪录",
