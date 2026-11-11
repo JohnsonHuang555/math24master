@@ -910,6 +910,8 @@
     }
   },
   "Multiplayer": {
+    "title": "Multiplayer",
+    "subtitle": "Get matched with other players or invite your friends",
     "quickMatch": {
       "title": "Quick Match",
       "description": "Get matched with real players in {seconds} seconds. Bots fill any empty seats so you can play right away.",
