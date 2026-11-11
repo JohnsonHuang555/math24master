@@ -59,7 +59,7 @@ export default function MatchPlayGame({
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { clearPendingScore } = usePendingScoreStore();
   const { skipLoginPrompt, setSkipLoginPrompt } =
     useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
@@ -123,8 +123,7 @@ export default function MatchPlayGame({
 
   const leaderboardSubmit = useLeaderboardSubmit(
     'match',
-    isAuthenticated && isCleared ? { score } : null,
-    isAuthenticated && isCleared,
+    isCleared ? { score } : null,
   );
 
   useEffect(() => {
@@ -136,7 +135,6 @@ export default function MatchPlayGame({
       score <= 0
     )
       return;
-    setPendingScore({ mode: 'match', payload: { score } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isCleared, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps

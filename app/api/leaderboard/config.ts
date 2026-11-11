@@ -67,3 +67,85 @@ export function hasZeroScore(mode: Mode, data: Record<string, unknown>) {
   const zeroField = ZERO_FILTER_FIELD[mode];
   return !!zeroField && Number(data[zeroField] ?? 0) === 0;
 }
+
+function isQuickMathMode(mode: Mode): boolean {
+  return mode === 'quickmath' || mode === 'quickmath_advanced';
+}
+
+/**
+ * 時間合理性檢查（見 docs/adr/0011）。門檻刻意放寬，只擋物理上不可能的成績，
+ * 不要誤擋手速很快的真人玩家：
+ * - 經典：每拿下一手至少要幾秒（組算式 + 計分動畫約 1.5 秒），一手最多 11 分
+ * - 挑戰：每過一關至少要幾秒；隨時可以提前結算，所以第 1 關不限時間
+ * - 消消樂、牌桌：有得分就至少要玩幾秒
+ * - 快答：回報的完成時間不能比 server 看到的實際經過時間還長（容許少量時鐘誤差）
+ */
+export const MIN_SECONDS = {
+  classicPerHand: 3,
+  classicPointsPerHand: 11,
+  challengePerStage: 1.5,
+  match: 8,
+  tabletop: 10,
+  quickMathClockTolerance: 3,
+} as const;
+
+export type ResultCheck =
+  | { ok: true; payload: Record<string, number> }
+  | { ok: false; reason: 'invalid_score' | 'too_fast' };
+
+/** 檢查一局的成績：數值範圍，以及開局到結束的實際經過時間是否合理 */
+export function checkResult(
+  mode: Mode,
+  payload: Record<string, unknown>,
+  elapsedSeconds: number,
+): ResultCheck {
+  const invalid = { ok: false, reason: 'invalid_score' } as const;
+  const tooFast = { ok: false, reason: 'too_fast' } as const;
+
+  if (mode === 'challenge') {
+    if (typeof payload.stage !== 'number') return invalid;
+    const stage = payload.stage;
+    const totalScore = Number(payload.totalScore ?? 0);
+    if (!Number.isInteger(stage) || stage < 1 || stage > 500) return invalid;
+    if (!Number.isFinite(totalScore) || totalScore < 0) return invalid;
+    if (elapsedSeconds < (stage - 1) * MIN_SECONDS.challengePerStage) {
+      return tooFast;
+    }
+    return { ok: true, payload: { stage, totalScore } };
+  }
+
+  if (isQuickMathMode(mode)) {
+    const seconds = payload.seconds;
+    if (
+      typeof seconds !== 'number' ||
+      !Number.isFinite(seconds) ||
+      seconds < 10 ||
+      seconds > 300
+    ) {
+      return invalid;
+    }
+    if (seconds > elapsedSeconds + MIN_SECONDS.quickMathClockTolerance) {
+      return tooFast;
+    }
+    return { ok: true, payload: { seconds: Math.round(seconds * 10) / 10 } };
+  }
+
+  // 以單一 score 比高低的模式（經典、消消樂、牌桌）
+  const score = payload.score;
+  const max = SCORE_MAX[mode];
+  if (max === undefined) return invalid;
+  // 各模式的分數都是整數
+  if (typeof score !== 'number' || !Number.isInteger(score)) return invalid;
+  if (score < 0 || score > max) return invalid;
+  if (score > 0) {
+    const minSeconds =
+      mode === 'classic'
+        ? Math.ceil(score / MIN_SECONDS.classicPointsPerHand) *
+          MIN_SECONDS.classicPerHand
+        : mode === 'match'
+          ? MIN_SECONDS.match
+          : MIN_SECONDS.tabletop;
+    if (elapsedSeconds < minSeconds) return tooFast;
+  }
+  return { ok: true, payload: { score } };
+}

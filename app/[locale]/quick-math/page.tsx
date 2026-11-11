@@ -88,7 +88,7 @@ export default function QuickMathPage() {
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { clearPendingScore } = usePendingScoreStore();
   const { skipLoginPrompt, setSkipLoginPrompt } =
     useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
@@ -131,10 +131,7 @@ export default function QuickMathPage() {
   // 完賽：已登入直接提交排行榜
   const leaderboardSubmit = useLeaderboardSubmit(
     leaderboardMode,
-    justFinished && isAuthenticated && finalSeconds !== null
-      ? { seconds: finalSeconds }
-      : null,
-    justFinished && isAuthenticated && finalSeconds !== null,
+    justFinished && finalSeconds !== null ? { seconds: finalSeconds } : null,
   );
 
   // 完賽：未登入暫存成績並提示登入
@@ -147,10 +144,6 @@ export default function QuickMathPage() {
     )
       return;
     if (finalSeconds === null) return;
-    setPendingScore({
-      mode: leaderboardMode,
-      payload: { seconds: finalSeconds },
-    });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [justFinished, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps

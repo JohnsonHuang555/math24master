@@ -12,6 +12,8 @@ import {
   isScoreMode,
   isValidMode,
 } from './config';
+import { checkRateLimit, clientKey, markReceiptSubmitted } from './guard';
+import { verifyReceiptToken } from './token';
 
 // quickmath 與 quickmath_advanced 除了寫入的 collection 不同外，
 // 驗證/排序/覆寫規則完全相同（詳見 CONTEXT.md 的 Mode 定義）
@@ -64,9 +66,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
 
   const body = await req.json();
-  const { mode, payload, guestId, guestName } = body as {
+  const { mode, receipt, guestId, guestName } = body as {
     mode: Mode;
-    payload: Record<string, unknown>;
+    receipt?: string;
     guestId?: string;
     guestName?: string;
   };
@@ -105,27 +107,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid mode' }, { status: 400 });
   }
 
-  // Sanity checks
-  if (mode === 'challenge') {
-    const stage = Number(payload.stage);
-    if (!Number.isFinite(stage) || stage < 1 || stage > 500) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
+  if (!(await checkRateLimit(clientKey(req), 'submit'))) {
+    return NextResponse.json({ error: 'too many requests' }, { status: 429 });
   }
-  // 以分數比高低的模式（經典、消消樂、牌桌）：分數必須落在 0～單局理論上限之間
-  if (isScoreMode(mode)) {
-    const score = Number(payload.score);
-    if (!Number.isFinite(score) || score < 0 || score > SCORE_MAX[mode]!) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
+
+  // 只接受結算時簽發的成績收據；成績範圍與時間已在 /finish 檢查過（見 docs/adr/0011）
+  const verified = verifyReceiptToken(receipt, mode);
+  if (!verified) {
+    return NextResponse.json({ error: 'invalid receipt' }, { status: 401 });
   }
-  if (isQuickMathMode(mode)) {
-    const seconds = Number(payload.seconds);
-    if (!Number.isFinite(seconds) || seconds < 10 || seconds > 300) {
-      return NextResponse.json({ error: 'invalid score' }, { status: 400 });
-    }
-    payload.seconds = Math.round(seconds * 10) / 10;
+  if (!(await markReceiptSubmitted(verified.nonce, userId))) {
+    return NextResponse.json(
+      { error: 'receipt already used' },
+      { status: 409 },
+    );
   }
+  const payload: Record<string, unknown> = verified.payload;
 
   let ref = db.collection(COLLECTION[mode]).doc(userId);
   let existing = await ref.get();

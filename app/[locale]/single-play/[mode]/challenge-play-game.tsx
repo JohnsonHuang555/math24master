@@ -81,7 +81,7 @@ export default function ChallengePlayGame({
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { clearPendingScore } = usePendingScoreStore();
   const { skipLoginPrompt, setSkipLoginPrompt } =
     useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
@@ -90,8 +90,7 @@ export default function ChallengePlayGame({
 
   const leaderboardSubmit = useLeaderboardSubmit(
     'challenge',
-    isAuthenticated && isFinished ? { stage, totalScore } : null,
-    isAuthenticated && isFinished,
+    isFinished ? { stage, totalScore } : null,
   );
 
   useEffect(() => {
@@ -103,7 +102,6 @@ export default function ChallengePlayGame({
       totalScore <= 0
     )
       return;
-    setPendingScore({ mode: 'challenge', payload: { stage, totalScore } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isFinished, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
