@@ -89,4 +89,16 @@ export type Room = {
   settings: RoomSettings;
   countdownTime?: number; // 回合倒數計時
   buzzerState?: BuzzerState;
+  /** 快速配對開的房間：不列在房間列表，倒數結束後以電腦補位自動開局 */
+  isQuickMatch?: boolean;
+  /** 快速配對倒數中、還沒開局（開局後就變成一般房間，可以再開下一局） */
+  quickMatchPending?: boolean;
 };
+
+/** 快速配對：房間人數上限、開局時補到幾人、等待真人的秒數、補位電腦難度 */
+export const QUICK_MATCH = {
+  maxPlayers: 4,
+  fillTo: 3,
+  waitSeconds: 15,
+  botDifficulty: 'normal',
+} as const;

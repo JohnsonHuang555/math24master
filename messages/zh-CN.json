@@ -909,6 +909,30 @@
       }
     }
   },
+  "Multiplayer": {
+    "quickMatch": {
+      "title": "快速开始",
+      "description": "{seconds} 秒内配对真人对手，没人的话由电脑补位，马上就能玩",
+      "action": "快速开始",
+      "searching": "正在寻找对手⋯",
+      "secondsLeft": "<n>{seconds}</n> 秒后开局",
+      "fillHint": "时间到还没凑满，会由电脑玩家补位",
+      "startNow": "不等了，直接开始",
+      "roomName": "快速配对"
+    },
+    "privateRoom": {
+      "title": "开私人房间",
+      "description": "创建房间后把链接传给朋友，点开就能加入"
+    },
+    "openRooms": "公开房间",
+    "invite": {
+      "action": "邀请朋友",
+      "shareTitle": "来 24点大师跟我对战！",
+      "shareText": "点链接加入我的房间，一起玩抢答 24 点",
+      "copied": "已拷贝邀请链接，传给朋友就能加入",
+      "copyFailed": "无法自动拷贝，请直接拷贝网址列的链接"
+    }
+  },
   "RoundHistory": {
     "title": "作答纪录",
     "empty": "本局没有作答纪录",

@@ -24,6 +24,7 @@ import {
   Difficulty,
   GameType,
   HAND_CARD_COUNT,
+  QUICK_MATCH,
   Room,
 } from '../models/Room';
 import { Symbol } from '../models/Symbol';
@@ -79,7 +80,8 @@ export function getCurrentRooms(payload?: {
   if (payload?.showEmpty) {
     tempRooms = _rooms.filter(r => r?.maxPlayers > r.players.length);
   }
-  return tempRooms.filter(r => r.maxPlayers > 1);
+  // 快速配對的房間由「快速開始」自動分配，不列在房間列表
+  return tempRooms.filter(r => r.maxPlayers > 1 && !r.isQuickMatch);
 }
 
 const _getCurrentRoom = (roomId: string) => {
@@ -277,7 +279,8 @@ export function joinRoom(
         handCard: [],
         score: 0,
         isLastRoundPlayer: false,
-        isReady: false,
+        // 快速配對倒數中不需要按準備，時間到就自動開局
+        isReady: !!_rooms[roomIndex].quickMatchPending,
         reconnectToken: newPlayerToken,
       });
       _tokenToPlayerMap.set(newPlayerToken, {
@@ -386,9 +389,9 @@ export function leaveRoom(playerId: string):
 
   const hasMaster = newPlayers.find(player => player.isMaster);
 
-  // 如果房主已離開房間，則第一位玩家為房主
+  // 如果房主已離開房間，由第一位真人玩家接手（電腦不能當房主）
   if (!hasMaster) {
-    newPlayers[0].isMaster = true;
+    humanPlayersLeft[0].isMaster = true;
   }
 
   // 遊戲中且剩餘 ≥ 2 人：繼續遊戲；否則回到等待狀態
@@ -1079,12 +1082,16 @@ export function addBotToRoom(
       return { success: false, error: ErrorCode.RoomFull };
     }
 
-    const botName =
+    const baseName =
       difficulty === 'easy'
         ? '電腦（簡單）'
         : difficulty === 'normal'
           ? '電腦（普通）'
           : '電腦（困難）';
+    // 同難度的電腦不只一個時加上編號，玩家才分得出誰是誰
+    const sameName = room.players.filter(p => p.name.startsWith(baseName));
+    const botName =
+      sameName.length === 0 ? baseName : `${baseName} ${sameName.length + 1}`;
 
     const bot: Player = {
       id: `bot-${uuidv4()}`,
@@ -1103,6 +1110,84 @@ export function addBotToRoom(
   } catch (e) {
     return _unexpected('add bot', e);
   }
+}
+
+// ─── 快速配對 ─────────────────────────────────────────────────────────────────
+
+/** 找一間還在配對倒數、真人還沒滿的快速配對房間 */
+export function findQuickMatchRoom(): Room | undefined {
+  return _rooms.find(
+    r =>
+      r.isQuickMatch &&
+      r.quickMatchPending &&
+      r.status === GameStatus.Idle &&
+      r.players.filter(p => !p.isBot).length < r.maxPlayers,
+  );
+}
+
+/** 開一間新的快速配對房間，開房的玩家是房主；遊戲類型固定為搶答 */
+export function createQuickMatchRoom(
+  roomId: string,
+  playerId: string,
+  playerName: string,
+): JoinRoomResult {
+  try {
+    _playerInRoomMap[playerId] = roomId;
+    const masterToken = uuidv4();
+    const newRoom: Room = {
+      roomId,
+      maxPlayers: QUICK_MATCH.maxPlayers,
+      deck: [],
+      currentOrder: -1,
+      isGameOver: false,
+      selectedCards: [],
+      status: GameStatus.Idle,
+      isQuickMatch: true,
+      quickMatchPending: true,
+      settings: {
+        deckType: DeckType.Standard,
+        remainSeconds: null,
+        difficulty: Difficulty.Normal,
+        gameType: 'buzzer',
+        buzzerSettings: DEFAULT_BUZZER_SETTINGS,
+      },
+      players: [
+        {
+          id: playerId,
+          isMaster: true,
+          name: playerName,
+          handCard: [],
+          score: 0,
+          isLastRoundPlayer: false,
+          isReady: true,
+          reconnectToken: masterToken,
+        },
+      ],
+    };
+    _rooms.push(newRoom);
+    _tokenToPlayerMap.set(masterToken, { playerId, roomId });
+    return { success: true, room: newRoom, reconnectToken: masterToken };
+  } catch (e) {
+    return _unexpected('create quick match room', e);
+  }
+}
+
+/**
+ * 配對結束：用電腦補到 QUICK_MATCH.fillTo 人，房間轉成一般房間（之後可以再開下一局）。
+ * 回傳 null 代表房間已不存在或已經開局過
+ */
+export function finishQuickMatch(roomId: string): Room | null {
+  const room = _getCurrentRoom(roomId);
+  if (!room || !room.quickMatchPending || room.status !== GameStatus.Idle) {
+    return null;
+  }
+  while (room.players.length < QUICK_MATCH.fillTo) {
+    const result = addBotToRoom(roomId, QUICK_MATCH.botDifficulty);
+    if (!result.success) break;
+  }
+  room.quickMatchPending = false;
+  room.players = room.players.map(p => ({ ...p, isReady: true }));
+  return room;
 }
 
 // ─── Buzzer 模式輔助 ──────────────────────────────────────────────────────────

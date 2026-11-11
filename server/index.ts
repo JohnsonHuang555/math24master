@@ -1,9 +1,11 @@
 import { createServer } from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
+import { v4 as uuidv4 } from 'uuid';
 import { Room } from '@/models/Room';
 import { ErrorCode } from '../models/ErrorCode';
+import { GameMode } from '../models/GameMode';
 import { Message, SystemMessageCode } from '../models/Message';
-import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
+import { DEFAULT_BUZZER_SETTINGS, QUICK_MATCH } from '../models/Room';
 import { SocketEvent } from '../models/SocketEvent';
 import {
   applyRoundTimeout,
@@ -20,11 +22,14 @@ import {
   applyBuzzerRoomUpdate,
   backCard,
   checkCanJoinRoom,
+  createQuickMatchRoom,
   discardCard,
   drawCard,
   editRoom,
   editRoomSettings,
   endBuzzerGame,
+  findQuickMatchRoom,
+  finishQuickMatch,
   getCurrentRoom,
   getCurrentRoomId,
   getCurrentRooms,
@@ -68,6 +73,11 @@ const buzzerRoundTimerMap: Map<string, BuzzerRoundTimer> = new Map();
 const buzzerAnswerTimerMap: Map<string, NodeJS.Timeout> = new Map(); // key = roomId
 const buzzerLockTimerMap: Map<string, NodeJS.Timeout> = new Map(); // key = playerId
 const startCountdownMap = new Map<string, ReturnType<typeof setTimeout>[]>(); // key = roomId
+// 快速配對倒數：key = roomId，value = 每秒倒數的 interval 與剩餘秒數
+const quickMatchTimerMap = new Map<
+  string,
+  { timer: ReturnType<typeof setInterval>; secondsLeft: number }
+>();
 
 const startServer = () => {
   // 非 Socket.IO 的請求只回應健康檢查
@@ -363,6 +373,85 @@ const startServer = () => {
 
   // ── End 開始遊戲倒數計時 Helpers ─────────────────────────────────────────────
 
+  // ── 快速配對與房間切換 Helpers ──────────────────────────────────────────────
+
+  /** 玩家已在另一個房間時，先自動離開舊房間（防止幽靈玩家/幽靈房間） */
+  const _leavePreviousRoom = (
+    socket: Socket,
+    playerId: string,
+    nextRoomId?: string,
+  ) => {
+    const prevRoomId = getCurrentRoomId(playerId);
+    if (prevRoomId && prevRoomId !== nextRoomId) {
+      socket.leave(prevRoomId);
+      const autoLeave = leaveRoom(playerId);
+      if (autoLeave) {
+        const {
+          room: prevRoom,
+          playerName: pName,
+          wasPlaying: wp,
+          remainingCount: rc,
+        } = autoLeave;
+        if (!wp) _cancelGameCountdown(prevRoomId);
+        io.sockets
+          .to(prevRoomId)
+          .emit(SocketEvent.RoomUpdate, { room: prevRoom });
+        if (wp && rc <= 1) {
+          io.sockets.to(prevRoomId).emit(SocketEvent.GameAborted, pName);
+          if (timerMap[prevRoomId]) {
+            clearInterval(timerMap[prevRoomId].timer as NodeJS.Timeout);
+            delete timerMap[prevRoomId];
+          }
+        } else if (wp && rc >= 2) {
+          if (
+            timerMap[prevRoomId] &&
+            prevRoom.settings.remainSeconds !== null
+          ) {
+            _clearAndCreateTimer(prevRoomId, prevRoom);
+          }
+        }
+      }
+    }
+  };
+
+  const _clearQuickMatchTimer = (roomId: string) => {
+    const entry = quickMatchTimerMap.get(roomId);
+    if (!entry) return;
+    clearInterval(entry.timer);
+    quickMatchTimerMap.delete(roomId);
+  };
+
+  /** 配對結束：電腦補位後直接開局 */
+  const _startQuickMatch = (roomId: string) => {
+    _clearQuickMatchTimer(roomId);
+    const room = finishQuickMatch(roomId);
+    if (!room) return;
+    io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    _actuallyStartGame(roomId);
+  };
+
+  const _startQuickMatchCountdown = (roomId: string) => {
+    if (quickMatchTimerMap.has(roomId)) return;
+    const entry = {
+      secondsLeft: QUICK_MATCH.waitSeconds,
+      timer: setInterval(() => {
+        // 房間在倒數中被刪掉（真人都離開了）就停止
+        if (!getCurrentRoom(roomId)) {
+          _clearQuickMatchTimer(roomId);
+          return;
+        }
+        entry.secondsLeft -= 1;
+        io.to(roomId).emit(SocketEvent.QuickMatchCountdown, {
+          secondsLeft: entry.secondsLeft,
+        });
+        if (entry.secondsLeft <= 0) _startQuickMatch(roomId);
+      }, 1000),
+    };
+    quickMatchTimerMap.set(roomId, entry);
+  };
+
+  // ── End 快速配對與房間切換 Helpers ──────────────────────────────────────────
+
   io.on('connection', socket => {
     const playerId = socket.id;
 
@@ -379,38 +468,7 @@ const startServer = () => {
         gameType,
         remainSeconds,
       }) => {
-        // 若玩家已在另一個房間，先自動離開舊房間（防止幽靈玩家/幽靈房間）
-        const prevRoomId = getCurrentRoomId(playerId);
-        if (prevRoomId && prevRoomId !== roomId) {
-          socket.leave(prevRoomId);
-          const autoLeave = leaveRoom(playerId);
-          if (autoLeave) {
-            const {
-              room: prevRoom,
-              playerName: pName,
-              wasPlaying: wp,
-              remainingCount: rc,
-            } = autoLeave;
-            if (!wp) _cancelGameCountdown(prevRoomId);
-            io.sockets
-              .to(prevRoomId)
-              .emit(SocketEvent.RoomUpdate, { room: prevRoom });
-            if (wp && rc <= 1) {
-              io.sockets.to(prevRoomId).emit(SocketEvent.GameAborted, pName);
-              if (timerMap[prevRoomId]) {
-                clearInterval(timerMap[prevRoomId].timer as NodeJS.Timeout);
-                delete timerMap[prevRoomId];
-              }
-            } else if (wp && rc >= 2) {
-              if (
-                timerMap[prevRoomId] &&
-                prevRoom.settings.remainSeconds !== null
-              ) {
-                _clearAndCreateTimer(prevRoomId, prevRoom);
-              }
-            }
-          }
-        }
+        _leavePreviousRoom(socket, playerId, roomId);
 
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
         if (canJoin) {
@@ -444,6 +502,64 @@ const startServer = () => {
         } else {
           socket.emit(SocketEvent.ErrorMessage, ErrorCode.RoomFullOrNotFound);
         }
+      },
+    );
+
+    // 快速開始：有正在配對的房間就加入，沒有就開一間並開始倒數；真人滿房立即開局
+    socket.on(
+      SocketEvent.QuickMatch,
+      ({ playerName }: { playerName: string }) => {
+        if (!playerName) return;
+        const existing = findQuickMatchRoom();
+        // 連點兩次「快速開始」：已經在這間房裡就不要重複加入
+        if (existing?.players.some(p => p.id === playerId)) {
+          socket.emit(SocketEvent.JoinRoomSuccess, existing);
+          return;
+        }
+        _leavePreviousRoom(socket, playerId, existing?.roomId);
+
+        const roomId = existing?.roomId ?? uuidv4();
+        const result = existing
+          ? joinRoom(
+              { roomId, maxPlayers: existing.maxPlayers },
+              playerId,
+              playerName,
+              GameMode.Multiple,
+            )
+          : createQuickMatchRoom(roomId, playerId, playerName);
+        if (!result.success) {
+          socket.emit(
+            SocketEvent.ErrorMessage,
+            'error' in result ? result.error : ErrorCode.Unexpected,
+          );
+          return;
+        }
+
+        socket.join(roomId);
+        // token 先送，前端導頁到房間頁時才不會再重複加入
+        socket.emit(SocketEvent.GetPlayerId, playerId);
+        socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
+        io.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
+
+        if (!existing) _startQuickMatchCountdown(roomId);
+        const secondsLeft =
+          quickMatchTimerMap.get(roomId)?.secondsLeft ??
+          QUICK_MATCH.waitSeconds;
+        socket.emit(SocketEvent.QuickMatchCountdown, { secondsLeft });
+
+        const humans = result.room.players.filter(p => !p.isBot).length;
+        if (humans >= result.room.maxPlayers) _startQuickMatch(roomId);
+      },
+    );
+
+    // 不等了：房間裡任何一位真人都可以讓電腦補位、立即開局
+    socket.on(
+      SocketEvent.QuickMatchStartNow,
+      ({ roomId }: { roomId: string }) => {
+        const room = getCurrentRoom(roomId);
+        const isInRoom = room?.players.some(p => p.id === playerId && !p.isBot);
+        if (!room?.quickMatchPending || !isInRoom) return;
+        _startQuickMatch(roomId);
       },
     );
 

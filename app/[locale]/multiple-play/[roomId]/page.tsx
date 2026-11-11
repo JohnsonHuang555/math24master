@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, Lock, Pencil, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import BuzzerGameBoard from '@/components/areas/buzzer/buzzer-game-board';
 import ChatArea from '@/components/areas/chat-area';
@@ -13,6 +14,10 @@ import MultiplePlayingArea from '@/components/areas/multiple-playing-area';
 import PlayersArea, {
   WaitingRoomAction,
 } from '@/components/areas/players-area';
+import {
+  InviteFriendsButton,
+  QuickMatchAction,
+} from '@/components/areas/quick-match-panel';
 import RoomInfoArea from '@/components/areas/room-info-area';
 import AlertDialogModal from '@/components/modals/alert-dialog-modal';
 import EditRoomModal from '@/components/modals/edit-room-modal';
@@ -74,6 +79,8 @@ export default function RoomPage() {
     currentPlayer,
     sendMessage,
     addBot,
+    quickMatchSecondsLeft,
+    startQuickMatchNow,
     gameOverData,
     onCloseGameOver,
     gameAbortedData,
@@ -146,6 +153,15 @@ export default function RoomPage() {
       setIsOpenEnterRoomPasswordModal(true);
     });
   }, [socket, joinRoom]);
+
+  const tQuickMatch = useTranslations('Multiplayer.quickMatch');
+  // 快速配對的房間沒有房名，顯示「快速配對」
+  const roomDisplayName =
+    roomInfo?.roomName ??
+    (roomInfo?.isQuickMatch ? tQuickMatch('roomName') : '');
+  const quickMatchProps = roomInfo?.quickMatchPending
+    ? { secondsLeft: quickMatchSecondsLeft, onStartNow: startQuickMatchNow }
+    : undefined;
 
   const leaveRoom = () => {
     sessionStorage.removeItem('reconnectToken');
@@ -376,14 +392,14 @@ export default function RoomPage() {
                     className="h-4 w-4 shrink-0 text-ink-2"
                   />
                 )}
-                <span className="truncate">{roomInfo.roomName}</span>
+                <span className="truncate">{roomDisplayName}</span>
               </strong>
               <span className="text-xs text-ink-2">
                 {roomInfo.settings.gameType === 'buzzer' ? '搶答' : '傳統'} ·{' '}
                 {roomInfo.maxPlayers} 人
               </span>
             </div>
-            {currentPlayer?.isMaster && (
+            {currentPlayer?.isMaster && !roomInfo.isQuickMatch && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -452,9 +468,11 @@ export default function RoomPage() {
                   onAddBot={addBot}
                   canAddBot={
                     !!currentPlayer?.isMaster &&
+                    !roomInfo.quickMatchPending &&
                     roomInfo.settings.gameType === 'buzzer' &&
                     roomInfo.players.length < roomInfo.maxPlayers
                   }
+                  quickMatch={quickMatchProps}
                 />
               </div>
 
@@ -466,8 +484,11 @@ export default function RoomPage() {
                   )}
                 >
                   <RoomInfoArea
-                    isMaster={currentPlayer?.isMaster}
-                    roomName={roomInfo.roomName}
+                    // 配對倒數中不開放改設定，開局後才和一般房間一樣
+                    isMaster={
+                      currentPlayer?.isMaster && !roomInfo.quickMatchPending
+                    }
+                    roomName={roomDisplayName}
                     password={roomInfo.password}
                     maxPlayers={roomInfo.maxPlayers}
                     roomSettings={roomInfo.settings}
@@ -491,23 +512,28 @@ export default function RoomPage() {
           </div>
 
           {/* 手機底部：狀態與主要按鈕，切到任何分頁都看得到 */}
-          <div className="px-4 pt-3 pb-6 md:hidden">
-            <WaitingRoomAction
-              players={roomInfo.players}
-              currentPlayer={currentPlayer}
-              onReady={onReadyGame}
-              onStart={onStartGame}
-              notice={
-                countdownSeconds !== null && (
-                  <span className="flex items-center gap-2 text-ink">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber font-display text-base font-extrabold text-on-amber">
-                      {countdownSeconds}
+          <div className="flex flex-col gap-2.5 px-4 pt-3 pb-6 md:hidden">
+            {quickMatchProps ? (
+              <QuickMatchAction {...quickMatchProps} />
+            ) : (
+              <WaitingRoomAction
+                players={roomInfo.players}
+                currentPlayer={currentPlayer}
+                onReady={onReadyGame}
+                onStart={onStartGame}
+                notice={
+                  countdownSeconds !== null && (
+                    <span className="flex items-center gap-2 text-ink">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber font-display text-base font-extrabold text-on-amber">
+                        {countdownSeconds}
+                      </span>
+                      即將開始遊戲
                     </span>
-                    即將開始遊戲
-                  </span>
-                )
-              }
-            />
+                  )
+                }
+              />
+            )}
+            <InviteFriendsButton />
           </div>
         </main>
       )}

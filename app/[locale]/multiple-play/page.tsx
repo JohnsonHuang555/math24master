@@ -7,6 +7,7 @@ import {
   BookOpen,
   ChevronRight,
   Layers,
+  LoaderCircle,
   Lock,
   Pencil,
   Plus,
@@ -16,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { BackToHomeButton } from '@/components/back-to-home-button';
@@ -27,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { QUICK_MATCH } from '@/models/Room';
 import { Room } from '@/models/Room';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
@@ -127,7 +130,9 @@ export default function MultiplePlayPage() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const router = useRouter();
-  const { searchRooms, joinRoom, socket } = useMultiplePlay();
+  const { searchRooms, joinRoom, socket, quickMatch } = useMultiplePlay();
+  const t = useTranslations('Multiplayer');
+  const [isMatching, setIsMatching] = useState(false);
   const [searchedRoomName, setSearchedRoomName] = useState('');
   const [gameTypeFilter, setGameTypeFilter] = useState<GameTypeFilter>('all');
   const [playerName, setPlayerName] = useState<string>('');
@@ -166,6 +171,8 @@ export default function MultiplePlayPage() {
 
     socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
       if (room.roomId) {
+        // 房間頁看到同一間房的 token 就不會重複加入（快速配對由 server 直接分配房間）
+        sessionStorage.setItem('reconnectRoomId', room.roomId);
         router.push(`/multiple-play/${room.roomId}`);
       } else {
         toast.error('建立失敗');
@@ -191,6 +198,15 @@ export default function MultiplePlayPage() {
   }, [searchRooms, searchedRoomName]);
 
   const isSearching = searchedRoomName.trim() !== '';
+
+  const handleQuickMatch = () => {
+    if (!playerName) {
+      setIsOpenNameModal(true);
+      return;
+    }
+    setIsMatching(true);
+    quickMatch(playerName);
+  };
 
   // 建立房間可帶入預填名稱；modal 以 key 重新掛載，用預填值初始化
   const openCreateRoom = (name: string) => {
@@ -302,135 +318,186 @@ export default function MultiplePlayPage() {
                 加入房間或建立你的專屬對局
               </p>
             </div>
-            <Button
-              variant="tactile"
-              className="hidden h-[52px] gap-2 px-6 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)] lg:flex"
-              onClick={() => openCreateRoom('')}
-            >
-              <Plus className="h-5 w-5" />
-              建立房間
-            </Button>
           </div>
 
-          {/* 搜尋 + 建立 */}
-          <div className="flex items-center gap-2.5 px-4 md:px-8 lg:gap-3 lg:px-10">
-            <div className="relative min-w-0 flex-1 md:max-w-xs lg:w-[380px] lg:max-w-none lg:flex-none">
-              <label htmlFor="room-search" className="sr-only">
-                搜尋房間
-              </label>
-              <Search
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-2"
-              />
-              <Input
-                id="room-search"
-                placeholder="搜尋房間..."
-                value={searchedRoomName}
-                className="h-12 rounded-xl border-[1.5px] border-line-strong bg-surface pr-3 pl-[42px] text-base text-ink"
-                onChange={e => setSearchedRoomName(e.target.value)}
-              />
-            </div>
-            <Button
-              variant="tactile"
-              className="h-12 gap-1.5 px-4 text-[19px] shadow-[0_4px_0_0_var(--primary-edge)] lg:hidden"
-              onClick={() => openCreateRoom('')}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">建立房間</span>
-              <span className="sm:hidden">建立</span>
-            </Button>
-
-            <RoomCount
-              className="ml-auto hidden lg:inline"
-              count={filteredRooms.length}
-              isSearching={isSearching}
-            />
-          </div>
-
-          {/* 房間計數（手機） */}
-          <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8 lg:hidden">
-            <span className="text-sm font-bold text-ink-2">
-              <span className="font-display text-base text-ink">
-                {filteredRooms.length}
-              </span>{' '}
-              {isSearching ? '個房間符合' : '個房間'}
-            </span>
-          </div>
-
-          {/* 房間列表 */}
-          {filteredRooms.length > 0 ? (
-            <div className="grid gap-2.5 px-4 sm:grid-cols-2 md:px-8 lg:gap-3.5 lg:px-10 lg:pt-[22px]">
-              {filteredRooms.map((room, i) => (
-                <motion.div
-                  key={room.roomId}
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.28,
-                    delay: reduceMotion ? 0 : i * 0.04,
-                    ease: [0.2, 0, 0, 1],
-                  }}
-                >
-                  <RoomCard
-                    room={room}
-                    onClick={() => {
-                      if (room.players.length >= room.maxPlayers) {
-                        toast.info('房間人數已滿');
-                        return;
-                      }
-                      setSelectedRoomId(room.roomId);
-                      onOpen({
-                        title: '加入房間',
-                        description: `確定要加入 ${room.roomName} 嗎？`,
-                      });
-                    }}
+          {/* 快速開始與私人房間：多人模式的主要入口 */}
+          <div className="grid gap-3 px-4 pb-6 md:px-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-4 lg:px-10 lg:pb-8">
+            <section className="flex flex-col gap-3.5 rounded-[22px] border-2 border-primary bg-surface p-[18px] shadow-[0_4px_0_0_var(--primary-edge)] lg:p-6">
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-primary text-primary-foreground">
+                  <Zap aria-hidden className="h-6 w-6" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <h2 className="text-xl font-extrabold text-ink lg:text-2xl">
+                    {t('quickMatch.title')}
+                  </h2>
+                  <p className="text-sm text-ink-2 lg:text-[15px]">
+                    {t('quickMatch.description', {
+                      seconds: QUICK_MATCH.waitSeconds,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="tactile"
+                className="w-full gap-2"
+                onClick={handleQuickMatch}
+                disabled={isMatching}
+              >
+                {isMatching ? (
+                  <LoaderCircle
+                    aria-hidden
+                    className="h-5 w-5 animate-spin motion-reduce:animate-none"
                   />
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pt-10 pb-20 text-center">
-              <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary-tint text-primary-ink">
-                {isSearching ? (
-                  <SearchX className="h-7 w-7" />
                 ) : (
-                  <Users className="h-7 w-7" />
+                  <Zap aria-hidden className="h-5 w-5" />
                 )}
+                {t('quickMatch.action')}
+              </Button>
+            </section>
+            <button
+              type="button"
+              onClick={() => openCreateRoom('')}
+              className="group flex items-center gap-3.5 rounded-[22px] border border-line bg-surface p-[18px] text-left transition-colors hover:border-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus lg:p-6"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary-ink">
+                <Plus aria-hidden className="h-6 w-6" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <strong className="text-lg text-ink">
+                  {t('privateRoom.title')}
+                </strong>
+                <span className="text-sm text-ink-2">
+                  {t('privateRoom.description')}
+                </span>
+              </span>
+              <ChevronRight
+                aria-hidden
+                className="h-5 w-5 shrink-0 text-ink-2 group-hover:text-primary-ink"
+              />
+            </button>
+          </div>
+
+          {/* 公開房間：沒有房間時整塊不顯示，避免一進來就看到空大廳 */}
+          {(rooms.length > 0 || isSearching) && (
+            <>
+              <h2 className="px-4 pb-2.5 text-base font-extrabold text-ink md:px-8 lg:px-10">
+                {t('openRooms')}
+              </h2>
+              {/* 搜尋 */}
+              <div className="flex items-center gap-2.5 px-4 md:px-8 lg:gap-3 lg:px-10">
+                <div className="relative min-w-0 flex-1 md:max-w-xs lg:w-[380px] lg:max-w-none lg:flex-none">
+                  <label htmlFor="room-search" className="sr-only">
+                    搜尋房間
+                  </label>
+                  <Search
+                    aria-hidden
+                    className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-2"
+                  />
+                  <Input
+                    id="room-search"
+                    placeholder="搜尋房間..."
+                    value={searchedRoomName}
+                    className="h-12 rounded-xl border-[1.5px] border-line-strong bg-surface pr-3 pl-[42px] text-base text-ink"
+                    onChange={e => setSearchedRoomName(e.target.value)}
+                  />
+                </div>
+
+                <RoomCount
+                  className="ml-auto hidden lg:inline"
+                  count={filteredRooms.length}
+                  isSearching={isSearching}
+                />
               </div>
-              <p className="text-xl font-extrabold text-ink">
-                {isSearching
-                  ? `找不到「${searchedRoomName.trim()}」`
-                  : '目前沒有房間'}
-              </p>
-              <p className="text-[15px] text-ink-2">
-                {isSearching
-                  ? '換個關鍵字，或用這個名稱建立一個新房間'
-                  : '建立房間，邀請朋友一起來玩吧！'}
-              </p>
-              <div className="mt-5 flex w-full max-w-sm flex-col gap-3">
-                <Button
-                  variant="tactile"
-                  className="w-full gap-2"
-                  onClick={() =>
-                    openCreateRoom(isSearching ? searchedRoomName.trim() : '')
-                  }
-                >
-                  <Plus className="h-5 w-5" />
-                  {isSearching
-                    ? `建立「${searchedRoomName.trim()}」`
-                    : '建立第一個房間'}
-                </Button>
-                {isSearching && (
-                  <Button
-                    variant="tactileOutline"
-                    className="w-full"
-                    onClick={() => setSearchedRoomName('')}
-                  >
-                    清除搜尋
-                  </Button>
-                )}
+
+              {/* 房間計數（手機） */}
+              <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8 lg:hidden">
+                <span className="text-sm font-bold text-ink-2">
+                  <span className="font-display text-base text-ink">
+                    {filteredRooms.length}
+                  </span>{' '}
+                  {isSearching ? '個房間符合' : '個房間'}
+                </span>
               </div>
-            </div>
+
+              {/* 房間列表 */}
+              {filteredRooms.length > 0 ? (
+                <div className="grid gap-2.5 px-4 sm:grid-cols-2 md:px-8 lg:gap-3.5 lg:px-10 lg:pt-[22px]">
+                  {filteredRooms.map((room, i) => (
+                    <motion.div
+                      key={room.roomId}
+                      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.28,
+                        delay: reduceMotion ? 0 : i * 0.04,
+                        ease: [0.2, 0, 0, 1],
+                      }}
+                    >
+                      <RoomCard
+                        room={room}
+                        onClick={() => {
+                          if (room.players.length >= room.maxPlayers) {
+                            toast.info('房間人數已滿');
+                            return;
+                          }
+                          setSelectedRoomId(room.roomId);
+                          onOpen({
+                            title: '加入房間',
+                            description: `確定要加入 ${room.roomName} 嗎？`,
+                          });
+                        }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : isSearching ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pt-10 pb-20 text-center">
+                  <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary-tint text-primary-ink">
+                    {isSearching ? (
+                      <SearchX className="h-7 w-7" />
+                    ) : (
+                      <Users className="h-7 w-7" />
+                    )}
+                  </div>
+                  <p className="text-xl font-extrabold text-ink">
+                    {isSearching
+                      ? `找不到「${searchedRoomName.trim()}」`
+                      : '目前沒有房間'}
+                  </p>
+                  <p className="text-[15px] text-ink-2">
+                    {isSearching
+                      ? '換個關鍵字，或用這個名稱建立一個新房間'
+                      : '建立房間，邀請朋友一起來玩吧！'}
+                  </p>
+                  <div className="mt-5 flex w-full max-w-sm flex-col gap-3">
+                    <Button
+                      variant="tactile"
+                      className="w-full gap-2"
+                      onClick={() =>
+                        openCreateRoom(
+                          isSearching ? searchedRoomName.trim() : '',
+                        )
+                      }
+                    >
+                      <Plus className="h-5 w-5" />
+                      {isSearching
+                        ? `建立「${searchedRoomName.trim()}」`
+                        : '建立第一個房間'}
+                    </Button>
+                    {isSearching && (
+                      <Button
+                        variant="tactileOutline"
+                        className="w-full"
+                        onClick={() => setSearchedRoomName('')}
+                      >
+                        清除搜尋
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
       </div>
