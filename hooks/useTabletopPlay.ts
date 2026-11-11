@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useTabletopErrorText } from '@/i18n/tabletop-messages';
 import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { playSound } from '@/lib/sound-manager';
 import { BotAction, chooseBotMove } from '@/lib/tabletop-bot';
@@ -30,20 +31,28 @@ const PLAYER_SEAT = 0;
 const BOT_THINK_MS = 700;
 const BOT_HIGHLIGHT_MS = 1400;
 
+/** 出牌紀錄只存事件與參數，文字由 UI 依目前語系產生（中途切換語言時舊紀錄也會跟著換） */
+export type TabletopLogEvent =
+  | { kind: 'newSet' | 'extend' | 'draw' | 'passEmptyDeck' | 'completeSet' }
+  | { kind: 'regroup'; count: number };
+
 export type TabletopLogEntry = {
   id: number;
-  seatName: string;
-  text: string;
+  seatIndex: number;
+  event: TabletopLogEvent;
   score: number | null;
 };
 
-function describeAction(action: BotAction): string {
-  if (action.kind === 'newSet') return '用手牌組了一組新牌組';
-  if (action.kind === 'extend') return '把手牌接進桌上的牌組';
-  return `拆開 ${action.fromSetIds.length} 組牌組重新組合`;
+function describeAction(action: BotAction): TabletopLogEvent {
+  if (action.kind === 'newSet' || action.kind === 'extend') {
+    return { kind: action.kind };
+  }
+  return { kind: 'regroup', count: action.fromSetIds.length };
 }
 
 const useTabletopPlay = () => {
+  // 引擎回傳錯誤代碼，在這裡翻成玩家的語言（見 docs/adr/0009）
+  const errorText = useTabletopErrorText();
   const [game, setGame] = useState<TabletopGameState | null>(null);
   const [draft, setDraft] = useState<TurnDraft | null>(null);
   const [thinkingSeat, setThinkingSeat] = useState<number | null>(null);
@@ -65,9 +74,13 @@ const useTabletopPlay = () => {
       setTimeout(() => resolve(token === runTokenRef.current), ms);
     });
 
-  const pushLog = (seatName: string, text: string, score: number | null) => {
+  const pushLog = (
+    seatIndex: number,
+    event: TabletopLogEvent,
+    score: number | null,
+  ) => {
     logIdRef.current += 1;
-    const entry = { id: logIdRef.current, seatName, text, score };
+    const entry = { id: logIdRef.current, seatIndex, event, score };
     setLog(prev => [entry, ...prev]);
   };
 
@@ -78,7 +91,7 @@ const useTabletopPlay = () => {
     let state = start;
 
     while (state.status === 'playing' && state.currentSeat !== PLAYER_SEAT) {
-      const seat = state.seats[state.currentSeat];
+      const seatIndex = state.currentSeat;
       setThinkingSeat(state.currentSeat);
       setHighlightSetIds([]);
       if (!(await wait(BOT_THINK_MS, token))) return;
@@ -92,14 +105,14 @@ const useTabletopPlay = () => {
         const fallback = drawCard(state);
         if (!fallback.success) return;
         state = fallback.state;
-        pushLog(seat.name, '抽了 1 張牌', null);
+        pushLog(seatIndex, { kind: 'draw' }, null);
       } else {
         state = next;
         if (move.type === 'play') {
-          pushLog(seat.name, describeAction(move.action), move.action.score);
+          pushLog(seatIndex, describeAction(move.action), move.action.score);
           setHighlightSetIds(move.action.sets.map(s => s.id));
         } else {
-          pushLog(seat.name, '抽了 1 張牌', null);
+          pushLog(seatIndex, { kind: 'draw' }, null);
         }
       }
       setThinkingSeat(null);
@@ -150,7 +163,7 @@ const useTabletopPlay = () => {
 
   const applyDraft = (result: DraftResult) => {
     if (!result.ok) {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
       playSound('wrong');
       return;
     }
@@ -211,13 +224,13 @@ const useTabletopPlay = () => {
     if (!isPlayerTurn || !game || !draft) return;
     const result = checkEndTurn(game, draft);
     if (!result.ok) {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
       playSound('wrong');
       return;
     }
     playSound('correct');
     setLastGained(result.scoreGained);
-    pushLog(game.seats[PLAYER_SEAT].name, '完成一組牌組', result.scoreGained);
+    pushLog(PLAYER_SEAT, { kind: 'completeSet' }, result.scoreGained);
     finishPlayerTurn(result.state);
   };
 
@@ -225,13 +238,13 @@ const useTabletopPlay = () => {
     if (!isPlayerTurn || !game) return;
     const result = drawCard(game);
     if (!result.success) {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
       return;
     }
     playSound('skip');
     pushLog(
-      game.seats[PLAYER_SEAT].name,
-      game.deck.length > 0 ? '抽了 1 張牌' : '牌庫已空，跳過這回合',
+      PLAYER_SEAT,
+      { kind: game.deck.length > 0 ? 'draw' : 'passEmptyDeck' },
       null,
     );
     finishPlayerTurn(result.state);
@@ -265,7 +278,7 @@ const useTabletopPlay = () => {
     // 現在結束回合可以拿到的分數（回合得分見 docs/adr/0010）
     turnScorePreview: endTurnCheck?.ok ? endTurnCheck.scoreGained : null,
     endTurnBlocker:
-      endTurnCheck && !endTurnCheck.ok ? endTurnCheck.error : null,
+      endTurnCheck && !endTurnCheck.ok ? errorText(endTurnCheck.error) : null,
     hasDraftChanges,
     startGame,
     onAddCard,

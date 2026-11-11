@@ -1,6 +1,8 @@
 'use client';
 
 import { Bot, User } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useSeatName } from '@/components/tabletop/use-seat-name';
 import { cn } from '@/lib/utils';
 import { TabletopGameState } from '@/models/Tabletop';
 
@@ -17,9 +19,11 @@ export function TabletopScoreboard({
   game,
   thinkingSeat,
 }: TabletopScoreboardProps) {
+  const t = useTranslations('Tabletop');
+  const seatName = useSeatName();
   return (
     <section
-      aria-label="計分板"
+      aria-label={t('scoreboard')}
       className="grid grid-cols-3 gap-1.5 lg:grid-cols-1 lg:gap-2.5"
     >
       {game.seats.map((seat, i) => {
@@ -27,12 +31,12 @@ export function TabletopScoreboard({
         const isThinking = thinkingSeat === i;
         const Icon = seat.isBot ? Bot : User;
         const status = isThinking
-          ? '思考中…'
+          ? t('seatStatus.thinking')
           : isCurrent
             ? seat.isBot
-              ? '出牌中…'
-              : '你的回合'
-            : '等待中';
+              ? t('seatStatus.playing')
+              : t('seatStatus.yourTurn')
+            : t('seatStatus.waiting');
         return (
           <div
             key={seat.id}
@@ -60,7 +64,7 @@ export function TabletopScoreboard({
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="flex items-center gap-1 truncate text-[13px] font-bold text-ink lg:text-[15px]">
                 <Icon aria-hidden className="h-3.5 w-3.5 shrink-0 lg:hidden" />
-                {seat.name}
+                {seatName(seat)}
               </span>
               <span
                 className={cn(
@@ -81,10 +85,15 @@ export function TabletopScoreboard({
                   isCurrent && seat.isBot && 'hidden',
                 )}
               >
-                <b className="font-display text-base font-extrabold text-ink">
-                  {seat.score}
-                </b>{' '}
-                分 · {seat.hand.length} 張
+                {t.rich('seatSummary', {
+                  score: seat.score,
+                  count: seat.hand.length,
+                  b: chunks => (
+                    <b className="font-display text-base font-extrabold text-ink">
+                      {chunks}
+                    </b>
+                  ),
+                })}
               </span>
             </span>
             <span className="hidden flex-col items-end lg:flex">
@@ -92,7 +101,7 @@ export function TabletopScoreboard({
                 {seat.score}
               </span>
               <span className="text-xs text-ink-2">
-                手牌 {seat.hand.length}
+                {t('seatHand', { count: seat.hand.length })}
               </span>
             </span>
           </div>

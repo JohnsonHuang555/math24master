@@ -92,7 +92,10 @@ describe('chooseBotMove - 基本', () => {
 
     expect(move.type).toBe('play');
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
   });
 });
 
@@ -130,7 +133,10 @@ describe('chooseBotMove - 接牌', () => {
     expect(move.action.kind).toBe('extend');
     expect(move.table).toHaveLength(1);
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
   });
 });
 
@@ -174,7 +180,10 @@ describe('chooseBotMove - 重新宣告桌上的 Joker', () => {
     expect(move.type).toBe('play');
     if (move.type !== 'play') return;
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
     const jokerTile = move.table
       .flatMap(s => s.tiles)
       .find(t => t.type === 'number' && t.card.id === 'tj');
@@ -200,7 +209,10 @@ describe('chooseBotMove - 拆組（拆 1 組和手牌重組）', () => {
     });
     expect(move.table).toHaveLength(2);
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
   });
 });
 
@@ -220,7 +232,10 @@ describe('chooseBotMove - 合組（拆 2 組和手牌重組）', () => {
     expect(move.action.kind).toBe('regroup');
     expect([...move.action.fromSetIds].sort()).toEqual(['A', 'B']);
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
   });
 });
 
@@ -266,7 +281,10 @@ describe('chooseBotMove - 每回合只完成一組', () => {
     // 規則引擎會拒絕手牌分散在兩組的桌面；這裡確認只多出一組新牌組
     expect(move.table).toHaveLength(1);
     const result = applyMove(state, move);
-    expect(result.success, result.success ? '' : result.error).toBe(true);
+    expect(
+      result.success,
+      result.success ? '' : JSON.stringify(result.error),
+    ).toBe(true);
   });
 });
 
@@ -283,7 +301,7 @@ describe('chooseBotMove - 完整牌局', () => {
         const result = applyMove(state, move);
         expect(
           result.success,
-          result.success ? '' : `seed ${seed}：${result.error}`,
+          result.success ? '' : `seed ${seed}：${JSON.stringify(result.error)}`,
         ).toBe(true);
         if (!result.success) return;
         state = result.state;

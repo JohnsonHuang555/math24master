@@ -16,6 +16,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { GameDesktopBar } from '@/components/game/game-hud';
 import {
   GameResultScreen,
@@ -33,6 +34,7 @@ import { TabletopHand } from '@/components/tabletop/tabletop-hand';
 import { TabletopHistoryDialog } from '@/components/tabletop/tabletop-history-dialog';
 import { TabletopScoreboard } from '@/components/tabletop/tabletop-scoreboard';
 import { TabletopTableArea } from '@/components/tabletop/tabletop-table-area';
+import { useSeatName } from '@/components/tabletop/use-seat-name';
 import { Button } from '@/components/ui/button';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
@@ -58,6 +60,10 @@ export default function TabletopPlayGame({
   onBack,
   autoStart,
 }: TabletopPlayGameProps) {
+  const t = useTranslations('Tabletop');
+  const tMode = useTranslations('SinglePlay.modes.tabletop');
+  const tHud = useTranslations('GameUI.hud');
+  const seatName = useSeatName();
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isOpenHistory, setIsOpenHistory] = useState(false);
@@ -143,12 +149,17 @@ export default function TabletopPlayGame({
         {ruleModal}
         <GameStartScreen
           icon={Shapes}
-          title="牌桌模式"
-          tagline="改編自拉密 · 和 2 個電腦搶先出完手牌"
-          description="每回合湊一組 24，可以拆開桌上的算式重新組合"
+          title={tMode('label')}
+          tagline={t('tagline')}
+          description={t('startDescription')}
           stats={
             bestScore > 0
-              ? [{ label: '個人最佳', value: `${bestScore} 分` }]
+              ? [
+                  {
+                    label: t('bestScore'),
+                    value: t('points', { score: bestScore }),
+                  },
+                ]
               : undefined
           }
           onBack={onBack}
@@ -184,35 +195,49 @@ export default function TabletopPlayGame({
           <GameResultScreen
             className="h-auto min-h-full"
             hero={<RankMedal rank={rank} size={56} />}
-            eyebrow={rank === 1 ? '你贏了！' : `第 ${rank} 名`}
-            label="你的總分"
+            eyebrow={
+              rank === 1 ? t('result.youWon') : t('result.rank', { rank })
+            }
+            label={t('result.yourTotal')}
             value={playerStanding?.score ?? 0}
             badge={
               isNewBestScore ? (
-                <RecordBadge>新紀錄！</RecordBadge>
+                <RecordBadge>{t('result.newRecord')}</RecordBadge>
               ) : bestScore > 0 ? (
                 <span className="text-sm text-ink-2">
-                  個人最高：
-                  <b className="font-display font-extrabold text-ink">
-                    {bestScore} 分
-                  </b>
+                  {t.rich('result.bestScoreInline', {
+                    score: bestScore,
+                    b: chunks => (
+                      <b className="font-display font-extrabold text-ink">
+                        {chunks}
+                      </b>
+                    ),
+                  })}
                 </span>
               ) : null
             }
-            backLabel="返回選單"
+            backLabel={t('result.backToMenu')}
             onBack={onBack}
-            retryLabel="再來一局"
+            retryLabel={t('result.playAgain')}
             onRetry={play.startGame}
           >
             <table className="w-full overflow-hidden rounded-2xl border border-line bg-surface text-[13px]">
               <thead className="bg-sunken text-ink-2">
                 <tr>
-                  <th className="px-3 py-2.5 text-left font-bold">玩家</th>
-                  <th className="px-1 py-2.5 text-right font-bold">牌組</th>
-                  <th className="px-1 py-2.5 text-right font-bold">出完</th>
-                  <th className="px-1 py-2.5 text-right font-bold">剩牌</th>
+                  <th className="px-3 py-2.5 text-left font-bold">
+                    {t('result.player')}
+                  </th>
+                  <th className="px-1 py-2.5 text-right font-bold">
+                    {t('result.sets')}
+                  </th>
+                  <th className="px-1 py-2.5 text-right font-bold">
+                    {t('result.wentOut')}
+                  </th>
+                  <th className="px-1 py-2.5 text-right font-bold">
+                    {t('result.leftover')}
+                  </th>
                   <th className="py-2.5 pr-3 pl-1 text-right font-bold">
-                    總分
+                    {t('result.total')}
                   </th>
                 </tr>
               </thead>
@@ -228,7 +253,7 @@ export default function TabletopPlayGame({
                       )}
                     >
                       <td className="px-3 py-2.5 font-noto text-[13px]">
-                        {seat.name}
+                        {seatName(seat)}
                       </td>
                       <td className="px-1 py-2.5 text-right">{s.tableScore}</td>
                       <td
@@ -258,7 +283,7 @@ export default function TabletopPlayGame({
               </tbody>
             </table>
             <p className="text-center text-xs text-ink-2">
-              剩牌：數字牌每張 −1、Joker 每張 −5
+              {t('result.leftoverNote')}
             </p>
             <ResultRank mode={LEADERBOARD_MODE} submit={leaderboardSubmit} />
           </GameResultScreen>
@@ -277,10 +302,10 @@ export default function TabletopPlayGame({
     else play.onAddCard(card.id);
   };
   const statusText = !canEdit
-    ? '電腦出牌中'
+    ? t('status.botsPlaying')
     : play.hasDraftChanges
-      ? (play.endTurnBlocker ?? '可以結束回合了')
-      : '完成一組牌組，或抽 1 張牌';
+      ? (play.endTurnBlocker ?? t('status.canEndTurn'))
+      : t('status.idle');
   const StatusIcon = !canEdit
     ? Bot
     : play.hasDraftChanges
@@ -296,6 +321,7 @@ export default function TabletopPlayGame({
         open={isOpenHistory}
         onOpenChange={setIsOpenHistory}
         log={play.log}
+        seats={game.seats}
       />
       <JokerDeclareDialog
         open={pendingJokerId !== null}
@@ -309,7 +335,7 @@ export default function TabletopPlayGame({
         open={showExitConfirm}
         onOpenChange={setShowExitConfirm}
         onLeave={onBack}
-        description="離開後本局不計分，進度也不會保存。"
+        description={t('leaveDescription')}
       />
 
       {/* 頂部列：手機 */}
@@ -318,7 +344,7 @@ export default function TabletopPlayGame({
           variant="ghost"
           className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setShowExitConfirm(true)}
-          aria-label="離開"
+          aria-label={tHud('exit')}
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -326,26 +352,33 @@ export default function TabletopPlayGame({
           {game.finalRoundTurnsLeft !== undefined ? (
             <span className="inline-flex items-center gap-1 text-amber-ink">
               <Flag aria-hidden className="h-4 w-4" />
-              最後一圈
+              {t('finalRound')}
             </span>
           ) : (
-            <>
-              第{' '}
-              <span className="font-display text-[15px] text-ink">{round}</span>{' '}
-              圈
-            </>
+            t.rich('round', {
+              round,
+              n: chunks => (
+                <span className="font-display text-[15px] text-ink">
+                  {chunks}
+                </span>
+              ),
+            })
           )}{' '}
-          · 牌庫剩{' '}
-          <span className="font-display text-[15px] text-ink">
-            {game.deck.length}
-          </span>{' '}
-          張
+          ·{' '}
+          {t.rich('deckLeft', {
+            count: game.deck.length,
+            n: chunks => (
+              <span className="font-display text-[15px] text-ink">
+                {chunks}
+              </span>
+            ),
+          })}
         </span>
         <Button
           variant="ghost"
           className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setIsOpenHistory(true)}
-          aria-label="紀錄"
+          aria-label={t('history')}
         >
           <History className="h-5 w-5" />
         </Button>
@@ -353,7 +386,7 @@ export default function TabletopPlayGame({
           variant="ghost"
           className="h-11 w-11 shrink-0 px-0 text-ink"
           onClick={() => setIsOpenRuleModal(true)}
-          aria-label="規則"
+          aria-label={tHud('rules')}
         >
           <BookOpen className="h-5 w-5" />
         </Button>
@@ -362,7 +395,7 @@ export default function TabletopPlayGame({
       {/* 頂部列：桌機，和其他單人模式共用 */}
       <GameDesktopBar
         className="hidden lg:flex"
-        title="牌桌模式"
+        title={tMode('label')}
         escHint
         score={game.seats[0].score}
         remaining={game.deck.length}
@@ -370,8 +403,12 @@ export default function TabletopPlayGame({
         center={
           game.finalRoundTurnsLeft === undefined && (
             <span className="ml-2 inline-flex h-[34px] items-center rounded-full bg-sunken px-3 text-sm font-bold whitespace-nowrap text-ink">
-              第&nbsp;<span className="font-display text-base">{round}</span>
-              &nbsp;圈
+              {t.rich('round', {
+                round,
+                n: chunks => (
+                  <span className="mx-1 font-display text-base">{chunks}</span>
+                ),
+              })}
             </span>
           )
         }
@@ -384,7 +421,7 @@ export default function TabletopPlayGame({
             onClick={() => setIsOpenHistory(true)}
           >
             <History className="h-5 w-5" />
-            紀錄
+            {t('history')}
           </Button>
         }
       />
@@ -392,7 +429,7 @@ export default function TabletopPlayGame({
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-2.5 px-3 pt-1.5 lg:grid lg:max-w-none lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pt-5">
         <aside className="lg:flex lg:flex-col lg:gap-2.5">
           <h2 className="hidden text-[13px] font-extrabold text-ink-2 lg:block">
-            計分板
+            {t('scoreboard')}
           </h2>
           <TabletopScoreboard game={game} thinkingSeat={play.thinkingSeat} />
         </aside>
@@ -413,7 +450,7 @@ export default function TabletopPlayGame({
                   onClick={play.onSkipAnimation}
                 >
                   <FastForward className="h-4 w-4" />
-                  略過動畫
+                  {t('skipAnimation')}
                 </Button>
               )
             }
@@ -466,7 +503,7 @@ export default function TabletopPlayGame({
               onClick={play.onResetDraft}
             >
               <RotateCcw className="h-4 w-4" />
-              還原桌面
+              {t('resetTable')}
             </Button>
             <Button
               variant="tactileOutline"
@@ -475,7 +512,7 @@ export default function TabletopPlayGame({
               onClick={play.onDraw}
             >
               <Hand className="h-4 w-4" />
-              抽牌
+              {t('draw')}
             </Button>
             <Button
               variant="tactile"
@@ -483,7 +520,7 @@ export default function TabletopPlayGame({
               disabled={!canEdit || !play.canEndTurn}
               onClick={play.onEndTurn}
             >
-              結束回合
+              {t('endTurn')}
               {play.turnScorePreview !== null && (
                 <span className="font-display text-base font-extrabold tabular-nums">
                   +{play.turnScorePreview}

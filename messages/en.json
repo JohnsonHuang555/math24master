@@ -501,6 +501,127 @@
       "finalScore": "Final score"
     }
   },
+  "Tabletop": {
+    "tagline": "Rummikub-style · Race 2 bots to empty your hand",
+    "startDescription": "Make one set of 24 each turn, and rearrange the sets on the table",
+    "bestScore": "Personal best",
+    "points": "{score} pts",
+    "you": "You",
+    "result": {
+      "youWon": "You won!",
+      "rank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place",
+      "yourTotal": "Your total",
+      "newRecord": "New record!",
+      "bestScoreInline": "Best: <b>{score} pts</b>",
+      "backToMenu": "Menu",
+      "playAgain": "Play again",
+      "player": "Player",
+      "sets": "Sets",
+      "wentOut": "Out",
+      "leftover": "Left",
+      "total": "Total",
+      "leftoverNote": "Left: −1 per number card, −5 per Joker"
+    },
+    "status": {
+      "botsPlaying": "Bots are playing",
+      "canEndTurn": "You can end your turn",
+      "idle": "Complete a set, or draw 1 card"
+    },
+    "leaveDescription": "This game won't be scored, and your progress won't be saved.",
+    "finalRound": "Final round",
+    "round": "Round <n>{round}</n>",
+    "deckLeft": "Deck <n>{count}</n>",
+    "history": "History",
+    "scoreboard": "Scoreboard",
+    "skipAnimation": "Skip animation",
+    "resetTable": "Reset",
+    "draw": "Draw",
+    "endTurn": "End turn",
+    "seatStatus": {
+      "thinking": "Thinking…",
+      "playing": "Playing…",
+      "yourTurn": "Your turn",
+      "waiting": "Waiting"
+    },
+    "seatSummary": "<b>{score}</b> pts · {count} cards",
+    "seatHand": "{count} in hand",
+    "colors": {
+      "red": "Red",
+      "blue": "Cyan",
+      "yellow": "Yellow",
+      "black": "Black"
+    },
+    "card": {
+      "undeclaredJoker": "Joker (undeclared)",
+      "label": "{color} {value}",
+      "jokerLabel": "{color} {value} (Joker)"
+    },
+    "joker": {
+      "title": "Declare Joker",
+      "description": "If its set is broken up, the Joker resets and can be declared again",
+      "value": "Value",
+      "color": "Color"
+    },
+    "composer": {
+      "label": "Equation builder",
+      "placeholder": "Tap hand or loose cards, then add symbols",
+      "estimate": "Est. {score} pts",
+      "backspace": "Backspace",
+      "clear": "Clear",
+      "commit": "Place on table"
+    },
+    "hand": {
+      "label": "Hand",
+      "count": "Hand · {count} cards"
+    },
+    "table": {
+      "label": "Table",
+      "count": "Table · {count, plural, one {# set} other {# sets}}",
+      "empty": "The table is empty. Build the first set from your hand!",
+      "justChanged": "Changed",
+      "setScore": "{score} pts",
+      "breakUp": "Break up",
+      "loose": "Loose cards",
+      "looseHint": "Put them all back into sets to end your turn"
+    },
+    "log": {
+      "title": "Play history",
+      "description": "Everyone's moves this game, newest first",
+      "empty": "No moves yet",
+      "newSet": "Made a new set from their hand",
+      "extend": "Added cards to a set on the table",
+      "regroup": "Rearranged {count, plural, one {# set} other {# sets}}",
+      "draw": "Drew 1 card",
+      "passEmptyDeck": "Deck is empty, turn skipped",
+      "completeSet": "Completed a set"
+    }
+  },
+  "TabletopError": {
+    "GAME_ENDED": "This game is over.",
+    "SET_SIZE": "A set needs {min}–{max} number cards (you have {count})",
+    "JOKER_UNDECLARED": "Declare the Joker's value and color",
+    "COLOR_RULE": "{size, select, 3 {A 3-card set must be one color or three different colors} 4 {A 4-card set must be one color or one of each color} other {A 5-card set must be one color}}",
+    "MALFORMED_EXPRESSION": "Invalid equation",
+    "DIVIDE_BY_ZERO": "You can't divide by 0",
+    "NOT_TWENTY_FOUR": "Currently = {value}",
+    "DUPLICATE_CARD": "The same card can't be used twice",
+    "NOT_YOUR_CARD": "That card isn't yours",
+    "TABLE_CARD_TO_HAND": "Cards on the table can't go back to your hand",
+    "MUST_PLAY_FROM_HAND": "Play at least 1 card from your hand this turn",
+    "ONE_SET_PER_TURN": "You can complete only one set per turn (your cards are in {count} sets)",
+    "SET_NOT_FOUND": "Set not found",
+    "CARD_NOT_FOUND": "Card not found",
+    "DECLARE_JOKER_FIRST": "Declare the Joker's value and color first",
+    "OPERATOR_BETWEEN_NUMBERS": "Put an operator between number cards",
+    "MAX_SET_SIZE": "A set can have at most {max} cards",
+    "OPERATOR_BEFORE_LEFT_PAREN": "Put an operator before a left parenthesis",
+    "UNMATCHED_RIGHT_PAREN": "This right parenthesis has no matching left one",
+    "NUMBER_BEFORE_RIGHT_PAREN": "Put a number before a right parenthesis",
+    "NUMBER_BEFORE_OPERATOR": "Put a number before an operator",
+    "COMPOSER_NOT_EMPTY": "Place the equation in the builder on the table first",
+    "LOOSE_CARDS_REMAINING": "{count, plural, one {# loose card needs} other {# loose cards need}} to go back into a set",
+    "inSet": "Set {index}: {reason}"
+  },
   "RoundHistory": {
     "title": "Answer history",
     "empty": "No answers this game",

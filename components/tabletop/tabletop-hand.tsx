@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { TabletopCard } from '@/components/tabletop/tabletop-card';
 import { NumberCard } from '@/models/Player';
 
@@ -32,6 +33,7 @@ type TabletopHandProps = {
  * 兩側在還有牌可以滑出來時顯示漸層，提示玩家可以滑動
  */
 export function TabletopHand({ hand, disabled, onPick }: TabletopHandProps) {
+  const t = useTranslations('Tabletop');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [fade, setFade] = useState({ left: false, right: false });
 
@@ -51,9 +53,12 @@ export function TabletopHand({ hand, disabled, onPick }: TabletopHandProps) {
   }, [hand.length, updateFade]);
 
   return (
-    <section aria-label="手牌" className="flex w-full flex-col gap-1.5">
+    <section
+      aria-label={t('hand.label')}
+      className="flex w-full flex-col gap-1.5"
+    >
       <h2 className="px-1 text-[13px] font-extrabold text-ink-2">
-        手牌 {hand.length} 張
+        {t('hand.count', { count: hand.length })}
       </h2>
       <div className="relative">
         <div
