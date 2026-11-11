@@ -7,6 +7,20 @@ export interface ClassicResultCardData {
   perfectHands: number;
   handHistory: HandResult[];
   isNewBestScore: boolean;
+  /** 圖卡上的文字，依玩家語系由呼叫端傳入 */
+  labels: ClassicResultCardLabels;
+}
+
+export interface ClassicResultCardLabels {
+  brand: string;
+  badge: string;
+  finalScore: string;
+  grade: string;
+  efficiency: string;
+  perfectHands: string;
+  sixHands: string;
+  newRecord: string;
+  cta: string;
 }
 
 const WIDTH = 1080;
@@ -143,7 +157,7 @@ export async function renderClassicResultCard(
   // ── 頁首品牌字 ──
   ctx.fillStyle = COLORS.brand;
   ctx.font = `700 34px ${fonts.body}`;
-  ctx.fillText('24 點大師', cx, 92);
+  ctx.fillText(data.labels.brand, cx, 92);
 
   // ── 主卡片（硬陰影 + 白底圓角，對應站上結算卡樣式）──
   const cardX = 64;
@@ -177,7 +191,7 @@ export async function renderClassicResultCard(
 
   // 模式徽章
   ctx.font = `700 30px ${fonts.body}`;
-  const badgeText = '經典模式・挑戰結果';
+  const badgeText = data.labels.badge;
   const badgePadX = 36;
   const badgeW = ctx.measureText(badgeText).width + badgePadX * 2;
   const badgeH = 68;
@@ -203,7 +217,7 @@ export async function renderClassicResultCard(
   y += 130;
   ctx.fillStyle = COLORS.muted;
   ctx.font = `500 32px ${fonts.body}`;
-  ctx.fillText('最終得分', cx, y);
+  ctx.fillText(data.labels.finalScore, cx, y);
 
   // 評級 / 效率 / 完美手 三欄
   y += 80;
@@ -246,21 +260,25 @@ export async function renderClassicResultCard(
   ctx.fillStyle = gradeColor;
   ctx.fillText(data.grade, colXs[0], statCenterY - 22);
   ctx.fillStyle = COLORS.primary;
-  ctx.fillText(`${Math.round(data.efficiency * 100)}%`, colXs[1], statCenterY - 22);
+  ctx.fillText(
+    `${Math.round(data.efficiency * 100)}%`,
+    colXs[1],
+    statCenterY - 22,
+  );
   ctx.fillStyle = COLORS.amber;
   ctx.fillText(String(data.perfectHands), colXs[2], statCenterY - 22);
 
   ctx.font = `500 24px ${fonts.body}`;
   ctx.fillStyle = COLORS.muted;
-  ctx.fillText('解法評級', colXs[0], statCenterY + 52);
-  ctx.fillText('解法效率', colXs[1], statCenterY + 52);
-  ctx.fillText('完美手', colXs[2], statCenterY + 52);
+  ctx.fillText(data.labels.grade, colXs[0], statCenterY + 52);
+  ctx.fillText(data.labels.efficiency, colXs[1], statCenterY + 52);
+  ctx.fillText(data.labels.perfectHands, colXs[2], statCenterY + 52);
 
   // 六手戰績方格（Wordle 風格：teal = 完美手，amber = 一般得分）
   y += statBoxH + 90;
   ctx.font = `600 28px ${fonts.body}`;
   ctx.fillStyle = COLORS.muted;
-  ctx.fillText('六手戰績', cx, y);
+  ctx.fillText(data.labels.sixHands, cx, y);
 
   y += 70;
   const gridSize = 6;
@@ -296,7 +314,7 @@ export async function renderClassicResultCard(
   y += cellSize + 70;
   if (data.isNewBestScore) {
     ctx.font = `700 32px ${fonts.body}`;
-    const text = '新紀錄！';
+    const text = data.labels.newRecord;
     const padX = 40;
     const w = ctx.measureText(text).width + padX * 2;
     const h = 74;
@@ -318,7 +336,7 @@ export async function renderClassicResultCard(
   // ── 頁尾：品牌連結 ──
   ctx.font = `700 34px ${fonts.body}`;
   ctx.fillStyle = COLORS.tealDark;
-  ctx.fillText('來 Math24Master 挑戰看看', cx, HEIGHT - 90);
+  ctx.fillText(data.labels.cta, cx, HEIGHT - 90);
   ctx.font = `500 30px ${fonts.body}`;
   ctx.fillStyle = COLORS.tealText;
   ctx.fillText('math24master.com', cx, HEIGHT - 44);

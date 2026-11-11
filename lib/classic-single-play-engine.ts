@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { canMake24, findAllSolutions } from '@/lib/daily-seed';
 import { createDeckByStandardMode, draw, shuffleArray } from '@/lib/deck';
 import { calculateAnswer, formatEquation } from '@/lib/utils';
+import { ErrorCode } from '@/models/ErrorCode';
 import { GameStatus } from '@/models/GameStatus';
 import { HandResult, NumberCard, Player, RoundResult } from '@/models/Player';
 import { DeckType, Difficulty, HAND_CARD_COUNT, Room } from '@/models/Room';
@@ -11,12 +12,11 @@ import { Symbol } from '@/models/Symbol';
 const PERFECT_HAND_BONUS = 1;
 
 type EngineResult =
-  | { success: true; room: Room }
-  | { success: false; error: string };
+  { success: true; room: Room } | { success: false; error: ErrorCode };
 
 type PlayCardResult =
   | { success: true; room: Room; isCorrect: boolean }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 type UpdateScoreResult =
   | {
@@ -25,7 +25,7 @@ type UpdateScoreResult =
       handResult?: HandResult;
       roundResult?: RoundResult;
     }
-  | { success: false; error: string };
+  | { success: false; error: ErrorCode };
 
 function _maxValueFor(difficulty: Difficulty): number {
   if (difficulty === Difficulty.Easy) return 6;
@@ -133,7 +133,7 @@ export function selectCard(
     const selectedCards = [...room.selectedCards];
 
     if (selectedCards.length === 0 && symbol && symbol !== Symbol.LeftBracket) {
-      return { success: false, error: '第一個只能用左括號或數字' };
+      return { success: false, error: ErrorCode.FirstMustBeNumberOrLeftParen };
     }
 
     if (number) {
@@ -141,7 +141,7 @@ export function selectCard(
 
       // 如果前一個是數字則不能選
       if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        return { success: false, error: '數字牌不能連續使用' };
+        return { success: false, error: ErrorCode.ConsecutiveNumbers };
       }
 
       if (currentSelect?.symbol === Symbol.RightBracket) {
@@ -160,26 +160,26 @@ export function selectCard(
     if (symbol) {
       const lastCard = selectedCards[selectedCards.length - 1];
       if (lastCard?.symbol === Symbol.Minus && symbol === Symbol.Minus) {
-        return { success: false, error: '減號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveMinus };
       }
 
       if (lastCard?.symbol === Symbol.Plus && symbol === Symbol.Plus) {
-        return { success: false, error: '加號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutivePlus };
       }
 
       if (lastCard?.symbol === Symbol.Times && symbol === Symbol.Times) {
-        return { success: false, error: '乘號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveTimes };
       }
 
       if (lastCard?.symbol === Symbol.Divide && symbol === Symbol.Divide) {
-        return { success: false, error: '除號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveDivide };
       }
 
       if (
         lastCard?.symbol === Symbol.LeftBracket &&
         [Symbol.Plus, Symbol.Minus].includes(symbol)
       ) {
-        return { success: false, error: '左括號後面無法使用減號或加號' };
+        return { success: false, error: ErrorCode.PlusMinusAfterLeftParen };
       }
 
       if (symbol === Symbol.LeftBracket && lastCard?.number) {
@@ -190,7 +190,7 @@ export function selectCard(
 
     return { success: true, room: { ...room, selectedCards } };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (select card)' };
+    return { success: false, error: ErrorCode.Unexpected };
   }
 }
 
@@ -230,7 +230,7 @@ export function playCard(room: Room): PlayCardResult {
     }
     return { success: true, room, isCorrect: false };
   } catch (e) {
-    return { success: false, error: '算式有誤 (play card)' };
+    return { success: false, error: ErrorCode.InvalidEquation };
   }
 }
 
@@ -272,7 +272,7 @@ function drawCard(room: Room, count: number): EngineResult {
       },
     };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (draw card)' };
+    return { success: false, error: ErrorCode.Unexpected };
   }
 }
 
@@ -346,7 +346,7 @@ export function updateScore(room: Room): UpdateScoreResult {
     }
     return { success: true, room: drawResult.room, handResult, roundResult };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (update score)' };
+    return { success: false, error: ErrorCode.Unexpected };
   }
 }
 
@@ -408,6 +408,6 @@ export function skipHand(room: Room): EngineResult {
       },
     };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (skip hand)' };
+    return { success: false, error: ErrorCode.Unexpected };
   }
 }

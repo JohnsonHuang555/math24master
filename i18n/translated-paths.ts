@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './locales';
  * proxy 會加上 X-Robots-Tag: noindex，避免搜尋引擎收錄半中半英的頁面（見 docs/adr/0008）。
  * 每翻完一個模式就把它的路徑加進來。
  */
-const TRANSLATED_PATHS = ['/', '/leaderboard'];
+const TRANSLATED_PATHS = ['/', '/leaderboard', '/single-play'];
 
 /** 不含語系前綴的路徑是否已經翻譯完成，可以讓所有語系版本都被收錄 */
 export function isTranslatedPath(path: string): boolean {

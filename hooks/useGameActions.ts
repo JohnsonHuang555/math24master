@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
@@ -15,6 +16,8 @@ export function useGameActions(
   checkAnswerCorrect: boolean | null,
   setCheckAnswerCorrect: (value: boolean | null) => void,
 ) {
+  const tToast = useTranslations('GameUI.toast');
+  const tError = useTranslations('ServerError');
   const [finishedAnimations, setFinishedAnimations] = useState<number>(0);
   const turnStartTimeRef = useRef<number>(Date.now());
 
@@ -51,7 +54,7 @@ export function useGameActions(
   /** 處理 PlayCardResponse socket 事件 */
   const handlePlayCardResponse = (isCorrect: boolean) => {
     if (isCorrect) {
-      toast.success('答案正確');
+      toast.success(tToast('correct'));
       playSound('correct');
 
       const elapsed = Date.now() - turnStartTimeRef.current;
@@ -76,18 +79,12 @@ export function useGameActions(
         selectedCardSymbols
           .map(s => s.symbol)
           .filter(symbol =>
-            [
-              Symbol.Plus,
-              Symbol.Minus,
-              Symbol.Times,
-              Symbol.Divide,
-            ].includes(symbol as Symbol),
+            [Symbol.Plus, Symbol.Minus, Symbol.Times, Symbol.Divide].includes(
+              symbol as Symbol,
+            ),
           ),
       ).size;
-      if (
-        selectedCardSymbols.length === 3 &&
-        distinctOperatorCount === 3
-      ) {
+      if (selectedCardSymbols.length === 3 && distinctOperatorCount === 3) {
         unlockAchievement('all_ops');
       }
 
@@ -104,9 +101,10 @@ export function useGameActions(
       // 成就：得分達人（累計 100 分）
       const roundScore = calcRoundScore(selectedCardSymbols);
       store.addScore(roundScore);
-      if (store.totalScore + roundScore >= 100) unlockAchievement('total_score_100');
+      if (store.totalScore + roundScore >= 100)
+        unlockAchievement('total_score_100');
     } else {
-      toast.error('答案不等於 24');
+      toast.error(tError('ANSWER_NOT_24'));
       playSound('wrong');
       // 連勝中斷
       useAchievementStore.getState().resetConsecutiveWins();

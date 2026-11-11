@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Delete, RotateCcw, SkipForward } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ExpressionBar } from '@/components/game/expression-bar';
 import { NumberCard } from '@/components/game/number-card';
 import Symbols from '@/components/symbols';
@@ -82,19 +83,25 @@ export function PuzzlePlayArea({
   onSubmit,
   onSkip,
   showSkipButton = false,
-  skipPenaltyText = '−15 秒',
+  skipPenaltyText: skipPenaltyTextProp,
   children,
   desktopBar,
   banner,
   aside,
   stage,
-  submitLabel = '確認',
+  submitLabel: submitLabelProp,
   onBackStep,
   onEscape,
   busy = false,
   busyLabel,
   footerSlot,
 }: PuzzlePlayAreaProps) {
+  const t = useTranslations('GameUI.puzzle');
+  const tTimer = useTranslations('GameUI.timer');
+  const tCommon = useTranslations('Common');
+  const skipPenaltyText =
+    skipPenaltyTextProp ?? tTimer('delta', { sign: '−', seconds: 15 });
+  const submitLabel = submitLabelProp ?? tCommon('confirm');
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   // 選中角標顯示第幾個被選
@@ -206,7 +213,7 @@ export function PuzzlePlayArea({
                   tokens={selectedCards}
                   result={livePreview}
                   isFinal={usedAllCards}
-                  placeholder="點選數字和符號組成算式..."
+                  placeholder={t('placeholder')}
                   onRemoveToken={chipsClickable ? onRemoveCard : undefined}
                 />
                 <div className="flex justify-center gap-2 lg:gap-2.5">
@@ -228,13 +235,13 @@ export function PuzzlePlayArea({
                       className={ACTION_BUTTON_CLASS}
                       onClick={onClearSelection}
                       disabled={busy}
-                      aria-label="清除所選取的牌"
+                      aria-label={t('clearSelection')}
                     >
                       <RotateCcw className="h-5 w-5" />
-                      <span className="hidden lg:inline">清除</span>
+                      <span className="hidden lg:inline">{t('clear')}</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>清除所選取的牌</TooltipContent>
+                  <TooltipContent>{t('clearSelection')}</TooltipContent>
                 </Tooltip>
                 {onBackStep && (
                   <Tooltip>
@@ -244,14 +251,14 @@ export function PuzzlePlayArea({
                         className={ACTION_BUTTON_CLASS}
                         onClick={onBackStep}
                         disabled={busy}
-                        aria-label="倒退一步"
+                        aria-label={t('undoStep')}
                       >
                         <Delete className="h-5 w-5" />
-                        <span className="hidden lg:inline">倒退</span>
+                        <span className="hidden lg:inline">{t('undo')}</span>
                         <Kbd>⌫</Kbd>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>倒退一步</TooltipContent>
+                    <TooltipContent>{t('undoStep')}</TooltipContent>
                   </Tooltip>
                 )}
                 {showSkipButton && (
@@ -265,12 +272,14 @@ export function PuzzlePlayArea({
                         )}
                         onClick={onSkip}
                         disabled={busy}
-                        aria-label={`跳過此題 (${skipPenaltyText})`}
+                        aria-label={t('skipQuestion', {
+                          penalty: skipPenaltyText,
+                        })}
                       >
                         {/* 直接顯示下次跳過扣幾秒，不只放在 tooltip */}
                         <span className="flex items-center gap-1 text-sm font-bold lg:text-base">
                           <SkipForward className="h-4 w-4 lg:h-5 lg:w-5" />
-                          跳過
+                          {t('skip')}
                         </span>
                         <span className="font-display text-[13px] font-bold text-danger-ink lg:text-base lg:font-extrabold">
                           {skipPenaltyText}
@@ -278,7 +287,7 @@ export function PuzzlePlayArea({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      跳過此題 ({skipPenaltyText})
+                      {t('skipQuestion', { penalty: skipPenaltyText })}
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -319,15 +328,16 @@ export function PuzzlePlayArea({
       <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>未作答，確定要跳過？</AlertDialogTitle>
+            <AlertDialogTitle>{t('skipConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              這題尚未作答。跳過後不會計分。
-              {showSkipButton && `（跳過 ${skipPenaltyText}）`}
+              {t('skipConfirmDescription')}
+              {showSkipButton &&
+                t('skipConfirmPenalty', { penalty: skipPenaltyText })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowSkipConfirm(false)}>
-              繼續作答
+              {t('keepAnswering')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -335,7 +345,7 @@ export function PuzzlePlayArea({
                 onSkip();
               }}
             >
-              跳過
+              {t('skip')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

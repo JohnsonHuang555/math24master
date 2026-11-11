@@ -142,6 +142,23 @@
       "timesBonus": "Two × +1",
       "divideBonus": "Two ÷ +1",
       "scoringNow": "Scoring"
+    },
+    "toast": {
+      "correct": "Correct!",
+      "buildEquation": "Build an equation first"
+    },
+    "puzzle": {
+      "placeholder": "Tap cards and symbols to build an equation",
+      "clearSelection": "Clear selected cards",
+      "clear": "Clear",
+      "undoStep": "Undo last step",
+      "undo": "Undo",
+      "skipQuestion": "Skip this puzzle ({penalty})",
+      "skip": "Skip",
+      "skipConfirmTitle": "Skip without answering?",
+      "skipConfirmDescription": "You haven't answered this one yet. Skipping won't score any points.",
+      "skipConfirmPenalty": " (Skipping costs {penalty})",
+      "keepAnswering": "Keep going"
     }
   },
   "Achievements": {
@@ -349,6 +366,183 @@
       "name": "Global Leaderboard",
       "title": "Global Leaderboard | Math24 Master",
       "description": "See global rankings for Classic, Challenge, Matching, Tabletop and Quick Math, and find out where you stand."
+    }
+  },
+  "SinglePlay": {
+    "title": "Single Player",
+    "subtitle": "Pick a mode to jump right in",
+    "keyboardHint": "Press <kbd>1</kbd>–<kbd>4</kbd> to pick",
+    "personalBest": "Personal best",
+    "points": "{score} pts",
+    "stage": "Stage {stage}",
+    "modes": {
+      "classic": {
+        "label": "Classic Mode",
+        "tagline": "Cards 1–13 · Chase a high score",
+        "chip1": "Solve to score",
+        "chip2": "Find the best answer",
+        "chip3": "Ends when the deck runs out"
+      },
+      "challenge": {
+        "label": "Challenge Mode",
+        "tagline": "5-min timer · Endless stages",
+        "chip1": "Solve to gain time",
+        "chip2": "Skipping costs time",
+        "chip3": "Clear the most stages"
+      },
+      "match": {
+        "label": "Matching Mode",
+        "tagline": "16 cards · Clear the board",
+        "chip1": "Pick 2–4 cards to make 24",
+        "chip2": "No time limit",
+        "chip3": "Clear all to rank"
+      },
+      "tabletop": {
+        "label": "Tabletop Mode",
+        "tagline": "Rummikub-style · vs. 2 bots",
+        "chip1": "Rearrange table sets",
+        "chip2": "One color or all different",
+        "chip3": "Play against 2 bots"
+      }
+    }
+  },
+  "Classic": {
+    "startDescription": "Solve to score · Skip to redraw · Ends when the deck runs out<br></br>Hit a hand's max score for a Perfect Hand: +1 bonus",
+    "bestScore": "Best",
+    "bestScoreValue": "{score} pts",
+    "gameOver": "Game over",
+    "newRecord": "New record!",
+    "bestScoreInline": "Best: {score} pts",
+    "grade": "Grade",
+    "efficiency": "Efficiency",
+    "perfectHands": "Perfect hands",
+    "backToMenu": "Menu",
+    "playAgain": "Play again",
+    "viewHistory": "View answers",
+    "share": "Share",
+    "sharing": "Creating image…",
+    "shareTitle": "Math24 Master Classic Mode",
+    "shareText": "My Math24 Master Classic Mode result: {score} pts (grade {grade})\nTry it at math24master.com",
+    "perfectFeedback": "Perfect hand! Max {max} pts · +1 bonus",
+    "handFeedback": "Hand max {max} pts · You scored {score}",
+    "finish": "Finish",
+    "skipHand": "Skip hand",
+    "historyTitle": "This game",
+    "handsPlayed": "<n>{count}</n> played",
+    "historyEmpty": "Your hands will show up here",
+    "handNumber": "Hand {round}",
+    "perfectHand": "Perfect",
+    "viewFullHistory": "View all answers",
+    "mustUseAll": "Use all {count} cards in your hand",
+    "submit": "Play",
+    "card": {
+      "brand": "Math24 Master",
+      "badge": "Classic Mode · Result",
+      "finalScore": "Final score",
+      "sixHands": "Six-hand record",
+      "cta": "Take the challenge at Math24Master"
+    }
+  },
+  "RoundHistory": {
+    "title": "Answer history",
+    "empty": "No answers this game",
+    "question": "Q{round}",
+    "yours": "Yours · {score} pts",
+    "best": "Best · {score} pts",
+    "alreadyBest": "Best answer!",
+    "couldEarnMore": "Best answer scores {points} more"
+  },
+  "Share": {
+    "imageFailed": "Couldn't create the image. Please try again later.",
+    "downloaded": "Image downloaded. Share it in your story or chat!",
+    "failed": "Sharing failed. Please try again later."
+  },
+  "Rules": {
+    "gotIt": "Got it",
+    "titles": {
+      "buzzer": "Buzzer Mode rules",
+      "classic": "Classic Mode rules",
+      "challenge": "Challenge Mode rules",
+      "match": "Matching Mode rules",
+      "tabletop": "Tabletop Mode rules"
+    },
+    "sections": {
+      "goal": "Goal",
+      "flow": "How it works",
+      "scoring": "Scoring",
+      "end": "Game end",
+      "lockout": "Lockout",
+      "streak": "Streak bonus",
+      "noSolution": "\"No solution\" vote",
+      "roundTimeout": "Round time limit (optional)",
+      "perfect": "Perfect hand bonus",
+      "timeBonus": "Time bonus",
+      "skipPenalty": "Skip penalty",
+      "howToPlay": "How to play"
+    },
+    "scoring": {
+      "s1": "Each <b>+ or −</b> in your equation scores <b>1 pt</b>",
+      "s2": "Each <b>×</b> scores <b>2 pts</b>",
+      "s3": "Each <b>÷</b> scores <b>3 pts</b>",
+      "s4": "Using two <b>×</b> adds <b>+1 pt</b>; two <b>÷</b> adds <b>+1 pt</b>",
+      "example": "Example: <mono>6 × 4 × (3 − 2) = 24</mono> → <b>6 pts</b> (× 2 + × 2 + two-× bonus 1 + − 1)"
+    },
+    "buzzer": {
+      "goal1": "Use the <b>4 shared cards</b> with + − × ÷ to make <b>24</b>",
+      "goal2": "The first player to reach the <b>target score</b> (20 by default) wins",
+      "flow1": "Each round deals <b>4 shared cards</b> (the same set for everyone)",
+      "flow2": "Any player who isn't locked out can hit the <b>buzzer</b> to answer",
+      "flow3": "Once you buzz in, build and submit your equation within the <b>answer time</b>",
+      "flow4": "A correct answer scores and starts the next round; a wrong answer or timeout loses points and locks you out",
+      "lockout1": "Wrong answer or timeout: <b>lose points</b> (0–3, per room settings) and get <b>locked out</b>",
+      "lockout2": "While locked out you can't buzz in, and your <b>streak resets</b>",
+      "lockout3": "If \"Unlock each round\" is on, lockouts clear when a new round starts",
+      "streak1": "Consecutive correct answers build your <b>streak</b>",
+      "streak2": "With streak bonus on, each correct answer adds <b>streak × 1</b> or <b>× 2 pts</b>",
+      "streak3": "A wrong answer or timeout resets your streak",
+      "noSolution1": "If you think the 4 cards <b>can't make 24</b>, vote \"No solution\"",
+      "noSolution2": "Once more than half the players vote, a new set is dealt with no penalty",
+      "roundTimeout1": "If the round timer runs out with no correct answer, every player <b>loses points</b> per room settings",
+      "roundTimeout2": "A new set is dealt for the next round"
+    },
+    "classic": {
+      "goal1": "You always hold <b>4 number cards</b> (values 1–13). Use + − × ÷ to make <b>24</b>",
+      "goal2": "Keep playing hands to rack up points until <b>the deck runs out</b>",
+      "flow1": "You must use <b>all 4 cards at once</b>, and the result must equal 24 to score",
+      "flow2": "After a correct answer, you <b>draw a fresh hand</b> automatically",
+      "flow3": "Can't make 24? Press \"<b>Skip hand</b>\" to redraw (we try to make sure the new hand is solvable)",
+      "flow4": "When the deck is empty you play one final hand, then the game ends",
+      "perfect1": "Score <b>the highest possible points</b> for a hand (a perfect solution) to earn a <b>+1 bonus</b>",
+      "perfect2": "At the end, your <b>efficiency</b> (total ÷ max possible) earns an S / A / B / C grade"
+    },
+    "challenge": {
+      "goal1": "Within a <b>5-minute</b> countdown, use <b>4 number cards</b> with + − × ÷ to make <b>24</b>",
+      "goal2": "Clear as many stages as you can. There's <b>no limit</b>",
+      "time1": "Each correct answer <b>adds time</b> and moves you to the next stage",
+      "time2": "Stage 1 adds <b>60 s</b>, then 3 s less each stage, down to <b>15 s</b>",
+      "skip1": "Can't make 24? <b>Skip</b> to a new puzzle, but it costs time",
+      "skip2": "Within a stage, the 1st skip costs <b>15 s</b>, the 2nd <b>30 s</b>, and every skip after that <b>60 s</b>",
+      "skip3": "A correct answer <b>resets</b> your skip count",
+      "end1": "The game ends when time runs out, or when you press \"<b>End early</b>\"",
+      "end2": "Your result is your <b>final stage</b> and <b>total score</b>; your best stage is saved"
+    },
+    "match": {
+      "goal1": "You're dealt <b>16 random number cards</b> (values 1–13) in a 4×4 grid",
+      "goal2": "Pick any <b>2–4 cards</b> and make <b>24</b> with + − × ÷ to clear them",
+      "goal3": "Your goal is to <b>clear all 16 cards</b>. There's no time limit",
+      "flow1": "Pick cards from <b>anywhere</b> on the board. They don't need to be adjacent",
+      "flow2": "Cleared cards disappear, and their spots <b>aren't refilled</b>",
+      "flow3": "Don't like the board? Press \"<b>New game</b>\" for a fresh deal, as often as you like",
+      "end1": "<b>Full clear</b> (all 16 cards): your score goes on the leaderboard",
+      "end2": "<b>Stuck</b> (no 2–4 remaining cards make 24): the game ends and doesn't count for the leaderboard"
+    },
+    "tabletop": {
+      "intro": "Adapted from the board game <b>Rummikub</b>: play cards to a shared table, break up and rearrange sets, and try to empty your hand first. The twist: every set has to make 24",
+      "rule1": "You and 2 bots take turns. Everyone starts with <b>10 cards</b> and doesn't refill after playing; if you can't play, draw 1",
+      "rule2": "Each turn, <b>complete one set</b>: 3–5 cards that make <b>24</b> with + − × ÷ and parentheses. You can rearrange sets on the table, but every card you play from your hand this turn must go into the same set, and every set on the table must be valid when your turn ends",
+      "rule3": "Colors: 3–4 card sets must be <b>one color or all different colors</b>; 5-card sets must be one color. A Joker's value and color are declared when it's played; if its set is broken up, it resets and the next player to use it declares again",
+      "rule4": "Scoring: a set scores 1 per + or −, 2 per ×, 3 per ÷, +1 for 4 cards and +2 for 5 cards, then a color multiplier (one color ×2, all different ×1.5). Your <b>Turn Score</b> is however much the <b>Table Score</b> rises above its previous high, with at least 1 pt per card played from your hand",
+      "rule5": "The game ends when someone <b>empties their hand</b> (or after a <b>Final Round</b> once the deck runs out). The first to go out gets +10; everyone else loses 1 pt per card left and 5 per Joker. Highest total wins"
     }
   }
 }
