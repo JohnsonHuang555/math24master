@@ -1,6 +1,16 @@
 export interface MatchResultCardData {
   score: number;
   isNewBestScore: boolean;
+  /** 圖卡上的文字，依玩家語系由呼叫端傳入 */
+  labels: MatchResultCardLabels;
+}
+
+export interface MatchResultCardLabels {
+  brand: string;
+  badge: string;
+  finalScore: string;
+  newRecord: string;
+  cta: string;
 }
 
 const WIDTH = 1080;
@@ -129,7 +139,7 @@ export async function renderMatchResultCard(
 
   ctx.fillStyle = COLORS.brand;
   ctx.font = `700 34px ${fonts.body}`;
-  ctx.fillText('24 點大師', cx, 92);
+  ctx.fillText(data.labels.brand, cx, 92);
 
   const cardX = 64;
   const cardY = 160;
@@ -160,7 +170,7 @@ export async function renderMatchResultCard(
   let y = cardY + 100;
 
   ctx.font = `700 30px ${fonts.body}`;
-  const badgeText = '消消樂模式・全清紀錄';
+  const badgeText = data.labels.badge;
   const badgePadX = 36;
   const badgeW = ctx.measureText(badgeText).width + badgePadX * 2;
   const badgeH = 68;
@@ -185,12 +195,12 @@ export async function renderMatchResultCard(
   y += 130;
   ctx.fillStyle = COLORS.muted;
   ctx.font = `500 32px ${fonts.body}`;
-  ctx.fillText('最終得分', cx, y);
+  ctx.fillText(data.labels.finalScore, cx, y);
 
   y += 90;
   if (data.isNewBestScore) {
     ctx.font = `700 32px ${fonts.body}`;
-    const text = '新紀錄！';
+    const text = data.labels.newRecord;
     const padX = 40;
     const w = ctx.measureText(text).width + padX * 2;
     const h = 74;
@@ -210,7 +220,7 @@ export async function renderMatchResultCard(
 
   ctx.font = `700 34px ${fonts.body}`;
   ctx.fillStyle = COLORS.tealDark;
-  ctx.fillText('來 Math24Master 挑戰看看', cx, HEIGHT - 90);
+  ctx.fillText(data.labels.cta, cx, HEIGHT - 90);
   ctx.font = `500 30px ${fonts.body}`;
   ctx.fillStyle = COLORS.tealText;
   ctx.fillText('math24master.com', cx, HEIGHT - 44);

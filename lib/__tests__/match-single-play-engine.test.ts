@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { selectCard, submitSelection } from '@/lib/match-single-play-engine';
+import { ErrorCode } from '@/models/ErrorCode';
 import { MatchBoardState, MatchCell } from '@/models/MatchBoard';
 import { NumberCard } from '@/models/Player';
 import { Symbol } from '@/models/Symbol';
@@ -165,7 +166,11 @@ describe('submitSelection - 張數上限', () => {
     board.selectedCards = [{ number: c1 }];
 
     const result = submitSelection(board);
-    expect(result.success).toBe(false);
+    expect(result).toMatchObject({
+      success: false,
+      error: ErrorCode.TooFewCards,
+      params: { count: 2 },
+    });
   });
 
   it('選超過 4 張時回傳 error', () => {
@@ -180,7 +185,11 @@ describe('submitSelection - 張數上限', () => {
     board.selectedCards = cards.map(c => ({ number: c }));
 
     const result = submitSelection(board);
-    expect(result.success).toBe(false);
+    expect(result).toMatchObject({
+      success: false,
+      error: ErrorCode.TooManyCards,
+      params: { count: 4 },
+    });
   });
 });
 

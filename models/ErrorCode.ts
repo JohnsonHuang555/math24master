@@ -26,6 +26,9 @@ export enum ErrorCode {
   ConsecutiveTimes = 'CONSECUTIVE_TIMES',
   ConsecutiveDivide = 'CONSECUTIVE_DIVIDE',
   PlusMinusAfterLeftParen = 'PLUS_MINUS_AFTER_LEFT_PAREN',
+  // 消消樂：一次選取的張數（參數 count）
+  TooFewCards = 'TOO_FEW_CARDS',
+  TooManyCards = 'TOO_MANY_CARDS',
 
   // 搶答
   BuzzerNotStarted = 'BUZZER_NOT_STARTED',

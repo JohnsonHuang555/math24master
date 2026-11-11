@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useServerErrorText } from '@/i18n/server-messages';
 import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
   backCard,
@@ -21,6 +23,9 @@ const OPERATOR_SYMBOLS = [
 ];
 
 const useMatchPlay = () => {
+  const tToast = useTranslations('GameUI.toast');
+  // 引擎回傳錯誤代碼，在這裡翻成玩家的語言（見 docs/adr/0009）
+  const errorText = useServerErrorText();
   const [board, setBoard] = useState<MatchBoardState>();
   const hasStartedRef = useRef(false);
 
@@ -59,7 +64,7 @@ const useMatchPlay = () => {
     if (result.success) {
       setBoard(result.board);
     } else {
-      toast.error(result.error);
+      toast.error(errorText(result.error, result.params));
     }
   };
 
@@ -79,17 +84,17 @@ const useMatchPlay = () => {
     if (!board || !isPlaying) return;
 
     if (board.selectedCards.length === 0) {
-      toast.warning('請組合算式');
+      toast.warning(tToast('buildEquation'));
       return;
     }
 
     const result = submitSelection(board);
     if (!result.success) {
-      toast.error(result.error);
+      toast.error(errorText(result.error, result.params));
       return;
     }
     if (!result.isCorrect) {
-      toast.error('答案不等於 24');
+      toast.error(errorText('ANSWER_NOT_24'));
       playSound('wrong');
       return;
     }

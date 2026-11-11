@@ -3,6 +3,7 @@ import { canMake24 } from '@/lib/daily-seed';
 import { generateMatchBoard } from '@/lib/match-board-generator';
 import { calcRoundScore } from '@/lib/scoring';
 import { calculateAnswer } from '@/lib/utils';
+import { ErrorCode } from '@/models/ErrorCode';
 import {
   MATCH_MAX_GROUP,
   MATCH_MIN_GROUP,
@@ -12,9 +13,14 @@ import { NumberCard } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 
-type EngineResult =
-  | { success: true; board: MatchBoardState }
-  | { success: false; error: string };
+/** 錯誤只回傳代碼與參數，由 UI 層翻譯（見 docs/adr/0009） */
+type EngineError = {
+  success: false;
+  error: ErrorCode;
+  params?: Record<string, number>;
+};
+
+type EngineResult = { success: true; board: MatchBoardState } | EngineError;
 
 type SubmitResult =
   | {
@@ -24,7 +30,7 @@ type SubmitResult =
       isCorrect: boolean;
       scoreGained: number;
     }
-  | { success: false; error: string };
+  | EngineError;
 
 /** 建立消消樂模式初始牌局（反向構造，保證存在全清解法） */
 export function createInitialBoard(rng?: () => number): MatchBoardState {
@@ -53,7 +59,7 @@ export function selectCard(
     const selectedCards = [...board.selectedCards];
 
     if (selectedCards.length === 0 && symbol && symbol !== Symbol.LeftBracket) {
-      return { success: false, error: '第一個只能用左括號或數字' };
+      return { success: false, error: ErrorCode.FirstMustBeNumberOrLeftParen };
     }
 
     if (number) {
@@ -63,14 +69,18 @@ export function selectCard(
       );
 
       if (isExistIndex === -1 && selectedNumberCount >= MATCH_MAX_GROUP) {
-        return { success: false, error: `最多選擇 ${MATCH_MAX_GROUP} 張牌` };
+        return {
+          success: false,
+          error: ErrorCode.TooManyCards,
+          params: { count: MATCH_MAX_GROUP },
+        };
       }
 
       const currentSelect = selectedCards[selectedCards.length - 1];
 
       // 如果前一個是數字則不能選
       if (currentSelect?.number && currentSelect?.number.id !== number.id) {
-        return { success: false, error: '數字牌不能連續使用' };
+        return { success: false, error: ErrorCode.ConsecutiveNumbers };
       }
 
       if (currentSelect?.symbol === Symbol.RightBracket) {
@@ -86,26 +96,26 @@ export function selectCard(
     if (symbol) {
       const lastCard = selectedCards[selectedCards.length - 1];
       if (lastCard?.symbol === Symbol.Minus && symbol === Symbol.Minus) {
-        return { success: false, error: '減號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveMinus };
       }
 
       if (lastCard?.symbol === Symbol.Plus && symbol === Symbol.Plus) {
-        return { success: false, error: '加號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutivePlus };
       }
 
       if (lastCard?.symbol === Symbol.Times && symbol === Symbol.Times) {
-        return { success: false, error: '乘號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveTimes };
       }
 
       if (lastCard?.symbol === Symbol.Divide && symbol === Symbol.Divide) {
-        return { success: false, error: '除號不能連續用' };
+        return { success: false, error: ErrorCode.ConsecutiveDivide };
       }
 
       if (
         lastCard?.symbol === Symbol.LeftBracket &&
         [Symbol.Plus, Symbol.Minus].includes(symbol)
       ) {
-        return { success: false, error: '左括號後面無法使用減號或加號' };
+        return { success: false, error: ErrorCode.PlusMinusAfterLeftParen };
       }
 
       if (symbol === Symbol.LeftBracket && lastCard?.number) {
@@ -116,7 +126,7 @@ export function selectCard(
 
     return { success: true, board: { ...board, selectedCards } };
   } catch (e) {
-    return { success: false, error: '發生錯誤，請稍後再試 (select card)' };
+    return { success: false, error: ErrorCode.Unexpected };
   }
 }
 
@@ -171,17 +181,25 @@ export function submitSelection(board: MatchBoardState): SubmitResult {
     .map(c => c.number!);
 
   if (numberCards.length < MATCH_MIN_GROUP) {
-    return { success: false, error: `至少選擇 ${MATCH_MIN_GROUP} 張牌` };
+    return {
+      success: false,
+      error: ErrorCode.TooFewCards,
+      params: { count: MATCH_MIN_GROUP },
+    };
   }
   if (numberCards.length > MATCH_MAX_GROUP) {
-    return { success: false, error: `最多選擇 ${MATCH_MAX_GROUP} 張牌` };
+    return {
+      success: false,
+      error: ErrorCode.TooManyCards,
+      params: { count: MATCH_MAX_GROUP },
+    };
   }
 
   let answer: unknown;
   try {
     answer = calculateAnswer(board.selectedCards);
   } catch {
-    return { success: false, error: '算式有誤' };
+    return { success: false, error: ErrorCode.InvalidEquation };
   }
 
   const isCorrect = typeof answer === 'number' && Math.abs(answer - 24) < 1e-9;
