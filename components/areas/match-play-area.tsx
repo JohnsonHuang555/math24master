@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Check, Delete, RotateCcw, Shuffle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ExpressionBar } from '@/components/game/expression-bar';
 import {
   EmptyCardSlot,
@@ -71,6 +72,8 @@ export function MatchPlayArea({
   onEscape,
 }: MatchPlayAreaProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Matching');
+  const tPuzzle = useTranslations('GameUI.puzzle');
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
   const selectedNumberIds = new Set(
@@ -118,7 +121,7 @@ export function MatchPlayArea({
         <div className="relative flex flex-1 items-start justify-center pt-3.5 pb-3 lg:flex-none lg:rounded-3xl lg:border lg:border-line lg:bg-surface lg:p-6">
           <div
             role="grid"
-            aria-label="牌局"
+            aria-label={t('board')}
             className="grid w-full max-w-[330px] grid-cols-4 gap-x-3 gap-y-2.5 lg:w-auto lg:max-w-none lg:grid-cols-[repeat(4,112px)] lg:gap-4"
           >
             <AnimatePresence mode="popLayout">
@@ -170,7 +173,7 @@ export function MatchPlayArea({
             result={livePreview}
             // 一次最多選 4 張；不到 4 張時還可能再加牌，不判定為錯
             isFinal={selectedNumberIds.size >= 4}
-            placeholder="點選 2~4 張牌和符號組成算式..."
+            placeholder={t('placeholder')}
           />
 
           <div className="flex justify-center gap-2 lg:justify-between">
@@ -189,13 +192,13 @@ export function MatchPlayArea({
                     size="icon"
                     className={ACTION_BUTTON_CLASS}
                     onClick={onClearSelection}
-                    aria-label="清除所選取的牌"
+                    aria-label={tPuzzle('clearSelection')}
                   >
                     <RotateCcw className="h-5 w-5" />
-                    <span className="hidden lg:inline">清除</span>
+                    <span className="hidden lg:inline">{tPuzzle('clear')}</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>清除所選取的牌</TooltipContent>
+                <TooltipContent>{tPuzzle('clearSelection')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -204,14 +207,14 @@ export function MatchPlayArea({
                     size="icon"
                     className={ACTION_BUTTON_CLASS}
                     onClick={onBackStep}
-                    aria-label="倒退一步"
+                    aria-label={tPuzzle('undoStep')}
                   >
                     <Delete className="h-5 w-5" />
-                    <span className="hidden lg:inline">倒退</span>
+                    <span className="hidden lg:inline">{tPuzzle('undo')}</span>
                     <Kbd>⌫</Kbd>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>倒退一步</TooltipContent>
+                <TooltipContent>{tPuzzle('undoStep')}</TooltipContent>
               </Tooltip>
               <Button
                 variant="tactile"
@@ -223,7 +226,7 @@ export function MatchPlayArea({
                 onClick={onSubmit}
               >
                 {isReady && <Check aria-hidden className="h-5 w-5" />}
-                確認消除
+                {t('submit')}
                 <Kbd>Enter</Kbd>
               </Button>
             </div>
@@ -235,10 +238,10 @@ export function MatchPlayArea({
             onClick={() => setShowRestartConfirm(true)}
           >
             <Shuffle aria-hidden className="h-4 w-4" />
-            重新開局
+            {t('newGame')}
           </Button>
           <p className="hidden items-center gap-1.5 text-[13px] text-ink-2 lg:flex">
-            符號直接按鍵盤 · <Kbd>⌫</Kbd> 倒退 · <Kbd>Enter</Kbd> 確認
+            {t.rich('keyboardHint', { kbd: chunks => <Kbd>{chunks}</Kbd> })}
           </p>
         </div>
       </div>
@@ -250,14 +253,14 @@ export function MatchPlayArea({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>要放棄目前牌局嗎？</AlertDialogTitle>
+            <AlertDialogTitle>{t('restartTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              將會開始新的一局，目前的進度不會保留。
+              {t('restartDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowRestartConfirm(false)}>
-              繼續這局
+              {t('keepThisGame')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -265,7 +268,7 @@ export function MatchPlayArea({
                 onRestart();
               }}
             >
-              重新開局
+              {t('newGame')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

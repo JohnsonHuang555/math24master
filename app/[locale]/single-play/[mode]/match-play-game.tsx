@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Ban, LayoutGrid, Share2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
 import { GameDesktopBar, GameHud } from '@/components/game/game-hud';
@@ -44,6 +45,11 @@ export default function MatchPlayGame({
     autoStart ? 'playing' : 'idle',
   );
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const t = useTranslations('Matching');
+  const tMode = useTranslations('SinglePlay.modes.match');
+  const tClassic = useTranslations('Classic');
+  const tShare = useTranslations('Share');
+  const format = useFormatter();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
@@ -142,23 +148,30 @@ export default function MatchPlayGame({
       const blob = await renderMatchResultCard({
         score,
         isNewBestScore,
+        labels: {
+          brand: tClassic('card.brand'),
+          badge: t('card.badge'),
+          finalScore: t('card.finalScore'),
+          newRecord: t('newRecord'),
+          cta: tClassic('card.cta'),
+        },
       });
       if (!blob) {
-        toast.error('圖卡產生失敗，請稍後再試');
+        toast.error(tShare('imageFailed'));
         return;
       }
       const file = new File([blob], 'math24-match-result.png', {
         type: 'image/png',
       });
       const outcome = await shareImage(file, {
-        title: 'Math24 消消樂模式',
-        text: `Math24 消消樂模式全清結果：${score} 分\n來 math24master.com 挑戰看看`,
+        title: t('shareTitle'),
+        text: t('shareText', { score }),
       });
       trackShare('match', outcome);
       if (outcome === 'downloaded') {
-        toast.success('圖卡已下載，快分享到限動或聊天吧！');
+        toast.success(tShare('downloaded'));
       } else if (outcome === 'failed') {
-        toast.error('分享失敗，請稍後再試');
+        toast.error(tShare('failed'));
       }
     } finally {
       setIsSharing(false);
@@ -180,12 +193,17 @@ export default function MatchPlayGame({
         {ruleModal}
         <GameStartScreen
           icon={LayoutGrid}
-          title="消消樂模式"
-          tagline="16 張牌 · 任選 2~4 張湊 24"
-          description="沒有時間限制 · 全部清除才計分上榜"
+          title={tMode('label')}
+          tagline={t('tagline')}
+          description={t('startDescription')}
           stats={
             bestScore > 0
-              ? [{ label: '個人最佳', value: `${bestScore} 分` }]
+              ? [
+                  {
+                    label: t('bestScore'),
+                    value: t('points', { score: bestScore }),
+                  },
+                ]
               : undefined
           }
           onBack={onBack}
@@ -216,16 +234,20 @@ export default function MatchPlayGame({
         />
         <GameResultScreen
           hero={<MiniBoard cells={cells} cleared={isCleared} />}
-          eyebrow={isCleared ? '全清！' : '卡關了'}
+          eyebrow={isCleared ? t('fullClear') : t('stuck')}
           detail={
             !isCleared && (
               <>
                 <p className="text-[15px] leading-relaxed text-ink-2">
-                  剩下 {remainingCount} 張牌怎麼選都湊不出 24
+                  {t('stuckDetail', { count: remainingCount })}
                 </p>
                 <div
                   className="my-1 flex gap-2"
-                  aria-label={`剩下的牌：${remainingCards.map(c => c.card!.value).join('、')}`}
+                  aria-label={t('remainingCardsLabel', {
+                    cards: format.list(
+                      remainingCards.map(c => String(c.card!.value)),
+                    ),
+                  })}
                 >
                   {remainingCards.map(cell => (
                     <span
@@ -240,29 +262,33 @@ export default function MatchPlayGame({
               </>
             )
           }
-          label={isCleared ? undefined : '本局得分'}
+          label={isCleared ? undefined : t('roundScore')}
           value={score}
           valueMuted={!isCleared}
           badge={
             !isCleared ? (
               <span className="inline-flex h-7 items-center gap-[5px] rounded-full border border-line-strong bg-sunken px-2.5 text-[13px] font-bold text-ink">
                 <Ban aria-hidden className="h-4 w-4" />
-                未計入排行榜
+                {t('notRanked')}
               </span>
             ) : isNewBestScore ? (
-              <RecordBadge>新紀錄！</RecordBadge>
+              <RecordBadge>{t('newRecord')}</RecordBadge>
             ) : bestScore > 0 ? (
               <span className="text-sm text-ink-2">
-                個人最佳：
-                <b className="font-display font-extrabold text-ink">
-                  {bestScore} 分
-                </b>
+                {t.rich('bestScoreInline', {
+                  score: bestScore,
+                  b: chunks => (
+                    <b className="font-display font-extrabold text-ink">
+                      {chunks}
+                    </b>
+                  ),
+                })}
               </span>
             ) : null
           }
-          backLabel="返回選單"
+          backLabel={t('backToMenu')}
           onBack={onBack}
-          retryLabel="再來一局"
+          retryLabel={t('playAgain')}
           onRetry={() => {
             setScreenStatus('playing');
             handleRestart();
@@ -277,7 +303,7 @@ export default function MatchPlayGame({
                 disabled={isSharing}
               >
                 <Share2 aria-hidden />
-                {isSharing ? '圖卡產生中...' : '分享成績'}
+                {isSharing ? t('sharing') : t('share')}
               </ResultSecondaryButton>
             </>
           )}
@@ -301,8 +327,14 @@ export default function MatchPlayGame({
           transition={{ duration: reduceMotion ? 0 : 0.25 }}
         >
           <span className="rounded-[20px] bg-surface px-5 py-1.5 font-display text-[72px] leading-none font-extrabold text-primary-ink shadow-[0_12px_32px_rgba(16,36,33,0.18)]">
-            +{scoreFlash}
-            <span className="ml-1 font-noto text-[32px] font-black">分！</span>
+            {t.rich('scoreFlash', {
+              score: scoreFlash,
+              unit: chunks => (
+                <span className="ml-1 font-noto text-[32px] font-black">
+                  {chunks}
+                </span>
+              ),
+            })}
           </span>
         </motion.div>
       )}
@@ -342,7 +374,7 @@ export default function MatchPlayGame({
         onEscape={() => setShowLeaveConfirm(true)}
         desktopBar={
           <GameDesktopBar
-            title="消消樂模式"
+            title={tMode('label')}
             escHint
             score={score}
             remaining={remainingCount}
@@ -352,7 +384,7 @@ export default function MatchPlayGame({
         }
       >
         <GameHud
-          modeLabel="消消樂模式"
+          modeLabel={tMode('label')}
           score={score}
           remaining={remainingCount}
           onExit={() => setShowLeaveConfirm(true)}

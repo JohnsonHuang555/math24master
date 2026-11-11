@@ -21,6 +21,12 @@ describe('serverErrorText', () => {
     expect(serverErrorText(tError, ErrorCode.RoomNotFound)).toBe('房間不存在');
   });
 
+  it('帶參數的代碼', () => {
+    expect(serverErrorText(tError, ErrorCode.TooManyCards, { count: 4 })).toBe(
+      '最多選擇 4 張牌',
+    );
+  });
+
   it('舊版 server 送來的文字原樣顯示', () => {
     expect(serverErrorText(tError, '密碼錯誤')).toBe('密碼錯誤');
   });
