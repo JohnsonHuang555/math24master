@@ -909,6 +909,30 @@
       }
     }
   },
+  "Multiplayer": {
+    "quickMatch": {
+      "title": "Quick Match",
+      "description": "Get matched with real players in {seconds} seconds. Bots fill any empty seats so you can play right away.",
+      "action": "Quick Match",
+      "searching": "Finding players…",
+      "secondsLeft": "Starting in <n>{seconds}</n>s",
+      "fillHint": "If the room isn't full when time runs out, bots will join",
+      "startNow": "Start now",
+      "roomName": "Quick Match"
+    },
+    "privateRoom": {
+      "title": "Private room",
+      "description": "Create a room and send the link to friends so they can join"
+    },
+    "openRooms": "Open rooms",
+    "invite": {
+      "action": "Invite friends",
+      "shareTitle": "Play Math24 Master with me!",
+      "shareText": "Join my room and race me to 24",
+      "copied": "Invite link copied. Send it to your friends!",
+      "copyFailed": "Couldn't copy automatically. Please copy the link from the address bar."
+    }
+  },
   "RoundHistory": {
     "title": "Answer history",
     "empty": "No answers this game",

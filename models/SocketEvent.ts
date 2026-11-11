@@ -67,4 +67,12 @@ export enum SocketEvent {
   BuzzerSubmitAnswer = 'buzzer-submit-answer',
   BuzzerVoteNoSolution = 'buzzer-vote-no-solution',
   BuzzerSelectionUpdate = 'buzzer-selection-update',
+
+  // ── 快速配對 ──
+  // C→S：找一間正在配對的房間加入，沒有就開一間新的
+  QuickMatch = 'quick-match',
+  // C→S：不等了，立即用電腦補位開局
+  QuickMatchStartNow = 'quick-match-start-now',
+  // S→C：配對倒數剩餘秒數
+  QuickMatchCountdown = 'quick-match-countdown',
 }

@@ -909,6 +909,30 @@
       }
     }
   },
+  "Multiplayer": {
+    "quickMatch": {
+      "title": "快速開始",
+      "description": "{seconds} 秒內配對真人對手，沒人的話由電腦補位，馬上就能玩",
+      "action": "快速開始",
+      "searching": "正在尋找對手⋯",
+      "secondsLeft": "<n>{seconds}</n> 秒後開局",
+      "fillHint": "時間到還沒湊滿，會由電腦玩家補位",
+      "startNow": "不等了，直接開始",
+      "roomName": "快速配對"
+    },
+    "privateRoom": {
+      "title": "開私人房間",
+      "description": "建立房間後把連結傳給朋友，點開就能加入"
+    },
+    "openRooms": "公開房間",
+    "invite": {
+      "action": "邀請朋友",
+      "shareTitle": "來 24點大師跟我對戰！",
+      "shareText": "點連結加入我的房間，一起玩搶答 24 點",
+      "copied": "已複製邀請連結，傳給朋友就能加入",
+      "copyFailed": "無法自動複製，請直接複製網址列的連結"
+    }
+  },
   "RoundHistory": {
     "title": "作答紀錄",
     "empty": "本局沒有作答紀錄",

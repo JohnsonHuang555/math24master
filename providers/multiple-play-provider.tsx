@@ -9,11 +9,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { toast } from 'sonner';
 import { Socket, io } from 'socket.io-client';
+import { toast } from 'sonner';
 import { useGameActions } from '@/hooks/useGameActions';
 import { useServerErrorText } from '@/i18n/server-messages';
-import { trackGameComplete, trackGameStart } from '@/lib/analytics';
+import { trackEvent, trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
@@ -95,6 +95,12 @@ type MultiplePlayContextData = {
   gameAbortedData: GameAbortedData | null;
   clearGameAbortedData: () => void;
   addBot: (difficulty: 'easy' | 'normal' | 'hard') => void;
+  /** 快速開始：找正在配對的房間加入，沒有就開一間新的 */
+  quickMatch: (playerName: string) => void;
+  /** 不等了，讓電腦補位立即開局 */
+  startQuickMatchNow: () => void;
+  /** 配對倒數剩餘秒數；不在配對中時為 null */
+  quickMatchSecondsLeft: number | null;
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 };
 const MultiplePlayContext = createContext<MultiplePlayContextData | undefined>(
@@ -126,8 +132,14 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     needDrawPlayerId: string;
   }>();
   const [gameOverData, setGameOverData] = useState<GameOverData | null>(null);
-  const [gameAbortedData, setGameAbortedData] = useState<GameAbortedData | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('connected');
+  const [quickMatchSecondsLeft, setQuickMatchSecondsLeft] = useState<
+    number | null
+  >(null);
+  const [gameAbortedData, setGameAbortedData] =
+    useState<GameAbortedData | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<
+    'connected' | 'reconnecting' | 'disconnected'
+  >('connected');
   const graceTimerRef = useRef<NodeJS.Timeout | null>(null);
   // 用來區分「頁面首次載入」vs「遊戲中斷線重連」：
   // 只有 socket 曾觸發 disconnect 後才會為 true，新 socket instance 預設 false
@@ -159,7 +171,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const resetState = useCallback(() => {
     setCheckAnswerCorrect(null);
     resetAnimations();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -173,6 +185,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
       setRoomInfo(room);
     });
+
+    socket.on(
+      SocketEvent.QuickMatchCountdown,
+      ({ secondsLeft }: { secondsLeft: number }) => {
+        setQuickMatchSecondsLeft(secondsLeft);
+      },
+    );
 
     socket.on(SocketEvent.GetMessage, (message: Message) => {
       setMessages(state => [...state, message]);
@@ -204,15 +223,18 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       }
     });
 
-    socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
-      if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
-      wasReconnectingRef.current = false;
-      setRoomInfo(room);
-      setPlayerId(socket.id);
-      playerIdRef.current = socket.id;
-      setConnectionStatus('connected');
-      toast.success('已重新連線');
-    });
+    socket.on(
+      SocketEvent.PlayerReconnectSuccess,
+      ({ room }: { room: Room }) => {
+        if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+        wasReconnectingRef.current = false;
+        setRoomInfo(room);
+        setPlayerId(socket.id);
+        playerIdRef.current = socket.id;
+        setConnectionStatus('connected');
+        toast.success('已重新連線');
+      },
+    );
 
     socket.on(SocketEvent.PlayerReconnectFailed, () => {
       if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
@@ -296,7 +318,10 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     socket.on(
       SocketEvent.BuzzerGameOver,
-      (data: { winner: { id: string; name: string; score: number }; players: { id: string; name: string; score: number }[] }) => {
+      (data: {
+        winner: { id: string; name: string; score: number };
+        players: { id: string; name: string; score: number }[];
+      }) => {
         playSound('gameOverWin');
         trackGameComplete('multiplayer', { variant: 'buzzer' });
         setGameOverData({
@@ -517,7 +542,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [connectionStatus, checkAnswerCorrect, isYourTurn, roomInfo?.isGameOver, roomInfo?.roomId]);
+  }, [
+    connectionStatus,
+    checkAnswerCorrect,
+    isYourTurn,
+    roomInfo?.isGameOver,
+    roomInfo?.roomId,
+  ]);
 
   // 退回鍵
   const onBack = useCallback(() => {
@@ -560,10 +591,39 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const addBot = useCallback(
     (difficulty: 'easy' | 'normal' | 'hard') => {
       if (!roomInfo?.roomId) return;
-      socket.emit(SocketEvent.AddBotToRoom, { roomId: roomInfo.roomId, difficulty });
+      socket.emit(SocketEvent.AddBotToRoom, {
+        roomId: roomInfo.roomId,
+        difficulty,
+      });
     },
     [roomInfo?.roomId],
   );
+
+  const quickMatch = useCallback((playerName: string) => {
+    sessionStorage.removeItem('reconnectToken');
+    socket.emit(SocketEvent.QuickMatch, { playerName });
+  }, []);
+
+  const startQuickMatchNow = useCallback(() => {
+    if (!roomInfo?.roomId) return;
+    socket.emit(SocketEvent.QuickMatchStartNow, { roomId: roomInfo.roomId });
+  }, [roomInfo?.roomId]);
+
+  // 配對結束（開局）時記錄配到幾個真人，用來觀察配對成效
+  const wasQuickMatchPendingRef = useRef(false);
+  useEffect(() => {
+    const pending = !!roomInfo?.quickMatchPending;
+    if (wasQuickMatchPendingRef.current && !pending && roomInfo) {
+      const humans = roomInfo.players.filter(p => !p.isBot).length;
+      trackEvent('quick_match_start', {
+        humans,
+        bots: roomInfo.players.length - humans,
+        outcome: humans > 1 ? 'matched' : 'bots_only',
+      });
+      setQuickMatchSecondsLeft(null);
+    }
+    wasQuickMatchPendingRef.current = pending;
+  }, [roomInfo]);
 
   useEffect(() => {
     if (
@@ -611,8 +671,16 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       clearGameAbortedData,
       addBot,
       connectionStatus,
+      quickMatch,
+      startQuickMatchNow,
+      quickMatchSecondsLeft: roomInfo?.quickMatchPending
+        ? quickMatchSecondsLeft
+        : null,
     };
   }, [
+    quickMatch,
+    startQuickMatchNow,
+    quickMatchSecondsLeft,
     checkAnswerCorrect,
     connectionStatus,
     currentPlayer,

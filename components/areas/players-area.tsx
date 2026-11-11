@@ -1,5 +1,9 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Bot, CircleCheck, Crown, Info, UserMinus } from 'lucide-react';
+import {
+  InviteFriendsButton,
+  QuickMatchAction,
+} from '@/components/areas/quick-match-panel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Player } from '@/models/Player';
@@ -12,6 +16,8 @@ type PlayersAreaProps = {
   onRemovePlayer: (playerId: string) => void;
   onAddBot?: (difficulty: 'easy' | 'normal' | 'hard') => void;
   canAddBot?: boolean;
+  /** 快速配對倒數中：主要按鈕換成配對倒數與「直接開始」 */
+  quickMatch?: { secondsLeft: number | null; onStartNow: () => void };
 };
 
 const BOT_LABELS: Record<string, string> = {
@@ -31,6 +37,7 @@ const PlayersArea = ({
   onRemovePlayer,
   onAddBot,
   canAddBot,
+  quickMatch,
 }: PlayersAreaProps) => {
   const reduceMotion = useReducedMotion();
 
@@ -176,13 +183,18 @@ const PlayersArea = ({
 
       {/* 手機版的主要按鈕固定在畫面底部（見房間頁），這裡只在桌機顯示 */}
       {
-        <div className="mt-4 hidden md:block">
-          <WaitingRoomAction
-            players={players}
-            currentPlayer={currentPlayer}
-            onReady={onReady}
-            onStart={onStart}
-          />
+        <div className="mt-4 hidden flex-col gap-2.5 md:flex">
+          {quickMatch ? (
+            <QuickMatchAction {...quickMatch} />
+          ) : (
+            <WaitingRoomAction
+              players={players}
+              currentPlayer={currentPlayer}
+              onReady={onReady}
+              onStart={onStart}
+            />
+          )}
+          <InviteFriendsButton />
         </div>
       }
     </section>
