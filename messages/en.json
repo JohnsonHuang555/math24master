@@ -123,7 +123,7 @@
     },
     "hud": {
       "pointsUnit": "pts",
-      "remaining": "{count} cards left",
+      "remaining": "{count, plural, one {# card left} other {# cards left}}",
       "lastRound": "Final round!",
       "rules": "Rules",
       "exit": "Leave",
@@ -271,7 +271,7 @@
     },
     "record": {
       "stage": "Stage {stage}",
-      "score": "{score} pts"
+      "score": "{score, plural, one {# pt} other {# pts}}"
     },
     "rank": "#{rank}",
     "me": "Me",
@@ -376,7 +376,7 @@
     "subtitle": "Pick a mode to jump right in",
     "keyboardHint": "Press <kbd>1</kbd>–<kbd>4</kbd> to pick",
     "personalBest": "Personal best",
-    "points": "{score} pts",
+    "points": "{score, plural, one {# pt} other {# pts}}",
     "stage": "Stage {stage}",
     "modes": {
       "classic": {
@@ -412,10 +412,10 @@
   "Classic": {
     "startDescription": "Solve to score · Skip to redraw · Ends when the deck runs out<br></br>Hit a hand's max score for a Perfect Hand: +1 bonus",
     "bestScore": "Best",
-    "bestScoreValue": "{score} pts",
+    "bestScoreValue": "{score, plural, one {# pt} other {# pts}}",
     "gameOver": "Game over",
     "newRecord": "New record!",
-    "bestScoreInline": "Best: {score} pts",
+    "bestScoreInline": "Best: {score, plural, one {# pt} other {# pts}}",
     "grade": "Grade",
     "efficiency": "Efficiency",
     "perfectHands": "Perfect hands",
@@ -425,9 +425,9 @@
     "share": "Share",
     "sharing": "Creating image…",
     "shareTitle": "Math24 Master Classic Mode",
-    "shareText": "My Math24 Master Classic Mode result: {score} pts (grade {grade})\nTry it at math24master.com",
-    "perfectFeedback": "Perfect hand! Max {max} pts · +1 bonus",
-    "handFeedback": "Hand max {max} pts · You scored {score}",
+    "shareText": "My Math24 Master Classic Mode result: {score, plural, one {# pt} other {# pts}} (grade {grade})\nTry it at math24master.com",
+    "perfectFeedback": "Perfect hand! Max {max, plural, one {# pt} other {# pts}} · +1 bonus",
+    "handFeedback": "Hand max {max, plural, one {# pt} other {# pts}} · You scored {score}",
     "finish": "Finish",
     "skipHand": "Skip hand",
     "historyTitle": "This game",
@@ -451,8 +451,8 @@
     "bestStage": "Best stage",
     "bestScore": "Best score",
     "stage": "Stage {stage}",
-    "points": "{score} pts",
-    "hudPoints": "<b>{score}</b> pts",
+    "points": "{score, plural, one {# pt} other {# pts}}",
+    "hudPoints": "<b>{score}</b> {score, plural, one {pt} other {pts}}",
     "endedEarly": "Ended early!",
     "timeUp": "Time's up!",
     "finalStage": "Final stage",
@@ -465,14 +465,14 @@
     "endEarlyTitle": "End the game now?",
     "endEarlyDescription": "The game ends right away, and your current stage counts as your result.",
     "endNow": "End game",
-    "correct": "Correct! +{score} pts, +{bonus}s",
+    "correct": "Correct! +{score, plural, one {# pt} other {# pts}}, +{bonus}s",
     "wrongAnswer": "{answer} doesn't equal 24"
   },
   "Matching": {
     "startDescription": "No time limit · Clear the board to rank",
     "tagline": "16 cards · Pick 2–4 to make 24",
     "bestScore": "Personal best",
-    "points": "{score} pts",
+    "points": "{score, plural, one {# pt} other {# pts}}",
     "fullClear": "Full Clear!",
     "stuck": "Stuck",
     "stuckDetail": "{count, plural, one {The last card left can't make 24} other {No combination of the # cards left makes 24}}",
@@ -480,14 +480,14 @@
     "roundScore": "Score",
     "notRanked": "Not ranked",
     "newRecord": "New record!",
-    "bestScoreInline": "Personal best: <b>{score} pts</b>",
+    "bestScoreInline": "Personal best: <b>{score, plural, one {# pt} other {# pts}}</b>",
     "backToMenu": "Menu",
     "playAgain": "Play again",
     "share": "Share",
     "sharing": "Creating image…",
     "shareTitle": "Math24 Master Matching Mode",
-    "shareText": "I got a Full Clear in Math24 Master Matching Mode: {score} pts\nTry it at math24master.com",
-    "scoreFlash": "+{score}<unit>pts!</unit>",
+    "shareText": "I got a Full Clear in Math24 Master Matching Mode: {score, plural, one {# pt} other {# pts}}\nTry it at math24master.com",
+    "scoreFlash": "+{score}<unit>{score, plural, one {pt!} other {pts!}}</unit>",
     "board": "Board",
     "placeholder": "Tap 2–4 cards and symbols to build an equation",
     "submit": "Submit",
@@ -505,14 +505,14 @@
     "tagline": "Rummikub-style · Race 2 bots to empty your hand",
     "startDescription": "Make one set of 24 each turn, and rearrange the sets on the table",
     "bestScore": "Personal best",
-    "points": "{score} pts",
+    "points": "{score, plural, one {# pt} other {# pts}}",
     "you": "You",
     "result": {
       "youWon": "You won!",
       "rank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place",
       "yourTotal": "Your total",
       "newRecord": "New record!",
-      "bestScoreInline": "Best: <b>{score} pts</b>",
+      "bestScoreInline": "Best: <b>{score, plural, one {# pt} other {# pts}}</b>",
       "backToMenu": "Menu",
       "playAgain": "Play again",
       "player": "Player",
@@ -543,7 +543,7 @@
       "yourTurn": "Your turn",
       "waiting": "Waiting"
     },
-    "seatSummary": "<b>{score}</b> pts · {count} cards",
+    "seatSummary": "<b>{score}</b> {score, plural, one {pt} other {pts}} · {count, plural, one {# card} other {# cards}}",
     "seatHand": "{count} in hand",
     "colors": {
       "red": "Red",
@@ -565,21 +565,21 @@
     "composer": {
       "label": "Equation builder",
       "placeholder": "Tap hand or loose cards, then add symbols",
-      "estimate": "Est. {score} pts",
+      "estimate": "Est. {score, plural, one {# pt} other {# pts}}",
       "backspace": "Backspace",
       "clear": "Clear",
       "commit": "Place on table"
     },
     "hand": {
       "label": "Hand",
-      "count": "Hand · {count} cards"
+      "count": "Hand · {count, plural, one {# card} other {# cards}}"
     },
     "table": {
       "label": "Table",
       "count": "Table · {count, plural, one {# set} other {# sets}}",
       "empty": "The table is empty. Build the first set from your hand!",
       "justChanged": "Changed",
-      "setScore": "{score} pts",
+      "setScore": "{score, plural, one {# pt} other {# pts}}",
       "breakUp": "Break up",
       "loose": "Loose cards",
       "looseHint": "Put them all back into sets to end your turn"
@@ -676,7 +676,7 @@
     "start": "Start",
     "titleWithDate": "Daily Challenge · {date}",
     "todayTotal": "Today's score · {count} puzzles",
-    "shareText": "Math24 Master Daily Challenge {date}\nToday: {score} pts · {streak}-day streak\nmath24master.com",
+    "shareText": "Math24 Master Daily Challenge {date}\nToday: {score, plural, one {# pt} other {# pts}} · {streak}-day streak\nmath24master.com",
     "copyShareLabel": "Copy share text to clipboard",
     "copyShare": "Copy to share",
     "copied": "Copied to clipboard!",
@@ -698,7 +698,7 @@
       "unique": "Only solution",
       "count": "{count, plural, one {# solution} other {# solutions}}",
       "yours": "Your solution",
-      "points": "{score} pts",
+      "points": "{score, plural, one {# pt} other {# pts}}",
       "showAll": "Show all {count} solutions"
     }
   },
@@ -755,7 +755,7 @@
     },
     "round": "Round <n>{round}</n> of {total}",
     "excluded": "<n>{count}</n> ruled out",
-    "peeking": "X-Ray… {count} numbers left",
+    "peeking": "X-Ray… {count, plural, one {# number left} other {# numbers left}}",
     "legend": {
       "remaining": "Left",
       "excluded": "Ruled out",
@@ -768,7 +768,7 @@
       "redraw": "New hand. Pick a clue card."
     },
     "secretRange": "The answer is a two-digit number (10–99)",
-    "remainingCount": "<n>{count}</n> numbers left",
+    "remainingCount": "<n>{count}</n> {count, plural, one {number left} other {numbers left}}",
     "yourGuess": "Your guess",
     "guessPlaceholder": "Enter 10–99",
     "alreadyGuessed": "You already guessed {n}. You can still submit it.",
@@ -939,8 +939,8 @@
     "title": "Answer history",
     "empty": "No answers this game",
     "question": "Q{round}",
-    "yours": "Yours · {score} pts",
-    "best": "Best · {score} pts",
+    "yours": "Yours · {score, plural, one {# pt} other {# pts}}",
+    "best": "Best · {score, plural, one {# pt} other {# pts}}",
     "alreadyBest": "Best answer!",
     "couldEarnMore": "Best answer scores {points} more"
   },

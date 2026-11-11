@@ -176,7 +176,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   useEffect(() => {
     socket.emit(SocketEvent.SearchRooms);
-    console.log('????');
 
     socket.on(SocketEvent.ErrorMessage, (error: string) => {
       toast.error(serverErrorText(error));
