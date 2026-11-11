@@ -11,7 +11,7 @@ import {
   Flame,
   RotateCcw,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ACTION_BUTTON_CLASS } from '@/components/areas/puzzle-play-area';
 import { BackToHomeButton } from '@/components/back-to-home-button';
@@ -49,6 +49,10 @@ import { useStatsStore } from '@/stores/stats-store';
 
 const TOTAL_ROUNDS = 3;
 
+/** 答錯的原因；存結構而不是文字，顯示時才依語系翻譯 */
+type WrongReason =
+  { kind: 'invalid' } | { kind: 'notTwentyFour'; value: number };
+
 type GameState = 'idle' | 'playing' | 'completed';
 
 /** 每日挑戰日是台灣日期（YYYY-MM-DD），以 UTC 解析避免玩家時區把日期往前推一天 */
@@ -66,6 +70,11 @@ function formatDailyDate(
 
 export default function DailyChallengePage() {
   const locale = useLocale();
+  const t = useTranslations('Daily');
+  const tCommon = useTranslations('Common');
+  const tHud = useTranslations('GameUI.hud');
+  const tPuzzle = useTranslations('GameUI.puzzle');
+  const tError = useTranslations('ServerError');
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
@@ -84,7 +93,7 @@ export default function DailyChallengePage() {
   );
   const [userFormulas, setUserFormulas] = useState<string[]>([]);
   // 答錯的原因；改動算式後清掉
-  const [wrongMessage, setWrongMessage] = useState<string | null>(null);
+  const [wrongReason, setWrongReason] = useState<WrongReason | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const isSubmitting = useRef(false);
   const scoreSumRef = useRef(0);
@@ -116,7 +125,7 @@ export default function DailyChallengePage() {
 
   const updateFormula = (next: FormulaItem[]) => {
     setFormula(next);
-    setWrongMessage(null);
+    setWrongReason(null);
   };
 
   const startGame = () => {
@@ -175,9 +184,9 @@ export default function DailyChallengePage() {
     setUsedCardIndices(new Set());
   };
 
-  const applyPenalty = (message: string) => {
+  const applyPenalty = (reason: WrongReason) => {
     playSound('wrong');
-    setWrongMessage(message);
+    setWrongReason(reason);
   };
 
   const formulaDisplay = formula
@@ -194,20 +203,23 @@ export default function DailyChallengePage() {
     isSubmitting.current = true;
 
     if (usedCardIndices.size !== 4) {
-      toast.error('必須使用全部 4 張牌');
+      toast.error(t('mustUseAll', { count: 4 }));
       isSubmitting.current = false;
       return;
     }
 
     const value = evaluateFormula(formula);
     if (value === null) {
-      applyPenalty('算式有誤');
+      applyPenalty({ kind: 'invalid' });
       isSubmitting.current = false;
       return;
     }
 
     if (Math.abs(value - 24) >= 1e-6) {
-      applyPenalty(`結果是 ${Math.round(value * 100) / 100}，不等於 24`);
+      applyPenalty({
+        kind: 'notTwentyFour',
+        value: Math.round(value * 100) / 100,
+      });
       isSubmitting.current = false;
       return;
     }
@@ -219,7 +231,7 @@ export default function DailyChallengePage() {
 
     const nextRound = currentRound + 1;
     if (nextRound < TOTAL_ROUNDS) {
-      toast.success(`第 ${currentRound + 1} 題完成！`);
+      toast.success(t('roundDone', { round: currentRound + 1 }));
       setCurrentRound(nextRound);
       updateFormula([]);
       setUsedCardIndices(new Set());
@@ -250,19 +262,20 @@ export default function DailyChallengePage() {
     day: 'numeric',
   });
 
-  const sharePreviewText =
-    `24點大師 每日挑戰 ${shortDate}\n` +
-    `本日 ${score ?? 0} 分 · 連續 ${streak} 天\n` +
-    `math24master.com`;
+  const sharePreviewText = t('shareText', {
+    date: shortDate,
+    score: score ?? 0,
+    streak,
+  });
 
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(sharePreviewText);
       trackShare('daily', 'copied');
-      toast.success('已複製到剪貼簿！');
+      toast.success(t('copied'));
     } catch {
       trackShare('daily', 'failed');
-      toast.error('無法自動複製，請手動複製上方文字', { duration: Infinity });
+      toast.error(t('copyFailed'), { duration: Infinity });
     }
   };
 
@@ -295,20 +308,22 @@ export default function DailyChallengePage() {
               {dayOfMonth}
             </div>
           </div>
-          <h1 className="mt-2.5 text-[32px] font-black text-ink">每日挑戰</h1>
+          <h1 className="mt-2.5 text-[32px] font-black text-ink">
+            {t('title')}
+          </h1>
           <p className="text-[15px] leading-relaxed text-ink-2">
-            每天 {TOTAL_ROUNDS} 題，累積你的連續挑戰紀錄
+            {t('intro', { count: TOTAL_ROUNDS })}
           </p>
           {streak > 0 && (
             <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber-tint px-3 text-sm font-bold text-amber-ink">
               <Flame aria-hidden className="h-4 w-4" />
-              連續 {streak} 天
+              {t('streak', { count: streak })}
             </span>
           )}
         </main>
         <div className="flex flex-col gap-3">
           <Button variant="tactile" className="w-full" onClick={startGame}>
-            開始挑戰
+            {t('start')}
           </Button>
         </div>
       </div>
@@ -321,8 +336,8 @@ export default function DailyChallengePage() {
       <div className="flex h-full flex-col overflow-y-auto">
         <GameDesktopBar
           className="hidden lg:flex"
-          title={`每日挑戰 · ${shortDate}`}
-          exitLabel="首頁"
+          title={t('titleWithDate', { date: shortDate })}
+          exitLabel={tCommon('home')}
           onExit={() => router.push('/')}
           center={<NextPuzzleCountdown />}
         />
@@ -332,7 +347,7 @@ export default function DailyChallengePage() {
             <header className="-mx-2 flex items-center gap-1 lg:hidden">
               <BackToHomeButton />
               <span className="text-sm font-bold text-ink-2">
-                每日挑戰 · {shortDate}
+                {t('titleWithDate', { date: shortDate })}
               </span>
             </header>
 
@@ -343,14 +358,14 @@ export default function DailyChallengePage() {
               className="flex flex-col items-center gap-1.5 pt-2.5 lg:gap-3.5 lg:pt-2"
             >
               <span className="text-[15px] font-bold text-ink-2">
-                本日總分 · 共 {TOTAL_ROUNDS} 題
+                {t('todayTotal', { count: TOTAL_ROUNDS })}
               </span>
               <span className="font-display text-[88px] leading-[0.95] font-extrabold text-ink tabular-nums lg:text-[104px]">
                 {score ?? 0}
               </span>
               <span className="inline-flex h-8 items-center gap-[5px] rounded-full bg-amber px-3 text-sm font-bold text-on-amber lg:h-[34px] lg:text-[15px]">
                 <Flame aria-hidden className="h-4 w-4" />
-                連續 {streak} 天
+                {t('streak', { count: streak })}
               </span>
             </motion.div>
 
@@ -362,10 +377,10 @@ export default function DailyChallengePage() {
               variant="tactileOutline"
               className="h-12 gap-2 text-[15px] lg:h-[52px]"
               onClick={handleShare}
-              aria-label="複製分享文字到剪貼簿"
+              aria-label={t('copyShareLabel')}
             >
               <Copy aria-hidden className="h-[18px] w-[18px]" />
-              複製分享
+              {t('copyShare')}
             </Button>
 
             <div className="lg:hidden">
@@ -374,10 +389,10 @@ export default function DailyChallengePage() {
 
             <div className="flex gap-2.5 lg:mt-2 lg:gap-3">
               <Button variant="tactileOutline" className="flex-1 px-3" asChild>
-                <Link href="/multiple-play">挑戰朋友</Link>
+                <Link href="/multiple-play">{t('challengeFriends')}</Link>
               </Button>
               <Button variant="tactile" className="flex-[1.2] px-3" asChild>
-                <Link href="/single-play">繼續練習</Link>
+                <Link href="/single-play">{t('keepPracticing')}</Link>
               </Button>
             </div>
           </div>
@@ -385,7 +400,9 @@ export default function DailyChallengePage() {
           {/* 各題解法 */}
           {solutionsPerPuzzle.length > 0 && (
             <section className="mt-3 flex flex-col gap-3.5 lg:mt-0 lg:rounded-[22px] lg:border lg:border-line lg:bg-surface lg:p-6">
-              <h2 className="text-xl font-extrabold text-ink">各題解法</h2>
+              <h2 className="text-xl font-extrabold text-ink">
+                {t('solutionsTitle')}
+              </h2>
               <div className="overflow-hidden rounded-[18px] border border-line bg-surface">
                 {solutionsPerPuzzle.map((solutions, i) => (
                   <SolutionsPanel
@@ -426,7 +443,10 @@ export default function DailyChallengePage() {
     <div className="flex h-full flex-col">
       <GameDesktopBar
         className="hidden lg:flex"
-        title={`每日挑戰 · 第 ${currentRound + 1} / ${TOTAL_ROUNDS} 題`}
+        title={t('progressPlain', {
+          current: currentRound + 1,
+          total: TOTAL_ROUNDS,
+        })}
         onExit={() => setShowLeaveConfirm(true)}
         escHint
       />
@@ -442,17 +462,21 @@ export default function DailyChallengePage() {
             size="icon"
             className="h-11 w-11 shrink-0 text-ink"
             onClick={() => setShowLeaveConfirm(true)}
-            aria-label="離開"
+            aria-label={tHud('exit')}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex flex-1 flex-col gap-1.5 px-1.5">
             <span className="text-[13px] font-bold text-ink-2">
-              每日挑戰 · 第{' '}
-              <span className="font-display text-[15px] text-ink">
-                {currentRound + 1}
-              </span>{' '}
-              / {TOTAL_ROUNDS} 題
+              {t.rich('progress', {
+                current: currentRound + 1,
+                total: TOTAL_ROUNDS,
+                n: chunks => (
+                  <span className="font-display text-[15px] text-ink">
+                    {chunks}
+                  </span>
+                ),
+              })}
             </span>
             <div aria-hidden className="flex gap-1.5">
               {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
@@ -474,9 +498,9 @@ export default function DailyChallengePage() {
         </header>
 
         <div className="flex flex-1 items-start justify-center py-4 lg:flex-none lg:py-0">
-          {wrongMessage && (
+          {wrongReason && (
             <motion.div
-              key={wrongMessage}
+              key={JSON.stringify(wrongReason)}
               role="alert"
               initial={reduceMotion ? false : { opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -488,9 +512,11 @@ export default function DailyChallengePage() {
               />
               <div className="flex flex-1 flex-col gap-0.5">
                 <strong className="text-base text-danger-ink">
-                  {wrongMessage}
+                  {wrongReason.kind === 'invalid'
+                    ? tError('INVALID_EQUATION')
+                    : t('notTwentyFour', { value: wrongReason.value })}
                 </strong>
-                <span className="text-[13px] text-ink">修改算式後再出牌</span>
+                <span className="text-[13px] text-ink">{t('fixHint')}</span>
               </div>
             </motion.div>
           )}
@@ -519,7 +545,7 @@ export default function DailyChallengePage() {
             tokens={tokens}
             result={roundedResult}
             isFinal={isComplete}
-            placeholder="組合你的算式"
+            placeholder={t('placeholder')}
           />
 
           <div className="flex justify-center gap-2">
@@ -535,20 +561,20 @@ export default function DailyChallengePage() {
               className={ACTION_BUTTON_CLASS}
               disabled={formula.length === 0}
               onClick={handleClear}
-              aria-label="清除"
+              aria-label={tPuzzle('clear')}
             >
               <RotateCcw className="h-5 w-5" />
-              <span className="hidden lg:inline">清除</span>
+              <span className="hidden lg:inline">{tPuzzle('clear')}</span>
             </Button>
             <Button
               variant="outline"
               className={ACTION_BUTTON_CLASS}
               disabled={formula.length === 0}
               onClick={handleBack}
-              aria-label="倒退"
+              aria-label={tPuzzle('undo')}
             >
               <Delete className="h-5 w-5" />
-              <span className="hidden lg:inline">倒退</span>
+              <span className="hidden lg:inline">{tPuzzle('undo')}</span>
               <Kbd>⌫</Kbd>
             </Button>
             <Button
@@ -561,7 +587,7 @@ export default function DailyChallengePage() {
               disabled={formula.length === 0}
               onClick={handleSubmit}
             >
-              出牌
+              {t('submit')}
               <Kbd>Enter</Kbd>
             </Button>
           </div>
@@ -573,6 +599,7 @@ export default function DailyChallengePage() {
 
 /** 距離台灣時間 00:00 換題的倒數，每秒更新 */
 function NextPuzzleCountdown() {
+  const t = useTranslations('Daily');
   const [ms, setMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -591,11 +618,14 @@ function NextPuzzleCountdown() {
   return (
     <p className="flex items-center justify-center gap-2 text-[13px] text-ink-2">
       <Clock aria-hidden className="h-4 w-4" />
-      下一組題目
-      <span className="font-display text-[15px] font-extrabold text-ink tabular-nums">
-        {hh}:{mm}:{ss}
-      </span>
-      後
+      {t.rich('nextPuzzles', {
+        time: `${hh}:${mm}:${ss}`,
+        n: chunks => (
+          <span className="font-display text-[15px] font-extrabold text-ink tabular-nums">
+            {chunks}
+          </span>
+        ),
+      })}
     </p>
   );
 }
