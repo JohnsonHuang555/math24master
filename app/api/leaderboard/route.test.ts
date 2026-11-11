@@ -1,67 +1,115 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { store } from '@/test/firestore-mock';
+import type { Mode } from './config';
+import { markSessionFinished } from './guard';
 import { GET, POST } from './route';
+import {
+  createReceiptToken,
+  createSessionToken,
+  verifySessionToken,
+} from './token';
 
 // 只替換外部依賴（登入、Firestore），route 本身的驗證與覆寫邏輯照常執行
-const store = new Map<string, Map<string, Record<string, unknown>>>();
-
-vi.mock('@/auth', () => ({
-  auth: async () => ({
-    user: { id: 'user-1', name: '測試玩家', email: 'p@example.com' },
-  }),
+const currentUser = vi.hoisted(() => ({
+  value: { id: 'user-1', name: '測試玩家', email: 'p@example.com' } as {
+    id: string;
+    name: string;
+    email: string;
+  } | null,
 }));
 
-vi.mock('@/lib/firebase-admin', () => {
-  const collection = (name: string) => {
-    if (!store.has(name)) store.set(name, new Map());
-    const docs = store.get(name)!;
-    return {
-      doc: (id: string) => ({
-        get: async () => ({ exists: docs.has(id), data: () => docs.get(id) }),
-        set: async (data: Record<string, unknown>) => void docs.set(id, data),
-      }),
-      orderBy: () => ({
-        limit: () => ({
-          get: async () => ({
-            docs: [...docs.entries()].map(([id, d]) => ({ id, data: () => d })),
-          }),
-        }),
-      }),
-      where: (field: string, _op: string, value: unknown) => ({
-        limit: () => ({
-          get: async () => {
-            const matched = [...docs.entries()].filter(
-              ([, d]) => d[field] === value,
-            );
-            return {
-              empty: matched.length === 0,
-              docs: matched.map(([id, d]) => ({
-                data: () => d,
-                ref: { delete: async () => void docs.delete(id) },
-              })),
-            };
-          },
-        }),
-      }),
-    };
-  };
-  return { db: { collection } };
-});
+vi.mock('@/auth', () => ({
+  auth: async () => (currentUser.value ? { user: currentUser.value } : null),
+}));
+vi.mock('@/lib/firebase-admin', () => import('@/test/firestore-mock'));
 
-function post(mode: string, payload: Record<string, unknown>) {
+process.env.AUTH_SECRET = 'test-secret';
+
+/** 模擬一場已經在 /finish 結算過的遊戲，回傳它的成績收據 */
+async function receiptFor(mode: Mode, payload: Record<string, number>) {
+  const session = verifySessionToken(createSessionToken(mode), mode)!;
+  await markSessionFinished(session.nonce, mode);
+  return createReceiptToken(session, payload);
+}
+
+function postReceipt(mode: string, receipt: string, extra = {}) {
   return POST(
     new NextRequest('http://localhost/api/leaderboard', {
       method: 'POST',
-      body: JSON.stringify({ mode, payload }),
+      body: JSON.stringify({ mode, receipt, ...extra }),
     }),
   );
 }
 
-function saved(collection: string) {
-  return store.get(collection)?.get('user-1');
+async function post(mode: Mode, payload: Record<string, number>) {
+  return postReceipt(mode, await receiptFor(mode, payload));
 }
 
-beforeEach(() => store.clear());
+function saved(collection: string, id = 'user-1') {
+  return store.get(collection)?.get(id);
+}
+
+beforeEach(() => {
+  store.clear();
+  currentUser.value = {
+    id: 'user-1',
+    name: '測試玩家',
+    email: 'p@example.com',
+  };
+});
+
+describe('POST /api/leaderboard - 成績收據', () => {
+  it('沒有收據、亂寫的收據都拒絕', async () => {
+    expect((await postReceipt('classic', '')).status).toBe(401);
+    expect((await postReceipt('classic', 'abc.def')).status).toBe(401);
+    expect(saved('leaderboard_classic')).toBeUndefined();
+  });
+
+  it('收據的成績被竄改時簽章不符', async () => {
+    const receipt = await receiptFor('classic', { score: 10 });
+    const [data, signature] = receipt.split('.');
+    const decoded = JSON.parse(Buffer.from(data, 'base64url').toString());
+    decoded.payload.score = 66;
+    const forged = `${Buffer.from(JSON.stringify(decoded)).toString('base64url')}.${signature}`;
+
+    expect((await postReceipt('classic', forged)).status).toBe(401);
+  });
+
+  it('不能拿開局憑證直接上榜', async () => {
+    const token = createSessionToken('classic');
+    expect((await postReceipt('classic', token)).status).toBe(401);
+  });
+
+  it('收據的模式要和送出的模式相同', async () => {
+    const receipt = await receiptFor('match', { score: 40 });
+    expect((await postReceipt('classic', receipt)).status).toBe(401);
+  });
+
+  it('同一位玩家重送同一張收據視為成功（網路重試）', async () => {
+    const receipt = await receiptFor('classic', { score: 30 });
+    expect((await postReceipt('classic', receipt)).status).toBe(200);
+    expect((await postReceipt('classic', receipt)).status).toBe(200);
+  });
+
+  it('同一張收據不能換帳號再上榜一次', async () => {
+    const receipt = await receiptFor('classic', { score: 30 });
+    expect((await postReceipt('classic', receipt)).status).toBe(200);
+
+    currentUser.value = null;
+    const res = await postReceipt('classic', receipt, {
+      guestId: 'guest_123e4567-e89b-42d3-a456-426614174000',
+      guestName: '小帳號',
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('上榜的成績以收據內容為準，不看另外送的 payload', async () => {
+    const receipt = await receiptFor('classic', { score: 12 });
+    await postReceipt('classic', receipt, { payload: { score: 66 } });
+    expect(saved('leaderboard_classic')).toMatchObject({ score: 12 });
+  });
+});
 
 describe('POST /api/leaderboard - 牌桌模式', () => {
   it('寫入牌桌的 collection', async () => {
@@ -71,14 +119,10 @@ describe('POST /api/leaderboard - 牌桌模式', () => {
     expect(saved('leaderboard_tabletop_hard')).toMatchObject({ score: 52 });
   });
 
-  it('超過單局上限 750 分時拒絕', async () => {
-    expect((await post('tabletop_hard', { score: 751 })).status).toBe(400);
-    expect((await post('tabletop_hard', { score: 750 })).status).toBe(200);
-  });
-
   it('已移除的簡單、普通難度不接受', async () => {
-    expect((await post('tabletop_easy', { score: 40 })).status).toBe(400);
-    expect((await post('tabletop_normal', { score: 40 })).status).toBe(400);
+    const receipt = await receiptFor('tabletop_hard', { score: 40 });
+    expect((await postReceipt('tabletop_easy', receipt)).status).toBe(400);
+    expect((await postReceipt('tabletop_normal', receipt)).status).toBe(400);
   });
 
   it('分數比舊紀錄低或相同時不覆寫', async () => {
@@ -116,18 +160,17 @@ describe('GET /api/leaderboard - 公開列表', () => {
   });
 });
 
-describe('POST /api/leaderboard - 既有模式的上限維持不變', () => {
-  it.each([
-    ['classic', 66],
-    ['match', 40],
-  ])('%s 上限 %i 分', async (mode, max) => {
-    expect((await post(mode, { score: max + 1 })).status).toBe(400);
-    expect((await post(mode, { score: max })).status).toBe(200);
-  });
-
+describe('POST /api/leaderboard - 既有模式', () => {
   it('經典模式分數比舊紀錄低時不覆寫', async () => {
     await post('classic', { score: 30 });
     const res = await post('classic', { score: 20 });
     expect(await res.json()).toEqual({ ok: true, updated: false });
+  });
+
+  it('快答秒數越少越好', async () => {
+    await post('quickmath', { seconds: 40 });
+    await post('quickmath', { seconds: 35.5 });
+    await post('quickmath', { seconds: 50 });
+    expect(saved('leaderboard_quickmath')).toMatchObject({ seconds: 35.5 });
   });
 });

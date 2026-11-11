@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "test:e2e": "playwright test",
-    "i18n:zh-cn": "tsx scripts/generate-zh-cn.ts"
+    "i18n:zh-cn": "tsx scripts/generate-zh-cn.ts",
+    "leaderboard": "tsx --env-file-if-exists=.env.local scripts/leaderboard-admin.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -93,7 +93,7 @@ export default function ClassicPlayGame({
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { clearPendingScore } = usePendingScoreStore();
   const { skipLoginPrompt, setSkipLoginPrompt } =
     useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
@@ -241,8 +241,7 @@ export default function ClassicPlayGame({
 
   const leaderboardSubmit = useLeaderboardSubmit(
     'classic',
-    isAuthenticated && isGameOver ? { score: currentScore } : null,
-    isAuthenticated && !!isGameOver,
+    isGameOver ? { score: currentScore } : null,
   );
 
   useEffect(() => {
@@ -254,7 +253,6 @@ export default function ClassicPlayGame({
       currentScore <= 0
     )
       return;
-    setPendingScore({ mode: 'classic', payload: { score: currentScore } });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isGameOver, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps

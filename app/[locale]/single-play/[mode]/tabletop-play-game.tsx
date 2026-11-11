@@ -83,7 +83,7 @@ export default function TabletopPlayGame({
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
-  const { setPendingScore, clearPendingScore } = usePendingScoreStore();
+  const { clearPendingScore } = usePendingScoreStore();
   const { skipLoginPrompt, setSkipLoginPrompt } =
     useLoginPromptPreferenceStore();
   const isAuthenticated = sessionStatus === 'authenticated' || !!guestId;
@@ -109,11 +109,9 @@ export default function TabletopPlayGame({
   }, [isEnded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 剩牌扣分可能讓最終分數變成 0 以下，這種成績不上榜（API 也會拒絕負分）
-  const canSubmit = isAuthenticated && isEnded && playerScore > 0;
   const leaderboardSubmit = useLeaderboardSubmit(
     LEADERBOARD_MODE,
-    canSubmit ? { score: playerScore } : null,
-    canSubmit,
+    isEnded && playerScore > 0 ? { score: playerScore } : null,
   );
 
   // 未登入時先暫存成績，提示登入；登入後由 PendingScoreSubmitter 補送
@@ -126,10 +124,6 @@ export default function TabletopPlayGame({
       playerScore <= 0
     )
       return;
-    setPendingScore({
-      mode: LEADERBOARD_MODE,
-      payload: { score: playerScore },
-    });
     const id = setTimeout(() => setShowLoginPrompt(true), 1000);
     return () => clearTimeout(id);
   }, [isEnded, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -24,10 +24,10 @@ export function PendingScoreSubmitter() {
     submittedRef.current = true;
 
     const body = hasGoogle
-      ? { mode: pendingScore.mode, payload: pendingScore.payload }
+      ? { mode: pendingScore.mode, receipt: pendingScore.receipt }
       : {
           mode: pendingScore.mode,
-          payload: pendingScore.payload,
+          receipt: pendingScore.receipt,
           guestId,
           guestName,
         };
