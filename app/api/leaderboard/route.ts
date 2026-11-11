@@ -43,7 +43,8 @@ export async function GET(req: NextRequest) {
   let rank = 0;
   let prevValue: unknown;
   const rows = docs.map((doc, i) => {
-    const data = doc.data();
+    // email 只供 POST 比對舊紀錄使用，這支 API 公開且會被 CDN 快取，絕不能回傳
+    const { email: _email, ...data } = doc.data();
     const value = data[valueField];
     if (i === 0 || value !== prevValue) rank = i + 1;
     prevValue = value;
