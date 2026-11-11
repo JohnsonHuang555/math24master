@@ -13,7 +13,11 @@ test.describe('多國語系（英文瀏覽器）', () => {
       'Can you make 24',
     );
 
-    await page.getByRole('link', { name: 'Leaderboard' }).first().click();
+    // 要完全比對：公告列的連結文字也含有 leaderboard（Matching Mode 的說明）
+    await page
+      .getByRole('link', { name: 'Leaderboard', exact: true })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/en\/leaderboard/);
     await expect(
       page.getByRole('heading', { name: 'Global Leaderboard' }),
@@ -40,7 +44,8 @@ test.describe('多國語系（英文瀏覽器）', () => {
     const translated = await request.get('/en/leaderboard');
     expect(translated.headers()['x-robots-tag']).toBeUndefined();
 
-    const untranslated = await request.get('/en/single-play');
+    // 多人對戰還沒列進 TRANSLATED_PATHS；它翻完後要換一個仍未翻譯的頁面
+    const untranslated = await request.get('/en/multiple-play');
     expect(untranslated.headers()['x-robots-tag']).toBe('noindex');
   });
 });

@@ -39,7 +39,7 @@ test('多人搶答：兩位玩家建房、加入、開局並各答對一題', as
 
   // Alice 建立房間
   await alice.goto('/multiple-play');
-  await alice.getByRole('button', { name: '建立房間', exact: true }).click();
+  await alice.getByRole('button', { name: /開私人房間/ }).click();
   await alice.getByPlaceholder('請輸入房間名稱').fill('E2E 測試房');
   await alice.getByRole('button', { name: '確定' }).click();
   await alice.waitForURL(/\/multiple-play\/[^/]+$/);
