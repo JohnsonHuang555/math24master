@@ -15,6 +15,7 @@ import {
   TabletopSet,
   TabletopTile,
 } from '@/models/Tabletop';
+import { TabletopErrorCode as C, TabletopError } from '@/models/TabletopError';
 
 function card(id: string, value: number, color: CardColor): NumberCard {
   return { id, value, color };
@@ -42,9 +43,9 @@ function set(id: string, tiles: TabletopTile[]): TabletopSet {
 function unwrap(
   result:
     | { success: true; state: TabletopGameState }
-    | { success: false; error: string },
+    | { success: false; error: TabletopError },
 ): TabletopGameState {
-  if (!result.success) throw new Error(result.error);
+  if (!result.success) throw new Error(JSON.stringify(result.error));
   return result.state;
 }
 
@@ -125,7 +126,7 @@ describe('submitTurn - 每回合只完成一組牌組', () => {
 
     expect(submitTurn(game, [a.set, b])).toEqual({
       success: false,
-      error: '每回合只能完成一組牌組（你的手牌分散在 2 組）',
+      error: { code: C.OneSetPerTurn, params: { count: 2 } },
     });
   });
 
@@ -355,7 +356,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
   function expectRejected(
     game: TabletopGameState,
     table: TabletopSet[],
-    error: string,
+    error: TabletopError,
   ) {
     expect(submitTurn(game, table)).toEqual({ success: false, error });
   }
@@ -367,7 +368,11 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     const game = makeGame({ hands: [[y1, y2, y3]], table: [tableSet] });
     const bad = set('new', [n(y1), op('+'), n(y2), op('+'), n(y3)]);
 
-    expectRejected(game, [tableSet, bad], '第 2 組：目前 = 6');
+    expectRejected(game, [tableSet, bad], {
+      code: C.NotTwentyFour,
+      params: { value: 6 },
+      setIndex: 2,
+    });
   });
 
   it('本回合沒有打出任何手牌時拒絕（只重組桌面不算出牌）', () => {
@@ -377,7 +382,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     });
     const rearranged = set('t1', [n(b2), op('*'), n(r8), op('+'), n(k8)]);
 
-    expectRejected(game, [rearranged], '本回合至少要從手牌打出 1 張牌');
+    expectRejected(game, [rearranged], { code: C.MustPlayFromHand });
   });
 
   it('桌面上的牌不見了時拒絕（不能把桌上的牌拿回手牌）', () => {
@@ -387,7 +392,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     const game = makeGame({ hands: [[y4, y6, y1]], table: [tableSet] });
     const mine = set('new', [n(y4), op('*'), n(y6), op('*'), n(y1)]);
 
-    expectRejected(game, [mine], '桌面上的牌不能拿回手牌');
+    expectRejected(game, [mine], { code: C.TableCardToHand });
   });
 
   it('出現不在手牌、也不在桌面上的牌時拒絕', () => {
@@ -397,7 +402,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     const game = makeGame({ hands: [[y4, y6], [opponents]] });
     const s = set('new', [n(y4), op('*'), n(y6), op('*'), n(opponents)]);
 
-    expectRejected(game, [s], '使用了不屬於你的牌');
+    expectRejected(game, [s], { code: C.NotYourCard });
   });
 
   it('同一張牌出現兩次時拒絕', () => {
@@ -408,7 +413,7 @@ describe('submitTurn - 拒絕不合法的桌面', () => {
     const a = set('a', [n(y4), op('*'), n(y6), op('*'), n(y1)]);
     const b = set('b', [n(y4), op('*'), n(y6), op('/'), n(y1)]);
 
-    expectRejected(game, [a, b], '同一張牌不能使用兩次');
+    expectRejected(game, [a, b], { code: C.DuplicateCard });
   });
 
   it('桌上的 Joker 被拆開重組時可以重新宣告，只要最後的牌組成立', () => {
@@ -491,9 +496,12 @@ describe('一局結束後', () => {
 
     expect(submitTurn(ended, [s])).toEqual({
       success: false,
-      error: '這局已經結束',
+      error: { code: C.GameEnded },
     });
-    expect(drawCard(ended)).toEqual({ success: false, error: '這局已經結束' });
+    expect(drawCard(ended)).toEqual({
+      success: false,
+      error: { code: C.GameEnded },
+    });
   });
 });
 
@@ -588,7 +596,10 @@ describe('validateSet', () => {
       op('+'),
       n(card('c', 8, 'red')),
     ]);
-    expect(validateSet(s)).toEqual({ valid: false, reason: '目前 = 18' });
+    expect(validateSet(s)).toEqual({
+      valid: false,
+      reason: { code: C.NotTwentyFour, params: { value: 18 } },
+    });
   });
 
   it('少於 3 張牌時不成立，即使結果等於 24', () => {
@@ -599,7 +610,7 @@ describe('validateSet', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: '需要 3～5 張數字牌（目前 2 張）',
+      reason: { code: C.SetSize, params: { min: 3, max: 5, count: 2 } },
     });
   });
 
@@ -610,7 +621,7 @@ describe('validateSet', () => {
     );
     expect(validateSet(set('s1', tiles))).toEqual({
       valid: false,
-      reason: '需要 3～5 張數字牌（目前 6 張）',
+      reason: { code: C.SetSize, params: { min: 3, max: 5, count: 6 } },
     });
   });
 
@@ -649,7 +660,7 @@ describe('validateSet', () => {
   ])('算式格式錯誤（%s）時不成立，不拋錯', (_, tiles) => {
     expect(validateSet(set('s1', tiles))).toEqual({
       valid: false,
-      reason: '算式格式錯誤',
+      reason: { code: C.MalformedExpression },
     });
   });
 
@@ -674,7 +685,7 @@ describe('validateSet', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: 'Joker 尚未宣告數值與顏色',
+      reason: { code: C.JokerUndeclared },
     });
   });
 
@@ -686,7 +697,10 @@ describe('validateSet', () => {
       op('+'),
       n(card('c', 1, 'red')),
     ]);
-    expect(validateSet(s)).toEqual({ valid: false, reason: '目前 = 3.67' });
+    expect(validateSet(s)).toEqual({
+      valid: false,
+      reason: { code: C.NotTwentyFour, params: { value: 3.67 } },
+    });
   });
 
   it('除以 0 時不成立', () => {
@@ -699,7 +713,10 @@ describe('validateSet', () => {
       n(card('c', 3, 'red')),
       R,
     ]);
-    expect(validateSet(s)).toEqual({ valid: false, reason: '不能除以 0' });
+    expect(validateSet(s)).toEqual({
+      valid: false,
+      reason: { code: C.DivideByZero },
+    });
   });
 });
 
@@ -751,7 +768,7 @@ describe('validateSet - 顏色限制', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: '3 張的牌組必須同色，或三種不同顏色',
+      reason: { code: C.ColorRule, params: { size: 3 } },
     });
   });
 
@@ -767,7 +784,7 @@ describe('validateSet - 顏色限制', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: '4 張的牌組必須同色，或紅藍黃黑各一張',
+      reason: { code: C.ColorRule, params: { size: 4 } },
     });
   });
 
@@ -785,7 +802,7 @@ describe('validateSet - 顏色限制', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: '5 張的牌組必須同色',
+      reason: { code: C.ColorRule, params: { size: 5 } },
     });
   });
 
@@ -799,7 +816,7 @@ describe('validateSet - 顏色限制', () => {
     ]);
     expect(validateSet(s)).toEqual({
       valid: false,
-      reason: '3 張的牌組必須同色，或三種不同顏色',
+      reason: { code: C.ColorRule, params: { size: 3 } },
     });
   });
 });

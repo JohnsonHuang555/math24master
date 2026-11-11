@@ -13,6 +13,7 @@ import {
   TabletopSet,
   TabletopTile,
 } from '@/models/Tabletop';
+import { TabletopError, TabletopErrorCode } from '@/models/TabletopError';
 
 /**
  * 玩家這回合的編輯草稿。拆開、組裝、退格都只改草稿，
@@ -27,7 +28,7 @@ export type TurnDraft = {
 };
 
 export type DraftResult =
-  { ok: true; draft: TurnDraft } | { ok: false; error: string };
+  { ok: true; draft: TurnDraft } | { ok: false; error: TabletopError };
 
 export function startDraft(state: TabletopGameState): TurnDraft {
   const hand = state.seats[state.currentSeat].hand;
@@ -69,7 +70,8 @@ function returnCards(draft: TurnDraft, cards: NumberCard[]): TurnDraft {
 /** 拆開桌上的一組牌組（包括本回合剛放上去的）：數字牌退回，運算符號丟棄 */
 export function breakSet(draft: TurnDraft, setId: string): DraftResult {
   const target = draft.table.find(s => s.id === setId);
-  if (!target) return { ok: false, error: '找不到這組牌組' };
+  if (!target)
+    return { ok: false, error: { code: TabletopErrorCode.SetNotFound } };
   const withoutSet = {
     ...draft,
     table: draft.table.filter(s => s.id !== setId),
@@ -106,11 +108,15 @@ export function addCard(
   declaration?: JokerDeclaration,
 ): DraftResult {
   const found = [...draft.hand, ...draft.loose].find(c => c.id === cardId);
-  if (!found) return { ok: false, error: '找不到這張牌' };
+  if (!found)
+    return { ok: false, error: { code: TabletopErrorCode.CardNotFound } };
   let card = found;
   if (found.isJoker) {
     if (!declaration) {
-      return { ok: false, error: '請先宣告 Joker 的數值與顏色' };
+      return {
+        ok: false,
+        error: { code: TabletopErrorCode.DeclareJokerFirst },
+      };
     }
     card = {
       ...found,
@@ -119,11 +125,20 @@ export function addCard(
     };
   }
   if (endsWithOperand(draft)) {
-    return { ok: false, error: '數字牌之間要有運算符號' };
+    return {
+      ok: false,
+      error: { code: TabletopErrorCode.OperatorBetweenNumbers },
+    };
   }
   const numberCount = draft.composer.filter(t => t.type === 'number').length;
   if (numberCount >= TABLETOP_MAX_SET_SIZE) {
-    return { ok: false, error: `一組最多 ${TABLETOP_MAX_SET_SIZE} 張牌` };
+    return {
+      ok: false,
+      error: {
+        code: TabletopErrorCode.MaxSetSize,
+        params: { max: TABLETOP_MAX_SET_SIZE },
+      },
+    };
   }
   return {
     ok: true,
@@ -144,16 +159,30 @@ export function addSymbol(
 ): DraftResult {
   const afterOperand = endsWithOperand(draft);
   if (symbol === '(' && afterOperand) {
-    return { ok: false, error: '左括號前面要有運算符號' };
+    return {
+      ok: false,
+      error: { code: TabletopErrorCode.OperatorBeforeLeftParen },
+    };
   }
   if (symbol === ')') {
     if (openBrackets(draft) === 0) {
-      return { ok: false, error: '右括號沒有對應的左括號' };
+      return {
+        ok: false,
+        error: { code: TabletopErrorCode.UnmatchedRightParen },
+      };
     }
-    if (!afterOperand) return { ok: false, error: '右括號前面要先有數字' };
+    if (!afterOperand) {
+      return {
+        ok: false,
+        error: { code: TabletopErrorCode.NumberBeforeRightParen },
+      };
+    }
   }
   if (symbol !== '(' && symbol !== ')' && !afterOperand) {
-    return { ok: false, error: '運算符號前面要先有數字' };
+    return {
+      ok: false,
+      error: { code: TabletopErrorCode.NumberBeforeOperator },
+    };
   }
   const tile: TabletopTile =
     symbol === '(' || symbol === ')'
@@ -206,7 +235,7 @@ export function commitComposer(draft: TurnDraft): DraftResult {
 
 export type EndTurnCheck =
   | { ok: true; state: TabletopGameState; scoreGained: number }
-  | { ok: false; error: string };
+  | { ok: false; error: TabletopError };
 
 /** 檢查能否結束回合；可以的話回傳規則引擎套用後的新狀態 */
 export function checkEndTurn(
@@ -214,12 +243,15 @@ export function checkEndTurn(
   draft: TurnDraft,
 ): EndTurnCheck {
   if (draft.composer.length > 0) {
-    return { ok: false, error: '組裝列還有算式沒有放上桌面' };
+    return { ok: false, error: { code: TabletopErrorCode.ComposerNotEmpty } };
   }
   if (draft.loose.length > 0) {
     return {
       ok: false,
-      error: `散牌區還有 ${draft.loose.length} 張牌，要放回牌組`,
+      error: {
+        code: TabletopErrorCode.LooseCardsRemaining,
+        params: { count: draft.loose.length },
+      },
     };
   }
   const result = submitTurn(state, draft.table);

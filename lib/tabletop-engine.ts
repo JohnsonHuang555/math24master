@@ -13,9 +13,11 @@ import {
   TabletopSeat,
   TabletopSet,
 } from '@/models/Tabletop';
+import { TabletopError, TabletopErrorCode } from '@/models/TabletopError';
 
-const SEAT_NAMES = ['你', 'Bot A', 'Bot B'];
-const GAME_ENDED = '這局已經結束';
+// 座位名稱不顯示給玩家看：玩家的座位由 UI 依語系顯示「你／You」，Bot 直接用這裡的名稱
+const SEAT_NAMES = ['player', 'Bot A', 'Bot B'];
+const GAME_ENDED: TabletopError = { code: TabletopErrorCode.GameEnded };
 
 /** 開新的一局：玩家與 2 個 Bot 各發 TABLETOP_HAND_SIZE 張，玩家先手 */
 export function createTabletopGame(): TabletopGameState {
@@ -36,7 +38,8 @@ export function createTabletopGame(): TabletopGameState {
   };
 }
 
-export type SetValidation = { valid: true } | { valid: false; reason: string };
+export type SetValidation =
+  { valid: true } | { valid: false; reason: TabletopError };
 
 function numberCards(set: TabletopSet): NumberCard[] {
   return set.tiles.flatMap(t => (t.type === 'number' ? [t.card] : []));
@@ -103,13 +106,7 @@ export function colorPattern(cards: NumberCard[]): 'same' | 'rainbow' | null {
   return null;
 }
 
-const COLOR_RULE_REASON: Record<number, string> = {
-  3: '3 張的牌組必須同色，或三種不同顏色',
-  4: '4 張的牌組必須同色，或紅藍黃黑各一張',
-  5: '5 張的牌組必須同色',
-};
-
-/** 驗證單一牌組是否成立；reason 直接用於 UI 即時提示 */
+/** 驗證單一牌組是否成立；reason 由 UI 翻譯後即時提示 */
 export function validateSet(set: TabletopSet): SetValidation {
   const cards = numberCards(set);
   if (
@@ -118,28 +115,56 @@ export function validateSet(set: TabletopSet): SetValidation {
   ) {
     return {
       valid: false,
-      reason: `需要 ${TABLETOP_MIN_SET_SIZE}～${TABLETOP_MAX_SET_SIZE} 張數字牌（目前 ${cards.length} 張）`,
+      reason: {
+        code: TabletopErrorCode.SetSize,
+        params: {
+          min: TABLETOP_MIN_SET_SIZE,
+          max: TABLETOP_MAX_SET_SIZE,
+          count: cards.length,
+        },
+      },
     };
   }
 
   if (!cards.every(isDeclared)) {
-    return { valid: false, reason: 'Joker 尚未宣告數值與顏色' };
+    return {
+      valid: false,
+      reason: { code: TabletopErrorCode.JokerUndeclared },
+    };
   }
 
   if (!colorPattern(cards)) {
-    return { valid: false, reason: COLOR_RULE_REASON[cards.length] };
+    return {
+      valid: false,
+      reason: {
+        code: TabletopErrorCode.ColorRule,
+        params: { size: cards.length },
+      },
+    };
   }
 
   if (!isWellFormed(set)) {
-    return { valid: false, reason: '算式格式錯誤' };
+    return {
+      valid: false,
+      reason: { code: TabletopErrorCode.MalformedExpression },
+    };
   }
 
   const result: number = evaluate(toExpression(set));
   if (!Number.isFinite(result)) {
-    return { valid: false, reason: '不能除以 0' };
+    return {
+      valid: false,
+      reason: { code: TabletopErrorCode.DivideByZero },
+    };
   }
   if (Math.abs(result - 24) >= 1e-9) {
-    return { valid: false, reason: `目前 = ${Number(result.toFixed(2))}` };
+    return {
+      valid: false,
+      reason: {
+        code: TabletopErrorCode.NotTwentyFour,
+        params: { value: Number(result.toFixed(2)) },
+      },
+    };
   }
   return { valid: true };
 }
@@ -190,7 +215,7 @@ export function scoreTurn(
 
 export type SubmitTurnResult =
   | { success: true; state: TabletopGameState; scoreGained: number }
-  | { success: false; error: string };
+  | { success: false; error: TabletopError };
 
 /**
  * 提交本回合結束時的完整桌面。拆開、工作區、還原桌面等編輯過程不經過引擎，
@@ -207,7 +232,10 @@ export function submitTurn(
   for (const [i, s] of proposedTable.entries()) {
     const validation = validateSet(s);
     if (!validation.valid) {
-      return { success: false, error: `第 ${i + 1} 組：${validation.reason}` };
+      return {
+        success: false,
+        error: { ...validation.reason, setIndex: i + 1 },
+      };
     }
   }
 
@@ -219,18 +247,30 @@ export function submitTurn(
 
   // 牌守恆：新桌面 = 舊桌面的牌 + 本回合從手牌打出的牌
   if (proposedIdSet.size !== proposedIds.length) {
-    return { success: false, error: '同一張牌不能使用兩次' };
+    return {
+      success: false,
+      error: { code: TabletopErrorCode.DuplicateCard },
+    };
   }
   if (proposedIds.some(id => !handIds.has(id) && !tableIds.has(id))) {
-    return { success: false, error: '使用了不屬於你的牌' };
+    return {
+      success: false,
+      error: { code: TabletopErrorCode.NotYourCard },
+    };
   }
   if ([...tableIds].some(id => !proposedIdSet.has(id))) {
-    return { success: false, error: '桌面上的牌不能拿回手牌' };
+    return {
+      success: false,
+      error: { code: TabletopErrorCode.TableCardToHand },
+    };
   }
 
   const playedIds = new Set(proposedIds.filter(id => handIds.has(id)));
   if (playedIds.size === 0) {
-    return { success: false, error: '本回合至少要從手牌打出 1 張牌' };
+    return {
+      success: false,
+      error: { code: TabletopErrorCode.MustPlayFromHand },
+    };
   }
 
   // 每回合只完成一組：本回合打出的手牌必須全部在同一組；其他牌組可以重排
@@ -240,7 +280,10 @@ export function submitTurn(
   if (completedSets.length > 1) {
     return {
       success: false,
-      error: `每回合只能完成一組牌組（你的手牌分散在 ${completedSets.length} 組）`,
+      error: {
+        code: TabletopErrorCode.OneSetPerTurn,
+        params: { count: completedSets.length },
+      },
     };
   }
   const scoreGained = scoreTurn(
@@ -282,7 +325,7 @@ export function submitTurn(
 
 export type DrawCardResult =
   | { success: true; state: TabletopGameState }
-  | { success: false; error: string };
+  | { success: false; error: TabletopError };
 
 /** 不出牌，從牌庫抽 1 張（牌庫已空就等同跳過），換下一位 */
 export function drawCard(state: TabletopGameState): DrawCardResult {

@@ -1,24 +1,27 @@
 'use client';
 
 import { CircleAlert, CircleCheck, Delete, Eraser } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { TabletopTiles } from '@/components/tabletop/tabletop-tiles';
 import { Button } from '@/components/ui/button';
+import { useTabletopErrorText } from '@/i18n/tabletop-messages';
 import { ComposerPreview, ComposerSymbol } from '@/lib/tabletop-turn-draft';
 import { cn } from '@/lib/utils';
 import { TabletopTile } from '@/models/Tabletop';
 
-const COMPOSER_SYMBOLS: {
+// name 對應 messages 的 GameUI.symbols，作為按鈕的 aria-label
+const COMPOSER_SYMBOLS = [
+  { symbol: '+', label: '+', name: 'plus' },
+  { symbol: '-', label: '−', name: 'minus' },
+  { symbol: '*', label: '×', name: 'times' },
+  { symbol: '/', label: '÷', name: 'divide' },
+  { symbol: '(', label: '(', name: 'leftParen' },
+  { symbol: ')', label: ')', name: 'rightParen' },
+] as const satisfies readonly {
   symbol: ComposerSymbol;
   label: string;
   name: string;
-}[] = [
-  { symbol: '+', label: '+', name: '加' },
-  { symbol: '-', label: '−', name: '減' },
-  { symbol: '*', label: '×', name: '乘' },
-  { symbol: '/', label: '÷', name: '除' },
-  { symbol: '(', label: '(', name: '左括號' },
-  { symbol: ')', label: ')', name: '右括號' },
-];
+}[];
 
 // 符號鍵：6 個符號加退格排成一行，手機 375px 也不會折行
 const KEY_CLASS =
@@ -43,13 +46,19 @@ export function TabletopComposer({
   onClear,
   onCommit,
 }: TabletopComposerProps) {
+  const t = useTranslations('Tabletop');
+  const tSymbols = useTranslations('GameUI.symbols');
+  const tExpression = useTranslations('GameUI.expression');
+  const errorText = useTabletopErrorText();
   const isValid = !!preview?.validation.valid;
   const reason =
-    preview && !preview.validation.valid ? preview.validation.reason : null;
+    preview && !preview.validation.valid
+      ? errorText(preview.validation.reason)
+      : null;
 
   return (
     <section
-      aria-label="組裝列"
+      aria-label={t('composer.label')}
       className={cn(
         'flex w-full flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-[18px] lg:border lg:border-line lg:bg-surface lg:p-3',
         disabled && 'opacity-60',
@@ -66,7 +75,7 @@ export function TabletopComposer({
       >
         {composer.length === 0 ? (
           <span className="text-sm text-ink-2">
-            點手牌或散牌，加上符號組成算式
+            {t('composer.placeholder')}
           </span>
         ) : (
           <div className="min-w-0 flex-1">
@@ -80,9 +89,11 @@ export function TabletopComposer({
           >
             <span className="flex items-center gap-1 text-[13px] font-extrabold text-primary-ink">
               <CircleCheck aria-hidden className="h-4 w-4" />
-              等於 24
+              {tExpression('correct')}
             </span>
-            <span className="text-xs text-ink-2">預估 {preview!.score} 分</span>
+            <span className="text-xs text-ink-2">
+              {t('composer.estimate', { score: preview!.score ?? 0 })}
+            </span>
           </span>
         )}
       </div>
@@ -102,7 +113,7 @@ export function TabletopComposer({
           <button
             key={symbol}
             type="button"
-            aria-label={name}
+            aria-label={tSymbols(name)}
             data-testid={`symbol-${symbol}`}
             disabled={disabled}
             onClick={() => onAddSymbol(symbol)}
@@ -113,7 +124,7 @@ export function TabletopComposer({
         ))}
         <button
           type="button"
-          aria-label="退格"
+          aria-label={t('composer.backspace')}
           disabled={disabled || composer.length === 0}
           onClick={onBackspace}
           className={KEY_CLASS}
@@ -128,7 +139,7 @@ export function TabletopComposer({
           variant="outline"
           size="icon"
           className="h-[52px] w-[52px] shrink-0 rounded-xl border-line-strong bg-surface text-ink hover:bg-sunken"
-          aria-label="清空"
+          aria-label={t('composer.clear')}
           disabled={disabled || composer.length === 0}
           onClick={onClear}
         >
@@ -140,7 +151,7 @@ export function TabletopComposer({
           disabled={disabled || !isValid}
           onClick={onCommit}
         >
-          放上桌面
+          {t('composer.commit')}
         </Button>
       </div>
     </section>

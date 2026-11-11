@@ -15,6 +15,7 @@ import {
 } from '@/lib/tabletop-turn-draft';
 import { CardColor, NumberCard } from '@/models/Player';
 import { TabletopGameState, TabletopSet } from '@/models/Tabletop';
+import { TabletopErrorCode as C, TabletopError } from '@/models/TabletopError';
 
 function card(id: string, value: number, color: CardColor = 'red'): NumberCard {
   return { id, value, color };
@@ -43,9 +44,9 @@ function game(opts: {
 
 /** 測試用：操作失敗就直接丟錯，讓測試專注在成功路徑 */
 function ok(
-  result: { ok: true; draft: TurnDraft } | { ok: false; error: string },
+  result: { ok: true; draft: TurnDraft } | { ok: false; error: TabletopError },
 ) {
-  if (!result.ok) throw new Error(result.error);
+  if (!result.ok) throw new Error(JSON.stringify(result.error));
   return result.draft;
 }
 
@@ -126,17 +127,17 @@ describe('組裝列的輸入防呆', () => {
   }
 
   it.each([
-    [['a', 'b'], '數字牌之間要有運算符號'],
-    [['(', 'a', ')', 'b'], '數字牌之間要有運算符號'],
-    [['+'], '運算符號前面要先有數字'],
-    [['a', '+', '*'], '運算符號前面要先有數字'],
-    [['(', '*'], '運算符號前面要先有數字'],
-    [['a', '('], '左括號前面要有運算符號'],
-    [['a', ')'], '右括號沒有對應的左括號'],
-    [['(', 'a', '+', ')'], '右括號前面要先有數字'],
+    [['a', 'b'], { code: C.OperatorBetweenNumbers }],
+    [['(', 'a', ')', 'b'], { code: C.OperatorBetweenNumbers }],
+    [['+'], { code: C.NumberBeforeOperator }],
+    [['a', '+', '*'], { code: C.NumberBeforeOperator }],
+    [['(', '*'], { code: C.NumberBeforeOperator }],
+    [['a', '('], { code: C.OperatorBeforeLeftParen }],
+    [['a', ')'], { code: C.UnmatchedRightParen }],
+    [['(', 'a', '+', ')'], { code: C.NumberBeforeRightParen }],
     [
       ['a', '+', 'b', '+', 'c', '+', 'd', '+', 'e', '+', 'f'],
-      '一組最多 5 張牌',
+      { code: C.MaxSetSize, params: { max: 5 } },
     ],
   ])('%j → %s', (steps, error) => {
     expect(run(steps)).toEqual({ ok: false, error });
@@ -156,7 +157,7 @@ describe('Joker', () => {
     const draft = startDraft(game({ hand: [handJoker()] }));
     expect(addCard(draft, 'j')).toEqual({
       ok: false,
-      error: '請先宣告 Joker 的數值與顏色',
+      error: { code: C.DeclareJokerFirst },
     });
   });
 
@@ -201,7 +202,7 @@ describe('Joker', () => {
     });
     expect(addCard(draft, 'tj')).toEqual({
       ok: false,
-      error: '請先宣告 Joker 的數值與顏色',
+      error: { code: C.DeclareJokerFirst },
     });
     const added = ok(addCard(draft, 'tj', { value: 3, color: 'blue' }));
     expect(added.composer[0]).toEqual({
@@ -246,7 +247,7 @@ describe('拆開桌上的牌組', () => {
     expect(draft.loose.map(c => c.id)).toEqual(['t8a', 't2', 't8b']);
     expect(checkEndTurn(state, draft)).toEqual({
       ok: false,
-      error: '散牌區還有 3 張牌，要放回牌組',
+      error: { code: C.LooseCardsRemaining, params: { count: 3 } },
     });
   });
 
@@ -295,7 +296,7 @@ describe('拆開桌上的牌組', () => {
 
     expect(checkEndTurn(state, draft)).toEqual({
       ok: false,
-      error: '組裝列還有算式沒有放上桌面',
+      error: { code: C.ComposerNotEmpty },
     });
   });
 });
@@ -314,7 +315,10 @@ describe('previewComposer', () => {
     draft = ok(addCard(draft, 'c'));
 
     expect(previewComposer(draft)).toEqual({
-      validation: { valid: false, reason: '目前 = 18' },
+      validation: {
+        valid: false,
+        reason: { code: C.NotTwentyFour, params: { value: 18 } },
+      },
       score: null,
     });
   });

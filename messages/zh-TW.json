@@ -501,6 +501,127 @@
       "finalScore": "最終得分"
     }
   },
+  "Tabletop": {
+    "tagline": "改編自拉密 · 和 2 個電腦搶先出完手牌",
+    "startDescription": "每回合湊一組 24，可以拆開桌上的算式重新組合",
+    "bestScore": "個人最佳",
+    "points": "{score} 分",
+    "you": "你",
+    "result": {
+      "youWon": "你贏了！",
+      "rank": "第 {rank} 名",
+      "yourTotal": "你的總分",
+      "newRecord": "新紀錄！",
+      "bestScoreInline": "個人最高：<b>{score} 分</b>",
+      "backToMenu": "返回選單",
+      "playAgain": "再來一局",
+      "player": "玩家",
+      "sets": "牌組",
+      "wentOut": "出完",
+      "leftover": "剩牌",
+      "total": "總分",
+      "leftoverNote": "剩牌：數字牌每張 −1、Joker 每張 −5"
+    },
+    "status": {
+      "botsPlaying": "電腦出牌中",
+      "canEndTurn": "可以結束回合了",
+      "idle": "完成一組牌組，或抽 1 張牌"
+    },
+    "leaveDescription": "離開後本局不計分，進度也不會保存。",
+    "finalRound": "最後一圈",
+    "round": "第 <n>{round}</n> 圈",
+    "deckLeft": "牌庫剩 <n>{count}</n> 張",
+    "history": "紀錄",
+    "scoreboard": "計分板",
+    "skipAnimation": "略過動畫",
+    "resetTable": "還原桌面",
+    "draw": "抽牌",
+    "endTurn": "結束回合",
+    "seatStatus": {
+      "thinking": "思考中…",
+      "playing": "出牌中…",
+      "yourTurn": "你的回合",
+      "waiting": "等待中"
+    },
+    "seatSummary": "<b>{score}</b> 分 · {count} 張",
+    "seatHand": "手牌 {count}",
+    "colors": {
+      "red": "紅",
+      "blue": "青",
+      "yellow": "黃",
+      "black": "黑"
+    },
+    "card": {
+      "undeclaredJoker": "Joker（尚未宣告）",
+      "label": "{color}{value}",
+      "jokerLabel": "{color}{value}（Joker）"
+    },
+    "joker": {
+      "title": "宣告 Joker",
+      "description": "所在的牌組被拆開時，Joker 會變回未宣告，可以再重新宣告",
+      "value": "數值",
+      "color": "顏色"
+    },
+    "composer": {
+      "label": "組裝列",
+      "placeholder": "點手牌或散牌，加上符號組成算式",
+      "estimate": "預估 {score} 分",
+      "backspace": "退格",
+      "clear": "清空",
+      "commit": "放上桌面"
+    },
+    "hand": {
+      "label": "手牌",
+      "count": "手牌 {count} 張"
+    },
+    "table": {
+      "label": "桌面",
+      "count": "桌面 · {count} 組",
+      "empty": "桌面還是空的，用手牌組出第一組吧",
+      "justChanged": "剛變動",
+      "setScore": "{score} 分",
+      "breakUp": "拆開",
+      "loose": "散牌區",
+      "looseHint": "要全部放回牌組才能結束回合"
+    },
+    "log": {
+      "title": "出牌紀錄",
+      "description": "這一局每個人的行動，最新的在最上面",
+      "empty": "還沒有人出牌",
+      "newSet": "用手牌組了一組新牌組",
+      "extend": "把手牌接進桌上的牌組",
+      "regroup": "拆開 {count} 組牌組重新組合",
+      "draw": "抽了 1 張牌",
+      "passEmptyDeck": "牌庫已空，跳過這回合",
+      "completeSet": "完成一組牌組"
+    }
+  },
+  "TabletopError": {
+    "GAME_ENDED": "這局已經結束",
+    "SET_SIZE": "需要 {min}～{max} 張數字牌（目前 {count} 張）",
+    "JOKER_UNDECLARED": "Joker 尚未宣告數值與顏色",
+    "COLOR_RULE": "{size, select, 3 {3 張的牌組必須同色，或三種不同顏色} 4 {4 張的牌組必須同色，或紅青黃黑各一張} other {5 張的牌組必須同色}}",
+    "MALFORMED_EXPRESSION": "算式格式錯誤",
+    "DIVIDE_BY_ZERO": "不能除以 0",
+    "NOT_TWENTY_FOUR": "目前 = {value}",
+    "DUPLICATE_CARD": "同一張牌不能使用兩次",
+    "NOT_YOUR_CARD": "使用了不屬於你的牌",
+    "TABLE_CARD_TO_HAND": "桌面上的牌不能拿回手牌",
+    "MUST_PLAY_FROM_HAND": "本回合至少要從手牌打出 1 張牌",
+    "ONE_SET_PER_TURN": "每回合只能完成一組牌組（你的手牌分散在 {count} 組）",
+    "SET_NOT_FOUND": "找不到這組牌組",
+    "CARD_NOT_FOUND": "找不到這張牌",
+    "DECLARE_JOKER_FIRST": "請先宣告 Joker 的數值與顏色",
+    "OPERATOR_BETWEEN_NUMBERS": "數字牌之間要有運算符號",
+    "MAX_SET_SIZE": "一組最多 {max} 張牌",
+    "OPERATOR_BEFORE_LEFT_PAREN": "左括號前面要有運算符號",
+    "UNMATCHED_RIGHT_PAREN": "右括號沒有對應的左括號",
+    "NUMBER_BEFORE_RIGHT_PAREN": "右括號前面要先有數字",
+    "NUMBER_BEFORE_OPERATOR": "運算符號前面要先有數字",
+    "COMPOSER_NOT_EMPTY": "組裝列還有算式沒有放上桌面",
+    "LOOSE_CARDS_REMAINING": "散牌區還有 {count} 張牌，要放回牌組",
+    "inSet": "第 {index} 組：{reason}"
+  },
   "RoundHistory": {
     "title": "作答紀錄",
     "empty": "本局沒有作答紀錄",

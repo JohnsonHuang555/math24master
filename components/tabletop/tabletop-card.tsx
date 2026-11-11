@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Circle, Diamond, Square, Triangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { CardColor, NumberCard } from '@/models/Player';
 
@@ -11,28 +12,24 @@ import { CardColor, NumberCard } from '@/models/Player';
  */
 export const CARD_COLOR_STYLE: Record<
   CardColor,
-  { label: string; text: string; border: string; Shape: typeof Circle }
+  { text: string; border: string; Shape: typeof Circle }
 > = {
   red: {
-    label: '紅',
     text: 'text-suit-red',
     border: 'border-suit-red',
     Shape: Circle,
   },
   blue: {
-    label: '青',
     text: 'text-suit-blue',
     border: 'border-suit-blue',
     Shape: Square,
   },
   yellow: {
-    label: '黃',
     text: 'text-suit-yellow',
     border: 'border-suit-yellow',
     Shape: Triangle,
   },
   black: {
-    label: '黑',
     text: 'text-suit-black',
     border: 'border-suit-black',
     Shape: Diamond,
@@ -88,6 +85,7 @@ export function TabletopCard({
   const interactive = !!onClick && !disabled;
   const sizeClass = SIZE_CLASS[size];
   const isUndeclaredJoker = card.isJoker && !style;
+  const t = useTranslations('Tabletop');
 
   return (
     <motion.button
@@ -99,8 +97,11 @@ export function TabletopCard({
       transition={{ type: 'spring', stiffness: 600, damping: 32 }}
       aria-label={
         isUndeclaredJoker
-          ? 'Joker（尚未宣告）'
-          : `${style?.label ?? ''}${face.value}${card.isJoker ? '（Joker）' : ''}`
+          ? t('card.undeclaredJoker')
+          : t(card.isJoker ? 'card.jokerLabel' : 'card.label', {
+              color: face.color ? t(`colors.${face.color}`) : '',
+              value: face.value,
+            })
       }
       className={cn(
         'relative flex shrink-0 flex-col items-center justify-center gap-0.5 border-playcard-line bg-playcard p-0 font-display leading-none font-extrabold select-none',

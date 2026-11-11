@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   CARD_COLORS,
   CARD_COLOR_STYLE,
@@ -29,6 +30,8 @@ export function JokerDeclareDialog({
   onCancel,
   onConfirm,
 }: JokerDeclareDialogProps) {
+  const t = useTranslations('Tabletop');
+  const tCommon = useTranslations('Common');
   const [value, setValue] = useState<number | null>(null);
   const [color, setColor] = useState<CardColor | null>(null);
 
@@ -42,15 +45,15 @@ export function JokerDeclareDialog({
     <Dialog open={open} onOpenChange={isOpen => !isOpen && close()}>
       <DialogContent className="sm:max-w-[380px]">
         <DialogHeader>
-          <DialogTitle>宣告 Joker</DialogTitle>
-          <DialogDescription>
-            所在的牌組被拆開時，Joker 會變回未宣告，可以再重新宣告
-          </DialogDescription>
+          <DialogTitle>{t('joker.title')}</DialogTitle>
+          <DialogDescription>{t('joker.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-sm font-bold text-foreground">數值</p>
+            <p className="mb-2 text-sm font-bold text-foreground">
+              {t('joker.value')}
+            </p>
             <div className="grid grid-cols-7 gap-1.5">
               {Array.from({ length: 13 }, (_, i) => i + 1).map(v => (
                 <button
@@ -71,8 +74,11 @@ export function JokerDeclareDialog({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-bold text-foreground">顏色</p>
-            <div className="grid grid-cols-4 gap-2">
+            <p className="mb-2 text-sm font-bold text-foreground">
+              {t('joker.color')}
+            </p>
+            {/* 英文顏色名稱較長，窄螢幕改成 2×2 才不會擠到邊框 */}
+            <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-4">
               {CARD_COLORS.map(c => {
                 const style = CARD_COLOR_STYLE[c];
                 return (
@@ -90,7 +96,7 @@ export function JokerDeclareDialog({
                     )}
                   >
                     <style.Shape className="h-3 w-3 fill-current" />
-                    {style.label}
+                    {t(`colors.${c}`)}
                   </button>
                 );
               })}
@@ -100,7 +106,7 @@ export function JokerDeclareDialog({
 
         <DialogFooter className="gap-2">
           <Button variant="tactileOutline" onClick={close}>
-            取消
+            {tCommon('cancel')}
           </Button>
           <Button
             variant="tactile"
@@ -112,7 +118,7 @@ export function JokerDeclareDialog({
               setColor(null);
             }}
           >
-            確定
+            {tCommon('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
