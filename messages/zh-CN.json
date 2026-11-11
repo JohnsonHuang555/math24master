@@ -702,6 +702,213 @@
       "showAll": "查看全部 {count} 种解法"
     }
   },
+  "GuessNumber": {
+    "title": "猜数字",
+    "loading": "加载中...",
+    "notes": "笔记",
+    "special": "特殊 · 限 1 次",
+    "yes": "是",
+    "no": "否",
+    "history": "历史纪录",
+    "guessChip": "猜 {n}",
+    "wrongGuess": "猜错了！",
+    "clueGained": "线索获得！现在可以输入猜测了",
+    "result": {
+      "answerWas": "谜底是",
+      "win": "猜中了！",
+      "lose": "没猜中",
+      "rounds": "共 <b>{count}</b> 回合",
+      "backHome": "回首页",
+      "playAgain": "再玩一次"
+    },
+    "ratings": {
+      "lucky": {
+        "label": "运气爆棚！",
+        "rounds": "1 回合"
+      },
+      "genius": {
+        "label": "逻辑天才！",
+        "rounds": "2–3 回合"
+      },
+      "steady": {
+        "label": "稳健推理",
+        "rounds": "4–6 回合"
+      },
+      "close": {
+        "label": "快追上了",
+        "rounds": "7–10 回合"
+      },
+      "keepGoing": {
+        "label": "再接再厉",
+        "rounds": "10 回合以上"
+      },
+      "miss": {
+        "label": "下次再试",
+        "rounds": "未猜中"
+      }
+    },
+    "hint": {
+      "peekActive": "透视镜已使用，请输入猜测数字",
+      "cardSelected": "已选牌，请输入猜测数字",
+      "redrawn": "已换牌，请选线索牌",
+      "pickCard": "选择一张牌使用"
+    },
+    "round": "第 <n>{round}</n> / {total} 回合",
+    "excluded": "已排除 <n>{count}</n> 个",
+    "peeking": "透视中… 剩余的数字（{count} 个）",
+    "legend": {
+      "remaining": "剩余",
+      "excluded": "排除",
+      "guessed": "已猜",
+      "possible": "可能",
+      "ruledOut": "已排除"
+    },
+    "specialStatus": {
+      "peek": "已使用，请直接输入猜测",
+      "redraw": "已换牌，请选线索牌"
+    },
+    "secretRange": "谜底是 10–99 的两位数",
+    "remainingCount": "剩 <n>{count}</n> 个未猜",
+    "yourGuess": "你的猜测",
+    "guessPlaceholder": "输入 10-99",
+    "alreadyGuessed": "你已猜过 {n}，可继续送出",
+    "submit": "送出",
+    "nextRound": "下一回合",
+    "confirm": {
+      "title": "使用这张牌？",
+      "description": "{name}：{text}",
+      "action": "确认使用"
+    },
+    "notesPanel": {
+      "clearAll": "清除全部",
+      "markMode": "标记方式",
+      "tap": "点击选取",
+      "drag": "滑动连选",
+      "columns": "{count} 列"
+    },
+    "rules": {
+      "title": "游戏规则",
+      "goal": "游戏目标",
+      "goalText": "利用线索牌推理出藏匿的两位数（10-99），最多 <b>10 回合</b>内猜对即获胜。",
+      "flow": "每回合流程",
+      "step1": "从手牌中选一张线索牌，系统回答「是」或「否」",
+      "step2": "根据线索缩小谜底范围后，输入你猜测的数字",
+      "step3": "猜错则继续下一回合；猜对立即获胜",
+      "special": "特殊牌",
+      "cardList": "线索牌一览",
+      "rating": "评分标准"
+    },
+    "cards": {
+      "half": {
+        "name": "半壁江山",
+        "question": "谜底是 55 以上吗？",
+        "short": "是 55 以上",
+        "rule": "谜底 ≥ 55？"
+      },
+      "odd-even": {
+        "name": "阴阳双极",
+        "question": "谜底是奇数吗？",
+        "short": "是奇数",
+        "rule": "谜底是奇数？"
+      },
+      "triple": {
+        "name": "三阳开泰",
+        "question": "谜底是 3 的倍数吗？",
+        "short": "是 3 的倍数",
+        "rule": "谜底是 3 的倍数？"
+      },
+      "multiple-5": {
+        "name": "五福临门",
+        "question": "谜底是 5 的倍数吗？",
+        "short": "是 5 的倍数",
+        "rule": "谜底是 5 的倍数？"
+      },
+      "multiple-7": {
+        "name": "七星高照",
+        "question": "谜底是 7 的倍数吗？",
+        "short": "是 7 的倍数",
+        "rule": "谜底是 7 的倍数？"
+      },
+      "prime": {
+        "name": "黄金质数",
+        "question": "谜底是质数吗？",
+        "short": "是质数",
+        "rule": "谜底是质数？"
+      },
+      "repeat": {
+        "name": "拷贝粘贴",
+        "question": "十位数与个位数相同吗？",
+        "short": "十位数与个位数相同",
+        "rule": "十位数 = 个位数？"
+      },
+      "ones-gt-tens": {
+        "name": "步步高升",
+        "question": "个位数大于十位数吗？",
+        "short": "个位数大于十位数",
+        "rule": "个位数 > 十位数？"
+      },
+      "digit-sum-odd": {
+        "name": "数字加总",
+        "question": "十位数＋个位数之和是奇数吗？",
+        "short": "十位数＋个位数之和是奇数",
+        "rule": "各位数之和是奇数？"
+      },
+      "last-digit-gt5": {
+        "name": "尾数侦测",
+        "question": "个位数大于 5 吗？",
+        "short": "个位数大于 5",
+        "rule": "个位数 > 5？"
+      },
+      "tens-gt5": {
+        "name": "十位侦测",
+        "question": "十位数大于 5 吗？",
+        "short": "十位数大于 5",
+        "rule": "十位数 > 5？"
+      },
+      "digit-product-gt20": {
+        "name": "数字之积",
+        "question": "十位数×个位数大于 20 吗？",
+        "short": "十位数×个位数大于 20",
+        "rule": "十位数 × 个位数 > 20？"
+      },
+      "higher-than-last": {
+        "name": "高低雷达",
+        "question": "谜底比你上一次猜的（{n}）大吗？",
+        "questionNoGuess": "谜底比你上一次猜的（N）大吗？",
+        "short": "比你上一次猜的（{n}）大",
+        "rule": "谜底 > 上一次猜的？"
+      },
+      "within-ten": {
+        "name": "黄金交叉",
+        "question": "谜底和你上次猜的（{n}）相差在 10 以内吗？",
+        "questionNoGuess": "谜底和你上次猜的（N）相差在 10 以内吗？",
+        "short": "和你上次猜的（{n}）相差在 10 以内",
+        "rule": "谜底与上次猜的相差 ≤ 10？"
+      },
+      "perfect-square": {
+        "name": "完美平方",
+        "question": "谜底是完全平方数吗？",
+        "short": "是完全平方数",
+        "rule": "谜底是完全平方数？"
+      },
+      "lucky-seven": {
+        "name": "幸运之星",
+        "question": "谜底的数字里包含「7」吗？",
+        "short": "的数字里包含「7」",
+        "rule": "谜底含有数字 7？"
+      },
+      "peek": {
+        "name": "透视镜",
+        "description": "显示剩余的数字范围 5 秒",
+        "rule": "显示目前所有可能为谜底的数字 5 秒。每局限用一次，使用后本回合仍可猜数。"
+      },
+      "redraw": {
+        "name": "全面革新",
+        "description": "重新抽一组手牌",
+        "rule": "重新抽一组全新手牌。每局限用一次，且每回合只能使用一次。"
+      }
+    }
+  },
   "RoundHistory": {
     "title": "作答纪录",
     "empty": "本局没有作答纪录",

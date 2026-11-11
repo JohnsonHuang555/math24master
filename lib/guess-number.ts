@@ -19,71 +19,41 @@ export type LineClueCardId =
 export type PeekCardId = 'peek';
 export type RedrawCardId = 'redraw';
 
+// 卡片名稱與問句在 messages 的 GuessNumber.cards.<id>；中文成語名稱在英文另外取名（見 CLAUDE.md）
 export type LineClueCard = {
   id: LineClueCardId;
-  name: string;
-  question: string;
+  /** 問句會帶入玩家上一次猜的數字 */
   isDynamic?: boolean;
 };
-export type PeekCard = { id: PeekCardId; name: string; description: string };
-export type RedrawCard = {
-  id: RedrawCardId;
-  name: string;
-  description: string;
-};
+export type PeekCard = { id: PeekCardId };
+export type RedrawCard = { id: RedrawCardId };
 export type ClueCard = LineClueCard | PeekCard | RedrawCard;
 
-export const PEEK_CARD: PeekCard = {
-  id: 'peek',
-  name: '透視鏡',
-  description: '顯示剩餘的數字範圍 5 秒',
-};
+export function isLineClueCard(card: ClueCard): card is LineClueCard {
+  return card.id !== 'peek' && card.id !== 'redraw';
+}
 
-export const REDRAW_CARD: RedrawCard = {
-  id: 'redraw',
-  name: '全面革新',
-  description: '重新抽一組手牌',
-};
+export const PEEK_CARD: PeekCard = { id: 'peek' };
+
+export const REDRAW_CARD: RedrawCard = { id: 'redraw' };
 
 export const LINE_CLUE_CARDS: LineClueCard[] = [
-  { id: 'half', name: '半壁江山', question: '謎底是 55 以上嗎？' },
-  { id: 'odd-even', name: '陰陽雙極', question: '謎底是奇數嗎？' },
-  { id: 'triple', name: '三陽開泰', question: '謎底是 3 的倍數嗎？' },
-  { id: 'multiple-5', name: '五福臨門', question: '謎底是 5 的倍數嗎？' },
-  { id: 'multiple-7', name: '七星高照', question: '謎底是 7 的倍數嗎？' },
-  { id: 'prime', name: '黃金質數', question: '謎底是質數嗎？' },
-  { id: 'repeat', name: '複製貼上', question: '十位數與個位數相同嗎？' },
-  { id: 'ones-gt-tens', name: '步步高升', question: '個位數大於十位數嗎？' },
-  {
-    id: 'digit-sum-odd',
-    name: '數位加總',
-    question: '十位數＋個位數之和是奇數嗎？',
-  },
-  { id: 'last-digit-gt5', name: '尾數偵測', question: '個位數大於 5 嗎？' },
-  { id: 'tens-gt5', name: '十位偵測', question: '十位數大於 5 嗎？' },
-  {
-    id: 'digit-product-gt20',
-    name: '數位之積',
-    question: '十位數×個位數大於 20 嗎？',
-  },
-  {
-    id: 'higher-than-last',
-    name: '高低雷達',
-    question: '謎底比你上一次猜的（N）大嗎？',
-    isDynamic: true,
-  },
-  {
-    id: 'within-ten',
-    name: '黃金交叉',
-    question: '謎底和你上次猜的（N）相差在 10 以內嗎？',
-    isDynamic: true,
-  },
-  { id: 'perfect-square', name: '完美平方', question: '謎底是完全平方數嗎？' },
-  {
-    id: 'lucky-seven',
-    name: '幸運之星',
-    question: '謎底的數字裡包含「7」嗎？',
-  },
+  { id: 'half' },
+  { id: 'odd-even' },
+  { id: 'triple' },
+  { id: 'multiple-5' },
+  { id: 'multiple-7' },
+  { id: 'prime' },
+  { id: 'repeat' },
+  { id: 'ones-gt-tens' },
+  { id: 'digit-sum-odd' },
+  { id: 'last-digit-gt5' },
+  { id: 'tens-gt5' },
+  { id: 'digit-product-gt20' },
+  { id: 'higher-than-last', isDynamic: true },
+  { id: 'within-ten', isDynamic: true },
+  { id: 'perfect-square' },
+  { id: 'lucky-seven' },
 ];
 
 export const ALL_CARDS: ClueCard[] = [

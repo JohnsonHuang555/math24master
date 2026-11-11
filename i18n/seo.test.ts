@@ -29,8 +29,8 @@ describe('pageAlternates', () => {
   });
 
   it('還沒翻譯的頁面一律指向 zh-TW，不標 hreflang', () => {
-    expect(pageAlternates('en', '/guess-number')).toEqual({
-      canonical: 'https://math24master.com/guess-number',
+    expect(pageAlternates('en', '/multiple-play')).toEqual({
+      canonical: 'https://math24master.com/multiple-play',
     });
   });
 });
@@ -68,7 +68,7 @@ describe('sitemap', () => {
   });
 
   it('還沒翻譯的頁面只列 zh-TW', () => {
-    expect(urls).toContain('https://math24master.com/guess-number');
-    expect(urls).not.toContain('https://math24master.com/en/guess-number');
+    expect(urls).toContain('https://math24master.com/multiple-play');
+    expect(urls).not.toContain('https://math24master.com/en/multiple-play');
   });
 });

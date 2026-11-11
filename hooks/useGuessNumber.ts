@@ -12,7 +12,14 @@ import {
 } from '@/lib/guess-number';
 
 export type HistoryEntry =
-  | { type: 'clue'; question: string; result: 'yes' | 'no'; round: number }
+  | {
+      type: 'clue';
+      cardId: LineClueCardId;
+      /** 動態問句（高低雷達、黃金交叉）當時帶入的數字 */
+      lastGuess?: number;
+      result: 'yes' | 'no';
+      round: number;
+    }
   | { type: 'peek'; round: number }
   | { type: 'guess'; number: number; round: number };
 
@@ -127,7 +134,13 @@ export function useGuessNumber() {
           return prev;
         return {
           ...prev,
-          drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, true, prev.lastGuess === null, prev.remaining),
+          drawnCards: drawCards(
+            prev.usedCardIds,
+            prev.peekUsed,
+            true,
+            prev.lastGuess === null,
+            prev.remaining,
+          ),
           redrawUsed: true,
           redrawnThisRound: true,
         };
@@ -152,7 +165,8 @@ export function useGuessNumber() {
           ...prev.history,
           {
             type: 'clue',
-            question: lineCard.question,
+            cardId: lineCard.id,
+            lastGuess: lineCard.isDynamic ? context.lastGuess : undefined,
             result,
             round: prev.roundCount + 1,
           },
@@ -218,7 +232,13 @@ export function useGuessNumber() {
       clearTimeout(peekTimerRef.current);
       return {
         ...prev,
-        drawnCards: drawCards(prev.usedCardIds, prev.peekUsed, prev.redrawUsed, false, prev.remaining),
+        drawnCards: drawCards(
+          prev.usedCardIds,
+          prev.peekUsed,
+          prev.redrawUsed,
+          false,
+          prev.remaining,
+        ),
         selectedCard: null,
         clueResult: null,
         isRoundGuessed: false,
@@ -261,6 +281,8 @@ export function useGuessNumber() {
     submitGuess,
     nextRound,
     restart,
-    rating: state?.gameOver ? getGuessRating(state.roundCount, state.isWin) : null,
+    rating: state?.gameOver
+      ? getGuessRating(state.roundCount, state.isWin)
+      : null,
   };
 }

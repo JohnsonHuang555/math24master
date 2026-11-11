@@ -14,11 +14,12 @@ describe('isUntranslatedPage', () => {
     expect(isUntranslatedPage('/en/single-play')).toBe(false);
     expect(isUntranslatedPage('/en/quick-math')).toBe(false);
     expect(isUntranslatedPage('/zh-CN/daily-challenge')).toBe(false);
+    expect(isUntranslatedPage('/en/guess-number')).toBe(false);
   });
 
   it('還沒翻譯的頁面不收錄', () => {
-    expect(isUntranslatedPage('/en/guess-number')).toBe(true);
+    expect(isUntranslatedPage('/en/multiple-play')).toBe(true);
     expect(isUntranslatedPage('/en/multiple-play/abc')).toBe(true);
-    expect(isUntranslatedPage('/zh-CN/guess-number')).toBe(true);
+    expect(isUntranslatedPage('/zh-CN/multiple-play')).toBe(true);
   });
 });

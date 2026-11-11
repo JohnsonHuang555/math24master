@@ -702,6 +702,213 @@
       "showAll": "查看全部 {count} 種解法"
     }
   },
+  "GuessNumber": {
+    "title": "猜數字",
+    "loading": "載入中...",
+    "notes": "筆記",
+    "special": "特殊 · 限 1 次",
+    "yes": "是",
+    "no": "否",
+    "history": "歷史紀錄",
+    "guessChip": "猜 {n}",
+    "wrongGuess": "猜錯了！",
+    "clueGained": "線索獲得！現在可以輸入猜測了",
+    "result": {
+      "answerWas": "謎底是",
+      "win": "猜中了！",
+      "lose": "沒猜中",
+      "rounds": "共 <b>{count}</b> 回合",
+      "backHome": "回首頁",
+      "playAgain": "再玩一次"
+    },
+    "ratings": {
+      "lucky": {
+        "label": "運氣爆棚！",
+        "rounds": "1 回合"
+      },
+      "genius": {
+        "label": "邏輯天才！",
+        "rounds": "2–3 回合"
+      },
+      "steady": {
+        "label": "穩健推理",
+        "rounds": "4–6 回合"
+      },
+      "close": {
+        "label": "快追上了",
+        "rounds": "7–10 回合"
+      },
+      "keepGoing": {
+        "label": "再接再厲",
+        "rounds": "10 回合以上"
+      },
+      "miss": {
+        "label": "下次再試",
+        "rounds": "未猜中"
+      }
+    },
+    "hint": {
+      "peekActive": "透視鏡已使用，請輸入猜測數字",
+      "cardSelected": "已選牌，請輸入猜測數字",
+      "redrawn": "已換牌，請選線索牌",
+      "pickCard": "選擇一張牌使用"
+    },
+    "round": "第 <n>{round}</n> / {total} 回合",
+    "excluded": "已排除 <n>{count}</n> 個",
+    "peeking": "透視中… 剩餘的數字（{count} 個）",
+    "legend": {
+      "remaining": "剩餘",
+      "excluded": "排除",
+      "guessed": "已猜",
+      "possible": "可能",
+      "ruledOut": "已排除"
+    },
+    "specialStatus": {
+      "peek": "已使用，請直接輸入猜測",
+      "redraw": "已換牌，請選線索牌"
+    },
+    "secretRange": "謎底是 10–99 的兩位數",
+    "remainingCount": "剩 <n>{count}</n> 個未猜",
+    "yourGuess": "你的猜測",
+    "guessPlaceholder": "輸入 10-99",
+    "alreadyGuessed": "你已猜過 {n}，可繼續送出",
+    "submit": "送出",
+    "nextRound": "下一回合",
+    "confirm": {
+      "title": "使用這張牌？",
+      "description": "{name}：{text}",
+      "action": "確認使用"
+    },
+    "notesPanel": {
+      "clearAll": "清除全部",
+      "markMode": "標記方式",
+      "tap": "點擊選取",
+      "drag": "滑動連選",
+      "columns": "{count} 列"
+    },
+    "rules": {
+      "title": "遊戲規則",
+      "goal": "遊戲目標",
+      "goalText": "利用線索牌推理出藏匿的兩位數（10-99），最多 <b>10 回合</b>內猜對即獲勝。",
+      "flow": "每回合流程",
+      "step1": "從手牌中選一張線索牌，系統回答「是」或「否」",
+      "step2": "根據線索縮小謎底範圍後，輸入你猜測的數字",
+      "step3": "猜錯則繼續下一回合；猜對立即獲勝",
+      "special": "特殊牌",
+      "cardList": "線索牌一覽",
+      "rating": "評分標準"
+    },
+    "cards": {
+      "half": {
+        "name": "半壁江山",
+        "question": "謎底是 55 以上嗎？",
+        "short": "是 55 以上",
+        "rule": "謎底 ≥ 55？"
+      },
+      "odd-even": {
+        "name": "陰陽雙極",
+        "question": "謎底是奇數嗎？",
+        "short": "是奇數",
+        "rule": "謎底是奇數？"
+      },
+      "triple": {
+        "name": "三陽開泰",
+        "question": "謎底是 3 的倍數嗎？",
+        "short": "是 3 的倍數",
+        "rule": "謎底是 3 的倍數？"
+      },
+      "multiple-5": {
+        "name": "五福臨門",
+        "question": "謎底是 5 的倍數嗎？",
+        "short": "是 5 的倍數",
+        "rule": "謎底是 5 的倍數？"
+      },
+      "multiple-7": {
+        "name": "七星高照",
+        "question": "謎底是 7 的倍數嗎？",
+        "short": "是 7 的倍數",
+        "rule": "謎底是 7 的倍數？"
+      },
+      "prime": {
+        "name": "黃金質數",
+        "question": "謎底是質數嗎？",
+        "short": "是質數",
+        "rule": "謎底是質數？"
+      },
+      "repeat": {
+        "name": "複製貼上",
+        "question": "十位數與個位數相同嗎？",
+        "short": "十位數與個位數相同",
+        "rule": "十位數 = 個位數？"
+      },
+      "ones-gt-tens": {
+        "name": "步步高升",
+        "question": "個位數大於十位數嗎？",
+        "short": "個位數大於十位數",
+        "rule": "個位數 > 十位數？"
+      },
+      "digit-sum-odd": {
+        "name": "數位加總",
+        "question": "十位數＋個位數之和是奇數嗎？",
+        "short": "十位數＋個位數之和是奇數",
+        "rule": "各位數之和是奇數？"
+      },
+      "last-digit-gt5": {
+        "name": "尾數偵測",
+        "question": "個位數大於 5 嗎？",
+        "short": "個位數大於 5",
+        "rule": "個位數 > 5？"
+      },
+      "tens-gt5": {
+        "name": "十位偵測",
+        "question": "十位數大於 5 嗎？",
+        "short": "十位數大於 5",
+        "rule": "十位數 > 5？"
+      },
+      "digit-product-gt20": {
+        "name": "數位之積",
+        "question": "十位數×個位數大於 20 嗎？",
+        "short": "十位數×個位數大於 20",
+        "rule": "十位數 × 個位數 > 20？"
+      },
+      "higher-than-last": {
+        "name": "高低雷達",
+        "question": "謎底比你上一次猜的（{n}）大嗎？",
+        "questionNoGuess": "謎底比你上一次猜的（N）大嗎？",
+        "short": "比你上一次猜的（{n}）大",
+        "rule": "謎底 > 上一次猜的？"
+      },
+      "within-ten": {
+        "name": "黃金交叉",
+        "question": "謎底和你上次猜的（{n}）相差在 10 以內嗎？",
+        "questionNoGuess": "謎底和你上次猜的（N）相差在 10 以內嗎？",
+        "short": "和你上次猜的（{n}）相差在 10 以內",
+        "rule": "謎底與上次猜的相差 ≤ 10？"
+      },
+      "perfect-square": {
+        "name": "完美平方",
+        "question": "謎底是完全平方數嗎？",
+        "short": "是完全平方數",
+        "rule": "謎底是完全平方數？"
+      },
+      "lucky-seven": {
+        "name": "幸運之星",
+        "question": "謎底的數字裡包含「7」嗎？",
+        "short": "的數字裡包含「7」",
+        "rule": "謎底含有數字 7？"
+      },
+      "peek": {
+        "name": "透視鏡",
+        "description": "顯示剩餘的數字範圍 5 秒",
+        "rule": "顯示目前所有可能為謎底的數字 5 秒。每局限用一次，使用後本回合仍可猜數。"
+      },
+      "redraw": {
+        "name": "全面革新",
+        "description": "重新抽一組手牌",
+        "rule": "重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。"
+      }
+    }
+  },
   "RoundHistory": {
     "title": "作答紀錄",
     "empty": "本局沒有作答紀錄",
