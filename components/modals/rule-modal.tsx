@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -7,10 +8,95 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+type RuleMode = 'buzzer' | 'classic' | 'challenge' | 'match' | 'tabletop';
+
 type RuleModalProps = {
   isOpen: boolean;
   onOpenChange: (v: boolean) => void;
-  mode?: 'buzzer' | 'classic' | 'challenge' | 'match' | 'tabletop';
+  mode?: RuleMode;
+};
+
+type SectionKey =
+  | 'goal'
+  | 'flow'
+  | 'scoring'
+  | 'end'
+  | 'lockout'
+  | 'streak'
+  | 'noSolution'
+  | 'roundTimeout'
+  | 'perfect'
+  | 'timeBonus'
+  | 'skipPenalty'
+  | 'howToPlay';
+
+type Section = {
+  title: SectionKey;
+  accent?: string;
+  /** messages 的 Rules.<mode>.<key>；`scoring` 區塊改用共用的 Rules.scoring */
+  items: readonly string[];
+  /** 計分方式是否附上範例算式 */
+  withExample?: boolean;
+};
+
+const TEAL = 'text-teal-700 dark:text-teal-400';
+const AMBER = 'text-amber-700 dark:text-amber-400';
+const ROSE = 'text-rose-600 dark:text-rose-400';
+
+const SCORING_ITEMS = ['s1', 's2', 's3', 's4'] as const;
+
+// 各模式的規則區塊；文案在 messages 的 Rules namespace
+const RULE_SECTIONS: Record<Exclude<RuleMode, 'tabletop'>, Section[]> = {
+  buzzer: [
+    { title: 'goal', accent: TEAL, items: ['goal1', 'goal2'] },
+    { title: 'flow', items: ['flow1', 'flow2', 'flow3', 'flow4'] },
+    { title: 'scoring', items: SCORING_ITEMS, withExample: true },
+    {
+      title: 'lockout',
+      accent: ROSE,
+      items: ['lockout1', 'lockout2', 'lockout3'],
+    },
+    {
+      title: 'streak',
+      accent: AMBER,
+      items: ['streak1', 'streak2', 'streak3'],
+    },
+    { title: 'noSolution', items: ['noSolution1', 'noSolution2'] },
+    { title: 'roundTimeout', items: ['roundTimeout1', 'roundTimeout2'] },
+  ],
+  classic: [
+    { title: 'goal', accent: TEAL, items: ['goal1', 'goal2'] },
+    { title: 'flow', items: ['flow1', 'flow2', 'flow3', 'flow4'] },
+    { title: 'scoring', items: SCORING_ITEMS, withExample: true },
+    { title: 'perfect', accent: AMBER, items: ['perfect1', 'perfect2'] },
+  ],
+  challenge: [
+    { title: 'goal', accent: AMBER, items: ['goal1', 'goal2'] },
+    { title: 'scoring', items: SCORING_ITEMS },
+    { title: 'timeBonus', items: ['time1', 'time2'] },
+    { title: 'skipPenalty', accent: ROSE, items: ['skip1', 'skip2', 'skip3'] },
+    { title: 'end', items: ['end1', 'end2'] },
+  ],
+  match: [
+    { title: 'goal', accent: TEAL, items: ['goal1', 'goal2', 'goal3'] },
+    { title: 'flow', items: ['flow1', 'flow2', 'flow3'] },
+    { title: 'scoring', items: SCORING_ITEMS },
+    { title: 'end', accent: AMBER, items: ['end1', 'end2'] },
+  ],
+};
+
+// 規則控制在 5 條以內（見 specs/game-tabletop.spec.md「介面與提示」）
+const TABLETOP_ITEMS = ['rule1', 'rule2', 'rule3', 'rule4', 'rule5'] as const;
+
+// 規則的 key 由程式組出，next-intl 無法逐一推斷每則訊息用到哪些標籤，這裡統一傳入全部標籤；
+// 三種語系的 key 一致由 i18n/messages.test.ts 把關
+type RichTranslate = (key: string, values: typeof richTags) => React.ReactNode;
+
+const richTags = {
+  b: (chunks: React.ReactNode) => <strong>{chunks}</strong>,
+  mono: (chunks: React.ReactNode) => (
+    <span className="font-mono font-bold">{chunks}</span>
+  ),
 };
 
 function RuleSection({
@@ -32,351 +118,67 @@ function RuleSection({
   );
 }
 
-function BuzzerRules() {
+function ModeRules({ mode }: { mode: Exclude<RuleMode, 'tabletop'> }) {
+  const t = useTranslations('Rules');
+  const rich = t.rich as unknown as RichTranslate;
+
   return (
     <>
-      <RuleSection title="目標" accent="text-teal-700 dark:text-teal-400">
-        <li>
-          使用 <strong>4 張公共牌</strong>，透過加減乘除組出等於{' '}
-          <strong>24</strong> 的算式
-        </li>
-        <li>
-          先累積達到設定<strong>獲勝分數</strong>（預設 20 分）的玩家獲勝
-        </li>
-      </RuleSection>
-
-      <RuleSection title="流程">
-        <li>
-          每回合顯示 <strong>4 張公共牌</strong>（所有玩家共用同一組）
-        </li>
-        <li>
-          任何未被鎖定的玩家可按下<strong>搶答鈕</strong>取得作答資格
-        </li>
-        <li>
-          搶到後在<strong>作答時間</strong>內選牌、選符號並提交算式
-        </li>
-        <li>答對得分，進入下一回合；答錯或超時則扣分並鎖定</li>
-      </RuleSection>
-
-      <RuleSection title="計分方式">
-        <li>
-          算式含<strong>加 / 減</strong>符號各得 <strong>1 分</strong>
-        </li>
-        <li>
-          算式含<strong>乘</strong>符號各得 <strong>2 分</strong>
-        </li>
-        <li>
-          算式含<strong>除</strong>符號各得 <strong>3 分</strong>
-        </li>
-        <li>
-          使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個
-          <strong>除</strong>額外 <strong>+1 分</strong>
-        </li>
-        <li className="pt-0.5 text-xs">
-          範例：
-          <span className="font-mono font-bold">
-            6 × 4 × (3 − 2) = 24
-          </span> → <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 +
-          兩個乘號額外加 1 分 + 減號 1 分）
-        </li>
-      </RuleSection>
-
-      <RuleSection title="鎖定機制" accent="text-rose-600 dark:text-rose-400">
-        <li>
-          答錯或作答超時：依設定<strong>扣分</strong>（0–3 分），並進入
-          <strong>鎖定</strong>狀態
-        </li>
-        <li>
-          鎖定期間無法搶答，<strong>連勝數歸零</strong>
-        </li>
-        <li>設定開啟「換回合解鎖」時，新回合開始自動解除鎖定</li>
-      </RuleSection>
-
-      <RuleSection title="連勝加分" accent="text-amber-700 dark:text-amber-400">
-        <li>
-          連續答對可累積<strong>連勝數</strong>
-        </li>
-        <li>
-          若房間開啟連勝加分，每次答對額外加 <strong>連勝數 × 1</strong> 或{' '}
-          <strong>× 2 分</strong>
-        </li>
-        <li>答錯或超時連勝數歸零</li>
-      </RuleSection>
-
-      <RuleSection title="無解投票">
-        <li>
-          若認為目前 4 張牌<strong>無法湊出 24</strong>，可投票「無解」
-        </li>
-        <li>超過半數玩家投票後，換新的一組牌，不扣分</li>
-      </RuleSection>
-
-      <RuleSection title="回合超時（選項）">
-        <li>
-          設有回合時間時，時間到且無人答對，所有玩家依設定<strong>扣分</strong>
-        </li>
-        <li>自動換新的一組牌進入下一回合</li>
-      </RuleSection>
+      {RULE_SECTIONS[mode].map(section => {
+        const namespace = section.title === 'scoring' ? 'scoring' : mode;
+        return (
+          <RuleSection
+            key={section.title}
+            title={t(`sections.${section.title}`)}
+            accent={section.accent}
+          >
+            {section.items.map(item => (
+              <li key={item}>{rich(`${namespace}.${item}`, richTags)}</li>
+            ))}
+            {section.withExample && (
+              <li className="pt-0.5 text-xs">
+                {rich('scoring.example', richTags)}
+              </li>
+            )}
+          </RuleSection>
+        );
+      })}
     </>
   );
 }
 
-function ClassicRules() {
-  return (
-    <>
-      <RuleSection title="目標" accent="text-teal-700 dark:text-teal-400">
-        <li>
-          手牌固定 <strong>4 張數字牌</strong>（牌值
-          1–13），透過加減乘除組出等於 <strong>24</strong> 的算式
-        </li>
-        <li>
-          持續出牌累積分數，直到<strong>牌庫抽完</strong>為止
-        </li>
-      </RuleSection>
-
-      <RuleSection title="流程">
-        <li>
-          需<strong>一次用完</strong>手上全部 4 張數字牌，且算式結果等於 24
-          才能出牌得分
-        </li>
-        <li>
-          答對後自動<strong>抽新牌補滿手牌</strong>，進入下一手
-        </li>
-        <li>
-          若判斷目前手牌湊不出 24，可按「<strong>跳過換牌</strong>
-          」放棄整手重新抽牌（系統會盡量確保抽到的新手牌有解）
-        </li>
-        <li>牌庫抽完後進入最後一手，結算後遊戲結束</li>
-      </RuleSection>
-
-      <RuleSection title="計分方式">
-        <li>
-          算式含<strong>加 / 減</strong>符號各得 <strong>1 分</strong>
-        </li>
-        <li>
-          算式含<strong>乘</strong>符號各得 <strong>2 分</strong>
-        </li>
-        <li>
-          算式含<strong>除</strong>符號各得 <strong>3 分</strong>
-        </li>
-        <li>
-          使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個
-          <strong>除</strong>額外 <strong>+1 分</strong>
-        </li>
-        <li className="pt-0.5 text-xs">
-          範例：
-          <span className="font-mono font-bold">
-            6 × 4 × (3 − 2) = 24
-          </span> → <strong>6 分</strong>（乘號 2 分 + 乘號 2 分 +
-          兩個乘號額外加 1 分 + 減號 1 分）
-        </li>
-      </RuleSection>
-
-      <RuleSection
-        title="完美手加成"
-        accent="text-amber-700 dark:text-amber-400"
-      >
-        <li>
-          本手得分達到<strong>該手牌理論最高分</strong>（完美解）時，額外{' '}
-          <strong>+1 分</strong>
-        </li>
-        <li>
-          結算畫面會依「總分 ÷ 理論上限」換算<strong>解法效率</strong>，並給出 S
-          / A / B / C 評級
-        </li>
-      </RuleSection>
-    </>
-  );
-}
-
-function ChallengeRules() {
-  return (
-    <>
-      <RuleSection title="目標" accent="text-amber-700 dark:text-amber-400">
-        <li>
-          倒數 <strong>5 分鐘</strong>內，使用 <strong>4 張數字牌</strong>
-          透過加減乘除湊出等於 <strong>24</strong> 的算式
-        </li>
-        <li>
-          盡可能撐過越多關卡，關卡數<strong>沒有上限</strong>
-        </li>
-      </RuleSection>
-
-      <RuleSection title="計分方式">
-        <li>
-          算式含<strong>加 / 減</strong>符號各得 <strong>1 分</strong>
-        </li>
-        <li>
-          算式含<strong>乘</strong>符號各得 <strong>2 分</strong>
-        </li>
-        <li>
-          算式含<strong>除</strong>符號各得 <strong>3 分</strong>
-        </li>
-        <li>
-          使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個
-          <strong>除</strong>額外 <strong>+1 分</strong>
-        </li>
-      </RuleSection>
-
-      <RuleSection title="加時規則">
-        <li>
-          答對一題即<strong>加時</strong>並進入下一關
-        </li>
-        <li>
-          第 1 關加 <strong>60 秒</strong>，之後每過一關遞減 3 秒，最低{' '}
-          <strong>15 秒</strong>
-        </li>
-      </RuleSection>
-
-      <RuleSection title="跳過懲罰" accent="text-rose-600 dark:text-rose-400">
-        <li>
-          覺得目前 4 張牌湊不出 24，可<strong>跳過換題</strong>，但會扣時
-        </li>
-        <li>
-          同一關內第 1 次跳過扣 <strong>15 秒</strong>、第 2 次扣{' '}
-          <strong>30 秒</strong>、第 3 次起固定扣 <strong>60 秒</strong>
-        </li>
-        <li>
-          本關內只要答對一次，跳過次數即<strong>歸零</strong>重新計算
-        </li>
-      </RuleSection>
-
-      <RuleSection title="結束條件">
-        <li>
-          倒數時間歸零，或主動按「<strong>提前結算</strong>」結束
-        </li>
-        <li>
-          以「<strong>最終關卡</strong>」與「<strong>總分</strong>
-          」計算成績，並記錄個人最佳關卡
-        </li>
-      </RuleSection>
-    </>
-  );
-}
-
-function MatchRules() {
-  return (
-    <>
-      <RuleSection title="目標" accent="text-teal-700 dark:text-teal-400">
-        <li>
-          開局隨機產生 <strong>16 張數字牌</strong>（牌值 1–13），排成 4×4
-        </li>
-        <li>
-          任選 <strong>2~4 張</strong>，透過加減乘除組出等於 <strong>24</strong>{' '}
-          的算式即可消除
-        </li>
-        <li>
-          目標是把 16 張牌<strong>全部消除</strong>，沒有時間限制
-        </li>
-      </RuleSection>
-
-      <RuleSection title="流程">
-        <li>
-          牌可以<strong>跨任意位置</strong>選取，不需要相鄰
-        </li>
-        <li>
-          消除成功的牌會從牌面上消失，格子<strong>不會被遞補</strong>
-        </li>
-        <li>
-          覺得牌局不好發揮，可隨時按「<strong>重新開局</strong>
-          」換一副新牌，不限次數
-        </li>
-      </RuleSection>
-
-      <RuleSection title="計分方式">
-        <li>
-          算式含<strong>加 / 減</strong>符號各得 <strong>1 分</strong>
-        </li>
-        <li>
-          算式含<strong>乘</strong>符號各得 <strong>2 分</strong>
-        </li>
-        <li>
-          算式含<strong>除</strong>符號各得 <strong>3 分</strong>
-        </li>
-        <li>
-          使用 2 個<strong>乘</strong>額外 <strong>+1 分</strong>；2 個
-          <strong>除</strong>額外 <strong>+1 分</strong>
-        </li>
-      </RuleSection>
-
-      <RuleSection title="結束條件" accent="text-amber-700 dark:text-amber-400">
-        <li>
-          <strong>全清</strong>（16 張全數消除）：總分計入排行榜
-        </li>
-        <li>
-          <strong>卡關</strong>（剩餘牌任選 2~4 張都湊不出
-          24）：本局結束，不計入排行榜
-        </li>
-      </RuleSection>
-    </>
-  );
-}
-
-// 規則控制在 5 條以內（見 specs/game-tabletop.spec.md「介面與提示」）
 function TabletopRules() {
+  const t = useTranslations('Rules');
+  const rich = t.rich as unknown as RichTranslate;
   return (
     <>
       <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-        改編自桌遊<strong>拉密（Rummikub）</strong>
-        ：一樣是出牌到共用桌面、可以拆開別人的牌組重組、先出完手牌的人佔優勢，只是組牌的條件改成「湊出
-        24」
+        {t.rich('tabletop.intro', richTags)}
       </p>
-      <RuleSection title="玩法" accent="text-teal-700 dark:text-teal-400">
-        <li>
-          你和 2 個電腦輪流行動，每人起始 <strong>10 張</strong>
-          手牌，出牌後不補牌；沒有牌可以出時就抽 1 張
-        </li>
-        <li>
-          每回合<strong>完成一組牌組</strong>：3～5 張牌用加減乘除和括號湊出{' '}
-          <strong>24</strong>
-          。可以拆開桌上的牌組重新組合，但這回合打出的手牌要全部放在同一組，回合結束時桌上每一組都要成立
-        </li>
-        <li>
-          顏色限制：3～4 張要<strong>同色或全部不同色</strong>，5
-          張只能同色；Joker
-          打出時宣告數值與顏色，所在的牌組被拆開時變回未宣告，下一個使用的人重新宣告
-        </li>
-        <li>
-          計分：每組牌組的分數是加減 1 分、乘 2 分、除 3 分，4 張 +1、5 張
-          +2，再乘上顏色倍率（同色 ×2、全異色 ×1.5）。
-          <strong>桌面總分創新高的部分</strong>
-          就是你這回合的得分，每打出 1 張手牌至少 1 分
-        </li>
-        <li>
-          有人<strong>手牌出完</strong>
-          就結束（牌庫抽完則再打一圈）：先出完的人 +10 分，其他人手上每張牌 −1
-          分、Joker −5 分，總分最高的人獲勝
-        </li>
+      <RuleSection title={t('sections.howToPlay')} accent={TEAL}>
+        {TABLETOP_ITEMS.map(item => (
+          <li key={item}>{rich(`tabletop.${item}`, richTags)}</li>
+        ))}
       </RuleSection>
     </>
   );
 }
-
-const RULE_TITLE: Record<NonNullable<RuleModalProps['mode']>, string> = {
-  buzzer: '搶答模式規則',
-  classic: '經典模式規則',
-  challenge: '挑戰模式規則',
-  match: '消消樂模式規則',
-  tabletop: '牌桌模式規則',
-};
 
 export function RuleModal({
   isOpen,
   onOpenChange,
   mode = 'buzzer',
 }: RuleModalProps) {
+  const t = useTranslations('Rules');
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent sheet className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{RULE_TITLE[mode]}</DialogTitle>
+          <DialogTitle>{t(`titles.${mode}`)}</DialogTitle>
         </DialogHeader>
 
         <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto pr-1 text-sm">
-          {mode === 'buzzer' && <BuzzerRules />}
-          {mode === 'classic' && <ClassicRules />}
-          {mode === 'challenge' && <ChallengeRules />}
-          {mode === 'match' && <MatchRules />}
-          {mode === 'tabletop' && <TabletopRules />}
+          {mode === 'tabletop' ? <TabletopRules /> : <ModeRules mode={mode} />}
         </div>
 
         <DialogFooter>
@@ -384,7 +186,7 @@ export function RuleModal({
             onClick={() => onOpenChange(false)}
             className="rounded-2xl bg-primary font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
           >
-            了解
+            {t('gotIt')}
           </Button>
         </DialogFooter>
       </DialogContent>

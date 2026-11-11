@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useGameActions } from '@/hooks/useGameActions';
+import { useServerErrorText } from '@/i18n/server-messages';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { trackGameComplete, trackGameStart } from '@/lib/analytics';
 import {
@@ -20,6 +22,10 @@ import { useAchievementStore } from '@/stores/achievement-store';
 import { useStatsStore } from '@/stores/stats-store';
 
 const useSinglePlay = (difficulty: Difficulty | null) => {
+  const tHud = useTranslations('GameUI.hud');
+  const tToast = useTranslations('GameUI.toast');
+  // 引擎回傳錯誤代碼，在這裡翻成玩家的語言（見 docs/adr/0009）
+  const errorText = useServerErrorText();
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
     null,
@@ -65,9 +71,9 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
 
   useEffect(() => {
     if (isLastRound) {
-      toast.warning('最後一回合囉');
+      toast.warning(tHud('lastRound'));
     }
-  }, [isLastRound]);
+  }, [isLastRound, tHud]);
 
   useEffect(() => {
     if (isGameOver) {
@@ -97,7 +103,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     if (result.success) {
       setRoomInfo(result.room);
     } else {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
     }
   };
 
@@ -128,7 +134,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     if (result.success) {
       setRoomInfo(result.room);
     } else {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
     }
   };
 
@@ -137,7 +143,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     if (isGameOver || !roomInfo) return;
 
     if (roomInfo.selectedCards.length === 0) {
-      toast.warning('請組合算式');
+      toast.warning(tToast('buildEquation'));
       return;
     }
 
@@ -146,7 +152,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
       setRoomInfo(result.room);
       handlePlayCardResponse(result.isCorrect);
     } else {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
     }
   };
 
@@ -168,7 +174,7 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
         setLastRoundResult(result.roundResult);
       }
     } else {
-      toast.error(result.error);
+      toast.error(errorText(result.error));
     }
   };
 

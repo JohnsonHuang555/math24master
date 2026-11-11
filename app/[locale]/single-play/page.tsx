@@ -10,6 +10,7 @@ import {
   Timer,
   Trophy,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import ChallengePlayGame from '@/app/[locale]/single-play/[mode]/challenge-play-game';
 import ClassicPlayGame from '@/app/[locale]/single-play/[mode]/classic-play-game';
 import MatchPlayGame from '@/app/[locale]/single-play/[mode]/match-play-game';
@@ -25,43 +26,35 @@ import { useStatsStore } from '@/stores/stats-store';
 // 關卡模式（normal）暫時下架，改版為固定題庫後再回歸
 type PlayMode = 'classic' | 'challenge' | 'match' | 'tabletop';
 
-// 模式之間用圖示區分，不用顏色（設計系統：所有模式卡都是 teal）
+// 模式之間用圖示區分，不用顏色（設計系統：所有模式卡都是 teal）；文案在 messages 的 SinglePlay.modes
 const MODE_CONFIG = [
   {
     value: 'classic' as const,
-    label: '經典模式',
     badge: undefined as string | undefined,
-    tagline: '牌值 1–13 · 累積最高分',
-    chips: ['解題獲得分數', '尋找最佳解答', '牌庫抽完即遊戲結束'],
     Icon: Layers,
   },
   {
     value: 'challenge' as const,
-    label: '挑戰模式',
     badge: undefined as string | undefined,
-    tagline: '倒數 5 分鐘 · 無限關卡',
-    chips: ['答對加秒數', '跳過會懲罰', '挑戰通過最多關卡數'],
     Icon: Timer,
   },
   {
     value: 'match' as const,
-    label: '消消樂模式',
     badge: undefined as string | undefined,
-    tagline: '16 張牌 · 自由配對消除',
-    chips: ['任選 2–4 張湊 24', '無時間限制', '全部清除才計分上榜'],
     Icon: LayoutGrid,
   },
   {
     value: 'tabletop' as const,
-    label: '牌桌模式',
     badge: undefined as string | undefined,
-    tagline: '改編自拉密 · 對戰電腦搶先出完',
-    chips: ['拆開重組桌上算式', '同色或全異色', '和 2 個電腦搶分'],
     Icon: Shapes,
   },
 ] as const;
 
+const CHIP_KEYS = ['chip1', 'chip2', 'chip3'] as const;
+
 export default function SinglePlayPage() {
+  const t = useTranslations('SinglePlay');
+  const tHome = useTranslations('Home');
   const reduceMotion = useReducedMotion();
   const [activeMode, setActiveMode] = useState<PlayMode | null>(null);
 
@@ -95,14 +88,21 @@ export default function SinglePlayPage() {
   const bestLabel: Record<PlayMode, { prefix?: string; value: string } | null> =
     {
       classic:
-        classicBestScore > 0 ? { value: `${classicBestScore} 分` } : null,
+        classicBestScore > 0
+          ? { value: t('points', { score: classicBestScore }) }
+          : null,
       challenge:
         challengeBestStage > 0
-          ? { value: `第 ${challengeBestStage} 關` }
+          ? { value: t('stage', { stage: challengeBestStage }) }
           : null,
-      match: matchBestScore > 0 ? { value: `${matchBestScore} 分` } : null,
+      match:
+        matchBestScore > 0
+          ? { value: t('points', { score: matchBestScore }) }
+          : null,
       tabletop:
-        tabletopBestScore > 0 ? { value: `${tabletopBestScore} 分` } : null,
+        tabletopBestScore > 0
+          ? { value: t('points', { score: tabletopBestScore }) }
+          : null,
     };
 
   if (activeMode === 'challenge') {
@@ -126,7 +126,7 @@ export default function SinglePlayPage() {
           className="flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-[15px] font-semibold text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
         >
           <Trophy aria-hidden className="h-[18px] w-[18px]" />
-          排行榜
+          {tHome('leaderboard')}
         </Link>
         <LocaleSwitcher className="ml-2 border border-line text-ink" />
       </SiteHeader>
@@ -136,7 +136,7 @@ export default function SinglePlayPage() {
         <span className="flex-1" />
         <Link
           href="/leaderboard"
-          aria-label="排行榜"
+          aria-label={tHome('leaderboard')}
           className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
         >
           <Trophy className="h-5 w-5" />
@@ -148,14 +148,12 @@ export default function SinglePlayPage() {
         <BackToHomeButton className="hidden border border-line bg-surface lg:flex" />
         <div className="flex flex-1 flex-col gap-1.5 lg:gap-1">
           <h1 className="text-[28px] font-black tracking-tight text-ink lg:text-4xl">
-            單人模式
+            {t('title')}
           </h1>
-          <p className="text-[15px] text-ink-2 lg:text-base">
-            選一個模式開始，點了就進入遊戲
-          </p>
+          <p className="text-[15px] text-ink-2 lg:text-base">{t('subtitle')}</p>
         </div>
         <span className="hidden items-center gap-1.5 text-[13px] text-ink-2 lg:flex">
-          鍵盤 <Kbd>1</Kbd>–<Kbd>4</Kbd> 直接選擇
+          {t.rich('keyboardHint', { kbd: chunks => <Kbd>{chunks}</Kbd> })}
         </span>
       </div>
 
@@ -184,7 +182,7 @@ export default function SinglePlayPage() {
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex items-center gap-2">
                     <strong className="text-[19px] text-ink lg:text-[22px]">
-                      {mode.label}
+                      {t(`modes.${mode.value}.label`)}
                     </strong>
                     {mode.badge && (
                       <span className="rounded-[5px] bg-amber px-1.5 py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-on-amber uppercase">
@@ -193,7 +191,7 @@ export default function SinglePlayPage() {
                     )}
                   </span>
                   <span className="text-sm text-ink-2 lg:text-[15px]">
-                    {mode.tagline}
+                    {t(`modes.${mode.value}.tagline`)}
                   </span>
                 </div>
                 <ChevronRight
@@ -204,12 +202,12 @@ export default function SinglePlayPage() {
               </div>
 
               <div className="flex flex-wrap gap-1.5 lg:gap-2">
-                {mode.chips.map(chip => (
+                {CHIP_KEYS.map(chipKey => (
                   <span
-                    key={chip}
+                    key={chipKey}
                     className="inline-flex h-[26px] items-center rounded-full bg-sunken px-[9px] text-xs font-semibold whitespace-nowrap text-ink lg:h-[30px] lg:px-3 lg:text-[13px]"
                   >
-                    {chip}
+                    {t(`modes.${mode.value}.${chipKey}`)}
                   </span>
                 ))}
               </div>
@@ -218,7 +216,7 @@ export default function SinglePlayPage() {
                 <div className="flex items-center justify-between border-t border-line pt-3 lg:mt-auto lg:pt-3.5">
                   <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2 lg:text-sm">
                     <Trophy aria-hidden className="h-4 w-4" />
-                    個人最佳
+                    {t('personalBest')}
                   </span>
                   <span className="flex items-baseline gap-1.5">
                     {best.prefix && (

@@ -1,4 +1,5 @@
 import { CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -14,11 +15,12 @@ type RoundHistoryModalProps = {
 };
 
 function RoundHistoryItem({ record }: { record: RoundRecord }) {
+  const t = useTranslations('RoundHistory');
   return (
     <li className="rounded-2xl border-2 border-zinc-100 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-800/40">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-muted-foreground">
-          第 {record.round} 題
+          {t('question', { round: record.round })}
         </span>
         <div className="flex gap-1">
           {record.cardValues.map((value, i) => (
@@ -38,7 +40,7 @@ function RoundHistoryItem({ record }: { record: RoundRecord }) {
             {record.playerFormula} = 24
           </span>
           <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            你的算式 · {record.playerScore} 分
+            {t('yours', { score: record.playerScore })}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -46,7 +48,7 @@ function RoundHistoryItem({ record }: { record: RoundRecord }) {
             {record.bestFormula} = 24
           </span>
           <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            最佳解 · {record.bestScore} 分
+            {t('best', { score: record.bestScore })}
           </span>
         </div>
       </div>
@@ -55,11 +57,13 @@ function RoundHistoryItem({ record }: { record: RoundRecord }) {
         {record.isPerfect ? (
           <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-500">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            已是最佳解
+            {t('alreadyBest')}
           </span>
         ) : (
           <span className="text-xs font-semibold text-muted-foreground">
-            最佳解可多得 {record.bestScore - record.playerScore} 分
+            {t('couldEarnMore', {
+              points: record.bestScore - record.playerScore,
+            })}
           </span>
         )}
       </div>
@@ -72,16 +76,17 @@ export function RoundHistoryModal({
   onOpenChange,
   roundHistory,
 }: RoundHistoryModalProps) {
+  const t = useTranslations('RoundHistory');
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent sheet className="max-w-md">
         <DialogHeader>
-          <DialogTitle>作答紀錄</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
 
         {roundHistory.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            本局沒有作答紀錄
+            {t('empty')}
           </p>
         ) : (
           <ul className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto pr-1">

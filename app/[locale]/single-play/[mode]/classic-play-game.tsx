@@ -85,7 +85,11 @@ export default function ClassicPlayGame({
   const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([]);
   const [showRoundHistory, setShowRoundHistory] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const t = useTranslations('Classic');
+  const tMode = useTranslations('SinglePlay.modes.classic');
+  const tShare = useTranslations('Share');
   const tScoring = useTranslations('GameUI.scoring');
+  const tHistory = useTranslations('RoundHistory');
 
   const { status: sessionStatus } = useSession();
   const { guestId } = useGuestStore();
@@ -201,23 +205,34 @@ export default function ClassicPlayGame({
         perfectHands,
         handHistory,
         isNewBestScore,
+        labels: {
+          brand: t('card.brand'),
+          badge: t('card.badge'),
+          finalScore: t('card.finalScore'),
+          grade: t('grade'),
+          efficiency: t('efficiency'),
+          perfectHands: t('perfectHands'),
+          sixHands: t('card.sixHands'),
+          newRecord: t('newRecord'),
+          cta: t('card.cta'),
+        },
       });
       if (!blob) {
-        toast.error('圖卡產生失敗，請稍後再試');
+        toast.error(tShare('imageFailed'));
         return;
       }
       const file = new File([blob], 'math24-classic-result.png', {
         type: 'image/png',
       });
       const outcome = await shareImage(file, {
-        title: 'Math24 經典模式',
-        text: `Math24 經典模式挑戰結果：${currentScore} 分（評級 ${grade}）\n來 math24master.com 挑戰看看`,
+        title: t('shareTitle'),
+        text: t('shareText', { score: currentScore, grade }),
       });
       trackShare('classic', outcome);
       if (outcome === 'downloaded') {
-        toast.success('圖卡已下載，快分享到限動或聊天吧！');
+        toast.success(tShare('downloaded'));
       } else if (outcome === 'failed') {
-        toast.error('分享失敗，請稍後再試');
+        toast.error(tShare('failed'));
       }
     } finally {
       setIsSharing(false);
@@ -249,18 +264,17 @@ export default function ClassicPlayGame({
     return (
       <GameStartScreen
         icon={Layers}
-        title="經典模式"
-        tagline="牌值 1–13 · 累積最高分"
-        description={
-          <>
-            答對得分 · 跳過換牌 · 牌盡結束
-            <br />
-            拿滿該手最高分 = 完美手，額外 +1
-          </>
-        }
+        title={tMode('label')}
+        tagline={tMode('tagline')}
+        description={t.rich('startDescription', { br: () => <br /> })}
         stats={
           bestScore > 0
-            ? [{ label: '個人最高', value: `${bestScore} 分` }]
+            ? [
+                {
+                  label: t('bestScore'),
+                  value: t('bestScoreValue', { score: bestScore }),
+                },
+              ]
             : undefined
         }
         onBack={onBack}
@@ -303,14 +317,14 @@ export default function ClassicPlayGame({
           roundHistory={roundHistory}
         />
         <GameResultScreen
-          eyebrow="遊戲結束"
+          eyebrow={t('gameOver')}
           value={currentScore}
           badge={
             isNewBestScore ? (
-              <RecordBadge>新紀錄！</RecordBadge>
+              <RecordBadge>{t('newRecord')}</RecordBadge>
             ) : bestScore > 0 ? (
               <span className="text-sm font-semibold text-ink-2">
-                個人最高：{bestScore} 分
+                {t('bestScoreInline', { score: bestScore })}
               </span>
             ) : null
           }
@@ -318,7 +332,7 @@ export default function ClassicPlayGame({
             theoreticalMax > 0
               ? [
                   {
-                    label: '解法評級',
+                    label: t('grade'),
                     value: (
                       <span
                         className={cn(
@@ -331,16 +345,16 @@ export default function ClassicPlayGame({
                     ),
                   },
                   {
-                    label: '解法效率',
+                    label: t('efficiency'),
                     value: `${Math.round(efficiency * 100)}%`,
                   },
-                  { label: '完美手', value: perfectHands },
+                  { label: t('perfectHands'), value: perfectHands },
                 ]
               : undefined
           }
-          backLabel="返回選單"
+          backLabel={t('backToMenu')}
           onBack={onBack}
-          retryLabel="再來一局"
+          retryLabel={t('playAgain')}
           onRetry={() => window.location.reload()}
         >
           <ResultRank mode="classic" submit={leaderboardSubmit} />
@@ -348,7 +362,7 @@ export default function ClassicPlayGame({
             {roundHistory.length > 0 && (
               <ResultSecondaryButton onClick={() => setShowRoundHistory(true)}>
                 <History aria-hidden />
-                查看作答紀錄
+                {t('viewHistory')}
               </ResultSecondaryButton>
             )}
             <ResultSecondaryButton
@@ -356,7 +370,7 @@ export default function ClassicPlayGame({
               disabled={isSharing}
             >
               <Share2 aria-hidden />
-              {isSharing ? '圖卡產生中...' : '分享成績'}
+              {isSharing ? t('sharing') : t('share')}
             </ResultSecondaryButton>
           </div>
         </GameResultScreen>
@@ -388,13 +402,15 @@ export default function ClassicPlayGame({
           {handFeedback.isPerfect ? (
             <>
               <Star aria-hidden className="h-5 w-5 shrink-0" />
-              完美手，拿滿 {handFeedback.maxScore} 分 · 額外 +1
+              {t('perfectFeedback', { max: handFeedback.maxScore })}
             </>
           ) : (
             <>
               <Info aria-hidden className="h-5 w-5 shrink-0" />
-              本手最高 {handFeedback.maxScore} 分 · 拿下{' '}
-              {handFeedback.roundScore} 分
+              {t('handFeedback', {
+                max: handFeedback.maxScore,
+                score: handFeedback.roundScore,
+              })}
             </>
           )}
         </motion.div>
@@ -414,7 +430,7 @@ export default function ClassicPlayGame({
       ) : (
         <SkipForward aria-hidden className="h-[18px] w-[18px]" />
       )}
-      {isLastRound ? '結算' : '跳過換牌'}
+      {isLastRound ? t('finish') : t('skipHand')}
     </Button>
   );
 
@@ -422,19 +438,22 @@ export default function ClassicPlayGame({
   const historyAside = (
     <>
       <div className="flex items-center justify-between">
-        <strong className="text-base text-ink">本局作答</strong>
+        <strong className="text-base text-ink">{t('historyTitle')}</strong>
         <span className="text-[13px] text-ink-2">
-          已出{' '}
-          <span className="font-display text-[15px] text-ink">
-            {roundHistory.length}
-          </span>{' '}
-          手
+          {t.rich('handsPlayed', {
+            count: roundHistory.length,
+            n: chunks => (
+              <span className="font-display text-[15px] text-ink">
+                {chunks}
+              </span>
+            ),
+          })}
         </span>
       </div>
       <ol className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
         {roundHistory.length === 0 ? (
           <li className="py-6 text-center text-sm text-ink-2">
-            出牌後會列在這裡
+            {t('historyEmpty')}
           </li>
         ) : (
           [...roundHistory].reverse().map(record => (
@@ -443,11 +462,11 @@ export default function ClassicPlayGame({
               className="flex flex-col gap-1.5 rounded-[14px] bg-sunken p-3"
             >
               <div className="flex items-center justify-between text-xs font-bold text-ink-2">
-                <span>第 {record.round} 手</span>
+                <span>{t('handNumber', { round: record.round })}</span>
                 {record.isPerfect && (
                   <span className="inline-flex h-[22px] items-center gap-1 rounded-full bg-amber px-[7px] text-[11px] text-on-amber">
                     <Star aria-hidden className="h-3 w-3" />
-                    完美手
+                    {t('perfectHand')}
                   </span>
                 )}
               </div>
@@ -461,7 +480,9 @@ export default function ClassicPlayGame({
               </div>
               {!record.isPerfect && record.bestScore > record.playerScore && (
                 <span className="text-xs font-semibold text-amber-ink">
-                  最佳解可多得 {record.bestScore - record.playerScore} 分
+                  {tHistory('couldEarnMore', {
+                    points: record.bestScore - record.playerScore,
+                  })}
                 </span>
               )}
             </li>
@@ -474,7 +495,7 @@ export default function ClassicPlayGame({
           className="mt-auto h-11 border border-line text-sm font-semibold text-primary-ink hover:bg-primary-tint hover:text-primary-ink"
           onClick={() => setShowRoundHistory(true)}
         >
-          查看完整作答紀錄
+          {t('viewFullHistory')}
         </Button>
       )}
     </>
@@ -513,13 +534,13 @@ export default function ClassicPlayGame({
         onSubmit={() => {
           const usedCount = selectedCards.filter(c => c.number).length;
           if (usedCount !== handCard.length) {
-            toast.error(`必須使用全部 ${handCard.length} 張手牌`);
+            toast.error(t('mustUseAll', { count: handCard.length }));
             return;
           }
           onPlayCard();
         }}
         onSkip={onSkipHand}
-        submitLabel="出牌"
+        submitLabel={t('submit')}
         onBackStep={disabledActions ? undefined : onBackCard}
         busy={isScoring}
         busyLabel={tScoring('scoringNow')}
@@ -529,7 +550,7 @@ export default function ClassicPlayGame({
         aside={historyAside}
         desktopBar={
           <GameDesktopBar
-            title="經典模式"
+            title={tMode('label')}
             escHint
             score={currentScore}
             remaining={remainCards}
@@ -540,7 +561,7 @@ export default function ClassicPlayGame({
         }
       >
         <GameHud
-          modeLabel="經典模式"
+          modeLabel={tMode('label')}
           score={currentScore}
           remaining={remainCards}
           isLastRound={isLastRound}
