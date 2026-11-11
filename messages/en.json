@@ -702,6 +702,213 @@
       "showAll": "Show all {count} solutions"
     }
   },
+  "GuessNumber": {
+    "title": "Guess the Number",
+    "loading": "Loading…",
+    "notes": "Notes",
+    "special": "Special · Once",
+    "yes": "Yes",
+    "no": "No",
+    "history": "History",
+    "guessChip": "Guessed {n}",
+    "wrongGuess": "Wrong guess!",
+    "clueGained": "Clue revealed! Now make your guess.",
+    "result": {
+      "answerWas": "The answer was",
+      "win": "You got it!",
+      "lose": "Not this time",
+      "rounds": "<b>{count}</b> {count, plural, one {round} other {rounds}}",
+      "backHome": "Home",
+      "playAgain": "Play again"
+    },
+    "ratings": {
+      "lucky": {
+        "label": "Lucky shot!",
+        "rounds": "1 round"
+      },
+      "genius": {
+        "label": "Logic genius!",
+        "rounds": "2–3 rounds"
+      },
+      "steady": {
+        "label": "Solid reasoning",
+        "rounds": "4–6 rounds"
+      },
+      "close": {
+        "label": "Almost there",
+        "rounds": "7–10 rounds"
+      },
+      "keepGoing": {
+        "label": "Keep at it",
+        "rounds": "10+ rounds"
+      },
+      "miss": {
+        "label": "Better luck next time",
+        "rounds": "Not solved"
+      }
+    },
+    "hint": {
+      "peekActive": "X-Ray used. Type your guess.",
+      "cardSelected": "Card played. Type your guess.",
+      "redrawn": "New hand. Pick a clue card.",
+      "pickCard": "Pick a card to play"
+    },
+    "round": "Round <n>{round}</n> of {total}",
+    "excluded": "<n>{count}</n> ruled out",
+    "peeking": "X-Ray… {count} numbers left",
+    "legend": {
+      "remaining": "Left",
+      "excluded": "Ruled out",
+      "guessed": "Guessed",
+      "possible": "Possible",
+      "ruledOut": "Ruled out"
+    },
+    "specialStatus": {
+      "peek": "Used. Type your guess.",
+      "redraw": "New hand. Pick a clue card."
+    },
+    "secretRange": "The answer is a two-digit number (10–99)",
+    "remainingCount": "<n>{count}</n> numbers left",
+    "yourGuess": "Your guess",
+    "guessPlaceholder": "Enter 10–99",
+    "alreadyGuessed": "You already guessed {n}. You can still submit it.",
+    "submit": "Submit",
+    "nextRound": "Next round",
+    "confirm": {
+      "title": "Play this card?",
+      "description": "{name}: {text}",
+      "action": "Play card"
+    },
+    "notesPanel": {
+      "clearAll": "Clear all",
+      "markMode": "Marking mode",
+      "tap": "Tap",
+      "drag": "Drag to select",
+      "columns": "{count} cols"
+    },
+    "rules": {
+      "title": "How to play",
+      "goal": "Goal",
+      "goalText": "Use clue cards to work out the hidden two-digit number (10–99). Guess it within <b>10 rounds</b> to win.",
+      "flow": "Each round",
+      "step1": "Play a clue card from your hand. The game answers \"Yes\" or \"No\"",
+      "step2": "Use the clue to narrow it down, then type your guess",
+      "step3": "Wrong guesses move on to the next round; a right guess wins right away",
+      "special": "Special cards",
+      "cardList": "Clue cards",
+      "rating": "Rating"
+    },
+    "cards": {
+      "half": {
+        "name": "Upper Half",
+        "question": "Is the number 55 or higher?",
+        "short": "55 or higher",
+        "rule": "Number ≥ 55?"
+      },
+      "odd-even": {
+        "name": "Odd Ball",
+        "question": "Is the number odd?",
+        "short": "Odd",
+        "rule": "Odd number?"
+      },
+      "triple": {
+        "name": "Triple Check",
+        "question": "Is the number a multiple of 3?",
+        "short": "Multiple of 3",
+        "rule": "Multiple of 3?"
+      },
+      "multiple-5": {
+        "name": "High Five",
+        "question": "Is the number a multiple of 5?",
+        "short": "Multiple of 5",
+        "rule": "Multiple of 5?"
+      },
+      "multiple-7": {
+        "name": "Seventh Heaven",
+        "question": "Is the number a multiple of 7?",
+        "short": "Multiple of 7",
+        "rule": "Multiple of 7?"
+      },
+      "prime": {
+        "name": "Prime Time",
+        "question": "Is the number prime?",
+        "short": "Prime",
+        "rule": "Prime number?"
+      },
+      "repeat": {
+        "name": "Copy Paste",
+        "question": "Are both digits the same?",
+        "short": "Same digits",
+        "rule": "Tens = ones?"
+      },
+      "ones-gt-tens": {
+        "name": "Step Up",
+        "question": "Is the ones digit bigger than the tens digit?",
+        "short": "Ones > tens",
+        "rule": "Ones > tens?"
+      },
+      "digit-sum-odd": {
+        "name": "Digit Sum",
+        "question": "Is the sum of the two digits odd?",
+        "short": "Odd digit sum",
+        "rule": "Odd digit sum?"
+      },
+      "last-digit-gt5": {
+        "name": "Last Digit",
+        "question": "Is the ones digit greater than 5?",
+        "short": "Ones > 5",
+        "rule": "Ones > 5?"
+      },
+      "tens-gt5": {
+        "name": "Tens Check",
+        "question": "Is the tens digit greater than 5?",
+        "short": "Tens > 5",
+        "rule": "Tens > 5?"
+      },
+      "digit-product-gt20": {
+        "name": "Digit Product",
+        "question": "Is tens × ones greater than 20?",
+        "short": "Tens × ones > 20",
+        "rule": "Tens × ones > 20?"
+      },
+      "higher-than-last": {
+        "name": "Higher or Lower",
+        "question": "Is the number higher than your last guess ({n})?",
+        "questionNoGuess": "Is the number higher than your last guess?",
+        "short": "Higher than {n}",
+        "rule": "Higher than your last guess?"
+      },
+      "within-ten": {
+        "name": "Close Call",
+        "question": "Is the number within 10 of your last guess ({n})?",
+        "questionNoGuess": "Is the number within 10 of your last guess?",
+        "short": "Within 10 of {n}",
+        "rule": "Within 10 of your last guess?"
+      },
+      "perfect-square": {
+        "name": "Perfect Square",
+        "question": "Is the number a perfect square?",
+        "short": "Perfect square",
+        "rule": "Perfect square?"
+      },
+      "lucky-seven": {
+        "name": "Lucky Seven",
+        "question": "Does the number contain a 7?",
+        "short": "Contains a 7",
+        "rule": "Contains a 7?"
+      },
+      "peek": {
+        "name": "X-Ray",
+        "description": "Shows the remaining possible numbers for 5 seconds",
+        "rule": "Shows every number that could still be the answer for 5 seconds. Once per game, and you can still guess that round."
+      },
+      "redraw": {
+        "name": "Fresh Hand",
+        "description": "Redraw your whole hand",
+        "rule": "Draws a brand-new hand. Once per game, and only once per round."
+      }
+    }
+  },
   "RoundHistory": {
     "title": "Answer history",
     "empty": "No answers this game",

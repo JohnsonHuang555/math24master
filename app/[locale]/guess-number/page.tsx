@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { BackToHomeButton } from '@/components/back-to-home-button';
 import { GameDesktopBar } from '@/components/game/game-hud';
@@ -28,21 +29,48 @@ import { Button } from '@/components/ui/button';
 import { useGuessNumber } from '@/hooks/useGuessNumber';
 import type { HistoryEntry } from '@/hooks/useGuessNumber';
 import { Link, useRouter } from '@/i18n/navigation';
-import type { ClueCard, GuessRating, LineClueCard } from '@/lib/guess-number';
+import {
+  type ClueCard,
+  type GuessRating,
+  LINE_CLUE_CARDS,
+  isLineClueCard,
+} from '@/lib/guess-number';
 import { cn } from '@/lib/utils';
 
-/** 評級的顯示文字、對應回合數與五格評級條的格數 */
-const RATING_INFO: Record<
-  GuessRating,
-  { label: string; rounds: string; level: number }
-> = {
-  lucky: { label: '運氣爆棚！', rounds: '1 回合', level: 5 },
-  genius: { label: '邏輯天才！', rounds: '2–3 回合', level: 4 },
-  steady: { label: '穩健推理', rounds: '4–6 回合', level: 3 },
-  close: { label: '快追上了', rounds: '7–10 回合', level: 2 },
-  keepGoing: { label: '再接再厲', rounds: '10 回合以上', level: 1 },
-  miss: { label: '下次再試', rounds: '未猜中', level: 0 },
+/** 五格評級條的格數；評級文字在 messages 的 GuessNumber.ratings */
+const RATING_LEVEL: Record<GuessRating, number> = {
+  lucky: 5,
+  genius: 4,
+  steady: 3,
+  close: 2,
+  keepGoing: 1,
+  miss: 0,
 };
+
+const MAX_ROUNDS = 10;
+
+/** 線索牌的顯示文字：名稱、完整問句（動態牌帶入上次猜的數字）、歷史紀錄用的短句 */
+function useCardText() {
+  const t = useTranslations('GuessNumber.cards');
+  // key 由卡片 id 組出；三種語系的 key 一致由 i18n/messages.test.ts 把關
+  const tr = t as unknown as (
+    key: string,
+    values?: Record<string, string | number>,
+  ) => string;
+  return {
+    name: (card: ClueCard) => tr(`${card.id}.name`),
+    text: (card: ClueCard, lastGuess: number | null) => {
+      if (!isLineClueCard(card)) return tr(`${card.id}.description`);
+      if (!card.isDynamic) return tr(`${card.id}.question`);
+      return lastGuess === null
+        ? tr(`${card.id}.questionNoGuess`)
+        : tr(`${card.id}.question`, { n: lastGuess });
+    },
+    short: (cardId: string, lastGuess?: number) =>
+      tr(`${cardId}.short`, { n: lastGuess ?? 'N' }),
+    rule: (cardId: string) => tr(`${cardId}.rule`),
+  };
+}
 
 const RULE_RATINGS: GuessRating[] = [
   'lucky',
@@ -105,19 +133,6 @@ const NumberBoard = memo(function NumberBoard({
   );
 });
 
-function formatCardQuestion(
-  card: LineClueCard,
-  lastGuess: number | null,
-): string {
-  if (card.id === 'higher-than-last' && lastGuess !== null) {
-    return `謎底比你上一次猜的（${lastGuess}）大嗎？`;
-  }
-  if (card.id === 'within-ten' && lastGuess !== null) {
-    return `謎底和你上次猜的（${lastGuess}）相差在 10 以內嗎？`;
-  }
-  return card.question;
-}
-
 function ClueCardButton({
   card,
   selected,
@@ -131,9 +146,10 @@ function ClueCardButton({
   lastGuess: number | null;
   onClick: () => void;
 }) {
-  const isSpecial = card.id === 'peek' || card.id === 'redraw';
-  const displayText =
-    'question' in card ? formatCardQuestion(card, lastGuess) : card.description;
+  const t = useTranslations('GuessNumber');
+  const cardText = useCardText();
+  const isSpecial = !isLineClueCard(card);
+  const displayText = cardText.text(card, lastGuess);
   return (
     <button
       type="button"
@@ -157,11 +173,11 @@ function ClueCardButton({
       {isSpecial && (
         <span className="flex items-center gap-1 text-[11px] font-extrabold text-amber-ink">
           <Sparkles aria-hidden className="h-3.5 w-3.5" />
-          特殊 · 限 1 次
+          {t('special')}
         </span>
       )}
       <span className="text-base leading-tight font-extrabold">
-        {card.name}
+        {cardText.name(card)}
       </span>
       <span
         className={cn(
@@ -176,6 +192,7 @@ function ClueCardButton({
 }
 
 function YesNoPill({ result }: { result: 'yes' | 'no' }) {
+  const t = useTranslations('GuessNumber');
   return (
     <span
       className={cn(
@@ -185,16 +202,18 @@ function YesNoPill({ result }: { result: 'yes' | 'no' }) {
           : 'border border-line-strong bg-sunken text-ink',
       )}
     >
-      {result === 'yes' ? '是' : '否'}
+      {t(result)}
     </span>
   );
 }
 
 function HistoryChips({ history }: { history: HistoryEntry[] }) {
+  const t = useTranslations('GuessNumber');
+  const cardText = useCardText();
   if (history.length === 0) return null;
   return (
     <div
-      aria-label="歷史紀錄"
+      aria-label={t('history')}
       className="flex scrollbar-none gap-1.5 overflow-x-auto px-4 py-1 lg:flex-col lg:overflow-visible lg:px-0"
     >
       {history.map((e, i) => {
@@ -204,7 +223,7 @@ function HistoryChips({ history }: { history: HistoryEntry[] }) {
           return (
             <span key={i} className={chip}>
               <span className="text-ink-2">{e.round}</span>
-              {e.question.replace('謎底', '').replace('嗎？', '')}
+              {cardText.short(e.cardId, e.lastGuess)}
               <YesNoPill result={e.result} />
             </span>
           );
@@ -213,14 +232,14 @@ function HistoryChips({ history }: { history: HistoryEntry[] }) {
           return (
             <span key={i} className={chip}>
               <ScanEye aria-hidden className="h-4 w-4 text-amber-ink" />
-              透視鏡
+              {cardText.name({ id: 'peek' })}
             </span>
           );
         }
         return (
           <span key={i} className={chip}>
             <span className="font-display text-sm font-bold">
-              猜 {e.number}
+              {t('guessChip', { n: e.number })}
             </span>
           </span>
         );
@@ -289,6 +308,10 @@ export default function GuessNumberPage() {
   const [notesColumns, setNotesColumns] = useState<5 | 6>(5);
   const [dragSelectMode, setDragSelectMode] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const t = useTranslations('GuessNumber');
+  const tCommon = useTranslations('Common');
+  const tHud = useTranslations('GameUI.hud');
+  const cardText = useCardText();
   const reduceMotion = useReducedMotion();
   const router = useRouter();
 
@@ -298,17 +321,17 @@ export default function GuessNumberPage() {
   const draggedSetRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (roundCount > prevRoundCountRef.current && !gameOver) {
-      toast.error('猜錯了！', { duration: 2000 });
+      toast.error(t('wrongGuess'), { duration: 2000 });
     }
     prevRoundCountRef.current = roundCount;
-  }, [roundCount, gameOver]);
+  }, [roundCount, gameOver, t]);
 
   useEffect(() => {
     if (clueResult !== null && prevClueResultRef.current === null) {
-      toast.success('線索獲得！現在可以輸入猜測了', { duration: 2500 });
+      toast.success(t('clueGained'), { duration: 2500 });
     }
     prevClueResultRef.current = clueResult;
-  }, [clueResult]);
+  }, [clueResult, t]);
 
   const parsedGuess = parseInt(inputValue, 10);
   const isValidInput =
@@ -433,18 +456,19 @@ export default function GuessNumberPage() {
   if (!isMounted) {
     return (
       <div className="flex min-h-full items-center justify-center">
-        <p className="text-ink-2">載入中...</p>
+        <p className="text-ink-2">{t('loading')}</p>
       </div>
     );
   }
 
   // ── 結算畫面 ──
   if (gameOver && rating) {
-    const info = RATING_INFO[rating];
     return (
       <div className="mx-auto flex h-full w-full max-w-md flex-col gap-3.5 px-4 pt-4 pb-6">
         <div className="flex flex-1 flex-col items-center justify-center gap-2.5 text-center">
-          <span className="text-base font-bold text-ink-2">謎底是</span>
+          <span className="text-base font-bold text-ink-2">
+            {t('result.answerWas')}
+          </span>
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -461,30 +485,33 @@ export default function GuessNumberPage() {
             </span>
           </motion.div>
           <h2 className="mt-2.5 text-2xl font-black text-ink">
-            {isWin ? '猜中了！' : '沒猜中'}
+            {isWin ? t('result.win') : t('result.lose')}
           </h2>
           <span className="text-[15px] text-ink-2">
-            共{' '}
-            <b className="font-display text-xl font-extrabold text-ink">
-              {roundCount}
-            </b>{' '}
-            回合
+            {t.rich('result.rounds', {
+              count: roundCount,
+              b: chunks => (
+                <b className="font-display text-xl font-extrabold text-ink">
+                  {chunks}
+                </b>
+              ),
+            })}
           </span>
-          <RatingBar level={info.level} className="mt-2 w-[220px]" />
+          <RatingBar level={RATING_LEVEL[rating]} className="mt-2 w-[220px]" />
           <span className="text-sm font-bold text-ink">
-            {info.label} · {info.rounds}
+            {t(`ratings.${rating}.label`)} · {t(`ratings.${rating}.rounds`)}
           </span>
         </div>
         <div className="flex gap-2.5">
           <Button variant="tactileOutline" className="flex-1 px-3" asChild>
-            <Link href="/">回首頁</Link>
+            <Link href="/">{t('result.backHome')}</Link>
           </Button>
           <Button
             variant="tactile"
             className="flex-[1.3] px-3"
             onClick={handleRestart}
           >
-            再玩一次
+            {t('result.playAgain')}
           </Button>
         </div>
       </div>
@@ -494,27 +521,29 @@ export default function GuessNumberPage() {
   const isGuessing =
     peekActive || (selectedCard !== null && selectedCard.id !== 'peek');
   const hint = peekActive
-    ? '透視鏡已使用，請輸入猜測數字'
+    ? t('hint.peekActive')
     : selectedCard !== null && selectedCard.id !== 'peek'
-      ? '已選牌，請輸入猜測數字'
+      ? t('hint.cardSelected')
       : redrawnThisRound
-        ? '已換牌，請選線索牌'
-        : '選擇一張牌使用';
+        ? t('hint.redrawn')
+        : t('hint.pickCard');
 
   return (
     <div className="flex h-full flex-col">
       <GameDesktopBar
         className="hidden lg:flex"
-        title="猜數字"
-        exitLabel="首頁"
+        title={t('title')}
+        exitLabel={tCommon('home')}
         onExit={() => router.push('/')}
         center={
           <span className="text-sm font-bold text-ink-2">
-            第{' '}
-            <span className="font-display text-lg text-ink">
-              {roundCount + 1}
-            </span>{' '}
-            / 10 回合
+            {t.rich('round', {
+              round: roundCount + 1,
+              total: MAX_ROUNDS,
+              n: chunks => (
+                <span className="font-display text-lg text-ink">{chunks}</span>
+              ),
+            })}
           </span>
         }
         onOpenRules={() => setRulesOpen(true)}
@@ -524,7 +553,7 @@ export default function GuessNumberPage() {
         <header className="flex items-center gap-0.5 px-2 pt-2 lg:hidden">
           <BackToHomeButton />
           <h1 className="flex-1 pl-1 text-[17px] font-extrabold text-ink">
-            猜數字
+            {t('title')}
           </h1>
           <Button
             variant="ghost"
@@ -532,14 +561,14 @@ export default function GuessNumberPage() {
             onClick={() => setNotesOpen(true)}
           >
             <NotebookPen className="h-5 w-5" />
-            筆記
+            {t('notes')}
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="h-11 w-11 text-ink"
             onClick={() => setRulesOpen(true)}
-            aria-label="規則"
+            aria-label={tHud('rules')}
           >
             <BookOpen className="h-5 w-5" />
           </Button>
@@ -559,7 +588,7 @@ export default function GuessNumberPage() {
                 >
                   <p className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-amber-ink">
                     <ScanEye aria-hidden className="h-4 w-4" />
-                    透視中… 剩餘的數字（{remaining.length} 個）
+                    {t('peeking', { count: remaining.length })}
                   </p>
                   <NumberBoard
                     remaining={remaining}
@@ -574,15 +603,15 @@ export default function GuessNumberPage() {
                   <div className="mt-2 flex gap-3.5 text-xs text-ink-2">
                     <span className="flex items-center gap-1">
                       <span className="h-3.5 w-3.5 rounded border border-line-strong bg-surface" />
-                      剩餘
+                      {t('legend.remaining')}
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="h-3.5 w-3.5 rounded bg-sunken" />
-                      排除
+                      {t('legend.excluded')}
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="h-3.5 w-3.5 rounded border-2 border-amber" />
-                      已猜
+                      {t('legend.guessed')}
                     </span>
                   </div>
                 </motion.div>
@@ -610,7 +639,7 @@ export default function GuessNumberPage() {
                         : 'border-2 border-line-strong bg-sunken text-ink',
                     )}
                   >
-                    {clueResult === 'yes' ? '是' : '否'}
+                    {t(clueResult)}
                   </span>
                   <span className="flex min-w-0 flex-col gap-1">
                     <span
@@ -621,14 +650,11 @@ export default function GuessNumberPage() {
                           : 'text-ink-2',
                       )}
                     >
-                      {'name' in selectedCard ? selectedCard.name : ''}
+                      {cardText.name(selectedCard)}
                     </span>
                     <span className="text-[17px] leading-snug font-bold text-ink">
-                      {'question' in selectedCard
-                        ? formatCardQuestion(
-                            selectedCard as LineClueCard,
-                            lastGuess,
-                          )
+                      {isLineClueCard(selectedCard)
+                        ? cardText.text(selectedCard, lastGuess)
                         : ''}
                     </span>
                   </span>
@@ -652,12 +678,12 @@ export default function GuessNumberPage() {
                   </span>
                   <span className="flex flex-col gap-0.5">
                     <span className="text-[13px] font-bold text-amber-ink">
-                      {peekActive ? '透視鏡' : '全面革新'}
+                      {cardText.name({ id: peekActive ? 'peek' : 'redraw' })}
                     </span>
                     <span className="text-base font-bold text-ink">
                       {peekActive
-                        ? '已使用，請直接輸入猜測'
-                        : '已換牌，請選線索牌'}
+                        ? t('specialStatus.peek')
+                        : t('specialStatus.redraw')}
                     </span>
                   </span>
                 </motion.div>
@@ -677,14 +703,17 @@ export default function GuessNumberPage() {
                   </span>
                   <span className="flex flex-col gap-1">
                     <span className="text-sm text-ink-2">
-                      謎底是 10–99 的兩位數
+                      {t('secretRange')}
                     </span>
                     <span className="text-[15px] font-bold text-ink">
-                      剩{' '}
-                      <span className="font-display text-2xl font-extrabold">
-                        {remaining.length}
-                      </span>{' '}
-                      個未猜
+                      {t.rich('remainingCount', {
+                        count: remaining.length,
+                        n: chunks => (
+                          <span className="font-display text-2xl font-extrabold">
+                            {chunks}
+                          </span>
+                        ),
+                      })}
                     </span>
                   </span>
                 </motion.div>
@@ -702,18 +731,25 @@ export default function GuessNumberPage() {
                     className="h-4 w-4 text-amber-ink"
                   />
                 )}
-                第{' '}
-                <span className="font-display text-[15px] text-ink">
-                  {roundCount + 1}
-                </span>{' '}
-                / 10 回合
+                {t.rich('round', {
+                  round: roundCount + 1,
+                  total: MAX_ROUNDS,
+                  n: chunks => (
+                    <span className="font-display text-[15px] text-ink">
+                      {chunks}
+                    </span>
+                  ),
+                })}
               </span>
               <span>
-                已排除{' '}
-                <span className="font-display text-[15px] text-ink">
-                  {90 - remaining.length}
-                </span>{' '}
-                個
+                {t.rich('excluded', {
+                  count: 90 - remaining.length,
+                  n: chunks => (
+                    <span className="font-display text-[15px] text-ink">
+                      {chunks}
+                    </span>
+                  ),
+                })}
               </span>
             </div>
             <ProgressBar roundCount={roundCount} />
@@ -751,13 +787,13 @@ export default function GuessNumberPage() {
                   htmlFor="guess-input"
                   className="text-sm font-bold text-ink"
                 >
-                  你的猜測
+                  {t('yourGuess')}
                 </label>
                 <input
                   id="guess-input"
                   inputMode="numeric"
                   autoComplete="off"
-                  placeholder="輸入 10-99"
+                  placeholder={t('guessPlaceholder')}
                   value={inputValue}
                   onChange={e =>
                     setInputValue(e.target.value.replace(/[^0-9]/g, ''))
@@ -776,7 +812,7 @@ export default function GuessNumberPage() {
                     className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-ink"
                   >
                     <TriangleAlert aria-hidden className="h-4 w-4" />
-                    你已猜過 {parsedGuess}，可繼續送出
+                    {t('alreadyGuessed', { n: parsedGuess })}
                   </span>
                 )}
               </div>
@@ -785,7 +821,7 @@ export default function GuessNumberPage() {
                 onClick={handleSubmit}
                 disabled={!canSubmit}
               >
-                送出
+                {t('submit')}
               </Button>
             </div>
           )}
@@ -797,7 +833,7 @@ export default function GuessNumberPage() {
                 className="w-full"
                 onClick={handleNextRound}
               >
-                下一回合
+                {t('nextRound')}
               </Button>
             </div>
           )}
@@ -815,20 +851,19 @@ export default function GuessNumberPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>使用這張牌？</AlertDialogTitle>
+              <AlertDialogTitle>{t('confirm.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {pendingCard?.name}
-                {pendingCard && '：'}
                 {pendingCard &&
-                  ('question' in pendingCard
-                    ? pendingCard.question
-                    : pendingCard.description)}
+                  t('confirm.description', {
+                    name: cardText.name(pendingCard),
+                    text: cardText.text(pendingCard, lastGuess),
+                  })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmCard}>
-                確認使用
+                {t('confirm.action')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -842,26 +877,26 @@ export default function GuessNumberPage() {
             setNotesOpen(false);
             setDragSelectMode(false);
           }}
-          title="筆記"
+          title={t('notes')}
           actions={
             <button
               type="button"
               onClick={() => setNotesMarked(new Set())}
               className="h-11 rounded-xl px-2.5 text-sm font-bold text-danger-ink hover:bg-danger-tint"
             >
-              清除全部
+              {t('notesPanel.clearAll')}
             </button>
           }
         >
           <div className="shrink-0 px-4 pt-2">
             <div
               role="radiogroup"
-              aria-label="標記方式"
+              aria-label={t('notesPanel.markMode')}
               className="flex gap-1 rounded-[14px] border border-line bg-sunken p-1"
             >
               {[
-                { value: false, label: '點擊選取' },
-                { value: true, label: '滑動連選' },
+                { value: false, label: t('notesPanel.tap') },
+                { value: true, label: t('notesPanel.drag') },
               ].map(option => (
                 <button
                   key={option.label}
@@ -886,15 +921,15 @@ export default function GuessNumberPage() {
             <div className="flex items-center gap-3.5 pt-2.5 text-xs text-ink-2">
               <span className="flex items-center gap-1">
                 <span className="h-3.5 w-3.5 rounded border border-line bg-surface" />
-                可能
+                {t('legend.possible')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="h-3.5 w-3.5 rounded bg-sunken" />
-                已排除
+                {t('legend.ruledOut')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="h-3.5 w-3.5 rounded border-2 border-amber" />
-                已猜
+                {t('legend.guessed')}
               </span>
               <span className="ml-auto flex overflow-hidden rounded-lg border border-line lg:hidden">
                 {([5, 6] as const).map(col => (
@@ -910,7 +945,7 @@ export default function GuessNumberPage() {
                         : 'text-ink-2 hover:bg-sunken',
                     )}
                   >
-                    {col} 列
+                    {t('notesPanel.columns', { count: col })}
                   </button>
                 ))}
               </span>
@@ -964,45 +999,44 @@ export default function GuessNumberPage() {
       <BottomSheet
         open={rulesOpen}
         onClose={() => setRulesOpen(false)}
-        title="遊戲規則"
+        title={t('rules.title')}
       >
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-2 pb-8">
-          <RuleSection title="遊戲目標">
+          <RuleSection title={t('rules.goal')}>
             <p>
-              利用線索牌推理出藏匿的兩位數（10-99），最多{' '}
-              <b className="text-ink">10 回合</b>內猜對即獲勝。
+              {t.rich('rules.goalText', {
+                b: chunks => <b className="text-ink">{chunks}</b>,
+              })}
             </p>
           </RuleSection>
 
-          <RuleSection title="每回合流程">
+          <RuleSection title={t('rules.flow')}>
             <ol className="flex flex-col gap-1.5">
-              {[
-                '從手牌中選一張線索牌，系統回答「是」或「否」',
-                '根據線索縮小謎底範圍後，輸入你猜測的數字',
-                '猜錯則繼續下一回合；猜對立即獲勝',
-              ].map((step, i) => (
-                <li key={step} className="flex gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-tint font-display text-xs font-extrabold text-primary-ink">
-                    {i + 1}
-                  </span>
-                  {step}
-                </li>
-              ))}
+              {[t('rules.step1'), t('rules.step2'), t('rules.step3')].map(
+                (step, i) => (
+                  <li key={step} className="flex gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-tint font-display text-xs font-extrabold text-primary-ink">
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ),
+              )}
             </ol>
           </RuleSection>
 
-          <RuleSection title="特殊牌">
+          <RuleSection title={t('rules.special')}>
             <div className="flex flex-col gap-2">
               {[
                 {
                   Icon: ScanEye,
-                  name: '透視鏡',
-                  desc: '顯示目前所有可能為謎底的數字 5 秒。每局限用一次，使用後本回合仍可猜數。',
+                  name: cardText.name({ id: 'peek' }),
+                  desc: cardText.rule('peek'),
                 },
                 {
                   Icon: Shuffle,
-                  name: '全面革新',
-                  desc: '重新抽一組全新手牌。每局限用一次，且每回合只能使用一次。',
+                  name: cardText.name({ id: 'redraw' }),
+                  desc: cardText.rule('redraw'),
                 },
               ].map(({ Icon, name, desc }) => (
                 <div
@@ -1022,26 +1056,12 @@ export default function GuessNumberPage() {
             </div>
           </RuleSection>
 
-          <RuleSection title="線索牌一覽">
+          <RuleSection title={t('rules.cardList')}>
             <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
-              {[
-                ['半壁江山', '謎底 ≥ 55？'],
-                ['陰陽雙極', '謎底是奇數？'],
-                ['三陽開泰', '謎底是 3 的倍數？'],
-                ['五福臨門', '謎底是 5 的倍數？'],
-                ['七星高照', '謎底是 7 的倍數？'],
-                ['黃金質數', '謎底是質數？'],
-                ['複製貼上', '十位數 = 個位數？'],
-                ['步步高升', '個位數 > 十位數？'],
-                ['數位加總', '各位數之和是奇數？'],
-                ['尾數偵測', '個位數 > 5？'],
-                ['十位偵測', '十位數 > 5？'],
-                ['數位之積', '十位數 × 個位數 > 20？'],
-                ['高低雷達', '謎底 > 上一次猜的？'],
-                ['黃金交叉', '謎底與上次猜的相差 ≤ 10？'],
-                ['完美平方', '謎底是完全平方數？'],
-                ['幸運之星', '謎底含有數字 7？'],
-              ].map(([name, desc]) => (
+              {LINE_CLUE_CARDS.map(card => [
+                cardText.name(card),
+                cardText.rule(card.id),
+              ]).map(([name, desc]) => (
                 <div
                   key={name}
                   className="flex items-baseline gap-2 py-0.5 text-[13px]"
@@ -1053,20 +1073,19 @@ export default function GuessNumberPage() {
             </div>
           </RuleSection>
 
-          <RuleSection title="評分標準">
+          <RuleSection title={t('rules.rating')}>
             <div className="flex flex-col gap-2">
-              {RULE_RATINGS.map(key => {
-                const info = RATING_INFO[key];
-                return (
-                  <div key={key} className="flex items-center gap-3 text-sm">
-                    <span className="w-20 shrink-0 text-ink-2">
-                      {info.rounds}
-                    </span>
-                    <RatingBar level={info.level} className="w-20" />
-                    <span className="font-bold text-ink">{info.label}</span>
-                  </div>
-                );
-              })}
+              {RULE_RATINGS.map(key => (
+                <div key={key} className="flex items-center gap-3 text-sm">
+                  <span className="w-24 shrink-0 text-ink-2">
+                    {t(`ratings.${key}.rounds`)}
+                  </span>
+                  <RatingBar level={RATING_LEVEL[key]} className="w-20" />
+                  <span className="font-bold text-ink">
+                    {t(`ratings.${key}.label`)}
+                  </span>
+                </div>
+              ))}
             </div>
           </RuleSection>
         </div>
@@ -1112,6 +1131,7 @@ function BottomSheet({
   inline?: boolean;
   children: React.ReactNode;
 }) {
+  const tCommon = useTranslations('Common');
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -1172,7 +1192,7 @@ function BottomSheet({
                   size="icon"
                   className="h-11 w-11 text-ink"
                   onClick={onClose}
-                  aria-label="關閉"
+                  aria-label={tCommon('close')}
                 >
                   <X className="h-5 w-5" />
                 </Button>
