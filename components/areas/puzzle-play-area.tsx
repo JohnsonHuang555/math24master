@@ -98,10 +98,9 @@ export function PuzzlePlayArea({
 }: PuzzlePlayAreaProps) {
   const t = useTranslations('GameUI.puzzle');
   const tTimer = useTranslations('GameUI.timer');
-  const tCommon = useTranslations('Common');
   const skipPenaltyText =
     skipPenaltyTextProp ?? tTimer('delta', { sign: '−', seconds: 15 });
-  const submitLabel = submitLabelProp ?? tCommon('confirm');
+  const submitLabel = submitLabelProp ?? t('submit');
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   // 選中角標顯示第幾個被選

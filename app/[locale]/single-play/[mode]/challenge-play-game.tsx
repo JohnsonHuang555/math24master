@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { BookOpen, ChevronLeft, Flag, Timer } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { GameDesktopBar } from '@/components/game/game-hud';
 import {
@@ -63,6 +64,11 @@ export default function ChallengePlayGame({
     endGameEarly,
   } = useChallengePlay();
 
+  const t = useTranslations('Challenge');
+  const tMode = useTranslations('SinglePlay.modes.challenge');
+  const tHud = useTranslations('GameUI.hud');
+  const tLeave = useTranslations('GameUI.leave');
+  const tTimer = useTranslations('GameUI.timer');
   const reduceMotion = useReducedMotion();
   const [timeDelta, setTimeDelta] = useState<TimerDelta | null>(null);
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
@@ -149,14 +155,20 @@ export default function ChallengePlayGame({
         {ruleModal}
         <GameStartScreen
           icon={Timer}
-          title="挑戰模式"
-          tagline="倒數 5 分鐘 · 無限關卡"
-          description="答對加時遞減 · 連續跳過懲罰加重"
+          title={tMode('label')}
+          tagline={tMode('tagline')}
+          description={t('startDescription')}
           stats={
             best
               ? [
-                  { label: '最高關卡', value: `第 ${best.stage} 關` },
-                  { label: '最高分', value: `${best.totalScore} 分` },
+                  {
+                    label: t('bestStage'),
+                    value: t('stage', { stage: best.stage }),
+                  },
+                  {
+                    label: t('bestScore'),
+                    value: t('points', { score: best.totalScore }),
+                  },
                 ]
               : undefined
           }
@@ -190,33 +202,33 @@ export default function ChallengePlayGame({
             finishReason === 'early' ? (
               <>
                 <Flag aria-hidden />
-                提前結算！
+                {t('endedEarly')}
               </>
             ) : (
               <>
                 <Timer aria-hidden />
-                時間到！
+                {t('timeUp')}
               </>
             )
           }
-          label="最終關卡"
-          value={`第 ${stage} 關`}
-          badge={isNewBest ? <RecordBadge>新紀錄！</RecordBadge> : null}
+          label={t('finalStage')}
+          value={t('stage', { stage })}
+          badge={isNewBest ? <RecordBadge>{t('newRecord')}</RecordBadge> : null}
           stats={[
-            { label: '總分', value: totalScore },
+            { label: t('totalScore'), value: totalScore },
             ...(best && best.stage > 0 && !isNewBest
               ? [
                   {
-                    label: '個人最佳',
-                    value: `第 ${best.stage} 關`,
+                    label: t('personalBest'),
+                    value: t('stage', { stage: best.stage }),
                     muted: true,
                   },
                 ]
               : []),
           ]}
-          backLabel="返回選單"
+          backLabel={t('backToMenu')}
           onBack={onBack}
-          retryLabel="再挑戰"
+          retryLabel={t('retry')}
           onRetry={startGame}
         >
           <ResultRank mode="challenge" submit={leaderboardSubmit} />
@@ -246,7 +258,10 @@ export default function ChallengePlayGame({
         onSubmit={submitAnswer}
         onSkip={handleSkip}
         showSkipButton={true}
-        skipPenaltyText={`−${nextSkipPenalty} 秒`}
+        skipPenaltyText={tTimer('delta', {
+          sign: '−',
+          seconds: nextSkipPenalty,
+        })}
         onEscape={() => setShowLeaveConfirm(true)}
         banner={
           <GameTimer
@@ -256,13 +271,17 @@ export default function ChallengePlayGame({
             aside={
               <span className="ml-auto flex items-baseline gap-2 text-[13px] text-ink-2">
                 <span className="font-display text-xl leading-none font-extrabold text-ink">
-                  第 {stage} 關
+                  {t('stage', { stage })}
                 </span>
                 <span>
-                  <b className="font-display font-bold text-ink">
-                    {totalScore}
-                  </b>{' '}
-                  分
+                  {t.rich('hudPoints', {
+                    score: totalScore,
+                    b: chunks => (
+                      <b className="font-display font-bold text-ink">
+                        {chunks}
+                      </b>
+                    ),
+                  })}
                 </span>
               </span>
             }
@@ -270,7 +289,7 @@ export default function ChallengePlayGame({
         }
         desktopBar={
           <GameDesktopBar
-            title="挑戰模式"
+            title={tMode('label')}
             escHint
             onExit={() => setShowLeaveConfirm(true)}
             onOpenRules={() => setIsOpenRuleModal(true)}
@@ -281,7 +300,7 @@ export default function ChallengePlayGame({
                 onClick={() => setShowEarlyEndConfirm(true)}
               >
                 <Flag className="h-5 w-5" />
-                提前結算
+                {t('endEarly')}
               </Button>
             }
           />
@@ -294,17 +313,19 @@ export default function ChallengePlayGame({
             size="icon"
             className="h-11 w-11 text-ink"
             onClick={() => setShowLeaveConfirm(true)}
-            aria-label="離開"
+            aria-label={tHud('exit')}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <span className="flex-1 text-sm font-bold text-ink-2">挑戰模式</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink-2">
+            {tMode('label')}
+          </span>
           <Button
             variant="ghost"
             size="icon"
             className="h-11 w-11 text-ink"
             onClick={() => setIsOpenRuleModal(true)}
-            aria-label="規則"
+            aria-label={tHud('rules')}
           >
             <BookOpen className="h-5 w-5" />
           </Button>
@@ -314,7 +335,7 @@ export default function ChallengePlayGame({
             onClick={() => setShowEarlyEndConfirm(true)}
           >
             <Flag className="h-4.5 w-4.5" />
-            提前結算
+            {t('endEarly')}
           </Button>
         </div>
       </PuzzlePlayArea>
@@ -325,20 +346,20 @@ export default function ChallengePlayGame({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確定要提前結算？</AlertDialogTitle>
+            <AlertDialogTitle>{t('endEarlyTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              提前結算後遊戲將立即結束，計分以目前關卡為準。
+              {t('endEarlyDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>繼續遊戲</AlertDialogCancel>
+            <AlertDialogCancel>{tLeave('stay')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setShowEarlyEndConfirm(false);
                 endGameEarly();
               }}
             >
-              結算
+              {t('endNow')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

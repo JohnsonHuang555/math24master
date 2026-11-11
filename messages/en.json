@@ -149,6 +149,7 @@
     },
     "puzzle": {
       "placeholder": "Tap cards and symbols to build an equation",
+      "submit": "Submit",
       "clearSelection": "Clear selected cards",
       "clear": "Clear",
       "undoStep": "Undo last step",
@@ -442,6 +443,28 @@
       "sixHands": "Six-hand record",
       "cta": "Take the challenge at Math24Master"
     }
+  },
+  "Challenge": {
+    "startDescription": "Bonus time shrinks each stage · Repeated skips cost more",
+    "bestStage": "Best stage",
+    "bestScore": "Best score",
+    "stage": "Stage {stage}",
+    "points": "{score} pts",
+    "hudPoints": "<b>{score}</b> pts",
+    "endedEarly": "Ended early!",
+    "timeUp": "Time's up!",
+    "finalStage": "Final stage",
+    "newRecord": "New record!",
+    "totalScore": "Total score",
+    "personalBest": "Personal best",
+    "backToMenu": "Menu",
+    "retry": "Try again",
+    "endEarly": "End early",
+    "endEarlyTitle": "End the game now?",
+    "endEarlyDescription": "The game ends right away, and your current stage counts as your result.",
+    "endNow": "End game",
+    "correct": "Correct! +{score} pts, +{bonus}s",
+    "wrongAnswer": "{answer} doesn't equal 24"
   },
   "RoundHistory": {
     "title": "Answer history",
