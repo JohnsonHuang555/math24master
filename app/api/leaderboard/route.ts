@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   let rank = 0;
   let prevValue: unknown;
   const rows = docs.map((doc, i) => {
-    const data = doc.data();
+    const { email: _email, ...data } = doc.data();
     const value = data[valueField];
     if (i === 0 || value !== prevValue) rank = i + 1;
     prevValue = value;

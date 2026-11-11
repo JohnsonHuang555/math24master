@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { POST } from './route';
+import { GET, POST } from './route';
 
 // 只替換外部依賴（登入、Firestore），route 本身的驗證與覆寫邏輯照常執行
 const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -19,6 +19,13 @@ vi.mock('@/lib/firebase-admin', () => {
       doc: (id: string) => ({
         get: async () => ({ exists: docs.has(id), data: () => docs.get(id) }),
         set: async (data: Record<string, unknown>) => void docs.set(id, data),
+      }),
+      orderBy: () => ({
+        limit: () => ({
+          get: async () => ({
+            docs: [...docs.entries()].map(([id, d]) => ({ id, data: () => d })),
+          }),
+        }),
       }),
       where: (field: string, _op: string, value: unknown) => ({
         limit: () => ({
@@ -88,6 +95,24 @@ describe('POST /api/leaderboard - 牌桌模式', () => {
     await post('tabletop_hard', { score: 41 });
 
     expect(saved('leaderboard_tabletop_hard')).toMatchObject({ score: 41 });
+  });
+});
+
+describe('GET /api/leaderboard - 公開列表', () => {
+  it('不回傳玩家 email', async () => {
+    await post('classic', { score: 30 });
+    expect(saved('leaderboard_classic')).toMatchObject({
+      email: 'p@example.com',
+    });
+
+    const res = await GET(
+      new NextRequest('http://localhost/api/leaderboard?mode=classic'),
+    );
+    const rows = await res.json();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ rank: 1, userId: 'user-1', score: 30 });
+    expect(rows[0]).not.toHaveProperty('email');
   });
 });
 
