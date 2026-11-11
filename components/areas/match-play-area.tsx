@@ -124,7 +124,8 @@ export function MatchPlayArea({
             aria-label={t('board')}
             className="grid w-full max-w-[330px] grid-cols-4 gap-x-3 gap-y-2.5 lg:w-auto lg:max-w-none lg:grid-cols-[repeat(4,112px)] lg:gap-4"
           >
-            <AnimatePresence mode="popLayout">
+            {/* 開局時已在牌面上的牌直接顯示，不播進場動畫；重新開局換上的新牌才彈入 */}
+            <AnimatePresence mode="popLayout" initial={false}>
               {cells.map(cell =>
                 cell.card ? (
                   <motion.button

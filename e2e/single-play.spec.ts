@@ -53,6 +53,49 @@ test.describe('單人模式', () => {
     await expect(page.getByRole('heading', { name: '全清！' })).toBeVisible();
   });
 
+  test('消消樂模式：開局牌面直接顯示，不會彈一下像重新產生', async ({
+    page,
+  }) => {
+    await page.goto('/single-play');
+    await page.waitForLoadState('networkidle');
+    // 從點擊前開始逐幀取樣第一張牌的透明度與縮放
+    await page.evaluate(() => {
+      const w = window as unknown as { __frames: { op: number; sc: number }[] };
+      w.__frames = [];
+      let t0: number | null = null;
+      const tick = () => {
+        const card = document.querySelector('[data-testid="match-card"]');
+        if (card) {
+          t0 ??= performance.now();
+          const style = getComputedStyle(card);
+          const scale =
+            style.transform === 'none'
+              ? 1
+              : Number(style.transform.slice(7, -1).split(',')[0]);
+          w.__frames.push({ op: Number(style.opacity), sc: scale });
+          if (performance.now() - t0 > 800) return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+
+    await page.getByRole('button', { name: /消消樂模式/ }).click();
+    await expect(page.getByTestId('match-card')).toHaveCount(16);
+    await page.waitForTimeout(1000);
+
+    const frames = await page.evaluate(
+      () =>
+        (window as unknown as { __frames: { op: number; sc: number }[] })
+          .__frames,
+    );
+    expect(frames.length).toBeGreaterThan(0);
+    const animated = frames.filter(
+      f => f.op < 0.99 || Math.abs(f.sc - 1) > 0.005,
+    );
+    expect(animated, '牌面出現後不應再有淡入或縮放動畫').toEqual([]);
+  });
+
   test('快答模式（初階）：答完 10 題', async ({ page }) => {
     await page.goto('/quick-math');
     await page.getByRole('button', { name: /初階模式/ }).click();
