@@ -1,0 +1,14 @@
+# 文件與設計稿不由 Prettier 排版（保留原本的寫法）
+*.md
+mockups/
+.agents/
+.claude/
+
+# 產生的檔案與套件
+package-lock.json
+public/
+.next/
+.next-e2e/
+coverage/
+test-results/
+playwright-report/

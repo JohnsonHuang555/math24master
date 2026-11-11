@@ -2,19 +2,19 @@ import { Server } from 'socket.io';
 import { NumberCard } from '../models/Player';
 import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { SelectedCard } from '../models/SelectedCard';
-import { Symbol } from '../models/Symbol';
-import { applyBuzzerRoomUpdate, endBuzzerGame, getCurrentRoom } from './game';
-import { processBuzzIn, processBuzzerAnswer, unlockPlayer } from './buzzer';
 import { SocketEvent } from '../models/SocketEvent';
+import { Symbol } from '../models/Symbol';
+import { processBuzzIn, processBuzzerAnswer, unlockPlayer } from './buzzer';
+import { applyBuzzerRoomUpdate, endBuzzerGame, getCurrentRoom } from './game';
 
 // ── 24 點 Solver ─────────────────────────────────────────────────────────────
 
 type SolverResult = { expr: SelectedCard[] } | null;
 
 const OPS: { symbol: Symbol; fn: (a: number, b: number) => number | null }[] = [
-  { symbol: Symbol.Plus,   fn: (a, b) => a + b },
-  { symbol: Symbol.Minus,  fn: (a, b) => a - b },
-  { symbol: Symbol.Times,  fn: (a, b) => a * b },
+  { symbol: Symbol.Plus, fn: (a, b) => a + b },
+  { symbol: Symbol.Minus, fn: (a, b) => a - b },
+  { symbol: Symbol.Times, fn: (a, b) => a * b },
   { symbol: Symbol.Divide, fn: (a, b) => (Math.abs(b) > 1e-8 ? a / b : null) },
 ];
 
@@ -71,9 +71,30 @@ function solve24Cards(cards: NumberCard[]): SolverResult {
 // retryMaxDelay
 
 const DIFFICULTY_CONFIG = {
-  easy:   { minDelay: 4000, maxDelay: 8000, accuracy: 0.60, retryChance: 0.35, retryMinDelay: 3000, retryMaxDelay: 6000 },
-  normal: { minDelay: 2000, maxDelay: 5000, accuracy: 0.85, retryChance: 0.65, retryMinDelay: 1500, retryMaxDelay: 4000 },
-  hard:   { minDelay: 800,  maxDelay: 2000, accuracy: 0.98, retryChance: 0.92, retryMinDelay:  600, retryMaxDelay: 1800 },
+  easy: {
+    minDelay: 4000,
+    maxDelay: 8000,
+    accuracy: 0.6,
+    retryChance: 0.35,
+    retryMinDelay: 3000,
+    retryMaxDelay: 6000,
+  },
+  normal: {
+    minDelay: 2000,
+    maxDelay: 5000,
+    accuracy: 0.85,
+    retryChance: 0.65,
+    retryMinDelay: 1500,
+    retryMaxDelay: 4000,
+  },
+  hard: {
+    minDelay: 800,
+    maxDelay: 2000,
+    accuracy: 0.98,
+    retryChance: 0.92,
+    retryMinDelay: 600,
+    retryMaxDelay: 1800,
+  },
 } as const;
 
 // ── 核心：排程一次搶答嘗試 ────────────────────────────────────────────────────
@@ -109,7 +130,8 @@ function _scheduleAttempt(
     const afterBuzz = applyBuzzerRoomUpdate(buzzResult.room);
     if (!afterBuzz) return;
 
-    const settings = afterBuzz.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+    const settings =
+      afterBuzz.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
 
     io.to(roomId).emit(SocketEvent.BuzzerBuzzInSuccess, {
       playerId: botId,
@@ -128,7 +150,8 @@ function _scheduleAttempt(
       if (roomNow.buzzerState.currentAnswerPlayerId !== botId) return;
       if (roomNow.buzzerState.roundNumber !== targetRound) return;
 
-      const answerCorrectly = solution !== null && Math.random() < config.accuracy;
+      const answerCorrectly =
+        solution !== null && Math.random() < config.accuracy;
       const cards = answerCorrectly
         ? solution!.expr
         : _wrongAnswer(roomNow.buzzerState.publicCards);
@@ -153,17 +176,20 @@ function _scheduleAttempt(
 
         if (answerResult.winner) {
           const ranked = [...updated.players].sort((a, b) => b.score - a.score);
-          io.to(roomId).emit(SocketEvent.BuzzerGameOver, { winner: answerResult.winner, players: ranked });
+          io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
+            winner: answerResult.winner,
+            players: ranked,
+          });
           setTimeout(() => {
             const idleRoom = endBuzzerGame(roomId);
-            if (idleRoom) io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
+            if (idleRoom)
+              io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
           }, 3000);
           return;
         }
 
         // 答對但未勝利：通知 index.ts 換新題（清計時器 + 1.5s 後啟動新回合）
         onCorrectAnswer(roomId);
-
       } else {
         // ── 答錯 ──────────────────────────────────────────────────────────────
         const failResult = answerResult as any;
@@ -183,7 +209,9 @@ function _scheduleAttempt(
         setTimeout(() => {
           if (settings.roundSeconds !== null) {
             io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, {
-              remainingSeconds: settings.roundSeconds - (updated.buzzerState?.roundTimerElapsed ?? 0),
+              remainingSeconds:
+                settings.roundSeconds -
+                (updated.buzzerState?.roundTimerElapsed ?? 0),
             });
           }
         }, 1500);
@@ -201,19 +229,44 @@ function _scheduleAttempt(
             if (!r) return;
             const unlockedRoom = unlockPlayer(r, botId);
             applyBuzzerRoomUpdate(unlockedRoom);
-            io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, { playerId: botId });
+            io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, {
+              playerId: botId,
+            });
 
             if (Math.random() < config.retryChance) {
-              const retryDelay = config.retryMinDelay + Math.random() * (config.retryMaxDelay - config.retryMinDelay);
-              _scheduleAttempt(roomId, botId, botName, difficulty, solution, targetRound, retryDelay, io, onCorrectAnswer);
+              const retryDelay =
+                config.retryMinDelay +
+                Math.random() * (config.retryMaxDelay - config.retryMinDelay);
+              _scheduleAttempt(
+                roomId,
+                botId,
+                botName,
+                difficulty,
+                solution,
+                targetRound,
+                retryDelay,
+                io,
+                onCorrectAnswer,
+              );
             }
           }, settings.lockSeconds * 1000);
-
         } else {
           // 無鎖定：直接重試
           if (Math.random() < config.retryChance) {
-            const retryDelay = config.retryMinDelay + Math.random() * (config.retryMaxDelay - config.retryMinDelay);
-            _scheduleAttempt(roomId, botId, botName, difficulty, solution, targetRound, retryDelay, io, onCorrectAnswer);
+            const retryDelay =
+              config.retryMinDelay +
+              Math.random() * (config.retryMaxDelay - config.retryMinDelay);
+            _scheduleAttempt(
+              roomId,
+              botId,
+              botName,
+              difficulty,
+              solution,
+              targetRound,
+              retryDelay,
+              io,
+              onCorrectAnswer,
+            );
           }
         }
       }
@@ -244,14 +297,26 @@ export function triggerBuzzerBot(
   const targetRound = room.buzzerState.roundNumber;
 
   for (const bot of bots) {
-    const difficulty = (bot.botDifficulty ?? 'normal') as keyof typeof DIFFICULTY_CONFIG;
+    const difficulty = (bot.botDifficulty ??
+      'normal') as keyof typeof DIFFICULTY_CONFIG;
     const config = DIFFICULTY_CONFIG[difficulty];
 
     // 決定這回合是否出手（easy bot 有 40% 機率直接放棄）
     if (solution === null || Math.random() >= config.accuracy) continue;
 
-    const delay = config.minDelay + Math.random() * (config.maxDelay - config.minDelay);
-    _scheduleAttempt(roomId, bot.id, bot.name, difficulty, solution, targetRound, delay, io, onCorrectAnswer);
+    const delay =
+      config.minDelay + Math.random() * (config.maxDelay - config.minDelay);
+    _scheduleAttempt(
+      roomId,
+      bot.id,
+      bot.name,
+      difficulty,
+      solution,
+      targetRound,
+      delay,
+      io,
+      onCorrectAnswer,
+    );
   }
 }
 

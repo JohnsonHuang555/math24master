@@ -18,7 +18,11 @@ type GuestLoginModalProps = {
   onConfirm: (name: string) => void;
 };
 
-export function GuestLoginModal({ isOpen, onClose, onConfirm }: GuestLoginModalProps) {
+export function GuestLoginModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: GuestLoginModalProps) {
   const [name, setName] = useState('');
   const t = useTranslations('Common');
   const trimmed = name.trim();

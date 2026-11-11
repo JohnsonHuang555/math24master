@@ -13,7 +13,7 @@ const SoundToggle = () => {
     <Button
       variant="ghost"
       size="icon"
-      className="fixed bottom-4 right-4 z-50 rounded-full bg-black/20 backdrop-blur-xs hover:bg-black/30"
+      className="fixed right-4 bottom-4 z-50 rounded-full bg-black/20 backdrop-blur-xs hover:bg-black/30"
       onClick={toggleSound}
       title={soundEnabled ? t('mute') : t('unmute')}
     >

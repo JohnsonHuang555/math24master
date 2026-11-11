@@ -27,7 +27,9 @@ const AlertDialogModal = () => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>{t('cancel')}</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{t('confirm')}</AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm}>
+            {t('confirm')}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -2,6 +2,7 @@ import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
 import { canMake24 } from '../lib/daily-seed';
 import { ErrorCode } from '../models/ErrorCode';
+import { NumberCard, Player } from '../models/Player';
 import {
   BuzzerPlayerState,
   BuzzerSettings,
@@ -9,7 +10,6 @@ import {
   DEFAULT_BUZZER_SETTINGS,
   Room,
 } from '../models/Room';
-import { NumberCard, Player } from '../models/Player';
 import { SelectedCard } from '../models/SelectedCard';
 import { Symbol } from '../models/Symbol';
 
@@ -17,34 +17,48 @@ import { Symbol } from '../models/Symbol';
 
 export type BuzzInResult =
   | { success: true; room: Room }
-  | { success: false; reason: 'already_answering' | 'player_locked' | 'not_open' | 'not_found' };
+  | {
+      success: false;
+      reason: 'already_answering' | 'player_locked' | 'not_open' | 'not_found';
+    };
 
 export type BuzzerAnswerResult =
-  | { success: true; room: Room; scoreDelta: number; streak: number; streakBonus: number; winner?: Player }
+  | {
+      success: true;
+      room: Room;
+      scoreDelta: number;
+      streak: number;
+      streakBonus: number;
+      winner?: Player;
+    }
   | { success: false; error: ErrorCode };
 
 export type NoSolutionVoteResult =
-  | { passed: false; votes: string[] }
-  | { passed: true; room: Room };
+  { passed: false; votes: string[] } | { passed: true; room: Room };
 
 export type RoundTimeoutResult =
-  | { success: true; room: Room }
-  | { success: false; error: ErrorCode };
+  { success: true; room: Room } | { success: false; error: ErrorCode };
 
 // ─── 牌組產生 ────────────────────────────────────────────────────────────────
 
 /** 從 1~maxValue 隨機產生 4 張可湊出 24 的公共牌 */
 export function generateSolvableCards(maxValue: 10 | 13): NumberCard[] {
   for (let attempt = 0; attempt < 1000; attempt++) {
-    const values = Array.from({ length: 4 }, () =>
-      Math.floor(Math.random() * maxValue) + 1,
+    const values = Array.from(
+      { length: 4 },
+      () => Math.floor(Math.random() * maxValue) + 1,
     );
     if (canMake24(values)) {
       return values.map(value => ({ id: uuidv4(), value }));
     }
   }
   // 萬一 1000 次都失敗，回傳保底可解牌組
-  return [{ id: uuidv4(), value: 1 }, { id: uuidv4(), value: 2 }, { id: uuidv4(), value: 3 }, { id: uuidv4(), value: 4 }];
+  return [
+    { id: uuidv4(), value: 1 },
+    { id: uuidv4(), value: 2 },
+    { id: uuidv4(), value: 3 },
+    { id: uuidv4(), value: 4 },
+  ];
 }
 
 // ─── 回合管理 ────────────────────────────────────────────────────────────────
@@ -59,8 +73,12 @@ export function startBuzzerRound(room: Room): Room {
 
   for (const p of room.players) {
     const prev = prevStates[p.id];
-    const isLocked = settings.clearLockOnNewRound ? false : (prev?.isLocked ?? false);
-    const lockUntil = settings.clearLockOnNewRound ? null : (prev?.lockUntil ?? null);
+    const isLocked = settings.clearLockOnNewRound
+      ? false
+      : (prev?.isLocked ?? false);
+    const lockUntil = settings.clearLockOnNewRound
+      ? null
+      : (prev?.lockUntil ?? null);
     playerStates[p.id] = {
       isLocked,
       lockUntil,
@@ -84,13 +102,11 @@ export function startBuzzerRound(room: Room): Room {
 
 // ─── 搶答 ────────────────────────────────────────────────────────────────────
 
-export function processBuzzIn(
-  room: Room,
-  playerId: string,
-): BuzzInResult {
+export function processBuzzIn(room: Room, playerId: string): BuzzInResult {
   const state = room.buzzerState;
   if (!state) return { success: false, reason: 'not_found' };
-  if (state.currentAnswerPlayerId !== null) return { success: false, reason: 'already_answering' };
+  if (state.currentAnswerPlayerId !== null)
+    return { success: false, reason: 'already_answering' };
 
   const ps = state.playerStates[playerId];
   if (!ps) return { success: false, reason: 'not_found' };
@@ -118,8 +134,12 @@ export function calculateBuzzerScore(
   const plusMinusCount = selectedCards.filter(
     c => c.symbol && [Symbol.Plus, Symbol.Minus].includes(c.symbol),
   ).length;
-  const timesCount = selectedCards.filter(c => c.symbol === Symbol.Times).length;
-  const divideCount = selectedCards.filter(c => c.symbol === Symbol.Divide).length;
+  const timesCount = selectedCards.filter(
+    c => c.symbol === Symbol.Times,
+  ).length;
+  const divideCount = selectedCards.filter(
+    c => c.symbol === Symbol.Divide,
+  ).length;
 
   base += plusMinusCount;
   base += timesCount * 2;
@@ -134,7 +154,10 @@ export function calculateBuzzerScore(
   return { base, streakBonus: bonus, total: base + bonus };
 }
 
-function _applyScoreFloor(score: number, floor: BuzzerSettings['scoreFloor']): number {
+function _applyScoreFloor(
+  score: number,
+  floor: BuzzerSettings['scoreFloor'],
+): number {
   if (floor === null) return score;
   return Math.max(score, floor);
 }
@@ -148,36 +171,66 @@ export function processBuzzerAnswer(
 ): BuzzerAnswerResult {
   const state = room.buzzerState;
   if (!state) return { success: false, error: ErrorCode.BuzzerNotStarted };
-  if (state.currentAnswerPlayerId !== playerId) return { success: false, error: ErrorCode.NotAnsweringPlayer };
+  if (state.currentAnswerPlayerId !== playerId)
+    return { success: false, error: ErrorCode.NotAnsweringPlayer };
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
-  if (playerIndex === -1) return { success: false, error: ErrorCode.PlayerNotFound };
+  if (playerIndex === -1)
+    return { success: false, error: ErrorCode.PlayerNotFound };
 
   // 驗證數字牌必須全部來自公共牌，且每張最多用一次
-  const usedCardIds = selectedCards.filter(c => c.number).map(c => c.number!.id);
+  const usedCardIds = selectedCards
+    .filter(c => c.number)
+    .map(c => c.number!.id);
   const publicIds = state.publicCards.map(c => c.id);
 
   if (usedCardIds.length !== 4) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.MustUseAllCards);
+    return _handleAnswerFail(
+      room,
+      playerId,
+      playerIndex,
+      settings,
+      ErrorCode.MustUseAllCards,
+    );
   }
   const allFromPublic = usedCardIds.every(id => publicIds.includes(id));
   const noDuplicate = new Set(usedCardIds).size === 4;
   if (!allFromPublic || !noDuplicate) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.InvalidCards);
+    return _handleAnswerFail(
+      room,
+      playerId,
+      playerIndex,
+      settings,
+      ErrorCode.InvalidCards,
+    );
   }
 
   // 驗算結果
   let result: number;
   try {
-    const expr = selectedCards.map(c => c.number ? c.number.value : c.symbol).join('');
+    const expr = selectedCards
+      .map(c => (c.number ? c.number.value : c.symbol))
+      .join('');
     result = evaluate(expr);
   } catch {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.InvalidEquation);
+    return _handleAnswerFail(
+      room,
+      playerId,
+      playerIndex,
+      settings,
+      ErrorCode.InvalidEquation,
+    );
   }
 
   if (Math.abs(result - 24) > 1e-6) {
-    return _handleAnswerFail(room, playerId, playerIndex, settings, ErrorCode.AnswerNot24);
+    return _handleAnswerFail(
+      room,
+      playerId,
+      playerIndex,
+      settings,
+      ErrorCode.AnswerNot24,
+    );
   }
 
   // 答對：計算分數
@@ -185,7 +238,11 @@ export function processBuzzerAnswer(
   const newStreak = ps.streak + 1;
   // ps.streak 是「之前」的連勝數：第 1 次答對時 ps.streak=0（bonus=0），
   // 第 2 次連續答對時 ps.streak=1（bonus=1），符合「連續答對才算連勝」定義
-  const { base, streakBonus: bonus, total } = calculateBuzzerScore(selectedCards, ps.streak, settings.streakBonus);
+  const {
+    base,
+    streakBonus: bonus,
+    total,
+  } = calculateBuzzerScore(selectedCards, ps.streak, settings.streakBonus);
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score + total;
@@ -210,11 +267,19 @@ export function processBuzzerAnswer(
   const newRoom = { ...room, players: newPlayers, buzzerState: newState };
 
   // 勝利判定
-  const winner = newPlayers[playerIndex].score >= settings.winScore
-    ? newPlayers[playerIndex]
-    : undefined;
+  const winner =
+    newPlayers[playerIndex].score >= settings.winScore
+      ? newPlayers[playerIndex]
+      : undefined;
 
-  return { success: true, room: newRoom, scoreDelta: total, streak: newStreak, streakBonus: bonus, winner };
+  return {
+    success: true,
+    room: newRoom,
+    scoreDelta: total,
+    streak: newStreak,
+    streakBonus: bonus,
+    winner,
+  };
 }
 
 function _handleAnswerFail(
@@ -232,9 +297,10 @@ function _handleAnswerFail(
     score: _applyScoreFloor(rawScore, settings.scoreFloor),
   };
 
-  const lockUntil = settings.penaltyPoints > 0 || settings.lockSeconds > 0
-    ? Date.now() + settings.lockSeconds * 1000
-    : null;
+  const lockUntil =
+    settings.penaltyPoints > 0 || settings.lockSeconds > 0
+      ? Date.now() + settings.lockSeconds * 1000
+      : null;
 
   const newPlayerStates = {
     ...state.playerStates,
@@ -254,7 +320,12 @@ function _handleAnswerFail(
   };
 
   const failedRoom = { ...room, players: newPlayers, buzzerState: newState };
-  return { success: false, error, room: failedRoom, scoreDelta: -settings.penaltyPoints } as BuzzerAnswerFailed as unknown as BuzzerAnswerResult;
+  return {
+    success: false,
+    error,
+    room: failedRoom,
+    scoreDelta: -settings.penaltyPoints,
+  } as BuzzerAnswerFailed as unknown as BuzzerAnswerResult;
 }
 
 // 失敗時帶 room 的型別（供 index.ts 取用更新後的 room）
@@ -268,13 +339,28 @@ export type BuzzerAnswerFailed = {
 // ─── 超時處理 ────────────────────────────────────────────────────────────────
 
 /** 作答超時：等同作答失敗（不傳入 selectedCards） */
-export function processBuzzerAnswerTimeout(room: Room, playerId: string): BuzzerAnswerFailed {
+export function processBuzzerAnswerTimeout(
+  room: Room,
+  playerId: string,
+): BuzzerAnswerFailed {
   const state = room.buzzerState;
-  if (!state) return { success: false, error: ErrorCode.BuzzerNotStarted, room, scoreDelta: 0 };
+  if (!state)
+    return {
+      success: false,
+      error: ErrorCode.BuzzerNotStarted,
+      room,
+      scoreDelta: 0,
+    };
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
-  if (playerIndex === -1) return { success: false, error: ErrorCode.PlayerNotFound, room, scoreDelta: 0 };
+  if (playerIndex === -1)
+    return {
+      success: false,
+      error: ErrorCode.PlayerNotFound,
+      room,
+      scoreDelta: 0,
+    };
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score - settings.penaltyPoints;
@@ -308,7 +394,10 @@ export function processBuzzerAnswerTimeout(room: Room, playerId: string): Buzzer
 
 // ─── 無解投票 ────────────────────────────────────────────────────────────────
 
-export function processNoSolutionVote(room: Room, playerId: string): NoSolutionVoteResult {
+export function processNoSolutionVote(
+  room: Room,
+  playerId: string,
+): NoSolutionVoteResult {
   const state = room.buzzerState;
   if (!state) return { passed: false, votes: [] };
 
@@ -326,7 +415,11 @@ export function processNoSolutionVote(room: Room, playerId: string): NoSolutionV
   }
 
   const newState: BuzzerState = { ...state, noSolutionVotes: newVotes };
-  return { passed: false, votes: newVotes, room: { ...room, buzzerState: newState } } as NoSolutionVoteResult;
+  return {
+    passed: false,
+    votes: newVotes,
+    room: { ...room, buzzerState: newState },
+  } as NoSolutionVoteResult;
 }
 
 // ─── 回合超時 ────────────────────────────────────────────────────────────────
@@ -338,16 +431,29 @@ export function applyRoundTimeout(room: Room): RoundTimeoutResult {
 
   const newPlayers = room.players.map(p => ({
     ...p,
-    score: _applyScoreFloor(p.score - settings.roundTimeoutPenalty, settings.scoreFloor),
+    score: _applyScoreFloor(
+      p.score - settings.roundTimeoutPenalty,
+      settings.scoreFloor,
+    ),
   }));
 
   // 全體扣分時重置所有玩家的連勝紀錄
   const state = room.buzzerState;
   if (state) {
     const newPlayerStates = Object.fromEntries(
-      Object.entries(state.playerStates).map(([id, ps]) => [id, { ...ps, streak: 0 }]),
+      Object.entries(state.playerStates).map(([id, ps]) => [
+        id,
+        { ...ps, streak: 0 },
+      ]),
     );
-    return { success: true, room: { ...room, players: newPlayers, buzzerState: { ...state, playerStates: newPlayerStates } } };
+    return {
+      success: true,
+      room: {
+        ...room,
+        players: newPlayers,
+        buzzerState: { ...state, playerStates: newPlayerStates },
+      },
+    };
   }
 
   return { success: true, room: { ...room, players: newPlayers } };
@@ -361,7 +467,11 @@ export function unlockPlayer(room: Room, playerId: string): Room {
 
   const newPlayerStates = {
     ...state.playerStates,
-    [playerId]: { ...state.playerStates[playerId], isLocked: false, lockUntil: null },
+    [playerId]: {
+      ...state.playerStates[playerId],
+      isLocked: false,
+      lockUntil: null,
+    },
   };
 
   return { ...room, buzzerState: { ...state, playerStates: newPlayerStates } };
