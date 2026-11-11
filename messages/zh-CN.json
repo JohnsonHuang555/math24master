@@ -910,6 +910,8 @@
     }
   },
   "Multiplayer": {
+    "title": "多人对战",
+    "subtitle": "加入房间或创建你的专属对局",
     "quickMatch": {
       "title": "快速开始",
       "description": "{seconds} 秒内配对真人对手，没人的话由电脑补位，马上就能玩",

@@ -312,10 +312,10 @@ export default function MultiplePlayPage() {
             <BackToHomeButton className="hidden border border-line bg-surface lg:flex" />
             <div className="flex flex-1 flex-col gap-1.5 lg:gap-1">
               <h1 className="text-[28px] font-black tracking-tight text-ink lg:text-4xl">
-                多人對戰
+                {t('title')}
               </h1>
               <p className="text-[15px] text-ink-2 lg:text-base">
-                加入房間或建立你的專屬對局
+                {t('subtitle')}
               </p>
             </div>
           </div>
