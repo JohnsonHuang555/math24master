@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ExpressionBar } from '@/components/game/expression-bar';
 import { NumberCard as NumberCardButton } from '@/components/game/number-card';
 import Symbols from '@/components/symbols';
@@ -34,6 +35,8 @@ const BuzzerAnswerPanel = ({
   onSubmit,
   isAnswerer,
 }: BuzzerAnswerPanelProps) => {
+  const t = useTranslations('Multiplayer.buzzer');
+  const tPuzzle = useTranslations('GameUI.puzzle');
   const usedOrder = new Map(
     selectedCards
       .filter(sc => sc.number !== undefined)
@@ -56,7 +59,7 @@ const BuzzerAnswerPanel = ({
       tokens={selectedCards}
       result={liveResult}
       isFinal={usedOrder.size === publicCards.length}
-      placeholder={isAnswerer ? '選擇數字與符號...' : '等待作答者出牌...'}
+      placeholder={isAnswerer ? tPuzzle('placeholder') : t('waitingForAnswer')}
     />
   );
 
@@ -95,12 +98,12 @@ const BuzzerAnswerPanel = ({
           size="icon"
           className="h-14 w-[52px] shrink-0 rounded-xl border-line-strong bg-surface text-ink hover:bg-sunken"
           onClick={onClear}
-          aria-label="清除"
+          aria-label={tPuzzle('clear')}
         >
           <RotateCcw className="h-5 w-5" />
         </Button>
         <Button variant="tactile" className="min-w-0 flex-1" onClick={onSubmit}>
-          提交
+          {tPuzzle('submit')}
         </Button>
       </div>
     </div>

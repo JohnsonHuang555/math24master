@@ -1,6 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 type BuzzerNoSolutionVoteProps = {
@@ -20,13 +21,19 @@ const BuzzerNoSolutionVote = ({
   onVote,
 }: BuzzerNoSolutionVoteProps) => {
   const disabled = hasVoted || isDisabled;
+  const t = useTranslations('Multiplayer.buzzer.noSolution');
+  const label = hasVoted ? t('voted') : t('vote');
 
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onVote}
-      aria-label={`${hasVoted ? '已投票' : '我覺得此題無解'}，${votes.length} / ${totalPlayers} 票`}
+      aria-label={t('ariaLabel', {
+        label,
+        votes: votes.length,
+        total: totalPlayers,
+      })}
       className={cn(
         'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[13px] font-bold transition-colors',
         hasVoted
@@ -35,10 +42,10 @@ const BuzzerNoSolutionVote = ({
       )}
     >
       {hasVoted && <Check aria-hidden className="h-4 w-4" />}
-      <span className="sm:hidden">{hasVoted ? '已投' : '無解？'}</span>
-      <span className="hidden sm:inline">
-        {hasVoted ? '已投票' : '我覺得此題無解'}
+      <span className="sm:hidden">
+        {hasVoted ? t('votedShort') : t('voteShort')}
       </span>
+      <span className="hidden sm:inline">{label}</span>
       <span className="font-display text-ink-2 tabular-nums">
         {votes.length}/{totalPlayers}
       </span>

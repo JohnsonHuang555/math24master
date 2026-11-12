@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
@@ -44,11 +45,7 @@ import { useGuestStore } from '@/stores/guest-store';
 
 type WaitingTab = 'players' | 'settings' | 'chat';
 
-const WAITING_TABS: { value: WaitingTab; label: string }[] = [
-  { value: 'players', label: '玩家' },
-  { value: 'settings', label: '設定' },
-  { value: 'chat', label: '聊天' },
-];
+const WAITING_TABS: WaitingTab[] = ['players', 'settings', 'chat'];
 
 export default function RoomPage() {
   const hardNavigate = useHardNavigate();
@@ -64,6 +61,11 @@ export default function RoomPage() {
   const [removingPlayerId, setRemovingPlayerId] = useState<string>('');
   const [waitingTab, setWaitingTab] = useState<WaitingTab>('players');
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Multiplayer.room');
+  const tLobby = useTranslations('Multiplayer.lobby');
+  const tHome = useTranslations('Home');
+  const tError = useTranslations('ServerError');
+  const playerDisplayName = usePlayerName();
 
   const {
     socket,
@@ -140,7 +142,7 @@ export default function RoomPage() {
     if (playerId) {
       socket.on(SocketEvent.RemovePlayerResponse, (removedPlayerId: string) => {
         if (removedPlayerId === playerId) {
-          toast.info('你已被踢出房間');
+          toast.info(t('kicked'));
           router.push('/multiple-play');
         }
       });
@@ -201,7 +203,7 @@ export default function RoomPage() {
           onOpenChange={setIsOpenEnterRoomPasswordModal}
           onSubmit={password => {
             if (!roomId) {
-              toast.error('發生錯誤，請稍後再試');
+              toast.error(tError('UNEXPECTED'));
               return;
             }
             joinRoom(playerName, roomId, undefined, undefined, password);
@@ -219,7 +221,7 @@ export default function RoomPage() {
           <div className="relative">
             <Image
               src="/logo.webp"
-              alt="24點大師"
+              alt={tHome('logoAlt')}
               width={100}
               height={30}
               className="h-8 w-auto dark:invert"
@@ -230,10 +232,10 @@ export default function RoomPage() {
           <div className="flex flex-col items-center gap-3">
             <RefreshCw className="h-8 w-8 animate-spin text-primary" />
             <p className="font-display text-xl font-black text-foreground">
-              連線中...
+              {t('connecting')}
             </p>
             <p className="max-w-xs text-sm text-muted-foreground">
-              如果等待時間過長，請嘗試重新整理頁面
+              {t('connectingHint')}
             </p>
           </div>
 
@@ -244,14 +246,14 @@ export default function RoomPage() {
               onClick={() => hardNavigate('/')}
             >
               <ArrowLeft className="h-4 w-4" />
-              回首頁
+              {t('backHome')}
             </Button>
             <Button
               variant="ghost"
               className="gap-2 rounded-2xl border border-zinc-200 px-5 font-bold dark:border-zinc-700"
               onClick={() => hardNavigate('/multiple-play')}
             >
-              回房間列表
+              {t('backToLobby')}
             </Button>
           </div>
         </motion.div>
@@ -289,15 +291,14 @@ export default function RoomPage() {
           >
             <DialogHeader>
               <DialogTitle className="text-center text-xl">
-                遊戲中斷
+                {t('aborted.title')}
               </DialogTitle>
             </DialogHeader>
             <p className="text-center text-sm text-muted-foreground">
-              由於{' '}
-              <span className="font-semibold">
-                {gameAbortedData.playerName}
-              </span>{' '}
-              離開，遊戲已中斷
+              {t.rich('aborted.description', {
+                name: playerDisplayName(gameAbortedData.playerName),
+                b: chunks => <span className="font-semibold">{chunks}</span>,
+              })}
             </p>
             <div className="flex gap-3">
               <Button
@@ -309,13 +310,13 @@ export default function RoomPage() {
                 className="flex-1"
                 variant="secondary"
               >
-                回房間列表
+                {t('backToLobby')}
               </Button>
               <Button
                 onClick={clearGameAbortedData}
                 className="flex-1 rounded-2xl bg-primary font-bold text-white shadow-[0_4px_0_0_hsl(175_84%_22%)] active:translate-y-1 active:shadow-none dark:shadow-[0_4px_0_0_hsl(173_66%_28%)]"
               >
-                關閉視窗
+                {t('aborted.close')}
               </Button>
             </div>
           </DialogContent>
@@ -380,7 +381,7 @@ export default function RoomPage() {
               size="icon"
               className="h-11 w-11 shrink-0 text-ink"
               onClick={leaveRoom}
-              aria-label="離開房間"
+              aria-label={t('leave')}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -388,15 +389,17 @@ export default function RoomPage() {
               <strong className="flex items-center gap-1 truncate text-[17px] text-ink">
                 {roomInfo.password && (
                   <Lock
-                    aria-label="有密碼"
+                    aria-label={tLobby('hasPassword')}
                     className="h-4 w-4 shrink-0 text-ink-2"
                   />
                 )}
                 <span className="truncate">{roomDisplayName}</span>
               </strong>
               <span className="text-xs text-ink-2">
-                {roomInfo.settings.gameType === 'buzzer' ? '搶答' : '傳統'} ·{' '}
-                {roomInfo.maxPlayers} 人
+                {t('summary', {
+                  gameType: tLobby(`gameTypes.${roomInfo.settings.gameType}`),
+                  count: roomInfo.maxPlayers,
+                })}
               </span>
             </div>
             {currentPlayer?.isMaster && !roomInfo.isQuickMatch && (
@@ -405,7 +408,7 @@ export default function RoomPage() {
                 size="icon"
                 className="h-11 w-11 shrink-0 text-ink"
                 onClick={() => setIsOpenEditRoomModal(true)}
-                aria-label="編輯房間"
+                aria-label={t('edit')}
               >
                 <Pencil className="h-5 w-5" />
               </Button>
@@ -415,25 +418,25 @@ export default function RoomPage() {
           {/* 手機分頁：玩家／設定／聊天 */}
           <div
             role="tablist"
-            aria-label="等待大廳"
+            aria-label={t('waitingRoom')}
             className="mx-4 mt-2 flex gap-1 rounded-[14px] border border-line bg-sunken p-1 md:hidden"
           >
             {WAITING_TABS.map(tab => (
               <button
-                key={tab.value}
+                key={tab}
                 type="button"
                 role="tab"
-                aria-selected={waitingTab === tab.value}
-                onClick={() => setWaitingTab(tab.value)}
+                aria-selected={waitingTab === tab}
+                onClick={() => setWaitingTab(tab)}
                 className={cn(
                   'flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold',
-                  waitingTab === tab.value
+                  waitingTab === tab
                     ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--line-strong)]'
                     : 'text-ink-2',
                 )}
               >
-                {tab.label}
-                {tab.value === 'players' && (
+                {t(`tabs.${tab}`)}
+                {tab === 'players' && (
                   <span className="rounded-full bg-sunken px-1.5 font-display text-xs text-ink">
                     {roomInfo.players.length}
                   </span>
@@ -527,7 +530,7 @@ export default function RoomPage() {
                       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber font-display text-base font-extrabold text-on-amber">
                         {countdownSeconds}
                       </span>
-                      即將開始遊戲
+                      {t('startingSoon')}
                     </span>
                   )
                 }

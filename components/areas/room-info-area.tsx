@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, CircleHelp, Lock, LogOut, Pencil } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import HoverTip from '@/components/hover-tip';
 import {
   Select,
@@ -87,12 +88,7 @@ const SettingSelect = ({
   </div>
 );
 
-const PENALTY_OPTIONS = [
-  { value: '0', label: '不扣分' },
-  { value: '1', label: '扣 1 分' },
-  { value: '2', label: '扣 2 分' },
-  { value: '3', label: '扣 3 分' },
-];
+const PENALTY_OPTIONS = [0, 1, 2, 3];
 
 const BUZZER_SECONDS = [10, 15, 20, 25, 30];
 
@@ -108,6 +104,10 @@ const RoomInfoArea = ({
   onRoomSettingsChange,
 }: RoomInfoAreaProps) => {
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
+  const t = useTranslations('Multiplayer.settings');
+  const tRoom = useTranslations('Multiplayer.room');
+  const tLobby = useTranslations('Multiplayer.lobby');
+  const tCreate = useTranslations('Multiplayer.createRoom');
 
   const bs: BuzzerSettings =
     roomSettings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
@@ -117,7 +117,7 @@ const RoomInfoArea = ({
 
   return (
     <section
-      aria-label="房間設定"
+      aria-label={t('title')}
       className="grow rounded-[20px] border border-line bg-surface px-4 py-3 md:h-full"
     >
       <RuleModal isOpen={isOpenRuleModal} onOpenChange={setIsOpenRuleModal} />
@@ -126,12 +126,12 @@ const RoomInfoArea = ({
         <div className="mb-1 flex items-center gap-1">
           {/* 手機頂部列已經有房名與編輯鈕，這裡改顯示區塊標題 */}
           <h2 className="flex-1 text-base font-extrabold text-ink md:hidden">
-            房間設定
+            {t('title')}
           </h2>
           <div className="flex min-w-0 flex-1 items-center gap-1.5 max-md:hidden">
             {password && (
               <Lock
-                aria-label="有密碼"
+                aria-label={tLobby('hasPassword')}
                 className="h-4 w-4 shrink-0 text-ink-2"
               />
             )}
@@ -142,7 +142,7 @@ const RoomInfoArea = ({
               <button
                 type="button"
                 onClick={onEditRoomName}
-                aria-label="編輯房間"
+                aria-label={tRoom('edit')}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
               >
                 <Pencil className="h-4 w-4" />
@@ -152,7 +152,7 @@ const RoomInfoArea = ({
           <button
             type="button"
             onClick={() => setIsOpenRuleModal(true)}
-            aria-label="遊戲規則"
+            aria-label={tLobby('rules')}
             className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
           >
             <BookOpen className="h-5 w-5" />
@@ -160,7 +160,7 @@ const RoomInfoArea = ({
           <button
             type="button"
             onClick={onLeaveRoom}
-            aria-label="離開房間"
+            aria-label={tRoom('leave')}
             className="flex h-11 w-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-danger-tint hover:text-danger-ink"
           >
             <LogOut className="h-5 w-5" />
@@ -171,21 +171,21 @@ const RoomInfoArea = ({
       {/* 設定清單 */}
       <div className="flex flex-col divide-y divide-line">
         <SettingSelect
-          label="玩家人數"
+          label={tCreate('maxPlayers')}
           disabled={!isMaster}
           value={String(maxPlayers)}
           onValueChange={v => onRoomSettingsChange({ maxPlayers: Number(v) })}
         >
           {[2, 3, 4, 5, 6].map(n => (
             <SelectItem key={n} value={String(n)}>
-              {n} 人
+              {t('players', { count: n })}
             </SelectItem>
           ))}
         </SettingSelect>
 
         {roomSettings.gameType !== 'buzzer' && (
           <SettingSelect
-            label="牌庫類型"
+            label={t('deckType')}
             disabled={!isMaster}
             value={roomSettings?.deckType}
             onValueChange={v =>
@@ -193,15 +193,15 @@ const RoomInfoArea = ({
             }
           >
             <SelectItem value={DeckType.Standard}>
-              標準 (1-10 各 {playersCount * 3} 張)
+              {t('deckStandard', { count: playersCount * 3 })}
             </SelectItem>
-            <SelectItem value={DeckType.Random}>全部隨機</SelectItem>
+            <SelectItem value={DeckType.Random}>{t('deckRandom')}</SelectItem>
           </SettingSelect>
         )}
 
         {roomSettings.gameType !== 'buzzer' && (
           <SettingSelect
-            label="每回合秒數"
+            label={t('turnSeconds')}
             disabled={!isMaster}
             value={
               roomSettings.remainSeconds === null
@@ -214,28 +214,28 @@ const RoomInfoArea = ({
               })
             }
           >
-            <SelectItem value="infinity">無限時</SelectItem>
+            <SelectItem value="infinity">{t('unlimited')}</SelectItem>
             {[30, 60, 90, 120, 150, 180, 240, 300].map(s => (
               <SelectItem key={s} value={String(s)}>
-                {s} 秒
+                {t('seconds', { count: s })}
               </SelectItem>
             ))}
           </SettingSelect>
         )}
 
         <SettingSelect
-          label="遊戲類型"
+          label={tCreate('gameType')}
           disabled={!isMaster}
           value={roomSettings.gameType}
           onValueChange={v => onRoomSettingsChange({ gameType: v as GameType })}
         >
-          <SelectItem value="buzzer">搶答模式</SelectItem>
+          <SelectItem value="buzzer">{tCreate('buzzerMode')}</SelectItem>
         </SettingSelect>
 
         {roomSettings.gameType === 'buzzer' && (
           <>
             <SettingSelect
-              label="牌面範圍"
+              label={t('cardRange')}
               disabled={!isMaster}
               value={String(bs.cardMaxValue)}
               onValueChange={v =>
@@ -247,7 +247,7 @@ const RoomInfoArea = ({
             </SettingSelect>
 
             <SettingSelect
-              label="獲勝條件"
+              label={t('winScore')}
               disabled={!isMaster}
               value={String(bs.winScore)}
               onValueChange={v =>
@@ -256,13 +256,13 @@ const RoomInfoArea = ({
             >
               {[15, 20, 25, 30].map(s => (
                 <SelectItem key={s} value={String(s)}>
-                  先獲得 {s} 分
+                  {t('winScoreValue', { count: s })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="作答秒數"
+              label={t('answerSeconds')}
               disabled={!isMaster}
               value={String(bs.answerSeconds)}
               onValueChange={v =>
@@ -273,30 +273,30 @@ const RoomInfoArea = ({
             >
               {BUZZER_SECONDS.map(s => (
                 <SelectItem key={s} value={String(s)}>
-                  {s} 秒
+                  {t('seconds', { count: s })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="失敗扣分"
-              tooltip="搶答後答錯或作答時間到時，從該玩家分數中扣除的分數"
+              label={t('penalty')}
+              tooltip={t('penaltyTip')}
               disabled={!isMaster}
               value={String(bs.penaltyPoints)}
               onValueChange={v =>
                 updateBuzzer({ penaltyPoints: Number(v) as 0 | 1 | 2 | 3 })
               }
             >
-              {PENALTY_OPTIONS.map(o => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+              {PENALTY_OPTIONS.map(n => (
+                <SelectItem key={n} value={String(n)}>
+                  {n === 0 ? t('noPenalty') : t('penaltyValue', { count: n })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="鎖定秒數"
-              tooltip="答題失敗後，該玩家在指定秒數內無法再次搶答"
+              label={t('lockSeconds')}
+              tooltip={t('lockSecondsTip')}
               disabled={!isMaster}
               value={String(bs.lockSeconds)}
               onValueChange={v =>
@@ -307,13 +307,13 @@ const RoomInfoArea = ({
             >
               {BUZZER_SECONDS.map(s => (
                 <SelectItem key={s} value={String(s)}>
-                  {s} 秒
+                  {t('seconds', { count: s })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="每回合時間"
+              label={t('roundSeconds')}
               disabled={!isMaster}
               value={
                 bs.roundSeconds === null ? 'unlimited' : String(bs.roundSeconds)
@@ -325,17 +325,17 @@ const RoomInfoArea = ({
                 })
               }
             >
-              <SelectItem value="unlimited">不限時</SelectItem>
+              <SelectItem value="unlimited">{t('unlimited')}</SelectItem>
               {[30, 60, 90].map(s => (
                 <SelectItem key={s} value={String(s)}>
-                  {s} 秒
+                  {t('seconds', { count: s })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="逾時扣分"
-              tooltip="每回合時間結束時，若無人答出則所有玩家被扣除的分數（需設定回合時間才生效）"
+              label={t('timeoutPenalty')}
+              tooltip={t('timeoutPenaltyTip')}
               disabled={!isMaster || roundUnlimited}
               dimLabel={roundUnlimited}
               value={String(bs.roundTimeoutPenalty)}
@@ -345,29 +345,29 @@ const RoomInfoArea = ({
                 })
               }
             >
-              {PENALTY_OPTIONS.map(o => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+              {PENALTY_OPTIONS.map(n => (
+                <SelectItem key={n} value={String(n)}>
+                  {n === 0 ? t('noPenalty') : t('penaltyValue', { count: n })}
                 </SelectItem>
               ))}
             </SettingSelect>
 
             <SettingSelect
-              label="連續答對加分"
+              label={t('streakBonus')}
               disabled={!isMaster}
               value={bs.streakBonus}
               onValueChange={v =>
                 updateBuzzer({ streakBonus: v as 'none' | 'n1' | 'n2' })
               }
             >
-              <SelectItem value="none">不加分</SelectItem>
-              <SelectItem value="n1">連勝數 × 1 分</SelectItem>
-              <SelectItem value="n2">連勝數 × 2 分</SelectItem>
+              <SelectItem value="none">{t('streakNone')}</SelectItem>
+              <SelectItem value="n1">{t('streakTimes', { n: 1 })}</SelectItem>
+              <SelectItem value="n2">{t('streakTimes', { n: 2 })}</SelectItem>
             </SettingSelect>
 
             <SettingSelect
-              label="最低分數"
-              tooltip="玩家分數的下限，被扣分後不會低於此值"
+              label={t('scoreFloor')}
+              tooltip={t('scoreFloorTip')}
               disabled={!isMaster}
               value={bs.scoreFloor === null ? 'none' : String(bs.scoreFloor)}
               onValueChange={v =>
@@ -376,23 +376,25 @@ const RoomInfoArea = ({
                 })
               }
             >
-              <SelectItem value="none">不設定</SelectItem>
-              <SelectItem value="0">0 分</SelectItem>
-              <SelectItem value="-5">-5 分</SelectItem>
-              <SelectItem value="-10">-10 分</SelectItem>
+              <SelectItem value="none">{t('scoreFloorNone')}</SelectItem>
+              {[0, -5, -10].map(n => (
+                <SelectItem key={n} value={String(n)}>
+                  {t('points', { count: n })}
+                </SelectItem>
+              ))}
             </SettingSelect>
 
             <SettingSelect
-              label="換回合解鎖"
-              tooltip="開啟時，新回合開始時自動解除所有玩家的鎖定狀態"
+              label={t('unlockOnNewRound')}
+              tooltip={t('unlockOnNewRoundTip')}
               disabled={!isMaster}
               value={bs.clearLockOnNewRound ? 'true' : 'false'}
               onValueChange={v =>
                 updateBuzzer({ clearLockOnNewRound: v === 'true' })
               }
             >
-              <SelectItem value="true">開啟</SelectItem>
-              <SelectItem value="false">關閉</SelectItem>
+              <SelectItem value="true">{t('on')}</SelectItem>
+              <SelectItem value="false">{t('off')}</SelectItem>
             </SettingSelect>
           </>
         )}

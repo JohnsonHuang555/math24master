@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,18 +21,20 @@ const RemoveRoomPlayerModal = ({
   onSubmit,
   onOpenChange,
 }: RemoveRoomPlayerModalProps) => {
+  const t = useTranslations('Multiplayer.kick');
+  const tCommon = useTranslations('Common');
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>是否踢除玩家？</AlertDialogTitle>
-          <AlertDialogDescription>
-            此玩家將會離開房間，確定要踢除嗎？
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t('title')}</AlertDialogTitle>
+          <AlertDialogDescription>{t('description')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction onClick={onSubmit}>確定</AlertDialogAction>
+          <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={onSubmit}>
+            {t('confirm')}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

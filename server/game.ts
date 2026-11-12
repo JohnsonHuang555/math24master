@@ -15,6 +15,8 @@ import {
   HandResult,
   NumberCard,
   Player,
+  botPlayerName,
+  parseBotPlayerName,
 } from '../models/Player';
 import { GameResponse } from '../models/Response';
 import {
@@ -1082,16 +1084,15 @@ export function addBotToRoom(
       return { success: false, error: ErrorCode.RoomFull };
     }
 
-    const baseName =
-      difficulty === 'easy'
-        ? '電腦（簡單）'
-        : difficulty === 'normal'
-          ? '電腦（普通）'
-          : '電腦（困難）';
-    // 同難度的電腦不只一個時加上編號，玩家才分得出誰是誰
-    const sameName = room.players.filter(p => p.name.startsWith(baseName));
-    const botName =
-      sameName.length === 0 ? baseName : `${baseName} ${sameName.length + 1}`;
+    // 電腦不只一個時加上編號，玩家才分得出誰是誰；取最小的空號，中途移除過也不會重複
+    const usedIndexes = new Set(
+      room.players
+        .map(p => parseBotPlayerName(p.name)?.index)
+        .filter(index => index !== undefined),
+    );
+    let index = 1;
+    while (usedIndexes.has(index)) index++;
+    const botName = botPlayerName(difficulty, index);
 
     const bot: Player = {
       id: `bot-${uuidv4()}`,

@@ -369,6 +369,9 @@
       "name": "全球排行榜",
       "title": "全球排行榜 - 24点大师",
       "description": "查看经典、挑战、消消乐、牌桌与心算快答的全球排名，看看你排第几名。"
+    },
+    "room": {
+      "title": "游戏进行中 - 24点大师"
     }
   },
   "SinglePlay": {
@@ -933,6 +936,225 @@
       "shareText": "点链接加入我的房间，一起玩抢答 24 点",
       "copied": "已拷贝邀请链接，传给朋友就能加入",
       "copyFailed": "无法自动拷贝，请直接拷贝网址列的链接"
+    },
+    "lobby": {
+      "gameTypes": {
+        "classic": "传统",
+        "buzzer": "抢答"
+      },
+      "hasPassword": "有密码",
+      "full": "已满 {count}/{max}",
+      "roomCount": "<n>{count}</n> 个房间",
+      "matchCount": "<n>{count}</n> 个房间符合",
+      "rules": "游戏规则",
+      "editName": "修改暱称：{name}",
+      "searchLabel": "搜索房间",
+      "searchPlaceholder": "搜索房间...",
+      "createFailed": "创建失败",
+      "joinTitle": "加入房间",
+      "joinDescription": "确定要加入 {name} 吗？",
+      "notFound": "找不到「{query}」",
+      "notFoundHint": "换个关键字，或用这个名称创建一个新房间",
+      "createNamed": "创建「{name}」",
+      "clearSearch": "清除搜索"
+    },
+    "createRoom": {
+      "title": "创建房间",
+      "roomName": "房间名称",
+      "roomNamePlaceholder": "请输入房间名称",
+      "maxPlayers": "玩家人数",
+      "maxPlayersPlaceholder": "请选择玩家人数",
+      "gameType": "游戏类型",
+      "gameTypePlaceholder": "请选择游戏类型",
+      "buzzerMode": "抢答模式",
+      "setPassword": "是否设置房间密码",
+      "passwordPlaceholder": "请输入房间密码"
+    },
+    "playerName": {
+      "title": "玩家暱称",
+      "label": "暱称",
+      "placeholder": "请输入玩家暱称"
+    },
+    "roomPassword": {
+      "title": "房间密码",
+      "label": "密码",
+      "placeholder": "请输入房间密码",
+      "required": "请输入房间密码"
+    },
+    "bot": {
+      "name": "电脑",
+      "nameNumbered": "电脑 {index}",
+      "levels": {
+        "easy": "简单",
+        "normal": "普通",
+        "hard": "困难"
+      }
+    },
+    "room": {
+      "kicked": "你已被踢出房间",
+      "connecting": "连接中...",
+      "connectingHint": "如果等待时间过长，请尝试刷新页面",
+      "backHome": "回首页",
+      "backToLobby": "回房间列表",
+      "aborted": {
+        "title": "游戏中断",
+        "description": "由于 <b>{name}</b> 离开，游戏已中断",
+        "close": "关闭窗口"
+      },
+      "leave": "离开房间",
+      "summary": "{gameType} · {count} 人",
+      "edit": "编辑房间",
+      "waitingRoom": "等待大厅",
+      "tabs": {
+        "players": "玩家",
+        "settings": "设置",
+        "chat": "聊天"
+      },
+      "startingSoon": "即将开始游戏"
+    },
+    "toast": {
+      "reconnected": "已重新连接",
+      "playerLeft": "{name} 已离开房间",
+      "lastRound": "最后一回合啰"
+    },
+    "settings": {
+      "title": "房间设置",
+      "players": "{count} 人",
+      "deckType": "牌库类型",
+      "deckStandard": "标准 (1-10 各 {count} 张)",
+      "deckRandom": "全部随机",
+      "turnSeconds": "每回合秒数",
+      "unlimited": "不限时",
+      "seconds": "{count} 秒",
+      "cardRange": "牌面范围",
+      "winScore": "获胜条件",
+      "winScoreValue": "先获得 {count} 分",
+      "answerSeconds": "作答秒数",
+      "penalty": "失败扣分",
+      "penaltyTip": "抢答后答错或作答时间到时，从该玩家分数中扣除的分数",
+      "lockSeconds": "锁定秒数",
+      "lockSecondsTip": "答题失败后，该玩家在指定秒数内无法再次抢答",
+      "roundSeconds": "每回合时间",
+      "timeoutPenalty": "逾时扣分",
+      "timeoutPenaltyTip": "每回合时间结束时，若无人答出则所有玩家被扣除的分数（需设置回合时间才生效）",
+      "streakBonus": "连续答对加分",
+      "streakNone": "不加分",
+      "streakTimes": "连胜数 × {n} 分",
+      "scoreFloor": "最低分数",
+      "scoreFloorTip": "玩家分数的下限，被扣分后不会低于此值",
+      "scoreFloorNone": "不设置",
+      "points": "{count} 分",
+      "unlockOnNewRound": "换回合解锁",
+      "unlockOnNewRoundTip": "打开时，新回合开始时自动解除所有玩家的锁定状态",
+      "on": "打开",
+      "off": "关闭",
+      "noPenalty": "不扣分",
+      "penaltyValue": "扣 {count} 分"
+    },
+    "players": {
+      "title": "玩家",
+      "titleWithCount": "玩家（{count}）",
+      "you": "（你）",
+      "youBadge": "你",
+      "host": "房主",
+      "ready": "已准备",
+      "notReady": "未准备",
+      "kick": "踢除 {name}",
+      "addBot": "加入电脑玩家",
+      "waitingForPlayers": "等待其他玩家加入",
+      "notReadyCount": "尚有 {count} 位玩家未准备",
+      "waitingForHost": "等待房主开始游戏",
+      "start": "开始游戏",
+      "cancelReady": "取消准备",
+      "getReady": "准备游戏"
+    },
+    "chat": {
+      "title": "聊天室",
+      "empty": "说点什么开始聊天吧",
+      "label": "消息",
+      "placeholder": "说点什么...",
+      "send": "送出"
+    },
+    "classic": {
+      "discardOne": "请点击 1 张牌丢弃",
+      "yourTurn": "你的回合",
+      "leaveDescription": "离开后将退出目前游戏。",
+      "deckLeft": "传统对战 · 牌库剩 <n>{count}</n> 张",
+      "opponents": "对手",
+      "theirTurn": "换他",
+      "last": "最后",
+      "opponentStats": "<b>{score}</b> 分 · {cards} 张",
+      "waitingFor": "等待 {name} 出牌",
+      "waitingForOthers": "等待其他玩家出牌",
+      "score": "得分",
+      "finalRound": "终回",
+      "timeLeft": "回合剩余 {count} 秒",
+      "handFull": "手牌超过上限，请点击 1 张牌丢弃",
+      "discardCard": "丢弃 {value}",
+      "placeholder": "点击手牌组合出答案为 24 的算式",
+      "placeholderWaiting": "轮到你时才能组算式",
+      "scoring": "计分中",
+      "play": "出牌"
+    },
+    "buzzer": {
+      "locked": "锁定中",
+      "answering": "<b>{name}</b> 作答中",
+      "answeringName": "{name} 作答中",
+      "answeringStatus": "作答中",
+      "somePlayer": "玩家",
+      "waiting": "等待中...",
+      "buzz": "抢答！",
+      "noSolution": {
+        "vote": "我觉得此题无解",
+        "voted": "已投票",
+        "voteShort": "无解？",
+        "votedShort": "已投",
+        "ariaLabel": "{label}，{votes} / {total} 票"
+      },
+      "waitingForAnswer": "等待作答者出牌...",
+      "pointsUnit": "分",
+      "paused": "暂停",
+      "leaveTitle": "离开房间？",
+      "leaveDescription": "离开后将退出目前游戏，确定要离开吗？",
+      "round": "第 {round} 回合",
+      "roundRich": "第 <n>{round}</n> 回合",
+      "cardsComing": "公共牌即将出现",
+      "correct": "答对！+{points} 分",
+      "correctWithStreak": "答对！+{points} 分（+{streak} 连胜）",
+      "wrong": "答错，−{points} 分",
+      "roundTimeout": "时间到！没有人答对，全体扣 {points} 分"
+    },
+    "gameOver": {
+      "title": "游戏结束",
+      "penaltyTitle": "残局结算",
+      "penaltyDescription": "牌库耗尽！手牌数值越少者获胜（Joker = -20）",
+      "totalScore": "总得分",
+      "newBest": "新最高分纪录！",
+      "ranks": {
+        "first": "冠军",
+        "second": "亚军",
+        "third": "季军"
+      },
+      "score": "<b>{score}</b> 分",
+      "backToRoom": "回到房间页",
+      "home": "回首页",
+      "playAgain": "再来一局"
+    },
+    "editRoom": {
+      "title": "编辑房间名称",
+      "save": "保存"
+    },
+    "reconnect": {
+      "reconnecting": "连接中断，正在尝试重新连接...",
+      "disconnected": "已与服务器断线",
+      "reconnectingHint": "请稍候，勿关闭此页面",
+      "disconnectedHint": "无法重新连接，游戏已结束",
+      "backToLobby": "回到大厅"
+    },
+    "kick": {
+      "title": "是否踢除玩家？",
+      "description": "此玩家将会离开房间，确定要踢除吗？",
+      "confirm": "确定"
     }
   },
   "RoundHistory": {

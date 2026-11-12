@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,17 +31,20 @@ const EditRoomModal = ({
   const [editedRoomName, setEditedRoomName] = useState(roomName);
   const [isSetPassword, setIsSetPassword] = useState(!!password);
   const [editedPassword, setEditedPassword] = useState(password);
+  const t = useTranslations('Multiplayer.editRoom');
+  const tCreate = useTranslations('Multiplayer.createRoom');
+  const tPassword = useTranslations('Multiplayer.roomPassword');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>編輯房間名稱</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="room-name" className="text-right">
-              房間名稱
+              {tCreate('roomName')}
             </Label>
             <Input
               id="room-name"
@@ -65,14 +69,14 @@ const EditRoomModal = ({
               htmlFor="allow-password"
               className="col-span-3 text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              是否設定房間密碼
+              {tCreate('setPassword')}
             </label>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <div />
             <Input
               id="room-password"
-              placeholder="請輸入房間密碼"
+              placeholder={tCreate('passwordPlaceholder')}
               className="col-span-3"
               defaultValue={editedPassword}
               onChange={e => {
@@ -87,13 +91,13 @@ const EditRoomModal = ({
             type="submit"
             onClick={() => {
               if (isSetPassword && !editedPassword) {
-                toast.warning('請輸入房間密碼');
+                toast.warning(tPassword('required'));
                 return;
               }
               onSubmit(editedRoomName, editedPassword);
             }}
           >
-            儲存
+            {t('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

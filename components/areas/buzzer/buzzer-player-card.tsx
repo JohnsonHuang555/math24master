@@ -10,7 +10,9 @@ import {
   useTransform,
 } from 'framer-motion';
 import { Flame, Lock, PenLine } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { PlayerCard, PlayerStatus } from '@/components/game/player-card';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { Player } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
 
@@ -28,6 +30,9 @@ const BuzzerPlayerCard = ({
   isCurrentPlayer,
 }: BuzzerPlayerCardProps) => {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Multiplayer.buzzer');
+  const tPlayers = useTranslations('Multiplayer.players');
+  const playerDisplayName = usePlayerName();
   const isLocked = playerState?.isLocked ?? false;
   const streak = playerState?.streak ?? 0;
 
@@ -61,13 +66,13 @@ const BuzzerPlayerCard = ({
   const status: PlayerStatus | undefined = isCurrentAnswerer
     ? {
         kind: 'answering',
-        label: '作答中',
+        label: t('answeringStatus'),
         icon: <PenLine aria-hidden className="h-4 w-4" />,
       }
     : isLocked
       ? {
           kind: 'locked',
-          label: '鎖定中',
+          label: t('locked'),
           icon: <Lock aria-hidden className="h-4 w-4" />,
         }
       : undefined;
@@ -75,9 +80,10 @@ const BuzzerPlayerCard = ({
   return (
     <PlayerCard
       className="w-full md:w-[240px] md:shrink-0"
-      name={player.name}
+      name={playerDisplayName(player.name)}
       isSelf={isCurrentPlayer}
-      selfLabel="（你）"
+      selfLabel={tPlayers('you')}
+      isBot={player.isBot}
       isActive={isCurrentAnswerer}
       isDimmed={isLocked && !isCurrentAnswerer}
       status={status}
@@ -90,7 +96,7 @@ const BuzzerPlayerCard = ({
             <motion.span className="font-display font-bold text-ink tabular-nums">
               {displayScore}
             </motion.span>{' '}
-            分
+            {t('pointsUnit', { count: player.score })}
           </span>
           {streak > 0 && (
             <span className="inline-flex items-center gap-0.5 font-display font-bold text-amber-ink">

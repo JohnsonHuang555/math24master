@@ -41,15 +41,10 @@ const roomId = uuidv4();
 
 type GameTypeFilter = 'all' | 'classic' | 'buzzer';
 
-const GAME_TYPE_LABELS: Record<string, string> = {
-  classic: '傳統',
-  buzzer: '搶答',
-};
-
 function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
+  const t = useTranslations('Multiplayer.lobby');
   const isFull = room.players.length >= room.maxPlayers;
   const gameType = room.settings.gameType;
-  const typeLabel = GAME_TYPE_LABELS[gameType] ?? gameType;
 
   // 遊戲類型用圖示區分，不用顏色；人數已滿時整張卡退成 sunken 並標示「已滿」
   return (
@@ -82,14 +77,14 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
         </span>
         <span className="flex items-center gap-1 text-[13px] text-ink-2">
           {room.password && <Lock aria-hidden className="h-3.5 w-3.5" />}
-          {typeLabel}
-          {room.password && ' · 有密碼'}
+          {t(`gameTypes.${gameType}`)}
+          {room.password && ` · ${t('hasPassword')}`}
         </span>
       </div>
       {isFull ? (
         <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2.5 text-[13px] font-bold whitespace-nowrap text-danger-ink">
           <Users aria-hidden className="h-3.5 w-3.5" />
-          已滿 {room.players.length}/{room.maxPlayers}
+          {t('full', { count: room.players.length, max: room.maxPlayers })}
         </span>
       ) : (
         <>
@@ -114,12 +109,17 @@ function RoomCount({
   isSearching: boolean;
   className?: string;
 }) {
+  const t = useTranslations('Multiplayer.lobby');
   return (
     <span className={cn('text-sm font-bold text-ink-2', className)}>
-      <span className="font-display text-base text-ink lg:text-lg">
-        {count}
-      </span>{' '}
-      {isSearching ? '個房間符合' : '個房間'}
+      {t.rich(isSearching ? 'matchCount' : 'roomCount', {
+        count,
+        n: chunks => (
+          <span className="font-display text-base text-ink lg:text-lg">
+            {chunks}
+          </span>
+        ),
+      })}
     </span>
   );
 }
@@ -132,6 +132,9 @@ export default function MultiplePlayPage() {
   const router = useRouter();
   const { searchRooms, joinRoom, socket, quickMatch } = useMultiplePlay();
   const t = useTranslations('Multiplayer');
+  const tLobby = useTranslations('Multiplayer.lobby');
+  const tHome = useTranslations('Home');
+  const tError = useTranslations('ServerError');
   const [isMatching, setIsMatching] = useState(false);
   const [searchedRoomName, setSearchedRoomName] = useState('');
   const [gameTypeFilter, setGameTypeFilter] = useState<GameTypeFilter>('all');
@@ -175,10 +178,10 @@ export default function MultiplePlayPage() {
         sessionStorage.setItem('reconnectRoomId', room.roomId);
         router.push(`/multiple-play/${room.roomId}`);
       } else {
-        toast.error('建立失敗');
+        toast.error(tLobby('createFailed'));
       }
     });
-  }, [router, socket, searchRooms]);
+  }, [router, socket, searchRooms, tLobby]);
 
   useEffect(() => {
     if (isConfirmed) {
@@ -218,12 +221,6 @@ export default function MultiplePlayPage() {
     gameTypeFilter === 'all'
       ? rooms
       : rooms.filter(r => r.settings.gameType === gameTypeFilter);
-
-  // const FILTERS: { value: GameTypeFilter; label: string }[] = [
-  //   { value: 'all', label: '全部' },
-  //   { value: 'classic', label: '傳統' },
-  //   { value: 'buzzer', label: '搶答' },
-  // ];
 
   return (
     <main className="flex h-full flex-col">
@@ -273,7 +270,7 @@ export default function MultiplePlayPage() {
           <Link href="/" className="mr-auto hidden rounded-xl lg:block">
             <Image
               src="/logo.webp"
-              alt="24點大師"
+              alt={tHome('logoAlt')}
               width={100}
               height={30}
               className="h-7 w-auto"
@@ -284,16 +281,16 @@ export default function MultiplePlayPage() {
             variant="ghost"
             className="h-11 w-11 px-0 font-bold text-ink md:w-auto md:gap-1.5 md:px-3"
             onClick={() => setIsOpenRuleModal(true)}
-            aria-label="遊戲規則"
+            aria-label={tLobby('rules')}
           >
             <BookOpen className="h-5 w-5" />
-            <span className="hidden md:inline">遊戲規則</span>
+            <span className="hidden md:inline">{tLobby('rules')}</span>
           </Button>
           {/* 玩家暱稱 */}
           <button
             type="button"
             onClick={() => setIsOpenNameModal(true)}
-            aria-label={`修改暱稱：${playerName}`}
+            aria-label={tLobby('editName', { name: playerName })}
             className="ml-1 flex h-11 max-w-40 items-center gap-2 rounded-full border border-line bg-surface pr-3 pl-1.5 text-sm font-bold text-ink transition-colors hover:border-line-strong"
           >
             <span
@@ -388,7 +385,7 @@ export default function MultiplePlayPage() {
               <div className="flex items-center gap-2.5 px-4 md:px-8 lg:gap-3 lg:px-10">
                 <div className="relative min-w-0 flex-1 md:max-w-xs lg:w-[380px] lg:max-w-none lg:flex-none">
                   <label htmlFor="room-search" className="sr-only">
-                    搜尋房間
+                    {tLobby('searchLabel')}
                   </label>
                   <Search
                     aria-hidden
@@ -396,7 +393,7 @@ export default function MultiplePlayPage() {
                   />
                   <Input
                     id="room-search"
-                    placeholder="搜尋房間..."
+                    placeholder={tLobby('searchPlaceholder')}
                     value={searchedRoomName}
                     className="h-12 rounded-xl border-[1.5px] border-line-strong bg-surface pr-3 pl-[42px] text-base text-ink"
                     onChange={e => setSearchedRoomName(e.target.value)}
@@ -412,12 +409,10 @@ export default function MultiplePlayPage() {
 
               {/* 房間計數（手機） */}
               <div className="flex items-center justify-between px-4 pt-[18px] pb-2.5 md:px-8 lg:hidden">
-                <span className="text-sm font-bold text-ink-2">
-                  <span className="font-display text-base text-ink">
-                    {filteredRooms.length}
-                  </span>{' '}
-                  {isSearching ? '個房間符合' : '個房間'}
-                </span>
+                <RoomCount
+                  count={filteredRooms.length}
+                  isSearching={isSearching}
+                />
               </div>
 
               {/* 房間列表 */}
@@ -438,13 +433,15 @@ export default function MultiplePlayPage() {
                         room={room}
                         onClick={() => {
                           if (room.players.length >= room.maxPlayers) {
-                            toast.info('房間人數已滿');
+                            toast.info(tError('ROOM_FULL'));
                             return;
                           }
                           setSelectedRoomId(room.roomId);
                           onOpen({
-                            title: '加入房間',
-                            description: `確定要加入 ${room.roomName} 嗎？`,
+                            title: tLobby('joinTitle'),
+                            description: tLobby('joinDescription', {
+                              name: room.roomName ?? '',
+                            }),
                           });
                         }}
                       />
@@ -454,46 +451,34 @@ export default function MultiplePlayPage() {
               ) : isSearching ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pt-10 pb-20 text-center">
                   <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary-tint text-primary-ink">
-                    {isSearching ? (
-                      <SearchX className="h-7 w-7" />
-                    ) : (
-                      <Users className="h-7 w-7" />
-                    )}
+                    <SearchX className="h-7 w-7" />
                   </div>
-                  <p className="text-xl font-extrabold text-ink">
-                    {isSearching
-                      ? `找不到「${searchedRoomName.trim()}」`
-                      : '目前沒有房間'}
+                  <p className="text-xl font-extrabold break-words text-ink">
+                    {tLobby('notFound', { query: searchedRoomName.trim() })}
                   </p>
                   <p className="text-[15px] text-ink-2">
-                    {isSearching
-                      ? '換個關鍵字，或用這個名稱建立一個新房間'
-                      : '建立房間，邀請朋友一起來玩吧！'}
+                    {tLobby('notFoundHint')}
                   </p>
                   <div className="mt-5 flex w-full max-w-sm flex-col gap-3">
                     <Button
                       variant="tactile"
                       className="w-full gap-2"
-                      onClick={() =>
-                        openCreateRoom(
-                          isSearching ? searchedRoomName.trim() : '',
-                        )
-                      }
+                      onClick={() => openCreateRoom(searchedRoomName.trim())}
                     >
-                      <Plus className="h-5 w-5" />
-                      {isSearching
-                        ? `建立「${searchedRoomName.trim()}」`
-                        : '建立第一個房間'}
+                      <Plus className="h-5 w-5 shrink-0" />
+                      <span className="truncate">
+                        {tLobby('createNamed', {
+                          name: searchedRoomName.trim(),
+                        })}
+                      </span>
                     </Button>
-                    {isSearching && (
-                      <Button
-                        variant="tactileOutline"
-                        className="w-full"
-                        onClick={() => setSearchedRoomName('')}
-                      >
-                        清除搜尋
-                      </Button>
-                    )}
+                    <Button
+                      variant="tactileOutline"
+                      className="w-full"
+                      onClick={() => setSearchedRoomName('')}
+                    >
+                      {tLobby('clearSearch')}
+                    </Button>
                   </div>
                 </div>
               ) : null}

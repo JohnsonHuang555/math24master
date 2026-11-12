@@ -2,6 +2,24 @@ export type CardColor = 'red' | 'blue' | 'yellow' | 'black';
 
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
 
+const BOT_NAME_RE = /^bot:(easy|normal|hard):(\d+)$/;
+
+/**
+ * 電腦玩家的名稱是代碼（如 `bot:normal:2`），由前端依語系顯示成「電腦 2」，難度另外顯示。
+ * 名稱會跟著勝利者、離開房間等事件一起廣播，所以用代碼而不是另外加欄位（見 docs/adr/0009）
+ */
+export function botPlayerName(difficulty: BotDifficulty, index: number) {
+  return `bot:${difficulty}:${index}`;
+}
+
+export function parseBotPlayerName(
+  name: string,
+): { difficulty: BotDifficulty; index: number } | null {
+  const match = BOT_NAME_RE.exec(name);
+  if (!match) return null;
+  return { difficulty: match[1] as BotDifficulty, index: Number(match[2]) };
+}
+
 export type NumberCard = {
   id: string;
   value: number;

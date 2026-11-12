@@ -11,6 +11,7 @@ import {
   Timer,
   TriangleAlert,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ExpressionBar } from '@/components/game/expression-bar';
 import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
@@ -20,6 +21,7 @@ import MainLayout from '@/components/layouts/main-layout';
 import { RuleModal } from '@/components/modals/rule-modal';
 import Symbols from '@/components/symbols';
 import { Button } from '@/components/ui/button';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate } from '@/i18n/navigation';
 import { calculateAnswer, cn } from '@/lib/utils';
 import { MAX_CARD_COUNT } from '@/models/Room';
@@ -37,6 +39,12 @@ const MultiplePlayingArea = () => <ClassicPlayingArea />;
  */
 const ClassicPlayingArea = () => {
   const hardNavigate = useHardNavigate();
+  const t = useTranslations('Multiplayer.classic');
+  const tRoom = useTranslations('Multiplayer.room');
+  const tLobby = useTranslations('Multiplayer.lobby');
+  const tPuzzle = useTranslations('GameUI.puzzle');
+  const tClassic = useTranslations('Classic');
+  const playerDisplayName = usePlayerName();
   const {
     roomInfo,
     checkAnswerCorrect,
@@ -80,17 +88,17 @@ const ClassicPlayingArea = () => {
     // 如果手牌超過上限須棄牌
     if (handCard.length > MAX_CARD_COUNT) {
       setTimeout(() => {
-        toast.error('請點選 1 張牌丟棄');
+        toast.error(t('discardOne'));
         setNeedDiscard(true);
       }, 500);
     }
-  }, [handCard.length]);
+  }, [handCard.length, t]);
 
   useEffect(() => {
     if (isYourTurn) {
-      toast.info('你的回合');
+      toast.info(t('yourTurn'));
     }
-  }, [isYourTurn]);
+  }, [isYourTurn, t]);
 
   // 出牌正確：每個運算符號依序揭曉分數，全部揭曉 1.5 秒後更新分數並換下一手
   useEffect(() => {
@@ -146,7 +154,7 @@ const ClassicPlayingArea = () => {
         open={showLeaveConfirm}
         onOpenChange={setShowLeaveConfirm}
         onLeave={() => hardNavigate('/multiple-play')}
-        description="離開後將退出目前遊戲。"
+        description={t('leaveDescription')}
       />
 
       <div className="mx-auto flex h-full w-full max-w-md flex-col px-3 pt-2 pb-6 sm:px-4">
@@ -157,23 +165,26 @@ const ClassicPlayingArea = () => {
             size="icon"
             className="h-11 w-11 shrink-0 text-ink"
             onClick={() => setShowLeaveConfirm(true)}
-            aria-label="離開房間"
+            aria-label={tRoom('leave')}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <span className="flex-1 text-[13px] font-bold text-ink-2">
-            傳統對戰 · 牌庫剩{' '}
-            <span className="font-display text-[15px] text-ink">
-              {roomInfo?.deck.length ?? 0}
-            </span>{' '}
-            張
+            {t.rich('deckLeft', {
+              count: roomInfo?.deck.length ?? 0,
+              n: chunks => (
+                <span className="font-display text-[15px] text-ink">
+                  {chunks}
+                </span>
+              ),
+            })}
           </span>
           <Button
             variant="ghost"
             size="icon"
             className="h-11 w-11 shrink-0 text-ink"
             onClick={() => setIsOpenRuleModal(true)}
-            aria-label="遊戲規則"
+            aria-label={tLobby('rules')}
           >
             <BookOpen className="h-5 w-5" />
           </Button>
@@ -181,7 +192,7 @@ const ClassicPlayingArea = () => {
 
         {/* 對手 */}
         <section
-          aria-label="對手"
+          aria-label={t('opponents')}
           className={cn(
             'mt-1.5 grid gap-1.5',
             otherPlayers.length >= 3
@@ -208,26 +219,31 @@ const ClassicPlayingArea = () => {
                     {isTurn && (
                       <span className="inline-flex h-5 items-center gap-0.5 rounded-full bg-amber px-1.5 text-[11px] font-bold text-on-amber">
                         <Hourglass aria-hidden className="h-3 w-3" />
-                        換他
+                        {t('theirTurn')}
                       </span>
                     )}
                     {player.isLastRoundPlayer && (
                       <span className="inline-flex h-5 items-center gap-0.5 rounded-full border border-line-strong bg-sunken px-1.5 text-[11px] font-bold text-ink">
                         <Flag aria-hidden className="h-3 w-3" />
-                        最後
+                        {t('last')}
                       </span>
                     )}
                   </span>
                 )}
                 <span className="truncate text-[13px] font-bold text-ink">
-                  {player.name}
+                  {playerDisplayName(player.name)}
                 </span>
                 <span className="flex items-center justify-between gap-1 text-xs text-ink-2">
                   <span>
-                    <b className="font-display text-[15px] font-extrabold text-ink">
-                      {player.score}
-                    </b>{' '}
-                    分 · {player.handCard.length} 張
+                    {t.rich('opponentStats', {
+                      score: player.score,
+                      cards: player.handCard.length,
+                      b: chunks => (
+                        <b className="font-display text-[15px] font-extrabold text-ink">
+                          {chunks}
+                        </b>
+                      ),
+                    })}
                   </span>
                   {isTurn && countdown !== undefined && (
                     <span className="font-display text-[13px] font-extrabold text-amber-ink tabular-nums">
@@ -262,18 +278,22 @@ const ClassicPlayingArea = () => {
               )}
             >
               {isYourTurn
-                ? '你的回合'
-                : `等待 ${turnPlayer?.name ?? '其他玩家'} 出牌`}
+                ? t('yourTurn')
+                : turnPlayer
+                  ? t('waitingFor', {
+                      name: playerDisplayName(turnPlayer.name),
+                    })
+                  : t('waitingForOthers')}
             </strong>
             <span className="flex items-center gap-1.5 text-xs text-ink-2">
-              得分{' '}
+              {t('score')}{' '}
               <b className="font-display text-sm font-extrabold text-ink">
                 {currentPlayer?.score ?? 0}
               </b>
               {(isLastRound || currentPlayer?.isLastRoundPlayer) && (
                 <span className="inline-flex h-5 items-center gap-0.5 rounded-full bg-amber px-1.5 text-[11px] font-bold text-on-amber">
                   <Flag aria-hidden className="h-3 w-3" />
-                  終回
+                  {t('finalRound')}
                 </span>
               )}
             </span>
@@ -282,7 +302,7 @@ const ClassicPlayingArea = () => {
             <div
               role="timer"
               className="flex w-24 flex-col items-end gap-1"
-              aria-label={`回合剩餘 ${countdown} 秒`}
+              aria-label={t('timeLeft', { count: countdown })}
             >
               <span className="font-display text-2xl leading-none font-extrabold text-ink tabular-nums">
                 {countdown}s
@@ -311,7 +331,7 @@ const ClassicPlayingArea = () => {
               className="flex w-full items-center gap-2.5 rounded-2xl border-2 border-danger bg-danger-tint px-4 py-3 text-[15px] font-bold text-danger-ink"
             >
               <TriangleAlert aria-hidden className="h-5 w-5 shrink-0" />
-              手牌超過上限，請點選 1 張牌丟棄
+              {t('handFull')}
             </p>
           ) : null}
         </div>
@@ -337,7 +357,9 @@ const ClassicPlayingArea = () => {
                     order={order}
                     disabled={!canPick}
                     aria-label={
-                      needDiscard ? `丟棄 ${card.value}` : String(card.value)
+                      needDiscard
+                        ? t('discardCard', { value: card.value })
+                        : String(card.value)
                     }
                     className={cn(
                       needDiscard &&
@@ -365,9 +387,7 @@ const ClassicPlayingArea = () => {
                 result={liveResult}
                 isFinal={usedAllCards}
                 placeholder={
-                  isYourTurn
-                    ? '點擊手牌組合出答案為 24 的算式'
-                    : '輪到你時才能組算式'
+                  isYourTurn ? t('placeholder') : t('placeholderWaiting')
                 }
               />
               <div
@@ -393,7 +413,7 @@ const ClassicPlayingArea = () => {
               className={ACTION_BUTTON_CLASS}
               disabled={disabledActions}
               onClick={onReselect}
-              aria-label="清除"
+              aria-label={tPuzzle('clear')}
             >
               <RotateCcw className="h-5 w-5" />
             </Button>
@@ -403,7 +423,7 @@ const ClassicPlayingArea = () => {
               className={ACTION_BUTTON_CLASS}
               disabled={disabledActions}
               onClick={onBack}
-              aria-label="倒退一步"
+              aria-label={tPuzzle('undoStep')}
             >
               <Delete className="h-5 w-5" />
             </Button>
@@ -421,7 +441,7 @@ const ClassicPlayingArea = () => {
               ) : (
                 <ArrowRightLeft aria-hidden className="h-4 w-4" />
               )}
-              {isLastRound ? '結算' : '跳過 / 換牌'}
+              {isLastRound ? tClassic('finish') : tClassic('skipHand')}
             </Button>
             <Button
               variant="tactile"
@@ -437,7 +457,7 @@ const ClassicPlayingArea = () => {
               {isReady && !disabledActions && (
                 <Check aria-hidden className="h-5 w-5" />
               )}
-              {isScoring ? '計分中' : '出牌'}
+              {isScoring ? t('scoring') : t('play')}
             </Button>
           </div>
         </div>
