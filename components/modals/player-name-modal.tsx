@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,6 +27,8 @@ export function PlayerNameModal({
   closeDisabled,
 }: PlayerNameModalProps) {
   const [playerName, setPlayerName] = useState('');
+  const t = useTranslations('Multiplayer.playerName');
+  const tCommon = useTranslations('Common');
 
   const onKeyDown = (e: any) => {
     if (e.keyCode === 13) {
@@ -44,15 +47,15 @@ export function PlayerNameModal({
     >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>玩家暱稱</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="player-name" className="text-right">
-            暱稱
+            {t('label')}
           </Label>
           <Input
             id="player-name"
-            placeholder="請輸入玩家暱稱"
+            placeholder={t('placeholder')}
             className="col-span-3"
             defaultValue={defaultValue}
             onChange={e => setPlayerName(e.target.value)}
@@ -62,11 +65,11 @@ export function PlayerNameModal({
         <DialogFooter>
           {!closeDisabled && (
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
-              取消
+              {tCommon('cancel')}
             </Button>
           )}
           <Button type="submit" onClick={() => onConfirm(playerName)}>
-            確定
+            {tCommon('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

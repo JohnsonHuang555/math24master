@@ -29,8 +29,8 @@ describe('pageAlternates', () => {
   });
 
   it('還沒翻譯的頁面一律指向 zh-TW，不標 hreflang', () => {
-    expect(pageAlternates('en', '/multiple-play')).toEqual({
-      canonical: 'https://math24master.com/multiple-play',
+    expect(pageAlternates('en', '/some-new-page')).toEqual({
+      canonical: 'https://math24master.com/some-new-page',
     });
   });
 });
@@ -67,8 +67,13 @@ describe('sitemap', () => {
     );
   });
 
-  it('還沒翻譯的頁面只列 zh-TW', () => {
-    expect(urls).toContain('https://math24master.com/multiple-play');
-    expect(urls).not.toContain('https://math24master.com/en/multiple-play');
+  it('多人對戰頁翻譯完成後也列出三種語系', () => {
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        'https://math24master.com/multiple-play',
+        'https://math24master.com/en/multiple-play',
+        'https://math24master.com/zh-CN/multiple-play',
+      ]),
+    );
   });
 });

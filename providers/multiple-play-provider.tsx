@@ -9,9 +9,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useTranslations } from 'next-intl';
 import { Socket, io } from 'socket.io-client';
 import { toast } from 'sonner';
 import { useGameActions } from '@/hooks/useGameActions';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { useServerErrorText } from '@/i18n/server-messages';
 import { trackEvent, trackGameComplete, trackGameStart } from '@/lib/analytics';
 import { playSound } from '@/lib/sound-manager';
@@ -117,6 +119,9 @@ type MultiplePlayProviderProps = {
 };
 export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const serverErrorText = useServerErrorText();
+  const t = useTranslations('Multiplayer.toast');
+  const tGameToast = useTranslations('GameUI.toast');
+  const playerDisplayName = usePlayerName();
 
   // 答案是否正確
   const [checkAnswerCorrect, setCheckAnswerCorrect] = useState<boolean | null>(
@@ -231,7 +236,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         setPlayerId(socket.id);
         playerIdRef.current = socket.id;
         setConnectionStatus('connected');
-        toast.success('已重新連線');
+        toast.success(t('reconnected'));
       },
     );
 
@@ -282,7 +287,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     );
 
     socket.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
-      toast.info(`${playerName} 已離開房間`);
+      toast.info(t('playerLeft', { name: playerDisplayName(playerName) }));
     });
 
     socket.on(
@@ -334,9 +339,9 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   useEffect(() => {
     if (isLastRound) {
-      toast.warning('最後一回合囉');
+      toast.warning(t('lastRound'));
     }
-  }, [isLastRound]);
+  }, [isLastRound, t]);
 
   // 房間從等待進入遊戲中時算一次開局（每位玩家各送一次）
   const roomStatus = roomInfo?.status;
@@ -499,7 +504,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
     if (roomInfo?.selectedCards.length === 0) {
-      toast.warning('請組合算式');
+      toast.warning(tGameToast('buildEquation'));
       return;
     }
 
@@ -514,6 +519,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     isYourTurn,
     roomInfo?.roomId,
     roomInfo?.selectedCards,
+    tGameToast,
   ]);
 
   // 重選

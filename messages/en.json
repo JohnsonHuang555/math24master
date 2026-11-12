@@ -369,6 +369,9 @@
       "name": "Global Leaderboard",
       "title": "Global Leaderboard | Math24 Master",
       "description": "See global rankings for Classic, Challenge, Matching, Tabletop and Quick Math, and find out where you stand."
+    },
+    "room": {
+      "title": "In game - Math24 Master"
     }
   },
   "SinglePlay": {
@@ -933,6 +936,225 @@
       "shareText": "Join my room and race me to 24",
       "copied": "Invite link copied. Send it to your friends!",
       "copyFailed": "Couldn't copy automatically. Please copy the link from the address bar."
+    },
+    "lobby": {
+      "gameTypes": {
+        "classic": "Classic",
+        "buzzer": "Buzzer"
+      },
+      "hasPassword": "Password",
+      "full": "Full {count}/{max}",
+      "roomCount": "<n>{count}</n> {count, plural, one {room} other {rooms}}",
+      "matchCount": "<n>{count}</n> {count, plural, one {match} other {matches}}",
+      "rules": "Rules",
+      "editName": "Change nickname: {name}",
+      "searchLabel": "Search rooms",
+      "searchPlaceholder": "Search rooms...",
+      "createFailed": "Couldn't create the room.",
+      "joinTitle": "Join room",
+      "joinDescription": "Join {name}?",
+      "notFound": "No rooms named “{query}”",
+      "notFoundHint": "Try another search, or create a room with this name",
+      "createNamed": "Create “{name}”",
+      "clearSearch": "Clear search"
+    },
+    "createRoom": {
+      "title": "Create room",
+      "roomName": "Name",
+      "roomNamePlaceholder": "Enter a room name",
+      "maxPlayers": "Players",
+      "maxPlayersPlaceholder": "Choose the number of players",
+      "gameType": "Mode",
+      "gameTypePlaceholder": "Choose a mode",
+      "buzzerMode": "Buzzer Mode",
+      "setPassword": "Require a password",
+      "passwordPlaceholder": "Enter a room password"
+    },
+    "playerName": {
+      "title": "Nickname",
+      "label": "Name",
+      "placeholder": "Enter your nickname"
+    },
+    "roomPassword": {
+      "title": "Room password",
+      "label": "Password",
+      "placeholder": "Enter the room password",
+      "required": "Please enter the room password."
+    },
+    "bot": {
+      "name": "Bot",
+      "nameNumbered": "Bot {index}",
+      "levels": {
+        "easy": "Easy",
+        "normal": "Normal",
+        "hard": "Hard"
+      }
+    },
+    "room": {
+      "kicked": "You were removed from the room.",
+      "connecting": "Connecting...",
+      "connectingHint": "If this takes too long, try refreshing the page.",
+      "backHome": "Home",
+      "backToLobby": "Back to rooms",
+      "aborted": {
+        "title": "Game ended",
+        "description": "<b>{name}</b> left, so the game has ended.",
+        "close": "Close"
+      },
+      "leave": "Leave room",
+      "summary": "{gameType} · {count, plural, one {# player} other {# players}}",
+      "edit": "Edit room",
+      "waitingRoom": "Waiting room",
+      "tabs": {
+        "players": "Players",
+        "settings": "Settings",
+        "chat": "Chat"
+      },
+      "startingSoon": "Starting soon"
+    },
+    "toast": {
+      "reconnected": "Reconnected",
+      "playerLeft": "{name} left the room",
+      "lastRound": "Final round!"
+    },
+    "settings": {
+      "title": "Room settings",
+      "players": "{count, plural, one {# player} other {# players}}",
+      "deckType": "Deck",
+      "deckStandard": "Standard (1–10, {count} each)",
+      "deckRandom": "Random",
+      "turnSeconds": "Turn time",
+      "unlimited": "No limit",
+      "seconds": "{count, plural, one {# second} other {# seconds}}",
+      "cardRange": "Card values",
+      "winScore": "Win at",
+      "winScoreValue": "First to {count} pts",
+      "answerSeconds": "Answer time",
+      "penalty": "Wrong answer penalty",
+      "penaltyTip": "Points a player loses after buzzing in and answering wrong or running out of time",
+      "lockSeconds": "Lockout time",
+      "lockSecondsTip": "After a failed answer, the player can't buzz in again for this long",
+      "roundSeconds": "Round time",
+      "timeoutPenalty": "Round timeout penalty",
+      "timeoutPenaltyTip": "Points every player loses when the round timer runs out with no correct answer (needs a round time)",
+      "streakBonus": "Streak bonus",
+      "streakNone": "None",
+      "streakTimes": "Streak × {n} pts",
+      "scoreFloor": "Minimum score",
+      "scoreFloorTip": "Scores can't drop below this value",
+      "scoreFloorNone": "None",
+      "points": "{count, plural, one {# pt} other {# pts}}",
+      "unlockOnNewRound": "Unlock each round",
+      "unlockOnNewRoundTip": "When on, all lockouts clear when a new round starts",
+      "on": "On",
+      "off": "Off",
+      "noPenalty": "None",
+      "penaltyValue": "−{count, plural, one {# pt} other {# pts}}"
+    },
+    "players": {
+      "title": "Players",
+      "titleWithCount": "Players ({count})",
+      "you": "(you)",
+      "youBadge": "You",
+      "host": "Host",
+      "ready": "Ready",
+      "notReady": "Not ready",
+      "kick": "Remove {name}",
+      "addBot": "Add a bot",
+      "waitingForPlayers": "Waiting for other players to join",
+      "notReadyCount": "{count, plural, one {# player isn’t} other {# players aren’t}} ready yet",
+      "waitingForHost": "Waiting for the host to start",
+      "start": "Start game",
+      "cancelReady": "Not ready",
+      "getReady": "Ready"
+    },
+    "chat": {
+      "title": "Chat",
+      "empty": "Say something to start chatting",
+      "label": "Message",
+      "placeholder": "Say something...",
+      "send": "Send"
+    },
+    "classic": {
+      "discardOne": "Tap 1 card to discard",
+      "yourTurn": "Your turn",
+      "leaveDescription": "You'll leave the current game.",
+      "deckLeft": "Classic · <n>{count}</n> left in deck",
+      "opponents": "Opponents",
+      "theirTurn": "Turn",
+      "last": "Last",
+      "opponentStats": "<b>{score}</b> pts · {cards, plural, one {# card} other {# cards}}",
+      "waitingFor": "Waiting for {name}",
+      "waitingForOthers": "Waiting for other players",
+      "score": "Score",
+      "finalRound": "Final",
+      "timeLeft": "{count, plural, one {# second} other {# seconds}} left in this turn",
+      "handFull": "Too many cards. Tap 1 card to discard.",
+      "discardCard": "Discard {value}",
+      "placeholder": "Tap your cards to make an equation that equals 24",
+      "placeholderWaiting": "You can build an equation on your turn",
+      "scoring": "Scoring",
+      "play": "Play"
+    },
+    "buzzer": {
+      "locked": "Locked out",
+      "answering": "<b>{name}</b> is answering",
+      "answeringName": "{name} is answering",
+      "answeringStatus": "Answering",
+      "somePlayer": "A player",
+      "waiting": "Waiting...",
+      "buzz": "Buzz!",
+      "noSolution": {
+        "vote": "No solution",
+        "voted": "Voted",
+        "voteShort": "No solution?",
+        "votedShort": "Voted",
+        "ariaLabel": "{label}, {votes} of {total} votes"
+      },
+      "waitingForAnswer": "Waiting for the answer...",
+      "pointsUnit": "{count, plural, one {pt} other {pts}}",
+      "paused": "Paused",
+      "leaveTitle": "Leave the room?",
+      "leaveDescription": "You'll leave the current game. Are you sure?",
+      "round": "Round {round}",
+      "roundRich": "Round <n>{round}</n>",
+      "cardsComing": "Shared cards coming up",
+      "correct": "Correct! +{points, plural, one {# pt} other {# pts}}",
+      "correctWithStreak": "Correct! +{points, plural, one {# pt} other {# pts}} (+{streak} streak)",
+      "wrong": "Wrong, −{points, plural, one {# pt} other {# pts}}",
+      "roundTimeout": "Time's up! No one got it, so everyone loses {points, plural, one {# pt} other {# pts}}"
+    },
+    "gameOver": {
+      "title": "Game over",
+      "penaltyTitle": "Final count",
+      "penaltyDescription": "The deck ran out! The lowest hand total wins (Joker = −20).",
+      "totalScore": "Total score",
+      "newBest": "New high score!",
+      "ranks": {
+        "first": "1st place",
+        "second": "2nd place",
+        "third": "3rd place"
+      },
+      "score": "<b>{score}</b> {score, plural, one {pt} other {pts}}",
+      "backToRoom": "Back to room",
+      "home": "Home",
+      "playAgain": "Play again"
+    },
+    "editRoom": {
+      "title": "Edit room",
+      "save": "Save"
+    },
+    "reconnect": {
+      "reconnecting": "Connection lost. Reconnecting...",
+      "disconnected": "Disconnected from the server",
+      "reconnectingHint": "Please wait and don't close this page.",
+      "disconnectedHint": "Couldn't reconnect. The game has ended.",
+      "backToLobby": "Back to lobby"
+    },
+    "kick": {
+      "title": "Remove this player?",
+      "description": "This player will be removed from the room.",
+      "confirm": "Remove"
     }
   },
   "RoundHistory": {

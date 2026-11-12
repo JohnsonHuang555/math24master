@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Hourglass, Lock, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type BuzzerButtonProps = {
   isLocked: boolean;
@@ -30,6 +31,7 @@ const BuzzerButton = ({
   onBuzz,
 }: BuzzerButtonProps) => {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Multiplayer.buzzer');
 
   if (isCurrentAnswerer) return null;
 
@@ -45,7 +47,7 @@ const BuzzerButton = ({
         className={`${BOX_CLASS} border-2 border-danger bg-danger-tint text-xl font-extrabold text-danger-ink`}
       >
         <Lock aria-hidden className="h-6 w-6" />
-        鎖定中
+        {t('locked')}
         <span className="font-display text-[26px]">{lockRemaining}s</span>
         <div
           aria-hidden
@@ -70,7 +72,10 @@ const BuzzerButton = ({
           {Array.from(answeringPlayerName.trim())[0] ?? '?'}
         </span>
         <span className="min-w-0 truncate">
-          <strong>{answeringPlayerName}</strong> 作答中
+          {t.rich('answering', {
+            name: answeringPlayerName,
+            b: chunks => <strong>{chunks}</strong>,
+          })}
         </span>
       </div>
     );
@@ -84,7 +89,7 @@ const BuzzerButton = ({
         className={`${BOX_CLASS} bg-line text-xl font-extrabold text-ink-2 shadow-[0_5px_0_0_var(--line-strong)]`}
       >
         <Hourglass aria-hidden className="h-6 w-6" />
-        等待中...
+        {t('waiting')}
       </div>
     );
   }
@@ -113,7 +118,7 @@ const BuzzerButton = ({
       className={`${BOX_CLASS} cursor-pointer bg-primary text-2xl font-extrabold text-primary-foreground shadow-[0_6px_0_0_var(--primary-edge)] transition-transform duration-[90ms] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus active:translate-y-1.5`}
     >
       <Zap aria-hidden className="h-7 w-7 fill-current" />
-      搶答！
+      {t('buzz')}
     </motion.button>
   );
 };

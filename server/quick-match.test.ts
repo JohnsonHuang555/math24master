@@ -58,7 +58,7 @@ describe('快速配對', () => {
     const bots = room.players.filter(p => p.isBot);
     expect(bots).toHaveLength(2);
     expect(bots.every(b => b.botDifficulty === 'normal')).toBe(true);
-    expect(new Set(bots.map(b => b.name)).size).toBe(2);
+    expect(bots.map(b => b.name)).toEqual(['bot:normal:1', 'bot:normal:2']);
     expect(room.quickMatchPending).toBe(false);
     expect(room.players.every(p => p.isReady)).toBe(true);
     // 已經開局過的房間不會再被配對到
@@ -114,5 +114,27 @@ describe('快速配對', () => {
     game.leaveRoom('p1');
 
     expect(game.getCurrentRoom('r1')).toBeUndefined();
+  });
+});
+
+describe('電腦玩家的名稱', () => {
+  it('名稱是代碼，所有電腦依序編號，移除後補回最小的空號', () => {
+    game.createQuickMatchRoom('r1', 'p1', '小明');
+    const add = (difficulty: 'easy' | 'normal' | 'hard') => {
+      const result = game.addBotToRoom('r1', difficulty);
+      return result.success ? result.room!.players.at(-1)! : null;
+    };
+
+    const first = add('normal')!;
+    const second = add('normal')!;
+    expect([first.name, second.name]).toEqual(['bot:normal:1', 'bot:normal:2']);
+    expect(add('hard')!.name).toBe('bot:hard:3');
+
+    game.removePlayer('r1', first.id);
+    expect(
+      game.getCurrentRoom('r1')!.players.some(p => p.id === first.id),
+    ).toBe(false);
+    // 房間上限 4 人：小明、電腦 2、電腦 3，再加一個補回 1 號
+    expect(add('easy')!.name).toBe('bot:easy:1');
   });
 });

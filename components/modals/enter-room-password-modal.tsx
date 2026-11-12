@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,11 +26,13 @@ const EnterRoomPasswordModal = ({
   closeDisabled,
 }: EnterRoomPasswordModalProps) => {
   const [password, setPassword] = useState('');
+  const t = useTranslations('Multiplayer.roomPassword');
+  const tCommon = useTranslations('Common');
 
   const onKeyDown = (e: any) => {
     if (e.keyCode === 13) {
       if (!password) {
-        toast.warning('請輸入房間密碼');
+        toast.warning(t('required'));
         return;
       }
       onSubmit(password);
@@ -47,16 +50,16 @@ const EnterRoomPasswordModal = ({
     >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>房間密碼</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="room-name" className="text-right">
-              密碼
+              {t('label')}
             </Label>
             <Input
               id="password"
-              placeholder="請輸入房間密碼"
+              placeholder={t('placeholder')}
               className="col-span-3"
               onChange={e => setPassword(e.target.value)}
               onKeyDown={onKeyDown}
@@ -66,20 +69,20 @@ const EnterRoomPasswordModal = ({
         <DialogFooter>
           {!closeDisabled && (
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
-              取消
+              {tCommon('cancel')}
             </Button>
           )}
           <Button
             type="submit"
             onClick={() => {
               if (!password) {
-                toast.warning('請輸入房間密碼');
+                toast.warning(t('required'));
                 return;
               }
               onSubmit(password);
             }}
           >
-            確定
+            {tCommon('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

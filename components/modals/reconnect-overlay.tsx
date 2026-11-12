@@ -1,6 +1,7 @@
 'use client';
 
 import { RefreshCw, WifiOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
 
 /** 斷線重連遮罩：重連中顯示轉圈（reduced-motion 不轉），失敗時提供回到大廳 */
 export function ReconnectOverlay({ status, onLeave }: Props) {
+  const t = useTranslations('Multiplayer.reconnect');
   if (status === 'connected') return null;
 
   const isReconnecting = status === 'reconnecting';
@@ -39,14 +41,14 @@ export function ReconnectOverlay({ status, onLeave }: Props) {
           )}
         </span>
         <p id="reconnect-title" className="text-xl font-extrabold text-ink">
-          {isReconnecting ? '連線中斷，正在嘗試重新連線...' : '已與伺服器斷線'}
+          {isReconnecting ? t('reconnecting') : t('disconnected')}
         </p>
         <p className="text-[15px] text-ink-2">
-          {isReconnecting ? '請稍候，勿關閉此頁面' : '無法重新連線，遊戲已結束'}
+          {isReconnecting ? t('reconnectingHint') : t('disconnectedHint')}
         </p>
         {!isReconnecting && (
           <Button variant="tactile" className="mt-3 w-full" onClick={onLeave}>
-            回到大廳
+            {t('backToLobby')}
           </Button>
         )}
       </div>

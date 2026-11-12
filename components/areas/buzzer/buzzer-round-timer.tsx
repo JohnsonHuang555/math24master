@@ -1,6 +1,7 @@
 'use client';
 
 import { AlarmClock, Pause, Timer } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 type BuzzerRoundTimerProps = {
@@ -18,6 +19,7 @@ const BuzzerRoundTimer = ({
   roundRemaining,
   isPaused,
 }: BuzzerRoundTimerProps) => {
+  const t = useTranslations('Multiplayer.buzzer');
   if (roundSeconds === null || roundRemaining === null) return null;
 
   const ratio = Math.max(0, Math.min(1, roundRemaining / roundSeconds));
@@ -41,7 +43,7 @@ const BuzzerRoundTimer = ({
     >
       <Icon aria-hidden className="h-4 w-4" />
       {isPaused ? (
-        '暫停'
+        t('paused')
       ) : (
         <span className="font-display text-[15px] tabular-nums">
           {minutes}:{seconds}

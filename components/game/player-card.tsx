@@ -83,11 +83,13 @@ export function PlayerCard({
             isDimmed && !isSelf && 'text-ink-2',
           )}
         >
-          <span className="truncate">{name}</span>
+          {/* 名字至少留幾個字，不要被右側的狀態 pill 整個擠掉 */}
+          <span className="min-w-[2.5em] truncate">{name}</span>
           {isHost && (
             <Crown aria-hidden className="h-4 w-4 shrink-0 text-amber-ink" />
           )}
-          {isSelf && selfLabel && (
+          {/* 有狀態 pill 時空間不夠，「（你）」交給整張卡的主色底標示 */}
+          {isSelf && selfLabel && !status && (
             <span className="shrink-0 font-semibold text-primary-ink">
               {selfLabel}
             </span>

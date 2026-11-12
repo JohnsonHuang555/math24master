@@ -9,6 +9,7 @@ import {
   CircleCheck,
   CircleX,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { RuleModal } from '@/components/modals/rule-modal';
 import {
   AlertDialog,
@@ -20,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate } from '@/i18n/navigation';
 import { NumberCard } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
@@ -38,6 +40,12 @@ type Props = { roomId: string };
 export default function BuzzerGameBoard({ roomId }: Props) {
   const hardNavigate = useHardNavigate();
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Multiplayer.buzzer');
+  const tRoom = useTranslations('Multiplayer.room');
+  const tLobby = useTranslations('Multiplayer.lobby');
+  const tCommon = useTranslations('Common');
+  const tLeave = useTranslations('GameUI.leave');
+  const playerDisplayName = usePlayerName();
 
   const {
     publicCards,
@@ -122,6 +130,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
   const answeringPlayer = roomInfo.players.find(
     p => p.id === currentAnswerPlayerId,
   );
+  const answeringPlayerName = answeringPlayer
+    ? playerDisplayName(answeringPlayer.name)
+    : undefined;
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
@@ -132,13 +143,13 @@ export default function BuzzerGameBoard({ roomId }: Props) {
       <AlertDialog open={isOpenLeaveDialog} onOpenChange={setIsOpenLeaveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>離開房間？</AlertDialogTitle>
+            <AlertDialogTitle>{t('leaveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              離開後將退出目前遊戲，確定要離開嗎？
+              {t('leaveDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 sessionStorage.removeItem('reconnectToken');
@@ -146,7 +157,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
                 hardNavigate('/multiple-play');
               }}
             >
-              離開
+              {tLeave('leave')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -166,7 +177,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-ink/60 backdrop-blur-sm"
           >
             <span className="text-base font-bold text-white">
-              第 {roundNumber} 回合
+              {t('round', { round: roundNumber })}
             </span>
             <span className="flex h-40 w-40 items-center justify-center rounded-full bg-surface shadow-[0_0_0_10px_rgba(255,255,255,0.18)]">
               <motion.span
@@ -179,7 +190,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
                 {countdownValue}
               </motion.span>
             </span>
-            <span className="text-[15px] text-white">公共牌即將出現</span>
+            <span className="text-[15px] text-white">{t('cardsComing')}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -208,8 +219,13 @@ export default function BuzzerGameBoard({ roomId }: Props) {
               <CircleX aria-hidden className="h-5 w-5" />
             )}
             {lastAnswerResult.isCorrect
-              ? `答對！+${lastAnswerResult.scoreDelta} 分${lastAnswerResult.streakBonus > 0 ? `（+${lastAnswerResult.streakBonus} 連勝）` : ''}`
-              : `答錯，−${Math.abs(lastAnswerResult.scoreDelta)} 分`}
+              ? lastAnswerResult.streakBonus > 0
+                ? t('correctWithStreak', {
+                    points: lastAnswerResult.scoreDelta,
+                    streak: lastAnswerResult.streakBonus,
+                  })
+                : t('correct', { points: lastAnswerResult.scoreDelta })
+              : t('wrong', { points: Math.abs(lastAnswerResult.scoreDelta) })}
           </motion.div>
         )}
       </AnimatePresence>
@@ -229,10 +245,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             className="fixed inset-x-0 top-5 z-50 mx-auto flex w-fit max-w-[calc(100%-32px)] items-center gap-2 rounded-full bg-ink px-5 py-3 text-[15px] font-extrabold text-white shadow-[0_12px_32px_rgba(16,36,33,0.18)]"
           >
             <AlarmClock aria-hidden className="h-5 w-5 shrink-0" />
-            時間到！沒有人答對，全體扣 {
-              roundTimeoutNotification.penaltyPoints
-            }{' '}
-            分
+            {t('roundTimeout', {
+              points: roundTimeoutNotification.penaltyPoints,
+            })}
           </motion.div>
         )}
       </AnimatePresence>
@@ -242,14 +257,18 @@ export default function BuzzerGameBoard({ roomId }: Props) {
         <button
           type="button"
           onClick={() => setIsOpenLeaveDialog(true)}
-          aria-label="離開房間"
+          aria-label={tRoom('leave')}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
         <span className="flex-1 text-sm font-bold whitespace-nowrap text-ink">
-          第 <span className="font-display text-[17px]">{roundNumber}</span>{' '}
-          回合
+          {t.rich('roundRich', {
+            round: roundNumber,
+            n: chunks => (
+              <span className="font-display text-[17px]">{chunks}</span>
+            ),
+          })}
         </span>
         <BuzzerRoundTimer
           roundSeconds={roundSeconds}
@@ -266,7 +285,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
         <button
           type="button"
           onClick={() => setIsOpenRuleModal(true)}
-          aria-label="遊戲規則"
+          aria-label={tLobby('rules')}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-sunken"
         >
           <BookOpen className="h-5 w-5" />
@@ -297,7 +316,9 @@ export default function BuzzerGameBoard({ roomId }: Props) {
                 className="h-2 w-2 rounded-full bg-primary"
               />
               <span className="text-sm font-bold text-primary-ink">
-                {answeringPlayer?.name ?? '玩家'} 作答中
+                {t('answeringName', {
+                  name: answeringPlayerName ?? t('somePlayer'),
+                })}
               </span>
               <span
                 className={`font-display text-xl font-extrabold tabular-nums ${
@@ -339,7 +360,7 @@ export default function BuzzerGameBoard({ roomId }: Props) {
             isBuzzerOpen={isBuzzerOpen}
             isAnswering={isAnswering}
             isCurrentAnswerer={false}
-            answeringPlayerName={answeringPlayer?.name}
+            answeringPlayerName={answeringPlayerName}
             onBuzz={() => buzzIn(roomId)}
           />
         )}

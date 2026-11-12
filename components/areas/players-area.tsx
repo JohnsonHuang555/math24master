@@ -1,10 +1,12 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Bot, CircleCheck, Crown, Info, UserMinus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   InviteFriendsButton,
   QuickMatchAction,
 } from '@/components/areas/quick-match-panel';
 import { Button } from '@/components/ui/button';
+import { usePlayerName } from '@/hooks/usePlayerName';
 import { cn } from '@/lib/utils';
 import { Player } from '@/models/Player';
 
@@ -18,12 +20,6 @@ type PlayersAreaProps = {
   canAddBot?: boolean;
   /** 快速配對倒數中：主要按鈕換成配對倒數與「直接開始」 */
   quickMatch?: { secondsLeft: number | null; onStartNow: () => void };
-};
-
-const BOT_LABELS: Record<string, string> = {
-  easy: '簡單',
-  normal: '普通',
-  hard: '困難',
 };
 
 const PILL_CLASS =
@@ -40,19 +36,23 @@ const PlayersArea = ({
   quickMatch,
 }: PlayersAreaProps) => {
   const reduceMotion = useReducedMotion();
+  const t = useTranslations('Multiplayer.players');
+  const tBot = useTranslations('Multiplayer.bot');
+  const playerDisplayName = usePlayerName();
 
   return (
     <section
-      aria-label="玩家"
+      aria-label={t('title')}
       className="flex h-full flex-1 flex-col md:rounded-[20px] md:border md:border-line md:bg-surface md:p-4"
     >
       <h2 className="mb-3 hidden text-base font-extrabold text-ink md:block">
-        玩家（{players.length}）
+        {t('titleWithCount', { count: players.length })}
       </h2>
 
       <ul className="flex flex-1 flex-col gap-2">
         {players.map((player, i) => {
           const isSelf = player.id === currentPlayer?.id;
+          const name = playerDisplayName(player.name);
           return (
             <motion.li
               key={player.id}
@@ -90,10 +90,10 @@ const PlayersArea = ({
 
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex items-center gap-1 text-[15px] font-bold text-ink">
-                  <span className="truncate">{player.name}</span>
+                  <span className="truncate">{name}</span>
                   {isSelf && (
                     <span className="shrink-0 font-semibold text-primary-ink">
-                      （你）
+                      {t('you')}
                     </span>
                   )}
                   {player.isMaster && (
@@ -103,10 +103,8 @@ const PlayersArea = ({
                     />
                   )}
                 </span>
-                {(player.isMaster || player.isBot) && (
-                  <span className="text-xs text-ink-2">
-                    {player.isMaster ? '房主' : '電腦玩家'}
-                  </span>
+                {player.isMaster && (
+                  <span className="text-xs text-ink-2">{t('host')}</span>
                 )}
               </span>
 
@@ -117,7 +115,7 @@ const PlayersArea = ({
                     'border border-line-strong bg-sunken text-ink',
                   )}
                 >
-                  {BOT_LABELS[player.botDifficulty ?? 'normal']}
+                  {tBot(`levels.${player.botDifficulty ?? 'normal'}`)}
                 </span>
               ) : (
                 !player.isMaster &&
@@ -129,7 +127,7 @@ const PlayersArea = ({
                     )}
                   >
                     <CircleCheck aria-hidden className="h-4 w-4" />
-                    已準備
+                    {t('ready')}
                   </span>
                 ) : (
                   <span
@@ -138,7 +136,7 @@ const PlayersArea = ({
                       'border border-line-strong bg-sunken text-ink-2',
                     )}
                   >
-                    未準備
+                    {t('notReady')}
                   </span>
                 ))
               )}
@@ -149,7 +147,7 @@ const PlayersArea = ({
                   variant="ghost"
                   size="icon"
                   onClick={() => onRemovePlayer(player.id)}
-                  aria-label={`踢除 ${player.name}`}
+                  aria-label={t('kick', { name })}
                   className="h-11 w-11 shrink-0 text-ink-2 hover:bg-danger-tint hover:text-danger-ink"
                 >
                   <UserMinus className="h-5 w-5" />
@@ -164,7 +162,7 @@ const PlayersArea = ({
         <div className="mt-3 flex flex-col gap-1.5 rounded-2xl border-[1.5px] border-dashed border-line-strong p-3">
           <span className="flex items-center gap-1.5 text-sm font-bold text-primary-ink">
             <Bot aria-hidden className="h-4 w-4" />
-            加入電腦玩家
+            {t('addBot')}
           </span>
           <div className="flex gap-1.5">
             {(['easy', 'normal', 'hard'] as const).map(d => (
@@ -174,7 +172,7 @@ const PlayersArea = ({
                 onClick={() => onAddBot(d)}
                 className="h-11 flex-1 rounded-xl border border-line-strong bg-surface text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-primary-tint"
               >
-                {BOT_LABELS[d]}
+                {tBot(`levels.${d}`)}
               </button>
             ))}
           </div>
@@ -216,18 +214,19 @@ export function WaitingRoomAction({
   /** 優先顯示的狀態（例如開始倒數） */
   notice?: React.ReactNode;
 }) {
+  const t = useTranslations('Multiplayer.players');
   const allPlayersReady = players.length > 1 && players.every(p => p.isReady);
   const notReadyCount = players.filter(p => !p.isReady).length;
   const hint =
     notice ??
     (currentPlayer?.isMaster
       ? players.length < 2
-        ? '等待其他玩家加入'
+        ? t('waitingForPlayers')
         : !allPlayersReady
-          ? `尚有 ${notReadyCount} 位玩家未準備`
+          ? t('notReadyCount', { count: notReadyCount })
           : null
       : currentPlayer?.isReady
-        ? '等待房主開始遊戲'
+        ? t('waitingForHost')
         : null);
 
   return (
@@ -248,15 +247,15 @@ export function WaitingRoomAction({
           onClick={onStart}
           disabled={!allPlayersReady}
         >
-          開始遊戲
+          {t('start')}
         </Button>
       ) : currentPlayer?.isReady ? (
         <Button variant="tactileOutline" className="w-full" onClick={onReady}>
-          取消準備
+          {t('cancelReady')}
         </Button>
       ) : (
         <Button variant="tactile" className="w-full" onClick={onReady}>
-          準備遊戲
+          {t('getReady')}
         </Button>
       )}
     </div>

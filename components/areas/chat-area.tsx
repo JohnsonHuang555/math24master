@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSystemMessageText } from '@/i18n/server-messages';
 import { cn } from '@/lib/utils';
 import { Message } from '@/models/Message';
@@ -20,6 +21,7 @@ const ChatArea = ({
   const [message, setMessage] = useState('');
   const messageRef = useRef<HTMLDivElement>(null);
   const systemMessageText = useSystemMessageText();
+  const t = useTranslations('Multiplayer.chat');
 
   useEffect(() => {
     handleScrollMessages();
@@ -46,14 +48,14 @@ const ChatArea = ({
 
   return (
     <section
-      aria-label="聊天室"
+      aria-label={t('title')}
       className={cn(
         'flex min-h-[220px] flex-1 flex-col md:min-h-[150px] md:rounded-[20px] md:border md:border-line md:bg-surface md:p-4',
         className,
       )}
     >
       <h2 className="mb-3 hidden text-base font-extrabold text-ink md:block">
-        聊天室
+        {t('title')}
       </h2>
 
       <div
@@ -61,9 +63,7 @@ const ChatArea = ({
         className="mb-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto"
       >
         {messages.length === 0 ? (
-          <p className="py-4 text-center text-sm text-ink-2">
-            說點什麼開始聊天吧
-          </p>
+          <p className="py-4 text-center text-sm text-ink-2">{t('empty')}</p>
         ) : (
           messages.map((msgObj, index) => {
             if (msgObj.isSystem) {
@@ -109,21 +109,21 @@ const ChatArea = ({
 
       <div className="flex gap-2">
         <label htmlFor="chat-input" className="sr-only">
-          訊息
+          {t('label')}
         </label>
         <input
           id="chat-input"
           onKeyDown={onKeyDown}
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder="說點什麼..."
+          placeholder={t('placeholder')}
           className="h-12 min-w-0 flex-1 rounded-full border-[1.5px] border-line-strong bg-surface px-4 text-base text-ink placeholder:text-ink-2 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-focus"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={!message.trim()}
-          aria-label="送出"
+          aria-label={t('send')}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-ink text-white transition-opacity disabled:opacity-40"
         >
           <Send className="h-5 w-5" />

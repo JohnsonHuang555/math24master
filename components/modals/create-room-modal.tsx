@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -51,23 +52,25 @@ const CreateRoomModal = ({
   const [password, setPassword] = useState('');
   const [isSetPassword, setIsSetPassword] = useState(false);
   const [gameType, setGameType] = useState<GameType>('buzzer');
+  const t = useTranslations('Multiplayer.createRoom');
+  const tCommon = useTranslations('Common');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent sheet className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>建立房間</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           {/* 房間名稱 */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="room-name" className="text-right">
-              房間名稱
+              {t('roomName')}
             </Label>
             <Input
               id="room-name"
-              placeholder="請輸入房間名稱"
+              placeholder={t('roomNamePlaceholder')}
               className="col-span-3"
               onChange={e => setRoomName(e.target.value)}
             />
@@ -76,14 +79,17 @@ const CreateRoomModal = ({
           {/* 玩家人數 */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="max-players" className="text-right">
-              玩家人數
+              {t('maxPlayers')}
             </Label>
             <Select
               defaultValue={maxPlayers}
               onValueChange={v => setMaxPlayers(v)}
             >
               <SelectTrigger className="col-span-3">
-                <SelectValue id="max-players" placeholder="請選擇玩家人數" />
+                <SelectValue
+                  id="max-players"
+                  placeholder={t('maxPlayersPlaceholder')}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -100,18 +106,21 @@ const CreateRoomModal = ({
           {/* 遊戲類型 */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="game-type" className="text-right">
-              遊戲類型
+              {t('gameType')}
             </Label>
             <Select
               defaultValue={gameType}
               onValueChange={v => setGameType(v as GameType)}
             >
               <SelectTrigger className="col-span-3">
-                <SelectValue id="game-type" placeholder="請選擇遊戲類型" />
+                <SelectValue
+                  id="game-type"
+                  placeholder={t('gameTypePlaceholder')}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="buzzer">搶答模式</SelectItem>
+                  <SelectItem value="buzzer">{t('buzzerMode')}</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -130,14 +139,14 @@ const CreateRoomModal = ({
               htmlFor="allow-password"
               className="col-span-3 text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              是否設定房間密碼
+              {t('setPassword')}
             </label>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <div />
             <Input
               id="room-password"
-              placeholder="請輸入房間密碼"
+              placeholder={t('passwordPlaceholder')}
               className="col-span-3"
               onChange={e => setPassword(e.target.value)}
               disabled={!isSetPassword}
@@ -147,7 +156,7 @@ const CreateRoomModal = ({
 
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            取消
+            {tCommon('cancel')}
           </Button>
           <Button
             type="submit"
@@ -155,7 +164,7 @@ const CreateRoomModal = ({
               onConfirm(roomName, Number(maxPlayers), password, gameType);
             }}
           >
-            確定
+            {tCommon('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
