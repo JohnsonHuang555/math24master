@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { Room } from '@/models/Room';
+import { containsProfanity } from '../lib/profanity';
 import { ErrorCode } from '../models/ErrorCode';
 import { GameMode } from '../models/GameMode';
 import { Message, SystemMessageCode } from '../models/Message';
@@ -468,6 +469,11 @@ const startServer = () => {
         gameType,
         remainSeconds,
       }) => {
+        // 前端已經擋過，這裡再檢查一次，避免直接送 socket 事件繞過
+        if (containsProfanity(playerName ?? '')) {
+          socket.emit(SocketEvent.ErrorMessage, ErrorCode.InappropriateName);
+          return;
+        }
         _leavePreviousRoom(socket, playerId, roomId);
 
         const canJoin = checkCanJoinRoom(roomId, playerId, mode);
@@ -510,6 +516,10 @@ const startServer = () => {
       SocketEvent.QuickMatch,
       ({ playerName }: { playerName: string }) => {
         if (!playerName) return;
+        if (containsProfanity(playerName)) {
+          socket.emit(SocketEvent.ErrorMessage, ErrorCode.InappropriateName);
+          return;
+        }
         const existing = findQuickMatchRoom();
         // 連點兩次「快速開始」：已經在這間房裡就不要重複加入
         if (existing?.players.some(p => p.id === playerId)) {

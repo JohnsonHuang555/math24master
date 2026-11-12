@@ -17,7 +17,8 @@
     "startGame": "開始遊戲",
     "guestLogin": "訪客登入",
     "guestLoginDescription": "輸入暱稱即可上榜，資料儲存於此裝置",
-    "nicknamePlaceholder": "請輸入暱稱（2–12 字）"
+    "nicknamePlaceholder": "請輸入暱稱（2–12 字）",
+    "nicknameInappropriate": "暱稱含有不雅字詞，請換一個"
   },
   "Home": {
     "logoAlt": "24點大師",
@@ -318,7 +319,8 @@
     "MUST_USE_ALL_CARDS": "必須使用全部 4 張公共牌",
     "INVALID_CARDS": "牌組不合法",
     "ANSWER_NOT_24": "答案不等於 24",
-    "ANSWER_TIMEOUT": "作答超時"
+    "ANSWER_TIMEOUT": "作答超時",
+    "INAPPROPRIATE_NAME": "暱稱含有不雅字詞，請換一個"
   },
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "遊戲開始倒數已取消",

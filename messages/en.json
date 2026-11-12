@@ -17,7 +17,8 @@
     "startGame": "Play",
     "guestLogin": "Play as guest",
     "guestLoginDescription": "Pick a nickname to appear on the leaderboard. Your data stays on this device.",
-    "nicknamePlaceholder": "Nickname (2–12 characters)"
+    "nicknamePlaceholder": "Nickname (2–12 characters)",
+    "nicknameInappropriate": "That nickname isn't allowed. Please choose another one."
   },
   "Home": {
     "logoAlt": "Math24 Master",
@@ -318,7 +319,8 @@
     "MUST_USE_ALL_CARDS": "You must use all 4 shared cards.",
     "INVALID_CARDS": "Invalid cards.",
     "ANSWER_NOT_24": "That doesn't equal 24.",
-    "ANSWER_TIMEOUT": "Time's up."
+    "ANSWER_TIMEOUT": "Time's up.",
+    "INAPPROPRIATE_NAME": "That nickname isn't allowed. Please choose another one."
   },
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "Game countdown cancelled.",

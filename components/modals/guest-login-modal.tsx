@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { containsProfanity } from '@/lib/profanity';
 
 type GuestLoginModalProps = {
   isOpen: boolean;
@@ -26,9 +27,11 @@ export function GuestLoginModal({
   const [name, setName] = useState('');
   const t = useTranslations('Common');
   const trimmed = name.trim();
+  const isInappropriate = containsProfanity(trimmed);
+  const canConfirm = trimmed.length >= 2 && !isInappropriate;
 
   const handleConfirm = () => {
-    if (trimmed.length < 2) return;
+    if (!canConfirm) return;
     onConfirm(trimmed);
     setName('');
   };
@@ -48,13 +51,19 @@ export function GuestLoginModal({
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleConfirm()}
+          aria-invalid={isInappropriate}
           autoFocus
         />
+        {isInappropriate && (
+          <p role="alert" className="text-xs font-semibold text-danger-ink">
+            {t('nicknameInappropriate')}
+          </p>
+        )}
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t('cancel')}
           </Button>
-          <Button onClick={handleConfirm} disabled={trimmed.length < 2}>
+          <Button onClick={handleConfirm} disabled={!canConfirm}>
             {t('confirm')}
           </Button>
         </DialogFooter>

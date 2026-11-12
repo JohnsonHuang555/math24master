@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/firebase-admin';
+import { containsProfanity } from '@/lib/profanity';
 import {
   COLLECTION,
   GUEST_ID_RE,
@@ -95,6 +96,12 @@ export async function POST(req: NextRequest) {
     const trimmedName = String(guestName).trim();
     if (trimmedName.length < 2 || trimmedName.length > 12) {
       return NextResponse.json({ error: 'invalid name' }, { status: 400 });
+    }
+    if (containsProfanity(trimmedName)) {
+      return NextResponse.json(
+        { error: 'inappropriate name' },
+        { status: 400 },
+      );
     }
     userId = guestId;
     displayName = trimmedName;
