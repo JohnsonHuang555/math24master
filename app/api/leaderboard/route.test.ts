@@ -46,6 +46,11 @@ async function post(mode: Mode, payload: Record<string, number>) {
   return postReceipt(mode, await receiptFor(mode, payload));
 }
 
+const GUEST = {
+  guestId: 'guest_123e4567-e89b-42d3-a456-426614174000',
+  guestKey: '11111111-2222-4333-8444-555555555555',
+};
+
 function saved(collection: string, id = 'user-1') {
   return store.get(collection)?.get(id);
 }
@@ -98,7 +103,7 @@ describe('POST /api/leaderboard - 成績收據', () => {
 
     currentUser.value = null;
     const res = await postReceipt('classic', receipt, {
-      guestId: 'guest_123e4567-e89b-42d3-a456-426614174000',
+      ...GUEST,
       guestName: '小帳號',
     });
     expect(res.status).toBe(409);
@@ -106,7 +111,7 @@ describe('POST /api/leaderboard - 成績收據', () => {
 
   it('訪客暱稱含不雅字詞時拒絕', async () => {
     currentUser.value = null;
-    const guest = { guestId: 'guest_123e4567-e89b-42d3-a456-426614174000' };
+    const guest = GUEST;
     const receipt = await receiptFor('classic', { score: 30 });
 
     const bad = await postReceipt('classic', receipt, {
@@ -191,5 +196,75 @@ describe('POST /api/leaderboard - 既有模式', () => {
     await post('quickmath', { seconds: 35.5 });
     await post('quickmath', { seconds: 50 });
     expect(saved('leaderboard_quickmath')).toMatchObject({ seconds: 35.5 });
+  });
+});
+
+describe('POST /api/leaderboard - 訪客密鑰', () => {
+  beforeEach(() => {
+    currentUser.value = null;
+  });
+
+  const submit = async (extra: Record<string, unknown>, score = 30) =>
+    postReceipt('classic', await receiptFor('classic', { score }), {
+      guestName: '小明',
+      ...extra,
+    });
+
+  it('沒有密鑰不能用訪客身分上榜', async () => {
+    const res = await submit({ guestId: GUEST.guestId });
+    expect(res.status).toBe(401);
+  });
+
+  it('第一次上榜登記密鑰，之後要用同一把密鑰', async () => {
+    expect((await submit(GUEST)).status).toBe(200);
+    expect((await submit(GUEST, 40)).status).toBe(200);
+    expect(saved('leaderboard_classic', GUEST.guestId)).toMatchObject({
+      score: 40,
+    });
+  });
+
+  it('別人拿公開的 guestId 加上自己的密鑰，不能蓋掉紀錄', async () => {
+    await submit(GUEST);
+
+    const res = await submit(
+      {
+        guestId: GUEST.guestId,
+        guestKey: '99999999-8888-4777-8666-555555555555',
+        guestName: '冒牌貨',
+      },
+      66,
+    );
+
+    expect(res.status).toBe(403);
+    expect(saved('leaderboard_classic', GUEST.guestId)).toMatchObject({
+      displayName: '小明',
+      score: 30,
+    });
+  });
+
+  it('密鑰被拒時不會用掉這張收據，換回正確密鑰還能上榜', async () => {
+    await submit(GUEST);
+    const receipt = await receiptFor('classic', { score: 50 });
+    const wrong = await postReceipt('classic', receipt, {
+      guestId: GUEST.guestId,
+      guestKey: '99999999-8888-4777-8666-555555555555',
+      guestName: '小明',
+    });
+    expect(wrong.status).toBe(403);
+
+    const right = await postReceipt('classic', receipt, {
+      ...GUEST,
+      guestName: '小明',
+    });
+    expect(right.status).toBe(200);
+  });
+
+  it('登入 Google 的玩家不需要密鑰', async () => {
+    currentUser.value = {
+      id: 'user-1',
+      name: '測試玩家',
+      email: 'p@example.com',
+    };
+    expect((await post('classic', { score: 30 })).status).toBe(200);
   });
 });

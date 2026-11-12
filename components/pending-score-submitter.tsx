@@ -9,7 +9,7 @@ import { usePendingScoreStore } from '@/stores/pending-score-store';
 
 export function PendingScoreSubmitter() {
   const { data: session } = useSession();
-  const { guestId, guestName } = useGuestStore();
+  const { guestId, guestName, guestKey } = useGuestStore();
   const { pendingScore, clearPendingScore } = usePendingScoreStore();
   const submittedRef = useRef(false);
   const t = useTranslations('LoginPrompt');
@@ -30,6 +30,7 @@ export function PendingScoreSubmitter() {
           receipt: pendingScore.receipt,
           guestId,
           guestName,
+          guestKey,
         };
 
     fetch('/api/leaderboard', {
@@ -47,7 +48,15 @@ export function PendingScoreSubmitter() {
       .catch(() => {
         submittedRef.current = false;
       });
-  }, [session, guestId, guestName, pendingScore, clearPendingScore, t]);
+  }, [
+    session,
+    guestId,
+    guestName,
+    guestKey,
+    pendingScore,
+    clearPendingScore,
+    t,
+  ]);
 
   return null;
 }

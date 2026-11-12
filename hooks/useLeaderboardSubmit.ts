@@ -44,7 +44,7 @@ export function useLeaderboardSubmit(
   result: Record<string, number> | null,
 ): LeaderboardSubmitState {
   const { data: session } = useSession();
-  const { guestId, guestName } = useGuestStore();
+  const { guestId, guestName, guestKey } = useGuestStore();
   const { skipLoginPrompt } = useLoginPromptPreferenceStore();
   const { setPendingScore, clearPendingScore } = usePendingScoreStore();
   const [state, setState] = useState<LeaderboardSubmitState>(IDLE);
@@ -111,7 +111,7 @@ export function useLeaderboardSubmit(
     setState({ status: 'submitting' });
     const body = hasGoogle
       ? { mode, receipt }
-      : { mode, receipt, guestId, guestName };
+      : { mode, receipt, guestId, guestName, guestKey };
     postJson<{ updated?: boolean }>('/api/leaderboard', body)
       .then(data => {
         // 這張收據已經上榜，pending 裡如果是同一張就不用再送
@@ -127,6 +127,7 @@ export function useLeaderboardSubmit(
     hasGoogle,
     guestId,
     guestName,
+    guestKey,
     mode,
     skipLoginPrompt,
     setPendingScore,

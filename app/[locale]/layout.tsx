@@ -11,6 +11,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AchievementToaster } from '@/components/achievement-toaster';
 import { GoogleAnalytics } from '@/components/analytics';
+import { GuestKeyRegistrar } from '@/components/guest-key-registrar';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
 import { SessionProvider } from '@/components/session-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -141,6 +142,7 @@ export default async function RootLayout({
           <SessionProvider>
             <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>
             <PendingScoreSubmitter />
+            <GuestKeyRegistrar />
           </SessionProvider>
           <AchievementToaster />
         </NextIntlClientProvider>
