@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
 import { SystemMessageCode } from '@/models/Message';
@@ -95,13 +96,14 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
+    // 之前存的暱稱如果含不雅字詞，當作沒設定，請玩家重新輸入
     const stored = localStorage.getItem('playerName') || '';
-    if (stored) {
+    if (stored && !containsProfanity(stored)) {
       setPlayerName(stored);
       return;
     }
     const authName = session?.user?.name ?? guestName ?? '';
-    if (authName) {
+    if (authName && !containsProfanity(authName)) {
       localStorage.setItem('playerName', authName);
       setPlayerName(authName);
     } else {

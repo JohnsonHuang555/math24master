@@ -11,6 +11,8 @@ export enum ErrorCode {
   WrongPassword = 'WRONG_PASSWORD',
   PlayerNotFound = 'PLAYER_NOT_FOUND',
   ReconnectTokenInvalid = 'RECONNECT_TOKEN_INVALID',
+  /** 暱稱含不雅字詞 */
+  InappropriateName = 'INAPPROPRIATE_NAME',
 
   // 開局與回合
   PlayersNotReady = 'PLAYERS_NOT_READY',

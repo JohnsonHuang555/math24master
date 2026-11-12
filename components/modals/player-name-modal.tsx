@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { containsProfanity } from '@/lib/profanity';
 
 type PlayerNameModalProps = {
   defaultValue?: string;
@@ -29,11 +30,15 @@ export function PlayerNameModal({
   const [playerName, setPlayerName] = useState('');
   const t = useTranslations('Multiplayer.playerName');
   const tCommon = useTranslations('Common');
+  const isInappropriate = containsProfanity(playerName);
 
-  const onKeyDown = (e: any) => {
-    if (e.keyCode === 13) {
-      onConfirm(playerName);
-    }
+  const confirm = () => {
+    if (isInappropriate) return;
+    onConfirm(playerName.trim());
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') confirm();
   };
 
   return (
@@ -60,7 +65,16 @@ export function PlayerNameModal({
             defaultValue={defaultValue}
             onChange={e => setPlayerName(e.target.value)}
             onKeyDown={onKeyDown}
+            aria-invalid={isInappropriate}
           />
+          {isInappropriate && (
+            <p
+              role="alert"
+              className="col-span-3 col-start-2 text-xs font-semibold text-danger-ink"
+            >
+              {tCommon('nicknameInappropriate')}
+            </p>
+          )}
         </div>
         <DialogFooter>
           {!closeDisabled && (
@@ -68,7 +82,7 @@ export function PlayerNameModal({
               {tCommon('cancel')}
             </Button>
           )}
-          <Button type="submit" onClick={() => onConfirm(playerName)}>
+          <Button type="submit" onClick={confirm} disabled={isInappropriate}>
             {tCommon('confirm')}
           </Button>
         </DialogFooter>

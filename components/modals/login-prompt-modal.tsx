@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { containsProfanity } from '@/lib/profanity';
 import { useGuestStore } from '@/stores/guest-store';
 
 type View = 'choose' | 'guest';
@@ -38,6 +39,8 @@ export function LoginPromptModal({
   const t = useTranslations('LoginPrompt');
   const tCommon = useTranslations('Common');
   const trimmed = name.trim();
+  const isInappropriate = containsProfanity(trimmed);
+  const canConfirm = trimmed.length >= 2 && !isInappropriate;
 
   const { setGuest } = useGuestStore();
 
@@ -55,7 +58,7 @@ export function LoginPromptModal({
   };
 
   const handleGuestConfirm = () => {
-    if (trimmed.length < 2) return;
+    if (!canConfirm) return;
     setGuest(trimmed);
     setName('');
     setView('choose');
@@ -147,8 +150,14 @@ export function LoginPromptModal({
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleGuestConfirm()}
+              aria-invalid={isInappropriate}
               autoFocus
             />
+            {isInappropriate && (
+              <p role="alert" className="text-xs font-semibold text-danger-ink">
+                {tCommon('nicknameInappropriate')}
+              </p>
+            )}
             <DialogFooter>
               <Button
                 variant="secondary"
@@ -159,10 +168,7 @@ export function LoginPromptModal({
               >
                 {tCommon('back')}
               </Button>
-              <Button
-                onClick={handleGuestConfirm}
-                disabled={trimmed.length < 2}
-              >
+              <Button onClick={handleGuestConfirm} disabled={!canConfirm}>
                 {tCommon('confirm')}
               </Button>
             </DialogFooter>

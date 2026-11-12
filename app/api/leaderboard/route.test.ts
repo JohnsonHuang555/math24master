@@ -104,6 +104,25 @@ describe('POST /api/leaderboard - 成績收據', () => {
     expect(res.status).toBe(409);
   });
 
+  it('訪客暱稱含不雅字詞時拒絕', async () => {
+    currentUser.value = null;
+    const guest = { guestId: 'guest_123e4567-e89b-42d3-a456-426614174000' };
+    const receipt = await receiptFor('classic', { score: 30 });
+
+    const bad = await postReceipt('classic', receipt, {
+      ...guest,
+      guestName: '幹你娘',
+    });
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'inappropriate name' });
+
+    const ok = await postReceipt('classic', receipt, {
+      ...guest,
+      guestName: '小明',
+    });
+    expect(ok.status).toBe(200);
+  });
+
   it('上榜的成績以收據內容為準，不看另外送的 payload', async () => {
     const receipt = await receiptFor('classic', { score: 12 });
     await postReceipt('classic', receipt, { payload: { score: 66 } });

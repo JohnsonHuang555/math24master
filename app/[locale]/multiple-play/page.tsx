@@ -28,6 +28,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
+import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { QUICK_MATCH } from '@/models/Room';
 import { Room } from '@/models/Room';
@@ -151,13 +152,14 @@ export default function MultiplePlayPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
+    // 之前存的暱稱如果含不雅字詞，當作沒設定，請玩家重新輸入
     const stored = localStorage.getItem('playerName') || '';
-    if (stored) {
+    if (stored && !containsProfanity(stored)) {
       setPlayerName(stored);
       return;
     }
     const authName = session?.user?.name ?? guestName ?? '';
-    if (authName) {
+    if (authName && !containsProfanity(authName)) {
       localStorage.setItem('playerName', authName);
       setPlayerName(authName);
     } else {

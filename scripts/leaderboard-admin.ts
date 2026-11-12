@@ -4,7 +4,7 @@
  * 需要 .env.local 裡的 FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY。
  *
  *   npm run leaderboard -- list classic [--limit 20]
- *   npm run leaderboard -- suspicious [classic]
+ *   npm run leaderboard -- suspicious [classic]                 # 也會列出暱稱不雅的紀錄
  *   npm run leaderboard -- delete classic <userId> [<userId> ...]          # 只預覽
  *   npm run leaderboard -- delete classic <userId> [<userId> ...] --yes    # 真的刪除
  *
@@ -20,6 +20,7 @@ import {
   isValidMode,
 } from '../app/api/leaderboard/config';
 import { db } from '../lib/firebase-admin';
+import { containsProfanity } from '../lib/profanity';
 
 type Row = { id: string; data: FirebaseFirestore.DocumentData };
 
@@ -68,6 +69,9 @@ function flagsFor(mode: Mode, data: Record<string, unknown>): string[] {
     data.seconds < 15
   ) {
     flags.push('快答少於 15 秒');
+  }
+  if (containsProfanity(String(data.displayName ?? ''))) {
+    flags.push('暱稱不雅');
   }
   return flags;
 }

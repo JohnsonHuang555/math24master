@@ -17,7 +17,8 @@
     "startGame": "开始游戏",
     "guestLogin": "访客登录",
     "guestLoginDescription": "输入暱称即可上榜，数据保存于此设备",
-    "nicknamePlaceholder": "请输入暱称（2–12 字）"
+    "nicknamePlaceholder": "请输入暱称（2–12 字）",
+    "nicknameInappropriate": "暱称含有不雅字词，请换一个"
   },
   "Home": {
     "logoAlt": "24点大师",
@@ -318,7 +319,8 @@
     "MUST_USE_ALL_CARDS": "必须使用全部 4 张公共牌",
     "INVALID_CARDS": "牌组不合法",
     "ANSWER_NOT_24": "答案不等于 24",
-    "ANSWER_TIMEOUT": "作答超时"
+    "ANSWER_TIMEOUT": "作答超时",
+    "INAPPROPRIATE_NAME": "暱称含有不雅字词，请换一个"
   },
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "游戏开始倒数已取消",
