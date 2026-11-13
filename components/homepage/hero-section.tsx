@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BarChart2, Trophy, Users } from 'lucide-react';
+import { BarChart2, LayoutGrid, Trophy, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
@@ -180,21 +180,32 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
             }}
             className="mt-1.5 flex w-full flex-col gap-3 md:w-auto md:flex-row lg:mt-2.5 lg:gap-3.5"
           >
+            {/* 主按鈕直接進快速試玩（不選模式、不登入）；?from=home 用來區分 GA4 入口 */}
             <Button
               variant="tactile"
-              className="w-full md:w-60 lg:h-[60px] lg:w-auto lg:px-9"
-              onClick={() => hardNavigate('/single-play')}
+              className="w-full md:w-52 lg:h-[60px] lg:w-auto lg:px-9"
+              asChild
             >
-              {t('start')}
+              <Link href="/quick-play?from=home">{t('start')}</Link>
             </Button>
-            <Button
-              variant="tactileOutline"
-              className="w-full gap-2 md:w-60 lg:h-[60px] lg:w-auto lg:px-7 lg:text-lg"
-              onClick={() => hardNavigate('/multiple-play')}
-            >
-              <Users className="h-5 w-5" />
-              {t('multiplayer')}
-            </Button>
+            <div className="grid grid-cols-2 gap-3 md:flex lg:gap-3.5">
+              <Button
+                variant="tactileOutline"
+                className="w-full gap-2 px-3 text-lg md:w-auto md:px-6 lg:h-[60px] lg:px-7"
+                onClick={() => hardNavigate('/single-play')}
+              >
+                <LayoutGrid className="h-5 w-5" />
+                {t('chooseMode')}
+              </Button>
+              <Button
+                variant="tactileOutline"
+                className="w-full gap-2 px-3 text-lg md:w-auto md:px-6 lg:h-[60px] lg:px-7"
+                onClick={() => hardNavigate('/multiple-play')}
+              >
+                <Users className="h-5 w-5" />
+                {t('multiplayer')}
+              </Button>
+            </div>
           </motion.div>
         </div>
       </div>

@@ -13,6 +13,7 @@ const TRANSLATED_PATHS = [
   '/daily-challenge',
   '/guess-number',
   '/multiple-play',
+  '/quick-play',
 ];
 
 /** 不含語系前綴的路徑是否已經翻譯完成，可以讓所有語系版本都被收錄 */

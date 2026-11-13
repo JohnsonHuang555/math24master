@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { fadeVariants } from '@/lib/animation-variants';
+import { isWellFormedExpression } from '@/lib/answer-check';
 import { calculateAnswer, cn } from '@/lib/utils';
 import { NumberCard as NumberCardModel } from '@/models/Player';
 import { SelectedCard } from '@/models/SelectedCard';
@@ -67,6 +68,13 @@ export interface PuzzlePlayAreaProps {
   busyLabel?: string;
   /** 手機在操作列下方、桌機排進操作列（經典模式的跳過換牌） */
   footerSlot?: React.ReactNode;
+  /** 沒組算式就按確認時呼叫；未傳入時沿用「要跳過這題嗎？」確認彈窗 */
+  onEmptySubmit?: () => void;
+  /**
+   * 數字與符號必須交替、括號平衡才顯示即時結果（避免 2、4 連點被算成 24）。
+   * 預設關閉，維持經典與挑戰模式現有的顯示
+   */
+  strictExpression?: boolean;
 }
 
 /**
@@ -95,6 +103,8 @@ export function PuzzlePlayArea({
   busy = false,
   busyLabel,
   footerSlot,
+  onEmptySubmit,
+  strictExpression = false,
 }: PuzzlePlayAreaProps) {
   const t = useTranslations('GameUI.puzzle');
   const tTimer = useTranslations('GameUI.timer');
@@ -112,6 +122,7 @@ export function PuzzlePlayArea({
 
   const livePreview = useMemo(() => {
     if (selectedCards.length === 0) return null;
+    if (strictExpression && !isWellFormedExpression(selectedCards)) return null;
     try {
       const result = calculateAnswer(selectedCards);
       if (typeof result !== 'number' || !isFinite(result)) return null;
@@ -119,7 +130,7 @@ export function PuzzlePlayArea({
     } catch {
       return null;
     }
-  }, [selectedCards]);
+  }, [selectedCards, strictExpression]);
 
   const usedAllCards = selectedNumberOrder.size === currentNumbers.length;
   const isReady =
@@ -130,7 +141,8 @@ export function PuzzlePlayArea({
 
   const handleSubmit = () => {
     if (selectedCards.length === 0) {
-      setShowSkipConfirm(true);
+      if (onEmptySubmit) onEmptySubmit();
+      else setShowSkipConfirm(true);
     } else {
       onSubmit();
     }

@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   trackEvent,
+  trackFirstPuzzleSolved,
   trackGameComplete,
   trackGameStart,
+  trackOnboardingComplete,
+  trackOnboardingExit,
+  trackQuickPlayStart,
   trackShare,
 } from '../analytics';
 
@@ -42,5 +46,53 @@ describe('analytics', () => {
       mode: 'daily',
       outcome: 'copied',
     });
+  });
+
+  it('快速試玩與新手引導事件：snake_case 參數、秒數取整數', () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+
+    trackQuickPlayStart({ source: 'home_hero', isFirstTime: true });
+    trackFirstPuzzleSolved({ step: 1, elapsedMs: 12_499, hintLevel: 0 });
+    trackOnboardingComplete({
+      durationMs: 75_600,
+      hintsUsed: 2,
+      isFirstTime: true,
+    });
+    trackOnboardingExit({
+      step: 2,
+      elapsedMs: -5,
+      reason: 'page_hide',
+      isFirstTime: false,
+    });
+
+    expect(gtag.mock.calls).toEqual([
+      [
+        'event',
+        'quick_play_start',
+        { source: 'home_hero', is_first_time: true },
+      ],
+      [
+        'event',
+        'first_puzzle_solved',
+        { step: 1, elapsed_sec: 12, hint_level: 0 },
+      ],
+      [
+        'event',
+        'onboarding_complete',
+        { duration_sec: 76, hints_used: 2, is_first_time: true },
+      ],
+      [
+        'event',
+        'onboarding_exit',
+        {
+          step: 2,
+          elapsed_sec: 0,
+          reason: 'page_hide',
+          is_first_time: false,
+          transport_type: 'beacon',
+        },
+      ],
+    ]);
   });
 });

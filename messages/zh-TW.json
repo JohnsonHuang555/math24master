@@ -28,6 +28,7 @@
     "title": "你能用 4 張牌<br></br>算出 <highlight>24</highlight> 嗎？",
     "subtitle": "利用 4 張數字牌，透過加、減、乘、除與括號，組合出等於 24 的算式",
     "start": "立即開始",
+    "chooseMode": "選擇模式",
     "multiplayer": "多人對戰",
     "moreModes": {
       "title": "更多遊戲",
@@ -362,6 +363,11 @@
       "title": "心算練習遊戲 - 心算快答限時挑戰 | 24點大師",
       "description": "10 題四則運算限時快答，答錯罰時、答對過關。練習心算速度，挑戰全球排行榜。"
     },
+    "quickPlay": {
+      "name": "快速試玩",
+      "title": "24點快速試玩 - 3 題馬上上手 | 24點大師",
+      "description": "不用登入、不用選模式，馬上玩 3 題24點，從簡單題開始，一步步學會用加減乘除湊出 24。"
+    },
     "guessNumber": {
       "name": "猜數字",
       "title": "猜數字推理遊戲 - 線上免費玩 | 24點大師",
@@ -673,6 +679,45 @@
     "submitAnswer": "送出答案",
     "submit": "送出",
     "correct": "答對！"
+  },
+  "QuickPlay": {
+    "title": "快速試玩",
+    "progress": "第 <n>{current}</n> / {total} 題",
+    "progressPlain": "第 {current} / {total} 題",
+    "correct": "第 {step} 題答對！",
+    "fixHint": "調整算式後再按確認",
+    "errors": {
+      "EMPTY": "先點數字牌和符號組成算式",
+      "NOT_ALL_CARDS": "4 張牌都要用到",
+      "MALFORMED": "算式不完整，數字之間要放運算符號",
+      "NOT_24": "算出來是 {value}，不是 24"
+    },
+    "tips": {
+      "title": "怎麼玩",
+      "step1": "點數字牌，放進算式",
+      "step2": "點 + − × ÷ 或括號",
+      "step3": "4 張牌都用上、等於 24 就按確認",
+      "dismiss": "知道了",
+      "close": "關閉操作提示"
+    },
+    "hint": {
+      "button": "提示",
+      "reveal": "看答案",
+      "title": "提示",
+      "operators": "會用到"
+    },
+    "result": {
+      "eyebrowFirst": "新手挑戰完成",
+      "eyebrow": "3 題全部完成",
+      "timeLabel": "總耗時",
+      "solved": "完成題數",
+      "solvedValue": "{count}/{total}",
+      "hintsUsed": "使用提示",
+      "daily": "挑戰今日題目",
+      "dailyDone": "查看今日挑戰",
+      "explore": "探索其他模式",
+      "retry": "再玩一次"
+    }
   },
   "Daily": {
     "title": "每日挑戰",
