@@ -38,7 +38,10 @@ const now = () =>
  * 快速試玩／新手引導：三題、不用登入、不寫入統計、成就與排行榜。
  * 第一次玩時題目由簡單到一般，並顯示可關閉的操作提示；完成過後改為三題一般難度。
  */
-export function useQuickPlay() {
+export function useQuickPlay(
+  /** 有傳入時，掛載後自動開第一輪；回傳 GA4 的入口代碼 */
+  initialSource?: () => QuickPlaySource,
+) {
   const [phase, setPhase] = useState<QuickPlayPhase>('loading');
   const [isFirstTime, setIsFirstTime] = useState(true);
   const [puzzles, setPuzzles] = useState<NumberCard[][]>([]);
@@ -112,13 +115,26 @@ export function useQuickPlay() {
     });
   }, []);
 
+  // 掛載時開第一輪。用 ref 防止 Strict Mode 的 setup → cleanup → setup 重複開局，
+  // 讓 quick_play_start 每次進頁只送一次
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!initialSource || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    start(initialSource());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 真正的離開只認明確的瀏覽器事件：關閉分頁／切走 App（pagehide）與上一頁（popstate）。
+  // effect cleanup 只解除監聽、不送事件，因為 Strict Mode 的模擬卸載也會跑 cleanup；
+  // 站內的離開按鈕由頁面呼叫 reportExit('back_button')
   useEffect(() => {
     const onPageHide = () => reportExit('page_hide');
+    const onPopState = () => reportExit('navigate');
     window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('popstate', onPopState);
     return () => {
       window.removeEventListener('pagehide', onPageHide);
-      // 站內換頁（例如瀏覽器返回鍵）會卸載元件
-      reportExit('navigate');
+      window.removeEventListener('popstate', onPopState);
     };
   }, [reportExit]);
 

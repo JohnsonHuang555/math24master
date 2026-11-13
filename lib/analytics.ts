@@ -58,7 +58,7 @@ export function trackGameComplete(
 /** 快速試玩的入口：首頁主按鈕、完成畫面的「再玩一次」、直接開網址 */
 export type QuickPlaySource = 'home_hero' | 'replay' | 'direct';
 
-/** 中途離開的方式：按返回／離開、站內換頁、關閉分頁或切走 App */
+/** 中途離開的方式：按離開按鈕、瀏覽器上一頁、關閉分頁或切走 App */
 export type OnboardingExitReason = 'back_button' | 'navigate' | 'page_hide';
 
 const toSeconds = (ms: number) => Math.max(0, Math.round(ms / 1000));

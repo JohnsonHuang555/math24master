@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, Eye, Lightbulb } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -27,11 +27,7 @@ export default function QuickPlayPage() {
   const router = useRouter();
   const hardNavigate = useHardNavigate();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const game = useQuickPlay();
-
-  useEffect(() => {
-    game.start(sourceFromUrl());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const game = useQuickPlay(sourceFromUrl);
 
   const leave = () => {
     game.reportExit('back_button');
