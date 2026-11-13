@@ -11,6 +11,7 @@ type PageKey =
   | 'multiplePlay'
   | 'dailyChallenge'
   | 'quickMath'
+  | 'quickPlay'
   | 'guessNumber'
   | 'leaderboard';
 

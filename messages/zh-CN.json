@@ -28,6 +28,7 @@
     "title": "你能用 4 张牌<br></br>算出 <highlight>24</highlight> 吗？",
     "subtitle": "利用 4 张数字牌，透过加、减、乘、除与括号，组合出等于 24 的算式",
     "start": "立即开始",
+    "chooseMode": "选择模式",
     "multiplayer": "多人对战",
     "moreModes": {
       "title": "更多游戏",
@@ -362,6 +363,11 @@
       "title": "心算练习游戏 - 心算快答限时挑战 | 24点大师",
       "description": "10 题四则运算限时快答，答错罚时、答对过关。练习心算速度，挑战全球排行榜。"
     },
+    "quickPlay": {
+      "name": "快速试玩",
+      "title": "24点快速试玩 - 3 题马上上手 | 24点大师",
+      "description": "不用登录、不用选模式，马上玩 3 题24点，从简单题开始，一步步学会用加减乘除凑出 24。"
+    },
     "guessNumber": {
       "name": "猜数字",
       "title": "猜数字推理游戏 - 在线免费玩 | 24点大师",
@@ -673,6 +679,45 @@
     "submitAnswer": "送出答案",
     "submit": "送出",
     "correct": "答对！"
+  },
+  "QuickPlay": {
+    "title": "快速试玩",
+    "progress": "第 <n>{current}</n> / {total} 题",
+    "progressPlain": "第 {current} / {total} 题",
+    "correct": "第 {step} 题答对！",
+    "fixHint": "调整算式后再按确认",
+    "errors": {
+      "EMPTY": "先点数字牌和符号组成算式",
+      "NOT_ALL_CARDS": "4 张牌都要用到",
+      "MALFORMED": "算式不完整，数字之间要放运算符号",
+      "NOT_24": "算出来是 {value}，不是 24"
+    },
+    "tips": {
+      "title": "怎么玩",
+      "step1": "点数字牌，放进算式",
+      "step2": "点 + − × ÷ 或括号",
+      "step3": "4 张牌都用上、等于 24 就按确认",
+      "dismiss": "知道了",
+      "close": "关闭操作提示"
+    },
+    "hint": {
+      "button": "提示",
+      "reveal": "看答案",
+      "title": "提示",
+      "operators": "会用到"
+    },
+    "result": {
+      "eyebrowFirst": "新手挑战完成",
+      "eyebrow": "3 题全部完成",
+      "timeLabel": "总耗时",
+      "solved": "完成题数",
+      "solvedValue": "{count}/{total}",
+      "hintsUsed": "使用提示",
+      "daily": "挑战今日题目",
+      "dailyDone": "查看今日挑战",
+      "explore": "探索其他模式",
+      "retry": "再玩一次"
+    }
   },
   "Daily": {
     "title": "每日挑战",

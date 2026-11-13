@@ -28,6 +28,7 @@
     "title": "Can you make <highlight>24</highlight><br></br>with 4 cards?",
     "subtitle": "Use 4 number cards with +, −, ×, ÷ and parentheses to build an equation that equals 24",
     "start": "Play now",
+    "chooseMode": "All modes",
     "multiplayer": "Multiplayer",
     "moreModes": {
       "title": "More games",
@@ -362,6 +363,11 @@
       "title": "Mental Math Game - Quick Math Timed Challenge | Math24 Master",
       "description": "Answer 10 arithmetic questions against the clock. Wrong answers add a time penalty. Train your mental math and climb the global leaderboard."
     },
+    "quickPlay": {
+      "name": "Quick Play",
+      "title": "Quick Play - Learn the 24 Game in 3 Puzzles | Math24 Master",
+      "description": "No sign-in, no menus. Jump straight into 3 puzzles that start easy and teach you to make 24 with addition, subtraction, multiplication and division."
+    },
     "guessNumber": {
       "name": "Guess the Number",
       "title": "Guess the Number - Logic Puzzle Game | Math24 Master",
@@ -673,6 +679,45 @@
     "submitAnswer": "Submit answer",
     "submit": "Submit",
     "correct": "Correct!"
+  },
+  "QuickPlay": {
+    "title": "Quick Play",
+    "progress": "Puzzle <n>{current}</n> of {total}",
+    "progressPlain": "Puzzle {current} of {total}",
+    "correct": "Puzzle {step} solved!",
+    "fixHint": "Adjust your equation and submit again",
+    "errors": {
+      "EMPTY": "Tap number cards and symbols to build an equation",
+      "NOT_ALL_CARDS": "Use all 4 cards",
+      "MALFORMED": "Incomplete equation: put an operator between numbers",
+      "NOT_24": "That makes {value}, not 24"
+    },
+    "tips": {
+      "title": "How to play",
+      "step1": "Tap a number card to add it",
+      "step2": "Tap + − × ÷ or brackets",
+      "step3": "Use all 4 cards to make 24, then submit",
+      "dismiss": "Got it",
+      "close": "Close tips"
+    },
+    "hint": {
+      "button": "Hint",
+      "reveal": "Show answer",
+      "title": "Hint",
+      "operators": "You'll need"
+    },
+    "result": {
+      "eyebrowFirst": "Tutorial complete",
+      "eyebrow": "All 3 puzzles solved",
+      "timeLabel": "Total time",
+      "solved": "Solved",
+      "solvedValue": "{count}/{total}",
+      "hintsUsed": "Hints used",
+      "daily": "Today's Daily Challenge",
+      "dailyDone": "View Daily Challenge",
+      "explore": "More modes",
+      "retry": "Play again"
+    }
   },
   "Daily": {
     "title": "Daily Challenge",
