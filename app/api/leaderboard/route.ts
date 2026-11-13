@@ -13,7 +13,13 @@ import {
   isScoreMode,
   isValidMode,
 } from './config';
-import { checkRateLimit, clientKey, markReceiptSubmitted } from './guard';
+import {
+  checkGuestKey,
+  checkRateLimit,
+  clientKey,
+  isValidGuestKey,
+  markReceiptSubmitted,
+} from './guard';
 import { verifyReceiptToken } from './token';
 
 // quickmath 與 quickmath_advanced 除了寫入的 collection 不同外，
@@ -67,11 +73,12 @@ export async function POST(req: NextRequest) {
   const session = await auth();
 
   const body = await req.json();
-  const { mode, receipt, guestId, guestName } = body as {
+  const { mode, receipt, guestId, guestName, guestKey } = body as {
     mode: Mode;
     receipt?: string;
     guestId?: string;
     guestName?: string;
+    guestKey?: string;
   };
 
   let userId: string;
@@ -92,6 +99,12 @@ export async function POST(req: NextRequest) {
   } else if (guestId && guestName) {
     if (!GUEST_ID_RE.test(guestId)) {
       return NextResponse.json({ error: 'invalid guest id' }, { status: 400 });
+    }
+    if (!isValidGuestKey(guestKey)) {
+      return NextResponse.json(
+        { error: 'guest key required' },
+        { status: 401 },
+      );
     }
     const trimmedName = String(guestName).trim();
     if (trimmedName.length < 2 || trimmedName.length > 12) {
@@ -122,6 +135,10 @@ export async function POST(req: NextRequest) {
   const verified = verifyReceiptToken(receipt, mode);
   if (!verified) {
     return NextResponse.json({ error: 'invalid receipt' }, { status: 401 });
+  }
+  // 訪客要帶對密鑰，避免別人拿排行榜上公開的 guestId 蓋掉紀錄（見 docs/adr/0012）
+  if (!session?.user && !(await checkGuestKey(userId, guestKey as string))) {
+    return NextResponse.json({ error: 'guest key mismatch' }, { status: 403 });
   }
   if (!(await markReceiptSubmitted(verified.nonce, userId))) {
     return NextResponse.json(
