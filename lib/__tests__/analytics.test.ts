@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  dailySourceFrom,
+  trackCtaClick,
   trackEvent,
   trackFirstPuzzleSolved,
   trackGameComplete,
@@ -94,5 +96,29 @@ describe('analytics', () => {
         },
       ],
     ]);
+  });
+
+  it('入口點擊帶上位置與入口代碼', () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+
+    trackCtaClick('home_hero', 'quick_play');
+    trackCtaClick('quick_play_result', 'daily_challenge');
+
+    expect(gtag.mock.calls).toEqual([
+      ['event', 'cta_click', { location: 'home_hero', cta: 'quick_play' }],
+      [
+        'event',
+        'cta_click',
+        { location: 'quick_play_result', cta: 'daily_challenge' },
+      ],
+    ]);
+  });
+
+  it('每日挑戰入口只接受已知的 from，其餘算 direct', () => {
+    expect(dailySourceFrom('home')).toBe('home');
+    expect(dailySourceFrom('quick_play')).toBe('quick_play');
+    expect(dailySourceFrom(null)).toBe('direct');
+    expect(dailySourceFrom('<script>')).toBe('direct');
   });
 });

@@ -29,12 +29,24 @@ type GameResultScreenProps = {
   stats?: ResultStat[];
   /** 統計格與主要按鈕之間：排名列、作答紀錄、分享等 */
   children?: React.ReactNode;
-  backLabel: string;
-  onBack: () => void;
-  retryLabel: string;
-  onRetry: () => void;
   className?: string;
-};
+} & (
+  | {
+      backLabel: string;
+      onBack: () => void;
+      retryLabel: string;
+      onRetry: () => void;
+      actions?: never;
+    }
+  | {
+      /** 自訂底部操作區，取代預設的「返回 + 再來一局」（如快速試玩的三層引導） */
+      actions: React.ReactNode;
+      backLabel?: never;
+      onBack?: never;
+      retryLabel?: never;
+      onRetry?: never;
+    }
+);
 
 /**
  * 單人模式結算畫面：上半部置中大數字，下半部統計格與操作，按鈕集中在拇指可及的底部。
@@ -54,6 +66,7 @@ export function GameResultScreen({
   onBack,
   retryLabel,
   onRetry,
+  actions,
   className,
 }: GameResultScreenProps) {
   const reduceMotion = useReducedMotion();
@@ -134,18 +147,24 @@ export function GameResultScreen({
 
       {children}
 
-      <div className="flex gap-2.5">
-        <Button
-          variant="tactileOutline"
-          className="flex-1 px-3"
-          onClick={onBack}
-        >
-          {backLabel}
-        </Button>
-        <Button variant="tactile" className="flex-[1.3] px-3" onClick={onRetry}>
-          {retryLabel}
-        </Button>
-      </div>
+      {actions ?? (
+        <div className="flex gap-2.5">
+          <Button
+            variant="tactileOutline"
+            className="flex-1 px-3"
+            onClick={onBack}
+          >
+            {backLabel}
+          </Button>
+          <Button
+            variant="tactile"
+            className="flex-[1.3] px-3"
+            onClick={onRetry}
+          >
+            {retryLabel}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

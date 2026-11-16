@@ -26,7 +26,12 @@ import { Kbd } from '@/components/ui/kbd';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
 import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
-import { trackGameComplete, trackGameStart, trackShare } from '@/lib/analytics';
+import {
+  dailySourceFrom,
+  trackGameComplete,
+  trackGameStart,
+  trackShare,
+} from '@/lib/analytics';
 import {
   type FormulaItem,
   type Solution,
@@ -135,7 +140,12 @@ export default function DailyChallengePage() {
     scoreSumRef.current = 0;
     setUserFormulas([]);
     setGameState('playing');
-    trackGameStart('daily');
+    // source：從首頁、快速試玩完成畫面或直接進來（?from=），用來看快速試玩導流到每日挑戰的比例
+    trackGameStart('daily', {
+      source: dailySourceFrom(
+        new URLSearchParams(window.location.search).get('from'),
+      ),
+    });
   };
 
   const handleAddNumber = (index: number) => {

@@ -1,88 +1,66 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  Calculator,
-  CalendarDays,
-  CircleCheck,
-  CircleDashed,
-  Flame,
-  HelpCircle,
-} from 'lucide-react';
+import { Calculator, ChevronRight, HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { getDailyStatus } from '@/lib/daily-seed';
-import GameModeCard from './game-mode-card';
+import { useHardNavigate } from '@/i18n/navigation';
+import { type CtaName, trackCtaClick } from '@/lib/analytics';
 
-const PILL_CLASS =
-  'inline-flex h-6 items-center gap-[5px] rounded-full px-2 text-xs font-bold whitespace-nowrap';
+const MORE_GAMES = [
+  {
+    cta: 'quick_math',
+    href: '/quick-math',
+    icon: Calculator,
+    key: 'quickMath',
+  },
+  {
+    cta: 'guess_number',
+    href: '/guess-number',
+    icon: HelpCircle,
+    key: 'guessNumber',
+  },
+] as const satisfies readonly {
+  cta: CtaName;
+  href: string;
+  icon: unknown;
+  key: string;
+}[];
 
-/** 每日挑戰的今日狀態與連續天數；讀 localStorage，所以等掛載後才顯示 */
-function DailyStatusPills() {
-  const t = useTranslations('Home.moreModes.dailyChallenge');
-  const [status, setStatus] = useState<ReturnType<
-    typeof getDailyStatus
-  > | null>(null);
-
-  useEffect(() => {
-    setStatus(getDailyStatus()); // eslint-disable-line react-hooks/set-state-in-effect
-  }, []);
-
-  if (!status) return null;
-
-  return (
-    <span className="mt-[3px] flex flex-wrap gap-1.5">
-      <span
-        className={`${PILL_CLASS} ${status.doneToday ? 'bg-primary-tint text-primary-ink' : 'bg-sunken text-ink'}`}
-      >
-        {status.doneToday ? (
-          <CircleCheck aria-hidden className="h-[13px] w-[13px]" />
-        ) : (
-          <CircleDashed aria-hidden className="h-[13px] w-[13px]" />
-        )}
-        {status.doneToday ? t('doneToday') : t('notDoneToday')}
-      </span>
-      {status.streak > 0 && (
-        <span className={`${PILL_CLASS} bg-amber-tint text-amber-ink`}>
-          <Flame aria-hidden className="h-[13px] w-[13px]" />
-          {t('streak', { count: status.streak })}
-        </span>
-      )}
-    </span>
-  );
-}
-
+/**
+ * 首頁底部的「更多遊戲」文字入口：首頁聚焦 24 點，其他小遊戲只留精簡連結，
+ * 遊戲頁面與路由不變。每日挑戰已移到 Hero 作為第二入口
+ */
 const MoreModesSection = () => {
   const t = useTranslations('Home.moreModes');
+  const hardNavigate = useHardNavigate();
 
   return (
-    <section className="px-4 pt-2 pb-8 md:px-10 md:pb-14">
-      <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:max-w-[1040px] lg:gap-[18px]">
-        <h2 className="mb-1 text-xl font-extrabold text-ink md:text-2xl lg:text-[26px]">
+    <section className="px-4 pb-8 md:px-10 md:pb-12">
+      <nav
+        aria-labelledby="home-more-games-title"
+        className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-1 gap-y-1 lg:max-w-[1040px]"
+      >
+        <h2
+          id="home-more-games-title"
+          className="mr-1 text-sm font-bold text-ink-2"
+        >
           {t('title')}
         </h2>
-        <div className="grid gap-3 md:grid-cols-3 lg:gap-5">
-          <GameModeCard
-            href="/daily-challenge"
-            icon={CalendarDays}
-            title={t('dailyChallenge.title')}
-            description={t('dailyChallenge.description')}
-            extra={<DailyStatusPills />}
-          />
-          <GameModeCard
-            href="/quick-math"
-            icon={Calculator}
-            title={t('quickMath.title')}
-            description={t('quickMath.description')}
-          />
-          <GameModeCard
-            href="/guess-number"
-            icon={HelpCircle}
-            title={t('guessNumber.title')}
-            description={t('guessNumber.description')}
-            badge={t('guessNumber.badge')}
-          />
-        </div>
-      </div>
+        {MORE_GAMES.map(({ cta, href, icon: Icon, key }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              trackCtaClick('home_more_games', cta);
+              hardNavigate(href);
+            }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-[15px] font-bold text-ink transition-colors hover:bg-sunken focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            <Icon aria-hidden className="h-[18px] w-[18px] text-primary-ink" />
+            {t(`${key}.title`)}
+            <ChevronRight aria-hidden className="h-4 w-4 text-ink-2" />
+          </button>
+        ))}
+      </nav>
     </section>
   );
 };

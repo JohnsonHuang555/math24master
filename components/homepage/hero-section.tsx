@@ -2,11 +2,19 @@
 
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BarChart2, LayoutGrid, Trophy, Users } from 'lucide-react';
+import {
+  BarChart2,
+  CalendarDays,
+  LayoutGrid,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Link, useHardNavigate } from '@/i18n/navigation';
+import { trackCtaClick } from '@/lib/analytics';
+import { DailyStatusBadge } from './daily-status';
 
 const HERO_CARDS = [
   { value: 6, rotate: -14, y: 18 },
@@ -25,6 +33,7 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
   const reduceMotion = useReducedMotion();
   const hardNavigate = useHardNavigate();
   const t = useTranslations('Home');
+  const tDaily = useTranslations('Home.moreModes.dailyChallenge');
 
   const navItems = [
     { key: 'leaderboard', label: t('leaderboard'), icon: Trophy },
@@ -169,7 +178,7 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
             </p>
           </motion.div>
 
-          {/* CTA：手機上下排、桌機並排 */}
+          {/* CTA 層級：主按鈕快速試玩 → 第二入口每日挑戰 → 次要導覽（選擇模式、多人對戰） */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -178,34 +187,77 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
               duration: 0.4,
               ease: EASE_OUT,
             }}
-            className="mt-1.5 flex w-full flex-col gap-3 md:w-auto md:flex-row lg:mt-2.5 lg:gap-3.5"
+            className="mt-1.5 flex w-full flex-col items-center gap-3 md:w-auto lg:mt-2.5 lg:items-start lg:gap-3.5"
           >
-            {/* 主按鈕直接進快速試玩（不選模式、不登入）；?from=home 用來區分 GA4 入口 */}
-            <Button
-              variant="tactile"
-              className="w-full md:w-52 lg:h-[60px] lg:w-auto lg:px-9"
-              asChild
-            >
-              <Link href="/quick-play?from=home">{t('start')}</Link>
-            </Button>
-            <div className="grid grid-cols-2 gap-3 md:flex lg:gap-3.5">
+            <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-start lg:gap-3.5">
+              <div className="flex flex-col items-center gap-2 lg:items-start">
+                {/* 主按鈕直接進快速試玩（不選模式、不登入）；?from=home 用來區分 GA4 入口 */}
+                <Button
+                  variant="tactile"
+                  className="w-full md:w-auto md:px-8 lg:h-[60px] lg:px-9"
+                  asChild
+                >
+                  <Link
+                    href="/quick-play?from=home"
+                    onClick={() => trackCtaClick('home_hero', 'quick_play')}
+                  >
+                    {t('start')}
+                  </Link>
+                </Button>
+                <p
+                  className="text-[13px] font-semibold text-ink-2 md:text-sm"
+                  data-testid="home-cta-meta"
+                >
+                  {t('startMeta')}
+                </p>
+              </div>
+              {/* 第二入口：每日挑戰，附今日狀態與連續天數 */}
               <Button
                 variant="tactileOutline"
-                className="w-full gap-2 px-3 text-lg md:w-auto md:px-6 lg:h-[60px] lg:px-7"
-                onClick={() => hardNavigate('/single-play')}
+                className="w-full gap-2 px-4 text-lg md:w-auto md:px-6 lg:h-[60px] lg:px-7"
+                asChild
               >
-                <LayoutGrid className="h-5 w-5" />
-                {t('chooseMode')}
-              </Button>
-              <Button
-                variant="tactileOutline"
-                className="w-full gap-2 px-3 text-lg md:w-auto md:px-6 lg:h-[60px] lg:px-7"
-                onClick={() => hardNavigate('/multiple-play')}
-              >
-                <Users className="h-5 w-5" />
-                {t('multiplayer')}
+                <Link
+                  href="/daily-challenge?from=home"
+                  onClick={() => trackCtaClick('home_hero', 'daily_challenge')}
+                  data-testid="home-daily-cta"
+                >
+                  <CalendarDays aria-hidden className="h-5 w-5" />
+                  {tDaily('title')}
+                  <DailyStatusBadge />
+                </Link>
               </Button>
             </div>
+
+            {/* 次要導覽：平面文字按鈕，不與主 CTA 搶視覺焦點 */}
+            <nav
+              aria-label={t('secondaryNav')}
+              className="flex items-center gap-1 lg:-ml-3"
+            >
+              <Button
+                variant="ghost"
+                className="h-11 gap-1.5 px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
+                onClick={() => {
+                  trackCtaClick('home_hero', 'choose_mode');
+                  hardNavigate('/single-play');
+                }}
+              >
+                <LayoutGrid aria-hidden className="h-[18px] w-[18px]" />
+                {t('chooseMode')}
+              </Button>
+              <span aria-hidden className="h-4 w-px bg-line-strong" />
+              <Button
+                variant="ghost"
+                className="h-11 gap-1.5 px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
+                onClick={() => {
+                  trackCtaClick('home_hero', 'multiplayer');
+                  hardNavigate('/multiple-play');
+                }}
+              >
+                <Users aria-hidden className="h-[18px] w-[18px]" />
+                {t('multiplayer')}
+              </Button>
+            </nav>
           </motion.div>
         </div>
       </div>

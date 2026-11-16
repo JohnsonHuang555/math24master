@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarDays, CircleCheck } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronRight,
+  CircleCheck,
+  RotateCcw,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { GameResultScreen } from '@/components/game/game-result-screen';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
+import { trackCtaClick } from '@/lib/analytics';
 import { getDailyStatus } from '@/lib/daily-seed';
 import { formatTime } from '@/lib/utils';
 
@@ -18,7 +24,11 @@ type QuickPlayResultProps = {
   onExplore: () => void;
 };
 
-/** 完成三題：題數、耗時、提示次數；接著引導到每日挑戰或其他模式，不要求登入 */
+/**
+ * 完成三題：題數、耗時、提示次數，接著給明確的下一步（不要求登入、不跳彈窗）。
+ * 今日挑戰還沒做：主要「挑戰今日 3 題」→ 次要「再玩一次」→ 輔助「探索更多模式」。
+ * 今日已完成：主要改成「再玩一次」，每日挑戰降為次要的「查看今日挑戰」
+ */
 export function QuickPlayResult({
   isFirstTime,
   totalSteps,
@@ -34,6 +44,28 @@ export function QuickPlayResult({
   useEffect(() => {
     setDailyDone(getDailyStatus().doneToday); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
+
+  const retry = () => {
+    trackCtaClick('quick_play_result', 'replay');
+    onRetry();
+  };
+
+  const dailyLink = (
+    <Link
+      href="/daily-challenge?from=quick_play"
+      onClick={() => trackCtaClick('quick_play_result', 'daily_challenge')}
+    >
+      <CalendarDays aria-hidden className="h-5 w-5" />
+      {dailyDone ? t('dailyDone') : t('daily')}
+    </Link>
+  );
+
+  const retryButtonContent = (
+    <>
+      <RotateCcw aria-hidden className="h-5 w-5" />
+      {t('retry')}
+    </>
+  );
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -53,22 +85,53 @@ export function QuickPlayResult({
           },
           { label: t('hintsUsed'), value: hintsUsed },
         ]}
-        backLabel={t('explore')}
-        onBack={onExplore}
-        retryLabel={t('retry')}
-        onRetry={onRetry}
-      >
-        <Button
-          variant="tactileOutline"
-          className="h-12 w-full gap-2 text-[15px] lg:h-[52px]"
-          asChild
-        >
-          <Link href="/daily-challenge">
-            <CalendarDays aria-hidden className="h-[18px] w-[18px]" />
-            {dailyDone ? t('dailyDone') : t('daily')}
-          </Link>
-        </Button>
-      </GameResultScreen>
+        actions={
+          <div className="flex flex-col gap-2.5" data-testid="quick-play-next">
+            {dailyDone ? (
+              <>
+                <Button
+                  variant="tactile"
+                  className="w-full gap-2"
+                  onClick={retry}
+                >
+                  {retryButtonContent}
+                </Button>
+                <Button
+                  variant="tactileOutline"
+                  className="w-full gap-2"
+                  asChild
+                >
+                  {dailyLink}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="tactile" className="w-full gap-2" asChild>
+                  {dailyLink}
+                </Button>
+                <Button
+                  variant="tactileOutline"
+                  className="w-full gap-2"
+                  onClick={retry}
+                >
+                  {retryButtonContent}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              className="h-11 gap-1 self-center px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
+              onClick={() => {
+                trackCtaClick('quick_play_result', 'explore_modes');
+                onExplore();
+              }}
+            >
+              {t('explore')}
+              <ChevronRight aria-hidden className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }

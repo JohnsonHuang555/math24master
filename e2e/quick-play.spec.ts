@@ -70,7 +70,7 @@ test.describe('快速試玩：新手三題引導', () => {
 
   test('首頁立即開始 → 三題 → 完成畫面，不需登入', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: '立即開始' }).click();
+    await page.getByRole('link', { name: '立即挑戰 3 題' }).click();
     await expect(page).toHaveURL(/\/quick-play\?from=home$/);
 
     // 第一次玩：顯示可關閉的操作提示
@@ -86,13 +86,15 @@ test.describe('快速試玩：新手三題引導', () => {
     ).toBeVisible();
     await expect(page.getByTestId('result-value')).toHaveText(/^\d{2}:\d{2}$/);
     await expect(page.getByText('3/3')).toBeVisible();
-    await expect(page.getByRole('button', { name: '再玩一次' })).toBeVisible();
+    // 下一步：主要是今日挑戰，其次再玩一次，最後探索更多模式
+    const next = page.getByTestId('quick-play-next');
     await expect(
-      page.getByRole('button', { name: '探索其他模式' }),
+      next.getByRole('link', { name: '挑戰今日 3 題' }),
+    ).toHaveAttribute('href', '/daily-challenge?from=quick_play');
+    await expect(next.getByRole('button', { name: '再玩一次' })).toBeVisible();
+    await expect(
+      next.getByRole('button', { name: '探索更多模式' }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: '挑戰今日題目' }),
-    ).toHaveAttribute('href', '/daily-challenge');
 
     const events = await trackedEvents(page);
     expect(events.map(([name]) => name)).toEqual([
@@ -190,6 +192,50 @@ test.describe('快速試玩：新手三題引導', () => {
     await page.getByRole('button', { name: '選擇模式' }).click();
     await expect(page).toHaveURL(/\/single-play$/);
   });
+
+  test('首頁聚焦快速試玩：沒有新玩法公告，每日挑戰是第二入口，其他小遊戲只留文字入口', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(
+      page.getByRole('link', { name: '立即挑戰 3 題' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('home-cta-meta')).toHaveText(
+      '免費・免登入・約 2 分鐘',
+    );
+    await expect(page.getByTestId('home-daily-cta')).toHaveAttribute(
+      'href',
+      '/daily-challenge?from=home',
+    );
+    // 公告元件的關閉鈕不在首頁
+    await expect(page.getByRole('button', { name: /關閉公告/ })).toHaveCount(0);
+
+    // 心算快答、猜數字仍可從「更多遊戲」進入
+    const more = page.getByRole('navigation', { name: '更多遊戲' });
+    await more.getByRole('button', { name: '猜數字' }).click();
+    await expect(page).toHaveURL(/\/guess-number$/);
+  });
+
+  test('從首頁進每日挑戰並開始，game_start 帶 source=home', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByTestId('home-daily-cta').click();
+    await expect(page).toHaveURL(/\/daily-challenge\?from=home$/);
+    await page.getByRole('button', { name: '開始挑戰' }).click();
+    const starts = await page.evaluate(() =>
+      (
+        (window as unknown as { dataLayer?: ArrayLike<unknown>[] }).dataLayer ??
+        []
+      )
+        .map(entry => Array.from(entry))
+        .filter(
+          ([command, name]) => command === 'event' && name === 'game_start',
+        )
+        .map(([, , params]) => params),
+    );
+    expect(starts).toEqual([{ mode: 'daily', source: 'home' }]);
+  });
 });
 
 test.describe('快速試玩：手機', () => {
@@ -201,7 +247,7 @@ test.describe('快速試玩：手機', () => {
   test('觸控可以完成三題', async ({ page }) => {
     await stubAnalytics(page);
     await page.goto('/');
-    await page.getByRole('link', { name: '立即開始' }).tap();
+    await page.getByRole('link', { name: '立即挑戰 3 題' }).tap();
     await page.getByRole('button', { name: '關閉操作提示' }).tap();
     await playThreePuzzles(page);
     await expect(

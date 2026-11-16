@@ -36,8 +36,12 @@ export default function QuickPlayPage() {
 
   const handleSubmit = () => {
     const solved = game.submit();
-    if (solved && game.step + 1 < game.totalSteps) {
+    if (!solved) return;
+    if (game.step + 1 < game.totalSteps) {
       toast.success(t('correct', { step: game.step + 1 }));
+    } else {
+      // 進入完成畫面：收掉前一題的「答對」toast，避免手機上蓋住完成標題
+      toast.dismiss();
     }
   };
 

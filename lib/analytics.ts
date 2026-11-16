@@ -116,6 +116,37 @@ export function trackOnboardingExit(params: {
   });
 }
 
+// ---------------------------------------------------------------------------
+// 入口點擊：補上「看到首頁 → 點了哪個入口 → 真的開始玩」之間的那一步。
+// 首頁主 CTA 位在首屏，曝光直接以首頁 page_view 計算，不另送曝光事件。
+// ---------------------------------------------------------------------------
+
+/** 點擊發生的位置 */
+export type CtaLocation = 'home_hero' | 'home_more_games' | 'quick_play_result';
+
+/** 被點的入口；代碼上線後不要改名 */
+export type CtaName =
+  | 'quick_play'
+  | 'daily_challenge'
+  | 'choose_mode'
+  | 'multiplayer'
+  | 'quick_math'
+  | 'guess_number'
+  | 'replay'
+  | 'explore_modes';
+
+/** 玩家點了首頁或結算畫面上的入口按鈕 */
+export function trackCtaClick(location: CtaLocation, cta: CtaName): void {
+  trackEvent('cta_click', { location, cta });
+}
+
+/** 每日挑戰的入口（網址 ?from=）；沒帶或不認得的一律算 direct */
+export type DailySource = 'home' | 'quick_play' | 'direct';
+
+export function dailySourceFrom(from: string | null): DailySource {
+  return from === 'home' || from === 'quick_play' ? from : 'direct';
+}
+
 /** 按下分享按鈕，outcome 記錄實際結果（分享、複製、下載、取消、失敗） */
 export function trackShare(
   mode: AnalyticsGameMode,
