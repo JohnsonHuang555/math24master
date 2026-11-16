@@ -2,7 +2,7 @@
 
 import { Calculator, ChevronRight, HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useHardNavigate } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { type CtaName, trackCtaClick } from '@/lib/analytics';
 
 const MORE_GAMES = [
@@ -31,7 +31,6 @@ const MORE_GAMES = [
  */
 const MoreModesSection = () => {
   const t = useTranslations('Home.moreModes');
-  const hardNavigate = useHardNavigate();
 
   return (
     <section className="px-4 pb-8 md:px-10 md:pb-12">
@@ -46,19 +45,16 @@ const MoreModesSection = () => {
           {t('title')}
         </h2>
         {MORE_GAMES.map(({ cta, href, icon: Icon, key }) => (
-          <button
+          <Link
             key={key}
-            type="button"
-            onClick={() => {
-              trackCtaClick('home_more_games', cta);
-              hardNavigate(href);
-            }}
+            href={href}
+            onClick={() => trackCtaClick('home_more_games', cta)}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-[15px] font-bold text-ink transition-colors hover:bg-sunken focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             <Icon aria-hidden className="h-[18px] w-[18px] text-primary-ink" />
             {t(`${key}.title`)}
             <ChevronRight aria-hidden className="h-4 w-4 text-ink-2" />
-          </button>
+          </Link>
         ))}
       </nav>
     </section>

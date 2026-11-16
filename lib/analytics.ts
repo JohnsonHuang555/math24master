@@ -16,9 +16,15 @@ export type AnalyticsGameMode =
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 
+/** gtag 的設定參數（event_callback 等）可以是函式，只在本檔內部使用 */
+type GtagParams = Record<
+  string,
+  string | number | boolean | undefined | (() => void)
+>;
+
 declare global {
   interface Window {
-    gtag?: (command: 'event', name: string, params?: EventParams) => void;
+    gtag?: (command: 'event', name: string, params?: GtagParams) => void;
   }
 }
 
@@ -31,6 +37,44 @@ export function trackEvent(name: string, params?: EventParams): void {
     window.gtag('event', name, params);
   } catch {
     // 分析失敗不能影響遊戲流程
+  }
+}
+
+/**
+ * 送出事件後才執行 callback，給「整頁跳轉」用：gtag.js 會把事件稍微延後批次送出，
+ * 直接改 window.location 可能讓事件跟著頁面一起消失。
+ * 等 gtag 回呼或最多 timeoutMs（GA 被擋、尚未載入時也不會卡住）；callback 保證只執行一次
+ */
+export function trackEventThen(
+  name: string,
+  params: EventParams | undefined,
+  callback: () => void,
+  timeoutMs = 400,
+): void {
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    callback();
+  };
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
+    run();
+    return;
+  }
+  const timer = setTimeout(run, timeoutMs);
+  try {
+    window.gtag('event', name, {
+      ...params,
+      transport_type: 'beacon',
+      event_timeout: timeoutMs,
+      event_callback: () => {
+        clearTimeout(timer);
+        run();
+      },
+    });
+  } catch {
+    clearTimeout(timer);
+    run();
   }
 }
 
@@ -87,6 +131,23 @@ export function trackFirstPuzzleSolved(params: {
   });
 }
 
+/**
+ * 每一輪中每答對一題送一次（step 1–3），用來畫「每一輪」的快速試玩漏斗：
+ * quick_play_start → step=1 → step=2 → step=3（等同 onboarding_complete）。
+ * 與 first_puzzle_solved（每台裝置終身一次）互補；首次玩家與回訪玩家用 is_first_time 區分
+ */
+export function trackQuickPlayPuzzleSolved(params: {
+  step: number;
+  isFirstTime: boolean;
+  hintLevel: number;
+}): void {
+  trackEvent('quick_play_puzzle_solved', {
+    step: params.step,
+    is_first_time: params.isFirstTime,
+    hint_level: params.hintLevel,
+  });
+}
+
 /** 三題全部答對、看到完成畫面，每一輪送一次 */
 export function trackOnboardingComplete(params: {
   durationMs: number;
@@ -135,9 +196,18 @@ export type CtaName =
   | 'replay'
   | 'explore_modes';
 
-/** 玩家點了首頁或結算畫面上的入口按鈕 */
+/** 玩家點了首頁或結算畫面上的入口按鈕（站內軟導覽用，頁面不會卸載） */
 export function trackCtaClick(location: CtaLocation, cta: CtaName): void {
   trackEvent('cta_click', { location, cta });
+}
+
+/** 同 trackCtaClick，但要整頁跳轉時用：事件送出（或逾時）後才執行 navigate */
+export function trackCtaClickThen(
+  location: CtaLocation,
+  cta: CtaName,
+  navigate: () => void,
+): void {
+  trackEventThen('cta_click', { location, cta }, navigate);
 }
 
 /** 每日挑戰的入口（網址 ?from=）；沒帶或不認得的一律算 direct */

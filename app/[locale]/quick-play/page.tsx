@@ -11,8 +11,10 @@ import { QuickPlayResult } from '@/components/quick-play/quick-play-result';
 import { QuickPlayStage } from '@/components/quick-play/quick-play-stage';
 import { Button } from '@/components/ui/button';
 import { useQuickPlay } from '@/hooks/useQuickPlay';
-import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+
+const CORRECT_TOAST_ID = 'quick-play-correct';
 
 /** 首頁主按鈕帶 ?from=home，用來區分快速試玩的入口 */
 function sourceFromUrl() {
@@ -25,7 +27,6 @@ export default function QuickPlayPage() {
   const t = useTranslations('QuickPlay');
   const tHud = useTranslations('GameUI.hud');
   const router = useRouter();
-  const hardNavigate = useHardNavigate();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const game = useQuickPlay(sourceFromUrl);
 
@@ -38,10 +39,13 @@ export default function QuickPlayPage() {
     const solved = game.submit();
     if (!solved) return;
     if (game.step + 1 < game.totalSteps) {
-      toast.success(t('correct', { step: game.step + 1 }));
+      // 固定 id：下一題的提示會取代上一題，不會疊起來
+      toast.success(t('correct', { step: game.step + 1 }), {
+        id: CORRECT_TOAST_ID,
+      });
     } else {
-      // 進入完成畫面：收掉前一題的「答對」toast，避免手機上蓋住完成標題
-      toast.dismiss();
+      // 進入完成畫面：只收掉「答對」toast（不影響成就等其他通知），避免手機上蓋住完成標題
+      toast.dismiss(CORRECT_TOAST_ID);
     }
   };
 
@@ -55,7 +59,6 @@ export default function QuickPlayPage() {
         durationMs={game.durationMs}
         hintsUsed={game.hintsUsed}
         onRetry={() => game.start('replay')}
-        onExplore={() => hardNavigate('/single-play')}
       />
     );
   }

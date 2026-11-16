@@ -1,26 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { CircleCheck, Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { getDailyStatus } from '@/lib/daily-seed';
+import { useDailyStatus } from '@/hooks/useDailyStatus';
 
 const PILL_CLASS =
   'inline-flex h-6 items-center gap-[5px] rounded-full px-2 text-xs font-bold whitespace-nowrap';
 
 /**
  * 每日挑戰按鈕內的狀態標記：今日已完成優先，其次是連續天數；都沒有就不顯示。
- * 讀 localStorage，所以等掛載後才顯示，避免 hydration 不一致
+ * 掛載後才顯示；跨日或切回分頁時會更新（見 useDailyStatus）
  */
 export function DailyStatusBadge() {
   const t = useTranslations('Home.moreModes.dailyChallenge');
-  const [status, setStatus] = useState<ReturnType<
-    typeof getDailyStatus
-  > | null>(null);
-
-  useEffect(() => {
-    setStatus(getDailyStatus()); // eslint-disable-line react-hooks/set-state-in-effect
-  }, []);
+  const status = useDailyStatus();
 
   if (!status) return null;
 

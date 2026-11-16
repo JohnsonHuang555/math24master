@@ -117,6 +117,7 @@
 | 事件 | 觸發時機 | 參數 | 去重方式 |
 |------|---------|------|---------|
 | `quick_play_start` | `/quick-play` 第 1 題可操作的那一刻 | `source`、`is_first_time`（是否從未完成過引導） | 每次頁面載入至多一次（ref） |
+| `quick_play_puzzle_solved` | **每一輪**每答對一題 | `step`（1–3）、`is_first_time`、`hint_level` | 每輪每題一次（題目答對才前進） |
 | `first_puzzle_solved` | 這台裝置**第一次**在快速試玩答對任一題 | `step`（1–3）、`elapsed_sec`、`hint_level` | localStorage 旗標，終身一次 |
 | `onboarding_complete` | 第 3 題答對、看到完成畫面 | `duration_sec`、`hints_used`、`is_first_time` | 每輪一次（ref） |
 | `onboarding_exit` | 玩家在完成前離開：按返回鍵／返回首頁，或 `pagehide` | `step`（停在第幾題）、`elapsed_sec`、`reason`（`back_button` / `page_hide`） | 每輪一次；完成後不再送 |
@@ -124,6 +125,29 @@
 - 「再玩一次」開新一輪會重新送 `quick_play_start`（`is_first_time=false`）。
 - 不送算式內容、題目數字或任何個人資料。
 - `pagehide` 由 gtag 預設的 beacon transport 送出；送不出去時資料會偏少，這點會寫在 GA4 報表說明。
+
+#### 入口與導流事件（PR #138）
+
+| 事件 | 觸發時機 | 參數 |
+|------|---------|------|
+| `cta_click` | 點首頁或快速試玩完成畫面上的入口 | `location`（`home_hero` / `home_more_games` / `quick_play_result`）、`cta`（`quick_play` / `daily_challenge` / `choose_mode` / `multiplayer` / `quick_math` / `guess_number` / `replay` / `explore_modes`） |
+| `game_start`（`mode=daily`） | 每日挑戰按下開始 | 新增 `source`（`home` / `quick_play` / `direct`，來自網址 `?from=`） |
+
+- 一般站內入口用 next-intl `Link` 軟導覽，頁面不卸載，事件不會遺失。
+- 多人對戰沿用整頁跳轉（socket 是模組層級單例），改用 `trackCtaClickThen`：等 gtag 回呼或最多 400ms 才跳轉。
+- 首頁主 CTA 在首屏，曝光以首頁 `page_view` 計算，不另送曝光事件。
+
+#### GA4 漏斗怎麼看
+
+`first_puzzle_solved` 每台裝置終身只送一次，**不能**拿來當「每一輪」的轉換步驟：回訪玩家再玩時不會有這一步，漏斗會被誤判成大量流失。
+
+- **每一輪的漏斗**（開放式漏斗，以事件計數，不是不重複玩家數）：
+  `quick_play_start` → `quick_play_puzzle_solved`（step=1）→ step=2 → step=3 → `onboarding_complete`
+  用 `is_first_time` 拆成「首次玩家」與「回訪玩家」兩條。
+- **新玩家啟用**（以使用者計）：首頁 `page_view` → `cta_click`（cta=quick_play）→ `quick_play_start`（is_first_time=true）→ `first_puzzle_solved` → `onboarding_complete`（is_first_time=true）
+- **導流到每日挑戰**：`onboarding_complete` → `cta_click`（location=quick_play_result, cta=daily_challenge）→ `game_start`（mode=daily, source=quick_play）
+
+GA4 後台要建立的事件範圍自訂維度：`location`、`cta`、`source`、`mode`、`is_first_time`、`step`、`reason`；`hint_level`、`hints_used`、`elapsed_sec`、`duration_sec` 建議設為自訂指標。
 
 ### 3.3 新增／修改檔案
 

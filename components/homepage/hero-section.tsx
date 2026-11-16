@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Link, useHardNavigate } from '@/i18n/navigation';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackCtaClick, trackCtaClickThen } from '@/lib/analytics';
 import { DailyStatusBadge } from './daily-status';
 
 const HERO_CARDS = [
@@ -51,7 +51,7 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
     'h-11 w-11 gap-1.5 px-0 font-bold text-ink md:w-auto md:px-3 lg:font-semibold lg:text-ink-2 lg:hover:text-ink';
 
   return (
-    <section className="relative flex flex-col">
+    <section className="relative flex flex-col" data-testid="home-hero">
       {/* teal 底部光暈 */}
       <div
         aria-hidden
@@ -234,25 +234,31 @@ const HeroSection = ({ onOpenStatsModal }: HeroSectionProps) => {
               aria-label={t('secondaryNav')}
               className="flex items-center gap-1 lg:-ml-3"
             >
+              {/* 一般站內頁面用軟導覽：頁面不卸載，cta_click 不會跟著遺失 */}
               <Button
                 variant="ghost"
                 className="h-11 gap-1.5 px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
-                onClick={() => {
-                  trackCtaClick('home_hero', 'choose_mode');
-                  hardNavigate('/single-play');
-                }}
+                asChild
               >
-                <LayoutGrid aria-hidden className="h-[18px] w-[18px]" />
-                {t('chooseMode')}
+                <Link
+                  href="/single-play"
+                  onClick={() => trackCtaClick('home_hero', 'choose_mode')}
+                >
+                  <LayoutGrid aria-hidden className="h-[18px] w-[18px]" />
+                  {t('chooseMode')}
+                </Link>
               </Button>
               <span aria-hidden className="h-4 w-px bg-line-strong" />
               <Button
                 variant="ghost"
                 className="h-11 gap-1.5 px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
-                onClick={() => {
-                  trackCtaClick('home_hero', 'multiplayer');
-                  hardNavigate('/multiple-play');
-                }}
+                // 多人對戰沿用整頁跳轉（socket 是模組層級的單例，進出房間一律重新載入）；
+                // 事件送出或逾時後才跳轉
+                onClick={() =>
+                  trackCtaClickThen('home_hero', 'multiplayer', () =>
+                    hardNavigate('/multiple-play'),
+                  )
+                }
               >
                 <Users aria-hidden className="h-[18px] w-[18px]" />
                 {t('multiplayer')}

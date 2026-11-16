@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
   CalendarDays,
   ChevronRight,
@@ -10,9 +9,9 @@ import {
 import { useTranslations } from 'next-intl';
 import { GameResultScreen } from '@/components/game/game-result-screen';
 import { Button } from '@/components/ui/button';
+import { useDailyStatus } from '@/hooks/useDailyStatus';
 import { Link } from '@/i18n/navigation';
 import { trackCtaClick } from '@/lib/analytics';
-import { getDailyStatus } from '@/lib/daily-seed';
 import { formatTime } from '@/lib/utils';
 
 type QuickPlayResultProps = {
@@ -21,7 +20,6 @@ type QuickPlayResultProps = {
   durationMs: number;
   hintsUsed: number;
   onRetry: () => void;
-  onExplore: () => void;
 };
 
 /**
@@ -35,15 +33,10 @@ export function QuickPlayResult({
   durationMs,
   hintsUsed,
   onRetry,
-  onExplore,
 }: QuickPlayResultProps) {
   const t = useTranslations('QuickPlay.result');
-  // 每日挑戰的完成狀態存在 localStorage，掛載後才讀
-  const [dailyDone, setDailyDone] = useState(false);
-
-  useEffect(() => {
-    setDailyDone(getDailyStatus().doneToday); // eslint-disable-line react-hooks/set-state-in-effect
-  }, []);
+  // 掛載前（null）先當作還沒做，主要 CTA 導向每日挑戰；跨日會自動更新
+  const dailyDone = useDailyStatus()?.doneToday ?? false;
 
   const retry = () => {
     trackCtaClick('quick_play_result', 'replay');
@@ -121,13 +114,17 @@ export function QuickPlayResult({
             <Button
               variant="ghost"
               className="h-11 gap-1 self-center px-3 text-[15px] font-bold text-ink-2 hover:text-ink"
-              onClick={() => {
-                trackCtaClick('quick_play_result', 'explore_modes');
-                onExplore();
-              }}
+              asChild
             >
-              {t('explore')}
-              <ChevronRight aria-hidden className="h-4 w-4" />
+              <Link
+                href="/single-play"
+                onClick={() =>
+                  trackCtaClick('quick_play_result', 'explore_modes')
+                }
+              >
+                {t('explore')}
+                <ChevronRight aria-hidden className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
         }
