@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { AddToHomeScreenPrompt } from '@/components/add-to-home-screen-prompt';
-import AnnouncementBanner from '@/components/announcement-banner';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { StatsModal } from '@/components/modals/stats-modal';
 import Footer from './footer';
@@ -24,10 +23,10 @@ const Homepage = () => {
       />
 
       <div className="flex h-full w-full flex-col overflow-y-auto">
-        <AnnouncementBanner />
+        {/* 新玩法公告（AnnouncementBanner）不放首頁，讓主視覺與快速試玩成為第一個內容 */}
         <HeroSection onOpenStatsModal={() => setIsOpenStatsModal(true)} />
-        <MoreModesSection />
         <StepsSection />
+        <MoreModesSection />
         <Footer />
       </div>
     </>

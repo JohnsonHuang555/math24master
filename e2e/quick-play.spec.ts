@@ -1,4 +1,5 @@
 import { type Page, devices, expect, test } from '@playwright/test';
+import zhTW from '../messages/zh-TW.json' with { type: 'json' };
 import { enterFormula, readCardValues } from './helpers/play';
 import { solve24 } from './helpers/solver';
 
@@ -15,7 +16,8 @@ async function stubAnalytics(page: Page) {
   );
 }
 
-async function trackedEvents(page: Page): Promise<TrackedEvent[]> {
+/** dataLayer 裡所有 gtag('event', ...) 的 [事件名稱, 參數] */
+async function allEvents(page: Page): Promise<TrackedEvent[]> {
   return page.evaluate(() =>
     (
       (window as unknown as { dataLayer?: ArrayLike<unknown>[] }).dataLayer ??
@@ -23,17 +25,24 @@ async function trackedEvents(page: Page): Promise<TrackedEvent[]> {
     )
       .map(entry => Array.from(entry))
       .filter(
-        ([command, name]) =>
-          command === 'event' &&
-          typeof name === 'string' &&
-          [
-            'quick_play_start',
-            'first_puzzle_solved',
-            'onboarding_complete',
-            'onboarding_exit',
-          ].includes(name),
+        ([command, name]) => command === 'event' && typeof name === 'string',
       )
       .map(([, name, params]) => [name, params] as TrackedEvent),
+  );
+}
+
+const QUICK_PLAY_EVENTS = [
+  'quick_play_start',
+  'quick_play_puzzle_solved',
+  'first_puzzle_solved',
+  'onboarding_complete',
+  'onboarding_exit',
+];
+
+/** 快速試玩漏斗相關事件 */
+async function trackedEvents(page: Page): Promise<TrackedEvent[]> {
+  return (await allEvents(page)).filter(([name]) =>
+    QUICK_PLAY_EVENTS.includes(name),
   );
 }
 
@@ -70,7 +79,7 @@ test.describe('快速試玩：新手三題引導', () => {
 
   test('首頁立即開始 → 三題 → 完成畫面，不需登入', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: '立即開始' }).click();
+    await page.getByRole('link', { name: '立即挑戰 3 題' }).click();
     await expect(page).toHaveURL(/\/quick-play\?from=home$/);
 
     // 第一次玩：顯示可關閉的操作提示
@@ -86,23 +95,37 @@ test.describe('快速試玩：新手三題引導', () => {
     ).toBeVisible();
     await expect(page.getByTestId('result-value')).toHaveText(/^\d{2}:\d{2}$/);
     await expect(page.getByText('3/3')).toBeVisible();
-    await expect(page.getByRole('button', { name: '再玩一次' })).toBeVisible();
+    // 下一步：主要是今日挑戰，其次再玩一次，最後探索更多模式
+    const next = page.getByTestId('quick-play-next');
     await expect(
-      page.getByRole('button', { name: '探索其他模式' }),
-    ).toBeVisible();
+      next.getByRole('link', { name: '挑戰今日 3 題' }),
+    ).toHaveAttribute('href', '/daily-challenge?from=quick_play');
+    await expect(next.getByRole('button', { name: '再玩一次' })).toBeVisible();
     await expect(
-      page.getByRole('link', { name: '挑戰今日題目' }),
-    ).toHaveAttribute('href', '/daily-challenge');
+      next.getByRole('link', { name: '探索更多模式' }),
+    ).toHaveAttribute('href', '/single-play');
 
     const events = await trackedEvents(page);
     expect(events.map(([name]) => name)).toEqual([
       'quick_play_start',
+      'quick_play_puzzle_solved',
       'first_puzzle_solved',
+      'quick_play_puzzle_solved',
+      'quick_play_puzzle_solved',
       'onboarding_complete',
     ]);
     expect(events[0][1]).toEqual({ source: 'home_hero', is_first_time: true });
-    expect(events[1][1]).toMatchObject({ step: 1, hint_level: 0 });
-    expect(events[2][1]).toMatchObject({ hints_used: 0, is_first_time: true });
+    expect(
+      events
+        .filter(([name]) => name === 'quick_play_puzzle_solved')
+        .map(([, params]) => params),
+    ).toEqual([
+      { step: 1, is_first_time: true, hint_level: 0 },
+      { step: 2, is_first_time: true, hint_level: 0 },
+      { step: 3, is_first_time: true, hint_level: 0 },
+    ]);
+    expect(events[2][1]).toMatchObject({ step: 1, hint_level: 0 });
+    expect(events[5][1]).toMatchObject({ hints_used: 0, is_first_time: true });
 
     // 再玩一次：不再顯示提示、改為一般題，first_puzzle_solved 不會再送
     await page.getByRole('button', { name: '再玩一次' }).click();
@@ -111,15 +134,17 @@ test.describe('快速試玩：新手三題引導', () => {
     await expect(
       page.getByRole('heading', { name: '3 題全部完成' }),
     ).toBeVisible();
-    const replay = await trackedEvents(page);
+    // 回訪輪次：first_puzzle_solved 不再送，但每題事件照送（is_first_time=false）
+    const replay = (await trackedEvents(page)).slice(events.length);
     expect(replay.map(([name]) => name)).toEqual([
       'quick_play_start',
-      'first_puzzle_solved',
-      'onboarding_complete',
-      'quick_play_start',
+      'quick_play_puzzle_solved',
+      'quick_play_puzzle_solved',
+      'quick_play_puzzle_solved',
       'onboarding_complete',
     ]);
-    expect(replay[3][1]).toEqual({ source: 'replay', is_first_time: false });
+    expect(replay[0][1]).toEqual({ source: 'replay', is_first_time: false });
+    expect(replay[1][1]).toMatchObject({ step: 1, is_first_time: false });
   });
 
   test('答錯會顯示原因且停在同一題', async ({ page }) => {
@@ -187,8 +212,132 @@ test.describe('快速試玩：新手三題引導', () => {
 
   test('首頁「選擇模式」仍可進入單人模式選單', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: '選擇模式' }).click();
+    await page.getByRole('link', { name: '選擇模式' }).click();
     await expect(page).toHaveURL(/\/single-play$/);
+    // 軟導覽：頁面沒有重新載入，點擊事件留在 dataLayer
+    expect(await allEvents(page)).toContainEqual([
+      'cta_click',
+      { location: 'home_hero', cta: 'choose_mode' },
+    ]);
+  });
+
+  test('首頁「多人對戰」整頁跳轉前先送出 cta_click，GA 被擋時也不會卡住', async ({
+    page,
+  }) => {
+    // 整頁跳轉後 dataLayer 會重建，先把 event 指令記到 sessionStorage
+    await page.addInitScript(() => {
+      const w = window as unknown as { dataLayer?: unknown[] };
+      const layer: unknown[] = (w.dataLayer = w.dataLayer ?? []);
+      const push = layer.push.bind(layer);
+      layer.push = (...items: unknown[]) => {
+        for (const item of items) {
+          const args = Array.from(item as ArrayLike<unknown>);
+          if (args[0] === 'event' && args[1] === 'cta_click') {
+            const log = JSON.parse(sessionStorage.getItem('e2e_cta') ?? '[]');
+            log.push(args[2]);
+            sessionStorage.setItem('e2e_cta', JSON.stringify(log));
+          }
+        }
+        return push(...items);
+      };
+    });
+    await page.goto('/');
+    await page.getByRole('button', { name: '多人對戰' }).click();
+    await expect(page).toHaveURL(/\/multiple-play$/);
+    const sent = await page.evaluate(() =>
+      JSON.parse(sessionStorage.getItem('e2e_cta') ?? '[]'),
+    );
+    expect(sent).toEqual([
+      expect.objectContaining({ location: 'home_hero', cta: 'multiplayer' }),
+    ]);
+  });
+
+  test('首頁聚焦快速試玩：沒有新玩法公告，每日挑戰是第二入口，其他小遊戲只留文字入口', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(
+      page.getByRole('link', { name: '立即挑戰 3 題' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('home-cta-meta')).toHaveText(
+      '免費・免登入・約 2 分鐘',
+    );
+    await expect(page.getByTestId('home-daily-cta')).toHaveAttribute(
+      'href',
+      '/daily-challenge?from=home',
+    );
+    // 新玩法公告不在首頁：任何一則公告的標題、按鈕都不存在，Hero 是頁面最上方的內容
+    for (const id of ['tabletop', 'match', 'quickMathAdvanced'] as const) {
+      await expect(
+        page.getByText(zhTW.Announcement[id].title, { exact: true }),
+      ).toHaveCount(0);
+    }
+    await expect(
+      page.getByText(zhTW.Announcement.tryNow, { exact: false }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: zhTW.Announcement.dismiss }),
+    ).toHaveCount(0);
+    expect((await page.getByTestId('home-hero').boundingBox())?.y).toBe(0);
+
+    // 心算快答、猜數字不是大卡片，但仍可從「更多遊戲」文字入口進入
+    const more = page.getByRole('navigation', { name: '更多遊戲' });
+    await expect(more.getByRole('link')).toHaveCount(2);
+    await more.getByRole('link', { name: '猜數字' }).click();
+    await expect(page).toHaveURL(/\/guess-number$/);
+  });
+
+  test('完整漏斗：首頁快速試玩 → 三題 → 每日挑戰 → 開始，game_start 帶 source=quick_play', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: '立即挑戰 3 題' }).click();
+    await page
+      .getByTestId('quick-play-tips')
+      .getByRole('button', { name: '知道了' })
+      .click();
+    await playThreePuzzles(page);
+
+    await page
+      .getByTestId('quick-play-next')
+      .getByRole('link', { name: '挑戰今日 3 題' })
+      .click();
+    await expect(page).toHaveURL(/\/daily-challenge\?from=quick_play$/);
+    await page.getByRole('button', { name: '開始挑戰' }).click();
+
+    const events = await allEvents(page);
+    const names = events.map(([name]) => name);
+    // 全程都是軟導覽，同一份 dataLayer 依序記錄整條漏斗
+    expect(names.indexOf('cta_click')).toBeLessThan(
+      names.indexOf('quick_play_start'),
+    );
+    expect(events).toContainEqual([
+      'cta_click',
+      { location: 'home_hero', cta: 'quick_play' },
+    ]);
+    expect(events).toContainEqual([
+      'cta_click',
+      { location: 'quick_play_result', cta: 'daily_challenge' },
+    ]);
+    expect(events.filter(([name]) => name === 'game_start')).toEqual([
+      ['game_start', { mode: 'daily', source: 'quick_play' }],
+    ]);
+    expect(names.lastIndexOf('onboarding_complete')).toBeLessThan(
+      names.indexOf('game_start'),
+    );
+  });
+
+  test('從首頁進每日挑戰並開始，game_start 帶 source=home', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByTestId('home-daily-cta').click();
+    await expect(page).toHaveURL(/\/daily-challenge\?from=home$/);
+    await page.getByRole('button', { name: '開始挑戰' }).click();
+    const starts = (await allEvents(page)).filter(
+      ([name]) => name === 'game_start',
+    );
+    expect(starts).toEqual([['game_start', { mode: 'daily', source: 'home' }]]);
   });
 });
 
@@ -201,7 +350,7 @@ test.describe('快速試玩：手機', () => {
   test('觸控可以完成三題', async ({ page }) => {
     await stubAnalytics(page);
     await page.goto('/');
-    await page.getByRole('link', { name: '立即開始' }).tap();
+    await page.getByRole('link', { name: '立即挑戰 3 題' }).tap();
     await page.getByRole('button', { name: '關閉操作提示' }).tap();
     await playThreePuzzles(page);
     await expect(

@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  dailySourceFrom,
+  trackCtaClick,
   trackEvent,
+  trackEventThen,
   trackFirstPuzzleSolved,
   trackGameComplete,
   trackGameStart,
   trackOnboardingComplete,
   trackOnboardingExit,
+  trackQuickPlayPuzzleSolved,
   trackQuickPlayStart,
   trackShare,
 } from '../analytics';
@@ -94,5 +98,101 @@ describe('analytics', () => {
         },
       ],
     ]);
+  });
+
+  it('入口點擊帶上位置與入口代碼', () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+
+    trackCtaClick('home_hero', 'quick_play');
+    trackCtaClick('quick_play_result', 'daily_challenge');
+
+    expect(gtag.mock.calls).toEqual([
+      ['event', 'cta_click', { location: 'home_hero', cta: 'quick_play' }],
+      [
+        'event',
+        'cta_click',
+        { location: 'quick_play_result', cta: 'daily_challenge' },
+      ],
+    ]);
+  });
+
+  it('每日挑戰入口只接受已知的 from，其餘算 direct', () => {
+    expect(dailySourceFrom('home')).toBe('home');
+    expect(dailySourceFrom('quick_play')).toBe('quick_play');
+    expect(dailySourceFrom(null)).toBe('direct');
+    expect(dailySourceFrom('<script>')).toBe('direct');
+  });
+
+  it('每輪每題答對送 quick_play_puzzle_solved，帶 step 與 is_first_time', () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+
+    trackQuickPlayPuzzleSolved({ step: 1, isFirstTime: false, hintLevel: 1 });
+
+    expect(gtag).toHaveBeenCalledWith('event', 'quick_play_puzzle_solved', {
+      step: 1,
+      is_first_time: false,
+      hint_level: 1,
+    });
+  });
+
+  describe('trackEventThen（整頁跳轉前先送事件）', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('GA 沒載入時立即執行 callback', () => {
+      const callback = vi.fn();
+      trackEventThen('cta_click', { cta: 'multiplayer' }, callback);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('gtag 回呼後才執行，且只執行一次', () => {
+      vi.useFakeTimers();
+      let eventCallback: (() => void) | undefined;
+      window.gtag = vi.fn((_, __, params) => {
+        eventCallback = params?.event_callback as () => void;
+      });
+      const callback = vi.fn();
+
+      trackEventThen('cta_click', { cta: 'multiplayer' }, callback, 400);
+      expect(window.gtag).toHaveBeenCalledWith(
+        'event',
+        'cta_click',
+        expect.objectContaining({
+          cta: 'multiplayer',
+          transport_type: 'beacon',
+          event_timeout: 400,
+        }),
+      );
+      expect(callback).not.toHaveBeenCalled();
+
+      eventCallback?.();
+      vi.advanceTimersByTime(1000);
+      eventCallback?.();
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('gtag.js 被擋、一直沒回呼時，逾時後仍會執行', () => {
+      vi.useFakeTimers();
+      window.gtag = vi.fn();
+      const callback = vi.fn();
+
+      trackEventThen('cta_click', undefined, callback, 400);
+      vi.advanceTimersByTime(399);
+      expect(callback).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('gtag 丟錯時立即執行，不影響跳轉', () => {
+      window.gtag = () => {
+        throw new Error('blocked');
+      };
+      const callback = vi.fn();
+      trackEventThen('cta_click', undefined, callback);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
   });
 });

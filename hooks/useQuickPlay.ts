@@ -5,6 +5,7 @@ import {
   trackFirstPuzzleSolved,
   trackOnboardingComplete,
   trackOnboardingExit,
+  trackQuickPlayPuzzleSolved,
   trackQuickPlayStart,
 } from '@/lib/analytics';
 import { type AnswerError, checkAnswer } from '@/lib/answer-check';
@@ -204,6 +205,11 @@ export function useQuickPlay(
 
     playSound('correct');
     const elapsed = now() - startedAtRef.current;
+    trackQuickPlayPuzzleSolved({
+      step: stepRef.current + 1,
+      isFirstTime: isFirstTimeRef.current,
+      hintLevel: hintLevelRef.current,
+    });
     if (markFirstPuzzleSolved()) {
       trackFirstPuzzleSolved({
         step: stepRef.current + 1,

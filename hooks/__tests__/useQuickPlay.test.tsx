@@ -11,13 +11,24 @@ import {
 } from 'vitest';
 import { useQuickPlay } from '../useQuickPlay';
 
+// 題目是隨機的；這裡只驗證事件，答案一律判對
+vi.mock('@/lib/answer-check', () => ({ checkAnswer: () => ({ ok: true }) }));
+vi.mock('@/lib/sound-manager', () => ({ playSound: () => {} }));
+
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean;
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-function Probe() {
-  useQuickPlay(() => 'home_hero');
+let game: ReturnType<typeof useQuickPlay>;
+
+function Probe({
+  onRender,
+}: {
+  onRender?: (g: ReturnType<typeof useQuickPlay>) => void;
+}) {
+  const quickPlay = useQuickPlay(() => 'home_hero');
+  onRender?.(quickPlay);
   return null;
 }
 
@@ -92,5 +103,40 @@ describe('useQuickPlay 的開局與離開事件', () => {
     expect(eventNames(gtag)).toEqual(['quick_play_start']);
     // afterEach 會再 unmount 一次，換一個新的 root 避免重複卸載
     root = createRoot(container);
+  });
+
+  it('每一輪每答對一題送一次 quick_play_puzzle_solved；first_puzzle_solved 終身一次', () => {
+    act(() =>
+      root.render(
+        <Probe
+          onRender={g => {
+            game = g;
+          }}
+        />,
+      ),
+    );
+    for (let i = 0; i < 3; i++) act(() => void game.submit());
+
+    // 再玩一次：回訪玩家（is_first_time=false）一樣有完整的每題事件
+    act(() => game.start('replay'));
+    for (let i = 0; i < 3; i++) act(() => void game.submit());
+
+    const solved = gtag.mock.calls
+      .filter(([, name]) => name === 'quick_play_puzzle_solved')
+      .map(([, , params]) => params);
+    expect(solved).toEqual([
+      { step: 1, is_first_time: true, hint_level: 0 },
+      { step: 2, is_first_time: true, hint_level: 0 },
+      { step: 3, is_first_time: true, hint_level: 0 },
+      { step: 1, is_first_time: false, hint_level: 0 },
+      { step: 2, is_first_time: false, hint_level: 0 },
+      { step: 3, is_first_time: false, hint_level: 0 },
+    ]);
+    expect(
+      eventNames(gtag).filter(name => name === 'first_puzzle_solved'),
+    ).toHaveLength(1);
+    expect(
+      eventNames(gtag).filter(name => name === 'onboarding_complete'),
+    ).toHaveLength(2);
   });
 });

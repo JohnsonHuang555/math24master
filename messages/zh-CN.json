@@ -27,9 +27,11 @@
     "achievements": "成就",
     "title": "你能用 4 张牌<br></br>算出 <highlight>24</highlight> 吗？",
     "subtitle": "利用 4 张数字牌，透过加、减、乘、除与括号，组合出等于 24 的算式",
-    "start": "立即开始",
+    "start": "立即挑战 3 题",
+    "startMeta": "免费・免登录・约 2 分钟",
     "chooseMode": "选择模式",
     "multiplayer": "多人对战",
+    "secondaryNav": "其他玩法",
     "moreModes": {
       "title": "更多游戏",
       "dailyChallenge": {
@@ -713,9 +715,9 @@
       "solved": "完成题数",
       "solvedValue": "{count}/{total}",
       "hintsUsed": "使用提示",
-      "daily": "挑战今日题目",
+      "daily": "挑战今日 3 题",
       "dailyDone": "查看今日挑战",
-      "explore": "探索其他模式",
+      "explore": "探索更多模式",
       "retry": "再玩一次"
     }
   },

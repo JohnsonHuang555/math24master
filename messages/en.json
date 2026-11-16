@@ -27,9 +27,11 @@
     "achievements": "Achievements",
     "title": "Can you make <highlight>24</highlight><br></br>with 4 cards?",
     "subtitle": "Use 4 number cards with +, −, ×, ÷ and parentheses to build an equation that equals 24",
-    "start": "Play now",
+    "start": "Solve 3 puzzles",
+    "startMeta": "Free · No sign-up · About 2 min",
     "chooseMode": "All modes",
     "multiplayer": "Multiplayer",
+    "secondaryNav": "Other ways to play",
     "moreModes": {
       "title": "More games",
       "dailyChallenge": {
@@ -713,9 +715,9 @@
       "solved": "Solved",
       "solvedValue": "{count}/{total}",
       "hintsUsed": "Hints used",
-      "daily": "Today's Daily Challenge",
+      "daily": "Play today's 3 puzzles",
       "dailyDone": "View Daily Challenge",
-      "explore": "More modes",
+      "explore": "Explore more modes",
       "retry": "Play again"
     }
   },
