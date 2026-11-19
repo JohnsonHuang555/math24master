@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   bestHandOf,
   cardsInFormula,
+  composeShareText,
+  createResultId,
   formatCardDate,
   shareLinkFor,
   splitAroundValue,
@@ -52,5 +54,36 @@ describe('分享圖卡的資料整理', () => {
       'Personal best ',
       '',
     ]);
+  });
+
+  it('分享文字附上帶 utm 的網址；最後一行是裸網域時換成完整網址，不重複', () => {
+    const url = 'https://math24master.com/daily-challenge?utm_source=share';
+    expect(composeShareText('本日 17 分\nmath24master.com', url)).toBe(
+      `本日 17 分\n${url}`,
+    );
+    expect(composeShareText('經典模式：51 分', url)).toBe(
+      `經典模式：51 分\n${url}`,
+    );
+    // 還沒有網址（例如尚未打開預覽）時維持原文
+    expect(composeShareText('經典模式：51 分', '')).toBe('經典模式：51 分');
+  });
+
+  it('每局結算 id 不重複；沒有 randomUUID 時也能產生', () => {
+    const ids = new Set(Array.from({ length: 50 }, createResultId));
+    expect(ids.size).toBe(50);
+
+    const original = globalThis.crypto;
+    Object.defineProperty(globalThis, 'crypto', {
+      value: {},
+      configurable: true,
+    });
+    try {
+      expect(createResultId()).toMatch(/^[a-z0-9]+-[a-z0-9]+$/);
+    } finally {
+      Object.defineProperty(globalThis, 'crypto', {
+        value: original,
+        configurable: true,
+      });
+    }
   });
 });

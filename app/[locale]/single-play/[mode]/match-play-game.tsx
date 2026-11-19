@@ -20,6 +20,7 @@ import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
 import { ShareCardDialog } from '@/components/share/share-card-dialog';
 import { ShareResultButton } from '@/components/share/share-result-button';
+import { useGameResult } from '@/hooks/useGameResult';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useMatchPlay from '@/hooks/useMatchPlay';
 import { useShareCard } from '@/hooks/useShareCard';
@@ -55,7 +56,6 @@ export default function MatchPlayGame({
   const tMode = useTranslations('SinglePlay.modes.match');
   const tHome = useTranslations('Home');
   const locale = useLocale();
-  const tShare = useTranslations('Share');
   const format = useFormatter();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
@@ -145,6 +145,8 @@ export default function MatchPlayGame({
     return () => clearTimeout(id);
   }, [isCleared, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 每局結算一個新的 id：分享圖卡依它判斷能不能沿用已產生的圖
+  const gameResult = useGameResult(!!isGameOver);
   const renderShareCard = useCallback(() => {
     const [bestBefore, bestAfter] = splitAroundValue(value =>
       t('card.best', { score: value }),
@@ -167,19 +169,18 @@ export default function MatchPlayGame({
       footer: {
         cta: t('card.cta'),
         site: SHARE_SITE,
-        date: formatCardDate(new Date(), locale),
+        date: formatCardDate(gameResult?.finishedAt ?? new Date(), locale),
       },
     });
-    // 結算後成績不再變動，cacheKey 已涵蓋這些值
+    // 圖卡內容在一局結算後固定；換局由 gameResult（resultId）觸發重畫
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [score, isNewBestScore, bestScore]);
+  }, [gameResult, locale, score, isNewBestScore, bestScore]);
   const shareCard = useShareCard({
     mode: 'match',
     fileName: 'math24-matching-result.png',
-    cacheKey: `${score}-${isNewBestScore}-${bestScore}`,
+    resultId: gameResult?.id ?? null,
     path: '/single-play',
     render: renderShareCard,
-    onError: useCallback(() => toast.error(tShare('imageFailed')), [tShare]),
   });
 
   const ruleModal = (
@@ -306,6 +307,7 @@ export default function MatchPlayGame({
                 label={t('share')}
                 generatingLabel={t('sharing')}
                 isGenerating={shareCard.isGenerating}
+                disabled={!shareCard.ready}
                 onClick={() => void shareCard.start()}
               />
             </>
@@ -316,6 +318,7 @@ export default function MatchPlayGame({
           onOpenChange={shareCard.setOpen}
           mode="match"
           file={shareCard.file}
+          imageFailed={shareCard.imageFailed}
           shareTitle={t('shareTitle')}
           shareText={t('shareText', { score })}
           shareUrl={shareCard.shareUrl}

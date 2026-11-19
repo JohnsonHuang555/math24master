@@ -1230,17 +1230,19 @@
     "couldEarnMore": "Best answer scores {points} more"
   },
   "Share": {
-    "imageFailed": "Couldn't create the image. Please try again later.",
     "title": "Share result",
     "format": "1080 × 1350 · PNG",
     "previewAlt": "Share card preview",
     "shareImage": "Share image",
+    "shareText": "Share text",
     "download": "Download image",
     "save": "Save image",
     "copyImage": "Copy image",
     "copyText": "Copy text",
     "copyLink": "Copy link",
+    "imageUnavailable": "The image couldn't be created this time. You can still share the text and link below.",
     "status": {
+      "shared": "Shared. If the link didn't come through, send it with Copy link.",
       "downloaded": "Image downloaded. Share it in your story or chat.",
       "imageCopied": "Image copied. Paste it straight into a chat.",
       "textCopied": "Share text copied",

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canShareFiles, copyImage, copyText, shareImageFile } from '../share';
+import {
+  canShareFiles,
+  copyImage,
+  copyText,
+  shareImageFile,
+  shareTextOnly,
+} from '../share';
 
 const file = () => new File(['png'], 'card.png', { type: 'image/png' });
 
@@ -43,5 +49,51 @@ describe('分享動作', () => {
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
     await expect(copyText('hi')).resolves.toBe('copied');
     await expect(copyText('hi')).resolves.toBe('failed');
+  });
+
+  it('分享圖片時網址寫在文字裡，不另外放 url 欄位（有些 App 會丟掉 url 或貼兩次）', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, share, canShare: () => true });
+    const card = file();
+
+    await expect(
+      shareImageFile(card, {
+        title: '24點大師',
+        text: '51 分\nhttps://math24master.com/?utm_source=share',
+      }),
+    ).resolves.toBe('shared');
+    expect(share).toHaveBeenCalledWith({
+      title: '24點大師',
+      text: '51 分\nhttps://math24master.com/?utm_source=share',
+      files: [card],
+    });
+    expect(share.mock.calls[0][0]).not.toHaveProperty('url');
+  });
+
+  it('平台不接受「圖片＋文字」時退回只分享圖片', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn((data: ShareData) => !data.text);
+    vi.stubGlobal('navigator', { ...navigator, share, canShare });
+    const card = file();
+
+    await expect(
+      shareImageFile(card, { title: 't', text: 'with link' }),
+    ).resolves.toBe('shared');
+    expect(share).toHaveBeenCalledWith({ title: 't', files: [card] });
+  });
+
+  it('圖卡失敗時可以只分享文字；不支援分享選單時回傳 failed', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, share });
+    await expect(shareTextOnly({ text: 'hi\nhttps://x' })).resolves.toBe(
+      'shared',
+    );
+    expect(share).toHaveBeenCalledWith({
+      title: undefined,
+      text: 'hi\nhttps://x',
+    });
+
+    vi.stubGlobal('navigator', { ...navigator, share: undefined });
+    await expect(shareTextOnly({ text: 'hi' })).resolves.toBe('failed');
   });
 });

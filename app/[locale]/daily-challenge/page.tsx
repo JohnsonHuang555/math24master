@@ -26,6 +26,7 @@ import Symbols from '@/components/symbols';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
+import { useGameResult } from '@/hooks/useGameResult';
 import { useShareCard } from '@/hooks/useShareCard';
 import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
@@ -84,7 +85,6 @@ export default function DailyChallengePage() {
   const tHud = useTranslations('GameUI.hud');
   const tPuzzle = useTranslations('GameUI.puzzle');
   const tError = useTranslations('ServerError');
-  const tShare = useTranslations('Share');
   const tHome = useTranslations('Home');
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -289,6 +289,8 @@ export default function DailyChallengePage() {
     streak,
   });
 
+  // 每局結算一個新的 id：分享圖卡依它判斷能不能沿用已產生的圖
+  const gameResult = useGameResult(gameState === 'completed');
   const renderShareCard = useCallback(
     () =>
       renderDailyShareCard({
@@ -318,17 +320,16 @@ export default function DailyChallengePage() {
           }),
         },
       }),
-    // 完成後成績不再變動，cacheKey 已涵蓋這些值
+    // 圖卡內容在完成後固定；換局由 gameResult（resultId）觸發重畫
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [score, streak, today, roundScores.length],
+    [gameResult, locale, score, streak, today, roundScores.length],
   );
   const shareCard = useShareCard({
     mode: 'daily',
     fileName: `math24-daily-${today}.png`,
-    cacheKey: `${today}-${score}-${streak}-${roundScores.join(',')}`,
+    resultId: gameResult?.id ?? null,
     path: '/daily-challenge',
     render: renderShareCard,
-    onError: useCallback(() => toast.error(tShare('imageFailed')), [tShare]),
   });
 
   useGameKeyboard(gameState === 'playing', {
@@ -434,7 +435,7 @@ export default function DailyChallengePage() {
                   'border-primary bg-primary-tint text-primary-ink disabled:opacity-100',
               )}
               onClick={() => void shareCard.start()}
-              disabled={shareCard.isGenerating}
+              disabled={shareCard.isGenerating || !shareCard.ready}
               aria-busy={shareCard.isGenerating}
               data-testid="share-result-button"
             >
@@ -453,6 +454,7 @@ export default function DailyChallengePage() {
               onOpenChange={shareCard.setOpen}
               mode="daily"
               file={shareCard.file}
+              imageFailed={shareCard.imageFailed}
               shareTitle={t('shareTitle')}
               shareText={sharePreviewText}
               shareUrl={shareCard.shareUrl}

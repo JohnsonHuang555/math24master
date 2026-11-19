@@ -1230,17 +1230,19 @@
     "couldEarnMore": "最佳解可多得 {points} 分"
   },
   "Share": {
-    "imageFailed": "图卡产生失败，请稍后再试",
     "title": "分享成绩",
     "format": "1080 × 1350 · PNG",
     "previewAlt": "分享图卡预览",
     "shareImage": "分享图片",
+    "shareText": "分享文字",
     "download": "下载图片",
     "save": "保存图片",
     "copyImage": "拷贝图片",
     "copyText": "拷贝文字",
     "copyLink": "拷贝链接",
+    "imageUnavailable": "图卡这次没有产生成功，仍然可以分享下面的文字与链接",
     "status": {
+      "shared": "已分享。如果对方没看到链接，可以再用「拷贝链接」传给他",
       "downloaded": "图片已下载，可以分享到限动或聊天室",
       "imageCopied": "图片已拷贝，可以直接贴到聊天室",
       "textCopied": "分享文字已拷贝",

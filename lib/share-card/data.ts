@@ -61,3 +61,23 @@ export function splitAroundValue(
   const [before = '', after = ''] = format(marker).split(marker);
   return [before, after];
 }
+
+/**
+ * 分享文字加上網址：網址放在最後一行。
+ * 文案最後一行若只是裸網域（例如每日挑戰的「math24master.com」），換成帶 utm 的完整網址，避免重複
+ */
+export function composeShareText(text: string, url: string): string {
+  if (!url) return text;
+  const lines = text.split('\n');
+  if (lines[lines.length - 1]?.trim() === SHARE_SITE) lines.pop();
+  return [...lines, url].join('\n');
+}
+
+/** 每局結算的唯一 id，用來區分「同一局重開預覽」與「另一局剛好同分」 */
+export function createResultId(): string {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function')
+    return cryptoApi.randomUUID();
+  // 非安全來源（例如區網 http）沒有 randomUUID
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}

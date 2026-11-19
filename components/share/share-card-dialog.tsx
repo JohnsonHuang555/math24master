@@ -7,6 +7,7 @@ import {
   Copy,
   Download,
   ImageIcon,
+  ImageOff,
   Link2,
   Share,
 } from 'lucide-react';
@@ -27,11 +28,14 @@ import {
   type ShareOutcome,
   canCopyImage,
   canShareFiles,
+  canShareText,
   copyImage,
   copyText,
   downloadFile,
   shareImageFile,
+  shareTextOnly,
 } from '@/lib/share';
+import { composeShareText } from '@/lib/share-card/data';
 import { cn } from '@/lib/utils';
 
 type ShareCardDialogProps = {
@@ -39,7 +43,9 @@ type ShareCardDialogProps = {
   onOpenChange: (open: boolean) => void;
   mode: AnalyticsGameMode;
   file: File | null;
-  /** 系統分享與「複製文字」用的文字 */
+  /** 圖卡產生失敗：沒有圖，只提供分享文字與連結 */
+  imageFailed?: boolean;
+  /** 系統分享與「複製文字」用的文字（網址由元件附在最後一行） */
   shareText: string;
   /** 「複製連結」的網址（帶 utm） */
   shareUrl: string;
@@ -59,6 +65,7 @@ export function ShareCardDialog({
   onOpenChange,
   mode,
   file,
+  imageFailed = false,
   shareText,
   shareUrl,
   shareTitle,
@@ -69,8 +76,11 @@ export function ShareCardDialog({
   // 瀏覽器能力只在 client 判斷，打開時才讀
   const [abilities, setAbilities] = useState({
     share: false,
+    shareText: false,
     copyImage: false,
   });
+  // 分享出去與複製的文字都帶上帶 utm 的網址
+  const textWithLink = composeShareText(shareText, shareUrl);
 
   const previewUrl = useMemo(
     () => (file ? URL.createObjectURL(file) : null),
@@ -84,10 +94,17 @@ export function ShareCardDialog({
   );
 
   useEffect(() => {
-    if (!open || !file) return;
-    setAbilities({ share: canShareFiles(file), copyImage: canCopyImage() }); // eslint-disable-line react-hooks/set-state-in-effect
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAbilities({
+      share: !!file && canShareFiles(file),
+      shareText: canShareText(),
+      copyImage: !!file && canCopyImage(),
+    });
     setStatus(null);
   }, [open, file]);
+
+  const hasImage = !!file && !imageFailed;
 
   const run = async (
     method: ShareMethod,
@@ -114,32 +131,73 @@ export function ShareCardDialog({
   const download = () =>
     file && run('download', () => downloadFile(file), t('status.downloaded'));
 
-  const primary = abilities.share ? (
-    <Button
-      variant="tactile"
-      className="w-full gap-2"
-      disabled={!file || busy}
-      onClick={() =>
-        file &&
-        run('system', () =>
-          shareImageFile(file, { title: shareTitle, text: shareText }),
-        )
-      }
-    >
-      <Share aria-hidden className="h-5 w-5" />
-      {t('shareImage')}
-    </Button>
-  ) : (
-    <Button
-      variant="tactile"
-      className="w-full gap-2"
-      disabled={!file || busy}
-      onClick={download}
-    >
-      <Download aria-hidden className="h-5 w-5" />
-      {t('download')}
-    </Button>
-  );
+  const copyTextAction = () =>
+    run('copy_text', () => copyText(textWithLink), t('status.textCopied'));
+
+  let primary: ReactNode;
+  if (!hasImage) {
+    // 沒有圖：能叫出分享選單就分享文字，否則複製文字
+    primary = abilities.shareText ? (
+      <Button
+        variant="tactile"
+        className="w-full gap-2"
+        disabled={busy}
+        onClick={() =>
+          run(
+            'system_text',
+            () => shareTextOnly({ title: shareTitle, text: textWithLink }),
+            t('status.shared'),
+          )
+        }
+      >
+        <Share aria-hidden className="h-5 w-5" />
+        {t('shareText')}
+      </Button>
+    ) : (
+      <Button
+        variant="tactile"
+        className="w-full gap-2"
+        disabled={busy}
+        onClick={copyTextAction}
+      >
+        <Copy aria-hidden className="h-5 w-5" />
+        {t('copyText')}
+      </Button>
+    );
+  } else if (abilities.share) {
+    primary = (
+      <Button
+        variant="tactile"
+        className="w-full gap-2"
+        disabled={busy}
+        onClick={() =>
+          file &&
+          run(
+            'system',
+            () =>
+              shareImageFile(file, { title: shareTitle, text: textWithLink }),
+            // App 不一定保留文字與網址，提醒還可以另外傳連結
+            t('status.shared'),
+          )
+        }
+      >
+        <Share aria-hidden className="h-5 w-5" />
+        {t('shareImage')}
+      </Button>
+    );
+  } else {
+    primary = (
+      <Button
+        variant="tactile"
+        className="w-full gap-2"
+        disabled={busy}
+        onClick={download}
+      >
+        <Download aria-hidden className="h-5 w-5" />
+        {t('download')}
+      </Button>
+    );
+  }
 
   const actions: {
     key: string;
@@ -147,14 +205,14 @@ export function ShareCardDialog({
     label: string;
     onClick: () => void;
   }[] = [];
-  if (abilities.share) {
+  if (hasImage && abilities.share) {
     actions.push({
       key: 'save',
       icon: <Download aria-hidden />,
       label: t('save'),
       onClick: () => void download(),
     });
-  } else if (abilities.copyImage) {
+  } else if (hasImage && abilities.copyImage) {
     actions.push({
       key: 'copy-image',
       icon: <ImageIcon aria-hidden />,
@@ -166,26 +224,22 @@ export function ShareCardDialog({
         ),
     });
   }
-  actions.push(
-    {
+  // 沒有圖又不能叫分享選單時，主按鈕已經是「複製文字」
+  if (hasImage || abilities.shareText) {
+    actions.push({
       key: 'copy-text',
       icon: <Copy aria-hidden />,
       label: t('copyText'),
-      onClick: () =>
-        void run(
-          'copy_text',
-          () => copyText(shareText),
-          t('status.textCopied'),
-        ),
-    },
-    {
-      key: 'copy-link',
-      icon: <Link2 aria-hidden />,
-      label: t('copyLink'),
-      onClick: () =>
-        void run('copy_link', () => copyText(shareUrl), t('status.linkCopied')),
-    },
-  );
+      onClick: () => void copyTextAction(),
+    });
+  }
+  actions.push({
+    key: 'copy-link',
+    icon: <Link2 aria-hidden />,
+    label: t('copyLink'),
+    onClick: () =>
+      void run('copy_link', () => copyText(shareUrl), t('status.linkCopied')),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -204,7 +258,7 @@ export function ShareCardDialog({
         </div>
 
         <div className="mx-auto aspect-[4/5] w-[min(100%,324px,calc((88dvh-290px)*0.8))] shrink-0 overflow-hidden rounded-[14px] shadow-[0_10px_30px_rgba(16,36,33,0.18)] lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:w-[432px]">
-          {previewUrl && (
+          {hasImage && previewUrl ? (
             // blob URL 預覽，不經過 next/image 最佳化
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -213,6 +267,23 @@ export function ShareCardDialog({
               data-testid="share-card-preview"
               className="h-full w-full object-cover"
             />
+          ) : (
+            // 圖卡產生失敗：顯示要分享的文字，玩家仍可分享文字與連結
+            <div
+              data-testid="share-card-fallback"
+              className="flex h-full w-full flex-col gap-3 bg-sunken p-5"
+            >
+              <p className="flex items-start gap-2 text-sm font-bold text-ink-2">
+                <ImageOff
+                  aria-hidden
+                  className="mt-0.5 h-[18px] w-[18px] shrink-0"
+                />
+                {t('imageUnavailable')}
+              </p>
+              <p className="flex-1 overflow-y-auto rounded-xl border border-dashed border-line-strong bg-surface px-3.5 py-3 font-mono text-sm leading-[1.7] break-all whitespace-pre-wrap text-ink">
+                {textWithLink}
+              </p>
+            </div>
           )}
         </div>
 
@@ -223,7 +294,7 @@ export function ShareCardDialog({
               <button
                 key={action.key}
                 type="button"
-                disabled={!file || busy}
+                disabled={busy}
                 onClick={action.onClick}
                 className={cn(
                   'flex min-w-16 flex-col items-center gap-1.5 text-[13px] font-bold text-ink disabled:opacity-50',

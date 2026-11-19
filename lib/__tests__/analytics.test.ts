@@ -201,11 +201,11 @@ describe('analytics', () => {
     const gtag = vi.fn();
     window.gtag = gtag;
 
-    trackShareCardOpen('match');
+    trackShareCardOpen('match', false);
     trackShare('match', 'copied', 'copy_image');
 
     expect(gtag.mock.calls).toEqual([
-      ['event', 'share_card_open', { mode: 'match' }],
+      ['event', 'share_card_open', { mode: 'match', has_image: false }],
       [
         'event',
         'share_click',

@@ -61,18 +61,53 @@ export function canCopyImage(): boolean {
   );
 }
 
-/** 用系統分享選單分享圖片；不支援時回傳 failed，由呼叫端改給下載 */
+/**
+ * 用系統分享選單分享圖片。
+ *
+ * 網址不另外放在 `url` 欄位，而是寫進 `text` 的最後一行：帶檔案分享時，
+ * 有些平台／App 會丟掉 `url`（例如 iOS 分享到部分 App 只收圖片），也有些會把 `text` 與 `url` 各貼一次。
+ * 平台不接受「檔案＋文字」時（`canShare` 回 false），退回只分享圖片；
+ * 不論哪種情況，App 都可能不保留文字，所以預覽裡一直提供「複製連結」
+ */
 export async function shareImageFile(
   file: File,
   options?: { title?: string; text?: string },
 ): Promise<ShareOutcome> {
   if (!canShareFiles(file)) return 'failed';
+  const withText: ShareData = {
+    title: options?.title,
+    text: options?.text,
+    files: [file],
+  };
+  const data =
+    options?.text && !navigator.canShare(withText)
+      ? { title: options?.title, files: [file] }
+      : withText;
   try {
-    await navigator.share({
-      title: options?.title,
-      text: options?.text,
-      files: [file],
-    });
+    await navigator.share(data);
+    return 'shared';
+  } catch (e) {
+    return e instanceof Error && e.name === 'AbortError'
+      ? 'cancelled'
+      : 'failed';
+  }
+}
+
+/** 這個瀏覽器能不能用系統分享選單分享文字 */
+export function canShareText(): boolean {
+  return (
+    typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  );
+}
+
+/** 只分享文字（含網址）；圖卡產生失敗時用 */
+export async function shareTextOnly(options: {
+  title?: string;
+  text: string;
+}): Promise<ShareOutcome> {
+  if (!canShareText()) return 'failed';
+  try {
+    await navigator.share({ title: options.title, text: options.text });
     return 'shared';
   } catch (e) {
     return e instanceof Error && e.name === 'AbortError'

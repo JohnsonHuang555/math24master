@@ -23,6 +23,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { ShareCardDialog } from '@/components/share/share-card-dialog';
 import { ShareResultButton } from '@/components/share/share-result-button';
 import { Button } from '@/components/ui/button';
+import { useGameResult } from '@/hooks/useGameResult';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import { useShareCard } from '@/hooks/useShareCard';
 import useSinglePlay from '@/hooks/useSinglePlay';
@@ -80,7 +81,6 @@ export default function ClassicPlayGame({
   const [showRoundHistory, setShowRoundHistory] = useState(false);
   const t = useTranslations('Classic');
   const tMode = useTranslations('SinglePlay.modes.classic');
-  const tShare = useTranslations('Share');
   const tHome = useTranslations('Home');
   const locale = useLocale();
   const tScoring = useTranslations('GameUI.scoring');
@@ -189,6 +189,8 @@ export default function ClassicPlayGame({
   const efficiency = theoreticalMax > 0 ? currentScore / theoreticalMax : 0;
   const grade = gradeOf(efficiency);
 
+  // 每局結算一個新的 id：分享圖卡依它判斷能不能沿用已產生的圖
+  const gameResult = useGameResult(!!isGameOver);
   const bestHand = bestHandOf(roundHistory);
   const renderShareCard = useCallback(
     () =>
@@ -212,20 +214,19 @@ export default function ClassicPlayGame({
         footer: {
           cta: t('card.cta'),
           site: SHARE_SITE,
-          date: formatCardDate(new Date(), locale),
+          date: formatCardDate(gameResult?.finishedAt ?? new Date(), locale),
         },
       }),
-    // 結算後成績不再變動，cacheKey 已涵蓋這些值
+    // 圖卡內容在一局結算後固定；換局由 gameResult（resultId）觸發重畫
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentScore, grade, perfectHands, isNewBestScore, roundHistory.length],
+    [gameResult, locale, currentScore, grade, perfectHands, isNewBestScore],
   );
   const shareCard = useShareCard({
     mode: 'classic',
     fileName: 'math24-classic-result.png',
-    cacheKey: `${currentScore}-${roundHistory.length}-${isNewBestScore}`,
+    resultId: gameResult?.id ?? null,
     path: '/single-play',
     render: renderShareCard,
-    onError: useCallback(() => toast.error(tShare('imageFailed')), [tShare]),
   });
 
   const leaderboardSubmit = useLeaderboardSubmit(
@@ -356,6 +357,7 @@ export default function ClassicPlayGame({
               label={t('share')}
               generatingLabel={t('sharing')}
               isGenerating={shareCard.isGenerating}
+              disabled={!shareCard.ready}
               onClick={() => void shareCard.start()}
             />
           </div>
@@ -365,6 +367,7 @@ export default function ClassicPlayGame({
           onOpenChange={shareCard.setOpen}
           mode="classic"
           file={shareCard.file}
+          imageFailed={shareCard.imageFailed}
           shareTitle={t('shareTitle')}
           shareText={t('shareText', { score: currentScore, grade })}
           shareUrl={shareCard.shareUrl}

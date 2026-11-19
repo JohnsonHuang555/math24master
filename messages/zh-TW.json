@@ -1230,17 +1230,19 @@
     "couldEarnMore": "最佳解可多得 {points} 分"
   },
   "Share": {
-    "imageFailed": "圖卡產生失敗，請稍後再試",
     "title": "分享成績",
     "format": "1080 × 1350 · PNG",
     "previewAlt": "分享圖卡預覽",
     "shareImage": "分享圖片",
+    "shareText": "分享文字",
     "download": "下載圖片",
     "save": "儲存圖片",
     "copyImage": "複製圖片",
     "copyText": "複製文字",
     "copyLink": "複製連結",
+    "imageUnavailable": "圖卡這次沒有產生成功，仍然可以分享下面的文字與連結",
     "status": {
+      "shared": "已分享。如果對方沒看到連結，可以再用「複製連結」傳給他",
       "downloaded": "圖片已下載，可以分享到限動或聊天室",
       "imageCopied": "圖片已複製，可以直接貼到聊天室",
       "textCopied": "分享文字已複製",
