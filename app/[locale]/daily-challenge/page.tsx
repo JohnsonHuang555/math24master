@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   ChevronLeft,
   CircleX,
   Clock,
-  Copy,
   Delete,
   Flame,
+  LoaderCircle,
   RotateCcw,
+  Share2,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -20,17 +21,19 @@ import { ExpressionBar } from '@/components/game/expression-bar';
 import { GameDesktopBar } from '@/components/game/game-hud';
 import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { NumberCard } from '@/components/game/number-card';
+import { ShareCardDialog } from '@/components/share/share-card-dialog';
 import Symbols from '@/components/symbols';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { useGameKeyboard } from '@/hooks/useGameKeyboard';
+import { useGameResult } from '@/hooks/useGameResult';
+import { useShareCard } from '@/hooks/useShareCard';
 import { Link, useRouter } from '@/i18n/navigation';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import {
   dailySourceFrom,
   trackGameComplete,
   trackGameStart,
-  trackShare,
 } from '@/lib/analytics';
 import {
   type FormulaItem,
@@ -45,6 +48,8 @@ import {
   saveDailyRecord,
 } from '@/lib/daily-seed';
 import { msUntilNextTaipeiDay } from '@/lib/date';
+import { renderDailyShareCard } from '@/lib/share-card/daily';
+import { SHARE_SITE } from '@/lib/share-card/data';
 import { playSound } from '@/lib/sound-manager';
 import { cn } from '@/lib/utils';
 import { SelectedCard } from '@/models/SelectedCard';
@@ -80,6 +85,7 @@ export default function DailyChallengePage() {
   const tHud = useTranslations('GameUI.hud');
   const tPuzzle = useTranslations('GameUI.puzzle');
   const tError = useTranslations('ServerError');
+  const tHome = useTranslations('Home');
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const incrementDailyChallenge = useStatsStore(s => s.incrementDailyChallenge);
@@ -97,6 +103,8 @@ export default function DailyChallengePage() {
     [],
   );
   const [userFormulas, setUserFormulas] = useState<string[]>([]);
+  // 本次遊玩各題得分（分享圖卡用）；重新整理後只剩總分，圖卡改顯示「答對」
+  const [roundScores, setRoundScores] = useState<number[]>([]);
   // 答錯的原因；改動算式後清掉
   const [wrongReason, setWrongReason] = useState<WrongReason | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -139,6 +147,7 @@ export default function DailyChallengePage() {
     setUsedCardIndices(new Set());
     scoreSumRef.current = 0;
     setUserFormulas([]);
+    setRoundScores([]);
     setGameState('playing');
     // source：從首頁、快速試玩完成畫面或直接進來（?from=），用來看快速試玩導流到每日挑戰的比例
     trackGameStart('daily', {
@@ -235,7 +244,9 @@ export default function DailyChallengePage() {
     }
 
     // 本題答對
-    scoreSumRef.current += calculateDailyScore(formula);
+    const roundScore = calculateDailyScore(formula);
+    scoreSumRef.current += roundScore;
+    setRoundScores(prev => [...prev, roundScore]);
     setUserFormulas(prev => [...prev, formulaDisplay]);
     playSound('correct');
 
@@ -278,16 +289,48 @@ export default function DailyChallengePage() {
     streak,
   });
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(sharePreviewText);
-      trackShare('daily', 'copied');
-      toast.success(t('copied'));
-    } catch {
-      trackShare('daily', 'failed');
-      toast.error(t('copyFailed'), { duration: Infinity });
-    }
-  };
+  // 每局結算一個新的 id：分享圖卡依它判斷能不能沿用已產生的圖
+  const gameResult = useGameResult(gameState === 'completed');
+  const renderShareCard = useCallback(
+    () =>
+      renderDailyShareCard({
+        score: score ?? 0,
+        streak,
+        rounds: Array.from({ length: TOTAL_ROUNDS }, (_, i) => ({
+          title: t('card.round', { round: i + 1 }),
+          detail:
+            roundScores[i] !== undefined
+              ? t('card.roundScore', { score: roundScores[i] })
+              : t('card.solved'),
+        })),
+        labels: {
+          brand: tHome('logoAlt'),
+          badge: t('card.badge', { date: shortDate }),
+          scoreLabel: t('card.scoreLabel', { count: TOTAL_ROUNDS }),
+          streak: t('streak', { count: streak }),
+        },
+        footer: {
+          cta: t('card.cta'),
+          site: SHARE_SITE,
+          // 每日挑戰日（台灣日期），不是玩家當地日期
+          date: formatDailyDate(today, locale, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }),
+        },
+      }),
+    // 圖卡內容在完成後固定；換局由 gameResult（resultId）觸發重畫
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameResult, locale, score, streak, today, roundScores.length],
+  );
+  const shareCard = useShareCard({
+    mode: 'daily',
+    fileName: `math24-daily-${today}.png`,
+    resultId: gameResult?.id ?? null,
+    path: '/daily-challenge',
+    render: renderShareCard,
+  });
 
   useGameKeyboard(gameState === 'playing', {
     onDigit: index => {
@@ -383,15 +426,39 @@ export default function DailyChallengePage() {
             <pre className="rounded-2xl border border-dashed border-line-strong bg-sunken px-4 py-3.5 font-mono text-sm leading-[1.7] whitespace-pre-wrap text-ink lg:mt-2.5">
               {sharePreviewText}
             </pre>
+            {/* 分享：產生圖卡後打開預覽，預覽裡可以分享圖片、複製文字或連結 */}
             <Button
               variant="tactileOutline"
-              className="h-12 gap-2 text-[15px] lg:h-[52px]"
-              onClick={handleShare}
-              aria-label={t('copyShareLabel')}
+              className={cn(
+                'h-12 gap-2 text-[15px] lg:h-[52px]',
+                shareCard.isGenerating &&
+                  'border-primary bg-primary-tint text-primary-ink disabled:opacity-100',
+              )}
+              onClick={() => void shareCard.start()}
+              disabled={shareCard.isGenerating || !shareCard.ready}
+              aria-busy={shareCard.isGenerating}
+              data-testid="share-result-button"
             >
-              <Copy aria-hidden className="h-[18px] w-[18px]" />
-              {t('copyShare')}
+              {shareCard.isGenerating ? (
+                <LoaderCircle
+                  aria-hidden
+                  className="h-[18px] w-[18px] animate-spin motion-reduce:animate-none"
+                />
+              ) : (
+                <Share2 aria-hidden className="h-[18px] w-[18px]" />
+              )}
+              {shareCard.isGenerating ? t('sharing') : t('share')}
             </Button>
+            <ShareCardDialog
+              open={shareCard.open}
+              onOpenChange={shareCard.setOpen}
+              mode="daily"
+              file={shareCard.file}
+              imageFailed={shareCard.imageFailed}
+              shareTitle={t('shareTitle')}
+              shareText={sharePreviewText}
+              shareUrl={shareCard.shareUrl}
+            />
 
             <div className="lg:hidden">
               <NextPuzzleCountdown />

@@ -217,10 +217,37 @@ export function dailySourceFrom(from: string | null): DailySource {
   return from === 'home' || from === 'quick_play' ? from : 'direct';
 }
 
-/** 按下分享按鈕，outcome 記錄實際結果（分享、複製、下載、取消、失敗） */
+/**
+ * 分享的方式：
+ * system（系統分享選單分享圖片）、system_text（圖卡失敗時只分享文字）、
+ * download（下載／儲存圖片）、copy_image、copy_text、copy_link；
+ * render 表示圖卡沒有產生成功
+ */
+export type ShareMethod =
+  | 'system'
+  | 'system_text'
+  | 'download'
+  | 'copy_image'
+  | 'copy_text'
+  | 'copy_link'
+  | 'render';
+
+/** 玩家在分享畫面做了一個動作，outcome 記錄實際結果（分享、複製、下載、取消、失敗） */
 export function trackShare(
   mode: AnalyticsGameMode,
   outcome: ShareOutcome,
+  method?: ShareMethod,
 ): void {
-  trackEvent('share_click', { mode, outcome });
+  trackEvent('share_click', { mode, outcome, method });
+}
+
+/**
+ * 分享預覽打開（漏斗：結算 → 開啟預覽 → share_click）。
+ * has_image=false 表示圖卡產生失敗、只能分享文字與連結
+ */
+export function trackShareCardOpen(
+  mode: AnalyticsGameMode,
+  hasImage: boolean,
+): void {
+  trackEvent('share_card_open', { mode, has_image: hasImage });
 }

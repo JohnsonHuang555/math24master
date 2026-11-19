@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Ban, LayoutGrid, Share2 } from 'lucide-react';
+import { Ban, LayoutGrid } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { MatchPlayArea } from '@/components/areas/match-play-area';
 import { GameDesktopBar, GameHud } from '@/components/game/game-hud';
@@ -18,13 +18,20 @@ import { LeaveGameDialog } from '@/components/game/leave-game-dialog';
 import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { ShareCardDialog } from '@/components/share/share-card-dialog';
+import { ShareResultButton } from '@/components/share/share-result-button';
+import { useGameResult } from '@/hooks/useGameResult';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
 import useMatchPlay from '@/hooks/useMatchPlay';
-import { trackShare } from '@/lib/analytics';
-import { renderMatchResultCard } from '@/lib/match-result-card';
-import { shareImage } from '@/lib/share';
+import { useShareCard } from '@/hooks/useShareCard';
+import {
+  SHARE_SITE,
+  formatCardDate,
+  splitAroundValue,
+} from '@/lib/share-card/data';
+import { renderMatchShareCard } from '@/lib/share-card/match';
 import { cn } from '@/lib/utils';
-import { MatchCell } from '@/models/MatchBoard';
+import { MATCH_BOARD_SIZE, MatchCell } from '@/models/MatchBoard';
 import { useGuestStore } from '@/stores/guest-store';
 import { useLoginPromptPreferenceStore } from '@/stores/login-prompt-preference-store';
 import { usePendingScoreStore } from '@/stores/pending-score-store';
@@ -47,11 +54,10 @@ export default function MatchPlayGame({
   const [isOpenRuleModal, setIsOpenRuleModal] = useState(false);
   const t = useTranslations('Matching');
   const tMode = useTranslations('SinglePlay.modes.match');
-  const tClassic = useTranslations('Classic');
-  const tShare = useTranslations('Share');
+  const tHome = useTranslations('Home');
+  const locale = useLocale();
   const format = useFormatter();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const [scoreFlash, setScoreFlash] = useState<number | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const prevScoreRef = useRef(0);
@@ -139,42 +145,43 @@ export default function MatchPlayGame({
     return () => clearTimeout(id);
   }, [isCleared, isAuthenticated, sessionStatus, skipLoginPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleShareResult = async () => {
-    if (isSharing) return;
-    setIsSharing(true);
-    try {
-      const blob = await renderMatchResultCard({
-        score,
-        isNewBestScore,
-        labels: {
-          brand: tClassic('card.brand'),
-          badge: t('card.badge'),
-          finalScore: t('card.finalScore'),
-          newRecord: t('newRecord'),
-          cta: tClassic('card.cta'),
-        },
-      });
-      if (!blob) {
-        toast.error(tShare('imageFailed'));
-        return;
-      }
-      const file = new File([blob], 'math24-match-result.png', {
-        type: 'image/png',
-      });
-      const outcome = await shareImage(file, {
-        title: t('shareTitle'),
-        text: t('shareText', { score }),
-      });
-      trackShare('match', outcome);
-      if (outcome === 'downloaded') {
-        toast.success(tShare('downloaded'));
-      } else if (outcome === 'failed') {
-        toast.error(tShare('failed'));
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  };
+  // 每局結算一個新的 id：分享圖卡依它判斷能不能沿用已產生的圖
+  const gameResult = useGameResult(!!isGameOver);
+  const renderShareCard = useCallback(() => {
+    const [bestBefore, bestAfter] = splitAroundValue(value =>
+      t('card.best', { score: value }),
+    );
+    return renderMatchShareCard({
+      score,
+      clearedCount: MATCH_BOARD_SIZE,
+      isNewBestScore,
+      bestScore,
+      labels: {
+        brand: tHome('logoAlt'),
+        badge: t('card.badge'),
+        cleared: t('card.cleared'),
+        clearedDetail: t('card.clearedDetail', { count: MATCH_BOARD_SIZE }),
+        scoreLabel: t('card.scoreLabel'),
+        newRecord: t('newRecord'),
+        bestBefore,
+        bestAfter,
+      },
+      footer: {
+        cta: t('card.cta'),
+        site: SHARE_SITE,
+        date: formatCardDate(gameResult?.finishedAt ?? new Date(), locale),
+      },
+    });
+    // 圖卡內容在一局結算後固定；換局由 gameResult（resultId）觸發重畫
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameResult, locale, score, isNewBestScore, bestScore]);
+  const shareCard = useShareCard({
+    mode: 'match',
+    fileName: 'math24-matching-result.png',
+    resultId: gameResult?.id ?? null,
+    path: '/single-play',
+    render: renderShareCard,
+  });
 
   const ruleModal = (
     <RuleModal
@@ -295,17 +302,27 @@ export default function MatchPlayGame({
           {isCleared && (
             <>
               <ResultRank mode="match" submit={leaderboardSubmit} />
-              <ResultSecondaryButton
+              <ShareResultButton
                 className="flex-none"
-                onClick={handleShareResult}
-                disabled={isSharing}
-              >
-                <Share2 aria-hidden />
-                {isSharing ? t('sharing') : t('share')}
-              </ResultSecondaryButton>
+                label={t('share')}
+                generatingLabel={t('sharing')}
+                isGenerating={shareCard.isGenerating}
+                disabled={!shareCard.ready}
+                onClick={() => void shareCard.start()}
+              />
             </>
           )}
         </GameResultScreen>
+        <ShareCardDialog
+          open={shareCard.open}
+          onOpenChange={shareCard.setOpen}
+          mode="match"
+          file={shareCard.file}
+          imageFailed={shareCard.imageFailed}
+          shareTitle={t('shareTitle')}
+          shareText={t('shareText', { score })}
+          shareUrl={shareCard.shareUrl}
+        />
       </>
     );
   }

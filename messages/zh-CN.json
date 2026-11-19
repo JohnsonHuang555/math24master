@@ -437,8 +437,8 @@
     "viewHistory": "查看作答纪录",
     "share": "分享成绩",
     "sharing": "图卡产生中...",
-    "shareTitle": "Math24 经典模式",
-    "shareText": "Math24 经典模式挑战结果：{score} 分（评级 {grade}）\n来 math24master.com 挑战看看",
+    "shareTitle": "24点大师 经典模式",
+    "shareText": "24点大师 经典模式：{score} 分（评级 {grade}）\n你能用 4 张牌算出 24 吗？",
     "perfectFeedback": "完美手，拿满 {max} 分 · 额外 +1",
     "handFeedback": "本手最高 {max} 分 · 拿下 {score} 分",
     "finish": "结算",
@@ -452,11 +452,10 @@
     "mustUseAll": "必须使用全部 {count} 张手牌",
     "submit": "出牌",
     "card": {
-      "brand": "24 点大师",
-      "badge": "经典模式・挑战结果",
-      "finalScore": "最终得分",
-      "sixHands": "六手战绩",
-      "cta": "来 Math24Master 挑战看看"
+      "badge": "经典模式",
+      "scoreLabel": "本局得分",
+      "bestHand": "本局最高分的一手 · +{score}",
+      "cta": "你能用 4 张牌算出 24 吗？"
     }
   },
   "Challenge": {
@@ -498,8 +497,8 @@
     "playAgain": "再来一局",
     "share": "分享成绩",
     "sharing": "图卡产生中...",
-    "shareTitle": "Math24 消消乐模式",
-    "shareText": "Math24 消消乐模式全清结果：{score} 分\n来 math24master.com 挑战看看",
+    "shareTitle": "24点大师 消消乐模式",
+    "shareText": "24点大师 消消乐模式全清：{score} 分\n16 张牌，你能全部消完吗？",
     "scoreFlash": "+{score}<unit>分！</unit>",
     "board": "牌局",
     "placeholder": "点击 2~4 张牌和符号组成算式...",
@@ -510,8 +509,12 @@
     "restartDescription": "将会开始新的一局，目前的进度不会保留。",
     "keepThisGame": "继续这局",
     "card": {
-      "badge": "消消乐模式・全清纪录",
-      "finalScore": "最终得分"
+      "badge": "消消乐模式",
+      "cleared": "全清！",
+      "clearedDetail": "{count} 张牌一张不剩",
+      "scoreLabel": "本局得分",
+      "best": "个人最高 {score} 分",
+      "cta": "16 张牌，你能全部消完吗？"
     }
   },
   "Tabletop": {
@@ -752,6 +755,17 @@
       "yours": "你的解法",
       "points": "{score} 分",
       "showAll": "查看全部 {count} 种解法"
+    },
+    "share": "分享成绩",
+    "sharing": "图卡产生中...",
+    "shareTitle": "24点大师 每日挑战",
+    "card": {
+      "badge": "每日挑战 {date}",
+      "scoreLabel": "本日总分 · 共 {count} 题",
+      "round": "第 {round} 题",
+      "roundScore": "+{score} 分",
+      "solved": "答对",
+      "cta": "全球同题，你能拿几分？"
     }
   },
   "GuessNumber": {
@@ -1216,9 +1230,25 @@
     "couldEarnMore": "最佳解可多得 {points} 分"
   },
   "Share": {
-    "imageFailed": "图卡产生失败，请稍后再试",
-    "downloaded": "图卡已下载，快分享到限动或聊天吧！",
-    "failed": "分享失败，请稍后再试"
+    "title": "分享成绩",
+    "format": "1080 × 1350 · PNG",
+    "previewAlt": "分享图卡预览",
+    "shareImage": "分享图片",
+    "shareText": "分享文字",
+    "download": "下载图片",
+    "save": "保存图片",
+    "copyImage": "拷贝图片",
+    "copyText": "拷贝文字",
+    "copyLink": "拷贝链接",
+    "imageUnavailable": "图卡这次没有产生成功，仍然可以分享下面的文字与链接",
+    "status": {
+      "shared": "已分享。如果对方没看到链接，可以再用「拷贝链接」传给他",
+      "downloaded": "图片已下载，可以分享到限动或聊天室",
+      "imageCopied": "图片已拷贝，可以直接贴到聊天室",
+      "textCopied": "分享文字已拷贝",
+      "linkCopied": "链接已拷贝",
+      "failed": "这个方式无法使用，请改用其他方式分享"
+    }
   },
   "Rules": {
     "gotIt": "了解",
