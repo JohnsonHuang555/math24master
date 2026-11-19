@@ -438,7 +438,7 @@
     "share": "Share",
     "sharing": "Creating image…",
     "shareTitle": "Math24 Master Classic Mode",
-    "shareText": "My Math24 Master Classic Mode result: {score, plural, one {# pt} other {# pts}} (grade {grade})\nTry it at math24master.com",
+    "shareText": "Math24 Master Classic Mode: {score, plural, one {# pt} other {# pts}} (grade {grade})\nCan you make 24 with 4 cards?",
     "perfectFeedback": "Perfect hand! Max {max, plural, one {# pt} other {# pts}} · +1 bonus",
     "handFeedback": "Hand max {max, plural, one {# pt} other {# pts}} · You scored {score}",
     "finish": "Finish",
@@ -452,11 +452,10 @@
     "mustUseAll": "Use all {count} cards in your hand",
     "submit": "Play",
     "card": {
-      "brand": "Math24 Master",
-      "badge": "Classic Mode · Result",
-      "finalScore": "Final score",
-      "sixHands": "Six-hand record",
-      "cta": "Take the challenge at Math24Master"
+      "badge": "Classic Mode",
+      "scoreLabel": "Score this game",
+      "bestHand": "Best hand this game · +{score}",
+      "cta": "Can you make 24 with 4 cards?"
     }
   },
   "Challenge": {
@@ -499,7 +498,7 @@
     "share": "Share",
     "sharing": "Creating image…",
     "shareTitle": "Math24 Master Matching Mode",
-    "shareText": "I got a Full Clear in Math24 Master Matching Mode: {score, plural, one {# pt} other {# pts}}\nTry it at math24master.com",
+    "shareText": "Full Clear in Math24 Master Matching Mode: {score, plural, one {# pt} other {# pts}}\nCan you clear all 16 cards?",
     "scoreFlash": "+{score}<unit>{score, plural, one {pt!} other {pts!}}</unit>",
     "board": "Board",
     "placeholder": "Tap 2–4 cards and symbols to build an equation",
@@ -510,8 +509,12 @@
     "restartDescription": "A new game will start, and your current progress won't be saved.",
     "keepThisGame": "Keep this game",
     "card": {
-      "badge": "Matching Mode · Full Clear",
-      "finalScore": "Final score"
+      "badge": "Matching Mode",
+      "cleared": "Full Clear!",
+      "clearedDetail": "All {count} cards cleared",
+      "scoreLabel": "Score this game",
+      "best": "Personal best {score}",
+      "cta": "Can you clear all 16 cards?"
     }
   },
   "Tabletop": {
@@ -752,6 +755,17 @@
       "yours": "Your solution",
       "points": "{score, plural, one {# pt} other {# pts}}",
       "showAll": "Show all {count} solutions"
+    },
+    "share": "Share result",
+    "sharing": "Creating image...",
+    "shareTitle": "Math24 Master Daily Challenge",
+    "card": {
+      "badge": "Daily Challenge {date}",
+      "scoreLabel": "Today's total · {count, plural, one {# puzzle} other {# puzzles}}",
+      "round": "Puzzle {round}",
+      "roundScore": "+{score, plural, one {# pt} other {# pts}}",
+      "solved": "Solved",
+      "cta": "Same puzzles worldwide. How many points can you get?"
     }
   },
   "GuessNumber": {
@@ -1217,8 +1231,22 @@
   },
   "Share": {
     "imageFailed": "Couldn't create the image. Please try again later.",
-    "downloaded": "Image downloaded. Share it in your story or chat!",
-    "failed": "Sharing failed. Please try again later."
+    "title": "Share result",
+    "format": "1080 × 1350 · PNG",
+    "previewAlt": "Share card preview",
+    "shareImage": "Share image",
+    "download": "Download image",
+    "save": "Save image",
+    "copyImage": "Copy image",
+    "copyText": "Copy text",
+    "copyLink": "Copy link",
+    "status": {
+      "downloaded": "Image downloaded. Share it in your story or chat.",
+      "imageCopied": "Image copied. Paste it straight into a chat.",
+      "textCopied": "Share text copied",
+      "linkCopied": "Link copied",
+      "failed": "This option isn't available here. Try another way to share."
+    }
   },
   "Rules": {
     "gotIt": "Got it",

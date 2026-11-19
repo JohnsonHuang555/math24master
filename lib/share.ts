@@ -42,37 +42,47 @@ export async function shareResult(
   }
 }
 
-/**
- * 分享圖片檔（例如戰績圖卡）到系統分享選單；
- * 裝置不支援檔案分享時，改為直接下載圖片，讓使用者自行分享到社群 App。
- */
-export async function shareImage(
-  file: File,
-  options?: { title?: string; text?: string },
-): Promise<ShareOutcome> {
-  const shareData = {
-    title: options?.title,
-    text: options?.text,
-    files: [file],
-  };
-
-  if (
+/** 這個瀏覽器能不能把圖片檔交給系統分享選單（手機 Safari、Android Chrome 可以；多數桌機不行） */
+export function canShareFiles(file: File): boolean {
+  return (
     typeof navigator !== 'undefined' &&
     typeof navigator.share === 'function' &&
     typeof navigator.canShare === 'function' &&
-    navigator.canShare(shareData)
-  ) {
-    try {
-      await navigator.share(shareData);
-      return 'shared';
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        return 'cancelled';
-      }
-      // 其他錯誤（例如權限限制）改走下載 fallback
-    }
-  }
+    navigator.canShare({ files: [file] })
+  );
+}
 
+/** 這個瀏覽器能不能把圖片寫進剪貼簿（桌機 Chrome、Edge、Safari 可以） */
+export function canCopyImage(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.ClipboardItem === 'function' &&
+    typeof navigator.clipboard?.write === 'function'
+  );
+}
+
+/** 用系統分享選單分享圖片；不支援時回傳 failed，由呼叫端改給下載 */
+export async function shareImageFile(
+  file: File,
+  options?: { title?: string; text?: string },
+): Promise<ShareOutcome> {
+  if (!canShareFiles(file)) return 'failed';
+  try {
+    await navigator.share({
+      title: options?.title,
+      text: options?.text,
+      files: [file],
+    });
+    return 'shared';
+  } catch (e) {
+    return e instanceof Error && e.name === 'AbortError'
+      ? 'cancelled'
+      : 'failed';
+  }
+}
+
+/** 下載圖片檔（手機上多數瀏覽器會存進「檔案」或相簿） */
+export function downloadFile(file: File): ShareOutcome {
   try {
     const url = URL.createObjectURL(file);
     const link = document.createElement('a');
@@ -83,6 +93,28 @@ export async function shareImage(
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     return 'downloaded';
+  } catch {
+    return 'failed';
+  }
+}
+
+/** 把 PNG 圖片寫進剪貼簿，可以直接貼到聊天室 */
+export async function copyImage(blob: Blob): Promise<ShareOutcome> {
+  if (!canCopyImage()) return 'failed';
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type || 'image/png']: blob }),
+    ]);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
+}
+
+export async function copyText(text: string): Promise<ShareOutcome> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return 'copied';
   } catch {
     return 'failed';
   }

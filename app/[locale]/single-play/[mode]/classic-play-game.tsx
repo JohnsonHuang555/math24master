@@ -1,18 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Flag,
-  History,
-  Info,
-  Layers,
-  Share2,
-  SkipForward,
-  Star,
-} from 'lucide-react';
+import { Flag, History, Info, Layers, SkipForward, Star } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { PuzzlePlayArea } from '@/components/areas/puzzle-play-area';
 import { GameDesktopBar, GameHud } from '@/components/game/game-hud';
@@ -28,12 +20,14 @@ import { ResultRank } from '@/components/leaderboard/result-rank';
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal';
 import { RoundHistoryModal } from '@/components/modals/round-history-modal';
 import { RuleModal } from '@/components/modals/rule-modal';
+import { ShareCardDialog } from '@/components/share/share-card-dialog';
+import { ShareResultButton } from '@/components/share/share-result-button';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardSubmit } from '@/hooks/useLeaderboardSubmit';
+import { useShareCard } from '@/hooks/useShareCard';
 import useSinglePlay from '@/hooks/useSinglePlay';
-import { trackShare } from '@/lib/analytics';
-import { renderClassicResultCard } from '@/lib/classic-result-card';
-import { shareImage } from '@/lib/share';
+import { type Grade, renderClassicShareCard } from '@/lib/share-card/classic';
+import { SHARE_SITE, bestHandOf, formatCardDate } from '@/lib/share-card/data';
 import { cn } from '@/lib/utils';
 import { HandResult, RoundRecord } from '@/models/Player';
 import { Difficulty } from '@/models/Room';
@@ -45,7 +39,7 @@ import { useStatsStore } from '@/stores/stats-store';
 type ClassicStatus = 'idle' | 'playing' | 'finished';
 
 /** 解法效率 → 評級（總分 / 理論上限） */
-function gradeOf(efficiency: number): string {
+function gradeOf(efficiency: number): Grade {
   if (efficiency >= 0.95) return 'S';
   if (efficiency >= 0.8) return 'A';
   if (efficiency >= 0.6) return 'B';
@@ -84,10 +78,11 @@ export default function ClassicPlayGame({
   const [handHistory, setHandHistory] = useState<HandResult[]>([]);
   const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([]);
   const [showRoundHistory, setShowRoundHistory] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const t = useTranslations('Classic');
   const tMode = useTranslations('SinglePlay.modes.classic');
   const tShare = useTranslations('Share');
+  const tHome = useTranslations('Home');
+  const locale = useLocale();
   const tScoring = useTranslations('GameUI.scoring');
   const tHistory = useTranslations('RoundHistory');
 
@@ -194,50 +189,44 @@ export default function ClassicPlayGame({
   const efficiency = theoreticalMax > 0 ? currentScore / theoreticalMax : 0;
   const grade = gradeOf(efficiency);
 
-  const handleShareResult = async () => {
-    if (isSharing) return;
-    setIsSharing(true);
-    try {
-      const blob = await renderClassicResultCard({
+  const bestHand = bestHandOf(roundHistory);
+  const renderShareCard = useCallback(
+    () =>
+      renderClassicShareCard({
         score: currentScore,
         grade,
         efficiency,
         perfectHands,
-        handHistory,
         isNewBestScore,
+        bestHand,
         labels: {
-          brand: t('card.brand'),
+          brand: tHome('logoAlt'),
           badge: t('card.badge'),
-          finalScore: t('card.finalScore'),
+          scoreLabel: t('card.scoreLabel'),
+          newRecord: t('newRecord'),
           grade: t('grade'),
           efficiency: t('efficiency'),
           perfectHands: t('perfectHands'),
-          sixHands: t('card.sixHands'),
-          newRecord: t('newRecord'),
-          cta: t('card.cta'),
+          bestHand: t('card.bestHand', { score: bestHand?.score ?? 0 }),
         },
-      });
-      if (!blob) {
-        toast.error(tShare('imageFailed'));
-        return;
-      }
-      const file = new File([blob], 'math24-classic-result.png', {
-        type: 'image/png',
-      });
-      const outcome = await shareImage(file, {
-        title: t('shareTitle'),
-        text: t('shareText', { score: currentScore, grade }),
-      });
-      trackShare('classic', outcome);
-      if (outcome === 'downloaded') {
-        toast.success(tShare('downloaded'));
-      } else if (outcome === 'failed') {
-        toast.error(tShare('failed'));
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  };
+        footer: {
+          cta: t('card.cta'),
+          site: SHARE_SITE,
+          date: formatCardDate(new Date(), locale),
+        },
+      }),
+    // 結算後成績不再變動，cacheKey 已涵蓋這些值
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentScore, grade, perfectHands, isNewBestScore, roundHistory.length],
+  );
+  const shareCard = useShareCard({
+    mode: 'classic',
+    fileName: 'math24-classic-result.png',
+    cacheKey: `${currentScore}-${roundHistory.length}-${isNewBestScore}`,
+    path: '/single-play',
+    render: renderShareCard,
+    onError: useCallback(() => toast.error(tShare('imageFailed')), [tShare]),
+  });
 
   const leaderboardSubmit = useLeaderboardSubmit(
     'classic',
@@ -363,15 +352,23 @@ export default function ClassicPlayGame({
                 {t('viewHistory')}
               </ResultSecondaryButton>
             )}
-            <ResultSecondaryButton
-              onClick={handleShareResult}
-              disabled={isSharing}
-            >
-              <Share2 aria-hidden />
-              {isSharing ? t('sharing') : t('share')}
-            </ResultSecondaryButton>
+            <ShareResultButton
+              label={t('share')}
+              generatingLabel={t('sharing')}
+              isGenerating={shareCard.isGenerating}
+              onClick={() => void shareCard.start()}
+            />
           </div>
         </GameResultScreen>
+        <ShareCardDialog
+          open={shareCard.open}
+          onOpenChange={shareCard.setOpen}
+          mode="classic"
+          file={shareCard.file}
+          shareTitle={t('shareTitle')}
+          shareText={t('shareText', { score: currentScore, grade })}
+          shareUrl={shareCard.shareUrl}
+        />
       </>
     );
   }

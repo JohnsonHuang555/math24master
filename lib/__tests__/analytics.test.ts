@@ -12,6 +12,7 @@ import {
   trackQuickPlayPuzzleSolved,
   trackQuickPlayStart,
   trackShare,
+  trackShareCardOpen,
 } from '../analytics';
 
 describe('analytics', () => {
@@ -194,5 +195,22 @@ describe('analytics', () => {
       trackEventThen('cta_click', undefined, callback);
       expect(callback).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('分享：開啟預覽與每個動作的方式、結果', () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+
+    trackShareCardOpen('match');
+    trackShare('match', 'copied', 'copy_image');
+
+    expect(gtag.mock.calls).toEqual([
+      ['event', 'share_card_open', { mode: 'match' }],
+      [
+        'event',
+        'share_click',
+        { mode: 'match', outcome: 'copied', method: 'copy_image' },
+      ],
+    ]);
   });
 });
