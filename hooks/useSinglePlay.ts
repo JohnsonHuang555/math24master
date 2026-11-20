@@ -48,7 +48,11 @@ const useSinglePlay = (difficulty: Difficulty | null) => {
     resetAnimations,
     handlePlayCardResponse,
     markTurnStart,
-  } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
+  } = useGameActions(
+    roomInfo?.selectedCards,
+    checkAnswerCorrect,
+    setCheckAnswerCorrect,
+  );
 
   const isLastRound = useMemo(
     () => roomInfo?.deck.length === 0,

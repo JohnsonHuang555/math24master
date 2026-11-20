@@ -53,6 +53,16 @@ import {
   startGame,
   updateScore,
 } from './game';
+import {
+  emitBuzzerGameOver,
+  emitGameOver,
+  emitJoinRoomSuccess,
+  emitJoinRoomSuccessTo,
+  emitPlayerReconnectSuccess,
+  emitRoomList,
+  emitRoomUpdate,
+  setSocketPlayer,
+} from './room-emitter';
 
 /** 各種等待時間；正式環境用預設值，測試可以縮短 */
 export type GameServerOptions = {
@@ -127,6 +137,8 @@ export function attachGameServer(
     playerOfSocket.set(socketId, uuidv4());
     const previous = io.sockets.sockets.get(socketId);
     if (!previous) return;
+    // 不再代表任何房內玩家：之後收到的房間資料不含任何人的私人資料
+    setSocketPlayer(previous, undefined);
     const roomId = getCurrentRoomId(playerId);
     if (roomId) previous.leave(roomId);
     previous.emit(SocketEvent.SessionReplaced);
@@ -152,6 +164,7 @@ export function attachGameServer(
     }
     playerOfSocket.set(socket.id, playerId);
     socketOfPlayer.set(playerId, socket.id);
+    setSocketPlayer(socket, playerId);
     return true;
   };
 
@@ -296,7 +309,7 @@ export function attachGameServer(
           updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
         players: updated.players,
       });
-      io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+      emitRoomUpdate(io, updated);
       _scheduleNextBuzzerRound(roomId, options.buzzerTimeoutNextRoundDelayMs);
     }, 1000);
   };
@@ -401,7 +414,7 @@ export function attachGameServer(
         streak: 0,
         streakBonus: 0,
       });
-      io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+      emitRoomUpdate(io, updated);
       _announceLock(roomId, updated, playerId);
       _scheduleResume(roomId);
     }, answerSeconds * 1000);
@@ -433,18 +446,17 @@ export function attachGameServer(
     );
   };
 
-  const _finishBuzzerGame = (roomId: string, room: Room, winner: unknown) => {
-    const rankedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+  const _finishBuzzerGame = (
+    roomId: string,
+    room: Room,
+    winner: { id: string; name: string; score: number },
+  ) => {
     _clearBuzzerTimers(roomId);
-    io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
-      winner,
-      players: rankedPlayers,
-    });
+    emitBuzzerGameOver(io, room, winner);
     // 稍後將房間重設為 Idle，讓玩家可以回大廳等待下一局
     _scheduleBuzzer(roomId, options.buzzerGameOverResetMs, () => {
       const idleRoom = endBuzzerGame(roomId);
-      if (idleRoom)
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
+      if (idleRoom) emitRoomUpdate(io, idleRoom);
     });
   };
 
@@ -495,20 +507,14 @@ export function attachGameServer(
       return;
     }
     const { room, winner, handResult, scored } = result;
-    io.to(roomId).emit(SocketEvent.RoomUpdate, {
+    emitRoomUpdate(
+      io,
       room,
-      ...(scored
-        ? { extra: { event: SocketEvent.UpdateScore, data: handResult } }
-        : {}),
-    });
+      scored ? { event: SocketEvent.UpdateScore, data: handResult } : undefined,
+    );
     if (winner) {
       _clearTurnTimer(roomId);
-      const rankedPlayers = [...room.players].sort((a, b) => b.score - a.score);
-      io.to(roomId).emit(SocketEvent.GameOver, {
-        name: winner.name,
-        score: winner.score,
-        players: rankedPlayers,
-      });
+      emitGameOver(io, room, winner);
       return;
     }
     _startTurnTimer(roomId);
@@ -523,7 +529,7 @@ export function attachGameServer(
       return;
     }
     const { room } = result;
-    io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    emitRoomUpdate(io, room);
     if (room.settings.gameType === 'buzzer') {
       _scheduleBuzzer(roomId, options.buzzerStartDelayMs, () =>
         _startBuzzerRoundWithCountdown(roomId),
@@ -601,7 +607,7 @@ export function attachGameServer(
       result;
     const roomId = room.roomId;
     if (!wasPlaying) _cancelGameCountdown(roomId);
-    io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    emitRoomUpdate(io, room);
 
     if (wasPlaying && remainingCount <= 1) {
       io.to(roomId).emit(SocketEvent.GameAborted, playerName);
@@ -637,7 +643,7 @@ export function attachGameServer(
     _clearQuickMatchTimer(roomId);
     const room = finishQuickMatch(roomId);
     if (!room) return;
-    io.to(roomId).emit(SocketEvent.RoomUpdate, { room });
+    emitRoomUpdate(io, room);
     _actuallyStartGame(roomId);
   };
 
@@ -786,7 +792,7 @@ export function attachGameServer(
       if (result.success) {
         bindSocket(socket, playerId);
         socket.join(roomId);
-        io.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
+        emitJoinRoomSuccess(io, result.room);
         socket.emit(SocketEvent.GetPlayerId, playerId);
         socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
       } else if ('needPassword' in result) {
@@ -807,7 +813,7 @@ export function attachGameServer(
       const existing = findQuickMatchRoom();
       // 連點兩次「快速開始」：已經在這間房裡就不要重複加入
       if (existing?.players.some(p => p.id === playerId)) {
-        socket.emit(SocketEvent.JoinRoomSuccess, existing);
+        emitJoinRoomSuccessTo(socket, existing);
         return;
       }
       _leavePreviousRoom(playerId, existing?.roomId);
@@ -831,7 +837,7 @@ export function attachGameServer(
       // token 先送，前端導頁到房間頁時才不會再重複加入
       socket.emit(SocketEvent.GetPlayerId, playerId);
       socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
-      io.to(roomId).emit(SocketEvent.JoinRoomSuccess, result.room);
+      emitJoinRoomSuccess(io, result.room);
 
       if (!existing) _startQuickMatchCountdown(roomId);
       const secondsLeft =
@@ -868,7 +874,7 @@ export function attachGameServer(
       ({ roomId, cardId }) => {
         const result = discardCard(roomId, me(), cardId);
         if (result.success) {
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          emitRoomUpdate(io, result.room);
         } else fail(result.error);
       },
     );
@@ -878,7 +884,7 @@ export function attachGameServer(
       ({ roomId, number, symbol }) => {
         const result = selectCard(roomId, me(), number, symbol);
         if (result.success) {
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          emitRoomUpdate(io, result.room);
         } else if (result.error !== ErrorCode.NotYourTurn) {
           fail(result.error);
         }
@@ -888,7 +894,7 @@ export function attachGameServer(
     on<{ roomId: string }>(SocketEvent.ReselectCard, ({ roomId }) => {
       const result = reselectCard(roomId, me());
       if (result.success) {
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        emitRoomUpdate(io, result.room);
       } else if (result.error !== ErrorCode.NotYourTurn) {
         fail(result.error);
       }
@@ -900,12 +906,9 @@ export function attachGameServer(
         if (result.error !== ErrorCode.NotYourTurn) fail(result.error);
         return;
       }
-      io.to(roomId).emit(SocketEvent.RoomUpdate, {
-        room: result.room,
-        extra: {
-          event: SocketEvent.PlayCardResponse,
-          data: result.isCorrect,
-        },
+      emitRoomUpdate(io, result.room, {
+        event: SocketEvent.PlayCardResponse,
+        data: result.isCorrect,
       });
     });
 
@@ -916,7 +919,7 @@ export function attachGameServer(
     on<{ roomId: string }>(SocketEvent.BackCard, ({ roomId }) => {
       const result = backCard(roomId, me());
       if (result.success) {
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        emitRoomUpdate(io, result.room);
       } else if (result.error !== ErrorCode.NotYourTurn) {
         fail(result.error);
       }
@@ -939,14 +942,14 @@ export function attachGameServer(
       }
       const player = result.room.players.find(p => p.id === playerId);
       if (player && !player.isReady) _cancelGameCountdown(roomId);
-      io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+      emitRoomUpdate(io, result.room);
     });
 
     on<{ roomName: string; showEmpty: boolean } | undefined>(
       SocketEvent.SearchRooms,
       payload => {
-        socket.emit(
-          SocketEvent.GetRoomsResponse,
+        emitRoomList(
+          socket,
           getCurrentRooms(
             payload && 'roomName' in payload ? payload : undefined,
           ),
@@ -972,7 +975,7 @@ export function attachGameServer(
       ({ roomId, roomName, password }) => {
         const result = editRoom(roomId, me(), roomName, password);
         if (result.success) {
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          emitRoomUpdate(io, result.room);
         } else fail(result.error);
       },
     );
@@ -982,7 +985,7 @@ export function attachGameServer(
       ({ roomId, ...settings }) => {
         const result = editRoomSettings(roomId, me(), settings);
         if (result.success) {
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          emitRoomUpdate(io, result.room);
         } else fail(result.error);
       },
     );
@@ -995,7 +998,7 @@ export function attachGameServer(
           fail(result.error);
           return;
         }
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+        emitRoomUpdate(io, result.room);
         io.to(roomId).emit(SocketEvent.RemovePlayerResponse, targetId);
         // 被踢的人退出 socket 房間，之後不會再收到這間房的廣播
         const targetSocketId = socketOfPlayer.get(targetId);
@@ -1013,7 +1016,7 @@ export function attachGameServer(
       ({ roomId, difficulty }) => {
         const result = addBotToRoom(roomId, me(), difficulty);
         if (result.success) {
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: result.room });
+          emitRoomUpdate(io, result.room);
         } else fail(result.error);
       },
     );
@@ -1071,7 +1074,7 @@ export function attachGameServer(
             streak: result.streak,
             streakBonus: result.streakBonus,
           });
-          io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+          emitRoomUpdate(io, updated);
           if (result.winner) {
             _finishBuzzerGame(roomId, updated, result.winner);
             return;
@@ -1089,7 +1092,7 @@ export function attachGameServer(
           streak: 0,
           streakBonus: 0,
         });
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+        emitRoomUpdate(io, updated);
         _announceLock(roomId, updated, playerId);
         _scheduleResume(roomId);
       },
@@ -1167,7 +1170,7 @@ export function attachGameServer(
       // 傳統對戰輪到他時，回合計時照常由伺服器推進
       const marked = markPlayerDisconnected(playerId);
       if (!marked) return;
-      io.to(marked.roomId).emit(SocketEvent.RoomUpdate, { room: marked.room });
+      emitRoomUpdate(io, marked.room);
 
       const graceMs =
         marked.room.status === GameStatus.Playing
@@ -1218,8 +1221,8 @@ export function attachGameServer(
         bindSocket(socket, playerId);
         socket.join(room.roomId);
         socket.emit(SocketEvent.GetPlayerId, playerId);
-        socket.emit(SocketEvent.PlayerReconnectSuccess, { room, playerId });
-        io.to(room.roomId).emit(SocketEvent.RoomUpdate, { room });
+        emitPlayerReconnectSuccess(socket, room);
+        emitRoomUpdate(io, room);
         // 回到遊戲中的傳統對戰：補送目前剩餘秒數
         const turn = turnTimerMap.get(room.roomId);
         if (turn) {

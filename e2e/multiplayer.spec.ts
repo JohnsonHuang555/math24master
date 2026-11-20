@@ -198,3 +198,49 @@ test('兩個分頁用同一個連線憑證：新分頁接手，舊分頁回大�
   await expect(playerCount(alice, 2)).toBeVisible();
   await expect(playerCount(bobTab2, 2)).toBeVisible();
 });
+
+test('瀏覽器實際收到的 WebSocket 封包不含牌庫、密碼、對方 token 或別人的手牌', async ({
+  browser,
+}) => {
+  const alice = await openPlayer(browser, 'Alice');
+  const bob = await openPlayer(browser, 'Bob');
+  // 錄下 Bob 收到的每一個 socket.io 封包
+  const bobFrames: string[] = [];
+  bob.on('websocket', ws =>
+    ws.on('framereceived', frame => {
+      if (typeof frame.payload === 'string') bobFrames.push(frame.payload);
+    }),
+  );
+
+  const roomUrl = await createRoom(alice, 'E2E 封包房');
+  await bob.goto(roomUrl);
+  await expect(playerCount(alice, 2)).toBeVisible();
+  await bob.getByRole('button', { name: '準備遊戲' }).click();
+  const startButton = alice.getByRole('button', { name: '開始遊戲' });
+  await expect(startButton).toBeEnabled();
+  await startButton.click();
+  await expect(scoreOf(bob, 'Alice')).toHaveAttribute('data-score', '0');
+  await buzzAndAnswer(bob);
+  await expect(scoreOf(alice, 'Bob')).not.toHaveAttribute('data-score', '0');
+
+  const aliceToken = await alice.evaluate(() =>
+    sessionStorage.getItem('reconnectToken'),
+  );
+  expect(aliceToken).toBeTruthy();
+  expect(bobFrames.length).toBeGreaterThan(10);
+  const all = bobFrames.join('\n');
+  expect(all).not.toContain(aliceToken!);
+  for (const key of [
+    '"deck"',
+    '"password"',
+    '"reconnectToken"',
+    '"pendingPlay"',
+  ]) {
+    expect(all, `封包含有 ${key}`).not.toContain(key);
+  }
+  // 手牌只會出現在自己的 self 裡；公開的玩家資料只有張數
+  const handOutsideSelf = bobFrames.filter(
+    f => f.includes('"handCard"') && !f.includes('"self"'),
+  );
+  expect(handOutsideSelf).toEqual([]);
+});

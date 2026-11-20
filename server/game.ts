@@ -109,18 +109,7 @@ function _revokeToken(playerId: string) {
   _tokenOfPlayer.delete(playerId);
 }
 
-/** 房間列表給大廳看：不含密碼（只留「有密碼」標記）、牌庫與手牌 */
-const PASSWORD_MASK = '******';
-function _publicRoom(room: Room): Room {
-  return {
-    ...room,
-    password: room.password ? PASSWORD_MASK : undefined,
-    deck: [],
-    selectedCards: [],
-    players: room.players.map(p => ({ ...p, handCard: [] })),
-  };
-}
-
+// 回傳伺服器內部的 Room；送給大廳前由 server/room-view.ts 的 serializeLobbyRoom 轉成列表資料
 // 取得當前房間 需濾掉單人遊戲
 export function getCurrentRooms(payload?: {
   roomName: string;
@@ -135,9 +124,7 @@ export function getCurrentRooms(payload?: {
     tempRooms = _rooms.filter(r => r?.maxPlayers > r.players.length);
   }
   // 快速配對的房間由「快速開始」自動分配，不列在房間列表
-  return tempRooms
-    .filter(r => r.maxPlayers > 1 && !r.isQuickMatch)
-    .map(_publicRoom);
+  return tempRooms.filter(r => r.maxPlayers > 1 && !r.isQuickMatch);
 }
 
 const _getCurrentRoom = (roomId: string) => {

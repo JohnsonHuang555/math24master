@@ -6,6 +6,7 @@ import { SocketEvent } from '../models/SocketEvent';
 import { Symbol } from '../models/Symbol';
 import { processBuzzIn, processBuzzerAnswer, unlockPlayer } from './buzzer';
 import { applyBuzzerRoomUpdate, endBuzzerGame, getCurrentRoom } from './game';
+import { emitBuzzerGameOver, emitRoomUpdate } from './room-emitter';
 
 // ── 24 點 Solver ─────────────────────────────────────────────────────────────
 
@@ -173,18 +174,13 @@ function _scheduleAttempt(
           streak: answerResult.streak,
           streakBonus: answerResult.streakBonus,
         });
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+        emitRoomUpdate(io, updated);
 
         if (answerResult.winner) {
-          const ranked = [...updated.players].sort((a, b) => b.score - a.score);
-          io.to(roomId).emit(SocketEvent.BuzzerGameOver, {
-            winner: answerResult.winner,
-            players: ranked,
-          });
+          emitBuzzerGameOver(io, updated, answerResult.winner);
           setTimeout(() => {
             const idleRoom = endBuzzerGame(roomId);
-            if (idleRoom)
-              io.to(roomId).emit(SocketEvent.RoomUpdate, { room: idleRoom });
+            if (idleRoom) emitRoomUpdate(io, idleRoom);
           }, 3000);
           return;
         }
@@ -201,7 +197,7 @@ function _scheduleAttempt(
           streak: 0,
           streakBonus: 0,
         });
-        io.to(roomId).emit(SocketEvent.RoomUpdate, { room: updated });
+        emitRoomUpdate(io, updated);
 
         const ps2 = updated.buzzerState?.playerStates[botId];
 

@@ -6,6 +6,7 @@ import { GameStatus } from '@/models/GameStatus';
 import { NumberCard } from '@/models/Player';
 import { Symbol } from '@/models/Symbol';
 import * as game from './game';
+import { serializeLobbyRoom } from './room-view';
 
 const HOST = 'host';
 const GUEST = 'guest';
@@ -164,10 +165,11 @@ describe('加入與資訊外洩', () => {
     expect(json).not.toContain(hostToken);
     expect(json).not.toContain(guestToken);
 
-    const [listed] = game.getCurrentRooms();
+    // 大廳列表一律經過 serializeLobbyRoom
+    const listed = serializeLobbyRoom(game.getCurrentRooms()[0]);
     const listedJson = JSON.stringify(listed);
     expect(listedJson).not.toContain('pw1234');
-    expect(listed.password).toBeTruthy(); // 大廳仍可顯示「有密碼」
+    expect(listed.hasPassword).toBe(true); // 大廳仍可顯示「有密碼」
     expect(listedJson).not.toContain(hostToken);
   });
 });

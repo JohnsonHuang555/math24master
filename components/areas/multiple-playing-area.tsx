@@ -62,6 +62,7 @@ const ClassicPlayingArea = () => {
     onBack,
     isLastRound,
     countdown,
+    selectedCards,
   } = useMultiplePlay();
 
   const otherPlayers =
@@ -78,7 +79,6 @@ const ClassicPlayingArea = () => {
   const [revealedSymbols, setRevealedSymbols] = useState(0);
 
   const handCard = currentPlayer?.handCard || [];
-  const selectedCards = roomInfo?.selectedCards ?? [];
   const isScoring = checkAnswerCorrect === true;
 
   const disabledActions =
@@ -171,7 +171,7 @@ const ClassicPlayingArea = () => {
           </Button>
           <span className="flex-1 text-[13px] font-bold text-ink-2">
             {t.rich('deckLeft', {
-              count: roomInfo?.deck.length ?? 0,
+              count: roomInfo?.deckCount ?? 0,
               n: chunks => (
                 <span className="font-display text-[15px] text-ink">
                   {chunks}
@@ -237,7 +237,7 @@ const ClassicPlayingArea = () => {
                   <span>
                     {t.rich('opponentStats', {
                       score: player.score,
-                      cards: player.handCard.length,
+                      cards: player.handCardCount,
                       b: chunks => (
                         <b className="font-display text-[15px] font-extrabold text-ink">
                           {chunks}
