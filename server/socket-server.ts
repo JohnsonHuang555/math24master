@@ -42,6 +42,7 @@ import {
   joinRoom,
   leaveRoom,
   markPlayerDisconnected,
+  peekReconnectToken,
   playCard,
   readyGame,
   reconnectPlayer,
@@ -117,23 +118,41 @@ export function attachGameServer(
   const playerIdOf = (socket: Socket) =>
     playerOfSocket.get(socket.id) ?? socket.id;
 
-  /** 把 socket 綁到玩家；同一位玩家原本的舊 socket（例如另一個分頁）退出房間、不再代表他 */
-  const bindSocket = (socket: Socket, playerId: string) => {
+  /**
+   * 舊連線被同一位玩家的新連線取代（另一個分頁、重新整理時舊連線還沒斷）：
+   * 退出房間頻道、改成一個全新的空身分，之後它送的操作不會再算在原本的玩家身上
+   * （第一位玩家的 id 等於他最初的 socket.id，不換掉的話舊分頁仍會被當成本人）
+   */
+  const _retireSocket = (socketId: string, playerId: string) => {
+    playerOfSocket.set(socketId, uuidv4());
+    const previous = io.sockets.sockets.get(socketId);
+    if (!previous) return;
+    const roomId = getCurrentRoomId(playerId);
+    if (roomId) previous.leave(roomId);
+    previous.emit(SocketEvent.SessionReplaced);
+  };
+
+  /**
+   * 把 socket 綁到玩家。一個 socket 已經代表另一位還在房間裡的玩家時拒絕，
+   * 要先走完離房流程才能換人，否則原本的玩家會變成沒有連線、也不會被清掉的幽靈玩家
+   */
+  const bindSocket = (socket: Socket, playerId: string): boolean => {
+    const current = playerOfSocket.get(socket.id);
+    if (current && current !== playerId && getCurrentRoomId(current)) {
+      return false;
+    }
     const previousSocketId = socketOfPlayer.get(playerId);
     if (previousSocketId && previousSocketId !== socket.id) {
-      playerOfSocket.delete(previousSocketId);
-      const previous = io.sockets.sockets.get(previousSocketId);
-      const roomId = getCurrentRoomId(playerId);
-      if (previous && roomId) previous.leave(roomId);
+      _retireSocket(previousSocketId, playerId);
     }
-    const previousPlayer = playerOfSocket.get(socket.id);
-    if (previousPlayer && previousPlayer !== playerId) {
-      if (socketOfPlayer.get(previousPlayer) === socket.id) {
-        socketOfPlayer.delete(previousPlayer);
+    if (current && current !== playerId) {
+      if (socketOfPlayer.get(current) === socket.id) {
+        socketOfPlayer.delete(current);
       }
     }
     playerOfSocket.set(socket.id, playerId);
     socketOfPlayer.set(playerId, socket.id);
+    return true;
   };
 
   const unbindSocket = (socketId: string) => {
@@ -1119,8 +1138,14 @@ export function attachGameServer(
     // ── 離開與斷線 ─────────────────────────────────────────────────────────
 
     // 玩家主動離開（離開按鈕、SPA 導頁）：立即移除，不留幽靈玩家
-    on(SocketEvent.LeaveRoom, () => {
-      _handleLeave(me());
+    // 有帶 roomId 時只在玩家目前就在那間房才離開：頁面延後送出的離開，不會誤把已經進到別間房的玩家拉出來
+    on<{ roomId?: unknown } | undefined>(SocketEvent.LeaveRoom, payload => {
+      const playerId = me();
+      const roomId = payload?.roomId;
+      if (typeof roomId === 'string' && getCurrentRoomId(playerId) !== roomId) {
+        return;
+      }
+      _handleLeave(playerId);
     });
 
     socket.on('disconnect', reason => {
@@ -1164,6 +1189,20 @@ export function attachGameServer(
     on<{ reconnectToken: string }>(
       SocketEvent.PlayerReconnect,
       ({ reconnectToken }) => {
+        // 這個連線已經代表另一位還在房間裡的玩家：不能直接換成 token 的主人
+        const target = peekReconnectToken(reconnectToken);
+        const current = playerOfSocket.get(socket.id);
+        if (
+          target &&
+          current &&
+          current !== target.playerId &&
+          getCurrentRoomId(current)
+        ) {
+          socket.emit(SocketEvent.PlayerReconnectFailed, {
+            error: ErrorCode.PlayerAlreadyBound,
+          });
+          return;
+        }
         const result = reconnectPlayer(reconnectToken);
         if (!result.success) {
           socket.emit(SocketEvent.PlayerReconnectFailed, {

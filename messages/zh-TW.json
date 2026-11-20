@@ -325,6 +325,7 @@
     "ANSWER_TIMEOUT": "作答超時",
     "INAPPROPRIATE_NAME": "暱稱含有不雅字詞，請換一個",
     "PLAYER_NAME_REQUIRED": "請先設定暱稱",
+    "PLAYER_ALREADY_BOUND": "你已經在另一個房間裡，請先離開再加入",
     "NOT_ROOM_MASTER": "只有房主可以這麼做",
     "GAME_IN_PROGRESS": "遊戲進行中，無法這麼做",
     "INVALID_ROOM_SETTINGS": "房間設定不正確",
@@ -1061,6 +1062,7 @@
     },
     "room": {
       "kicked": "你已被踢出房間",
+      "sessionReplaced": "你已在另一個分頁開啟這個房間",
       "connecting": "連線中...",
       "connectingHint": "如果等待時間過長，請嘗試重新整理頁面",
       "backHome": "回首頁",

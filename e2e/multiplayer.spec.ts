@@ -124,3 +124,77 @@ test('遊戲中重新整理：回到同一場遊戲、仍是同一位玩家，�
     await expect(scoreOf(page, 'Bob')).not.toHaveAttribute('data-score', '0');
   }
 });
+
+/** Alice 開一間私人房，回傳房間網址 */
+async function createRoom(alice: Page, roomName: string) {
+  await alice.goto('/multiple-play');
+  await expect(
+    alice.getByRole('button', { name: '修改暱稱：Alice' }),
+  ).toBeVisible();
+  await alice.getByRole('button', { name: /開私人房間/ }).click();
+  await alice.getByPlaceholder('請輸入房間名稱').fill(roomName);
+  await alice.getByRole('button', { name: '確定' }).click();
+  await alice.waitForURL(/\/multiple-play\/[^/]+$/);
+  return alice.url();
+}
+
+const playerCount = (page: Page, count: number) =>
+  page.getByRole('heading', { name: `玩家（${count}）` });
+
+test('SPA 返回大廳：立即離開房間，不留幽靈玩家', async ({ browser }) => {
+  const alice = await openPlayer(browser, 'Alice');
+  const bob = await openPlayer(browser, 'Bob');
+  const roomUrl = await createRoom(alice, 'E2E 返回房');
+
+  // Bob 先開大廳，再用前端路由進房，之後按上一頁就是 SPA 導頁（不是整頁卸載）
+  await bob.goto('/multiple-play');
+  await expect(
+    bob.getByRole('button', { name: '修改暱稱：Bob' }),
+  ).toBeVisible();
+  await bob.evaluate(path => {
+    (
+      window as unknown as { next: { router: { push: (p: string) => void } } }
+    ).next.router.push(path);
+  }, new URL(roomUrl).pathname);
+  await expect(playerCount(alice, 2)).toBeVisible();
+  await expect(playerCount(bob, 2)).toBeVisible();
+
+  await bob.goBack();
+  await bob.waitForURL(/\/multiple-play$/);
+  await expect(playerCount(alice, 1)).toBeVisible();
+});
+
+test('兩個分頁用同一個連線憑證：新分頁接手，舊分頁回大廳，房內不會多出玩家', async ({
+  browser,
+}) => {
+  const alice = await openPlayer(browser, 'Alice');
+  const bob = await openPlayer(browser, 'Bob');
+  const roomUrl = await createRoom(alice, 'E2E 雙分頁房');
+  await bob.goto(roomUrl);
+  await expect(playerCount(alice, 2)).toBeVisible();
+  await expect
+    .poll(() => bob.evaluate(() => sessionStorage.getItem('reconnectToken')))
+    .toBeTruthy();
+
+  // 模擬「複製分頁」：新分頁帶著同一份 sessionStorage
+  const storage = await bob.evaluate(() => ({
+    token: sessionStorage.getItem('reconnectToken')!,
+    roomId: sessionStorage.getItem('reconnectRoomId')!,
+  }));
+  const bobTab2 = await bob.context().newPage();
+  await bobTab2.addInitScript(({ token, roomId }) => {
+    if (!sessionStorage.getItem('reconnectToken')) {
+      sessionStorage.setItem('reconnectToken', token);
+      sessionStorage.setItem('reconnectRoomId', roomId);
+    }
+  }, storage);
+  await bobTab2.goto(roomUrl);
+
+  await expect(playerCount(bobTab2, 2)).toBeVisible();
+  await expect(bob.getByText('你已在另一個分頁開啟這個房間')).toBeVisible();
+  await bob.waitForURL(/\/multiple-play$/);
+  // 舊分頁回到大廳不會把玩家帶走；房內仍是 Alice 與 Bob 兩人
+  await alice.waitForTimeout(500);
+  await expect(playerCount(alice, 2)).toBeVisible();
+  await expect(playerCount(bobTab2, 2)).toBeVisible();
+});

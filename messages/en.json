@@ -325,6 +325,7 @@
     "ANSWER_TIMEOUT": "Time's up.",
     "INAPPROPRIATE_NAME": "That nickname isn't allowed. Please choose another one.",
     "PLAYER_NAME_REQUIRED": "Please set a nickname first",
+    "PLAYER_ALREADY_BOUND": "You're already in another room. Leave it before joining.",
     "NOT_ROOM_MASTER": "Only the host can do that",
     "GAME_IN_PROGRESS": "You can't do that while a game is in progress",
     "INVALID_ROOM_SETTINGS": "Invalid room settings",
@@ -1061,6 +1062,7 @@
     },
     "room": {
       "kicked": "You were removed from the room.",
+      "sessionReplaced": "This room was opened in another tab.",
       "connecting": "Connecting...",
       "connectingHint": "If this takes too long, try refreshing the page.",
       "backHome": "Home",

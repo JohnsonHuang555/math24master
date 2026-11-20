@@ -596,6 +596,15 @@ export function markPlayerDisconnected(
  * 玩家重連：以 token 找回原本的玩家。玩家 id 保持不變（socket 與玩家的對應由連線層管理），
  * 所以回合順序、搶答狀態、計時器都不用跟著改 id
  */
+/** 查 token 代表哪位玩家，不改任何狀態（重連前先檢查身分用） */
+export function peekReconnectToken(
+  reconnectToken: unknown,
+): { playerId: string; roomId: string } | undefined {
+  if (typeof reconnectToken !== 'string') return undefined;
+  const entry = _tokenToPlayerMap.get(reconnectToken);
+  return entry ? { ...entry } : undefined;
+}
+
 export function reconnectPlayer(
   reconnectToken: string,
 ):

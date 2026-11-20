@@ -716,3 +716,178 @@ describe('搶答模式', () => {
     expect(current.answerSeconds).toBeGreaterThan(0);
   });
 });
+
+describe('玩家身分映射（socket 與玩家的綁定）', () => {
+  it('已代表一位玩家的 socket 不能用別人的 token 直接切換成另一位玩家', async () => {
+    const [host, guest] = await twoPlayers();
+    const other = await join('Other', 'room-2', { roomName: 'R2' });
+
+    const failed = next<{ error: string }>(
+      host.socket,
+      SocketEvent.PlayerReconnectFailed,
+    );
+    host.socket.emit(SocketEvent.PlayerReconnect, {
+      reconnectToken: other.token,
+    });
+    expect((await failed).error).toBe(ErrorCode.PlayerAlreadyBound);
+
+    // 兩邊都維持原狀：host 仍在 room-1 而且有連線，other 仍由自己的 socket 代表
+    const room1 = game.getCurrentRoom('room-1')!;
+    expect(room1.players.map(p => p.id).sort()).toEqual(
+      [host.id, guest.id].sort(),
+    );
+    expect(
+      room1.players.find(p => p.id === host.id)?.isDisconnected,
+    ).toBeFalsy();
+    expect(game.getCurrentRoom('room-2')!.players.map(p => p.id)).toEqual([
+      other.id,
+    ]);
+    // host 收不到 room-2 的廣播；other 的 socket 仍代表 other
+    const leakedToHost = nothing(host.socket, SocketEvent.GetMessage);
+    const toOther = next(other.socket, SocketEvent.GetMessage);
+    other.socket.emit(SocketEvent.SendMessage, {
+      roomId: 'room-2',
+      message: 'hi',
+    });
+    await toOther;
+    expect(await leakedToHost).toBe(true);
+    // host 的 socket 仍是 host：可以照常離開，room-1 只剩 guest
+    host.socket.emit(SocketEvent.LeaveRoom);
+    await waitFor(() => game.getCurrentRoom('room-1')?.players.length === 1);
+    expect(game.getCurrentRoom('room-1')!.players[0].id).toBe(guest.id);
+    expect(game.getCurrentRoom('room-2')!.players.length).toBe(1);
+  });
+
+  it('同一位玩家從新的 socket 重連：沿用玩家 id，舊 socket 不再收到房間廣播', async () => {
+    const [host, guest] = await twoPlayers();
+    const fresh = await newClient();
+    const success = next<{ playerId: string }>(
+      fresh,
+      SocketEvent.PlayerReconnectSuccess,
+    );
+    fresh.emit(SocketEvent.PlayerReconnect, { reconnectToken: guest.token });
+    expect((await success).playerId).toBe(guest.id);
+
+    const toFresh = next(fresh, SocketEvent.RoomUpdate);
+    const leakedToOld = nothing(guest.socket, SocketEvent.RoomUpdate);
+    host.socket.emit(SocketEvent.EditRoomName, {
+      roomId: 'room-1',
+      roomName: 'Renamed',
+    });
+    await toFresh;
+    expect(await leakedToOld).toBe(true);
+    expect(game.getCurrentRoom('room-1')!.players).toHaveLength(2);
+  });
+
+  it('兩個分頁用同一個 token：後來的分頁接手，舊分頁收到通知且不能再代表玩家', async () => {
+    const [host, guest] = await twoPlayers();
+    const replaced = next(guest.socket, SocketEvent.SessionReplaced);
+    const tab2 = await newClient();
+    const success = next<{ playerId: string }>(
+      tab2,
+      SocketEvent.PlayerReconnectSuccess,
+    );
+    tab2.emit(SocketEvent.PlayerReconnect, { reconnectToken: guest.token });
+    expect((await success).playerId).toBe(guest.id);
+    await replaced;
+
+    // 舊分頁送出的操作都不算數：不能取消準備、也不能把玩家拉出房間
+    const readyBefore = game
+      .getCurrentRoom('room-1')!
+      .players.find(p => p.id === guest.id)!.isReady;
+    guest.socket.emit(SocketEvent.ReadyGame, { roomId: 'room-1' });
+    guest.socket.emit(SocketEvent.LeaveRoom);
+    await new Promise(r => setTimeout(r, 200));
+    const room = game.getCurrentRoom('room-1')!;
+    expect(room.players.map(p => p.id).sort()).toEqual(
+      [host.id, guest.id].sort(),
+    );
+    expect(room.players.find(p => p.id === guest.id)!.isReady).toBe(
+      readyBefore,
+    );
+
+    // 第三個分頁再拿同一個 token：仍是同一位玩家，房間不會多出人
+    const tab3 = await newClient();
+    const again = next<{ playerId: string }>(
+      tab3,
+      SocketEvent.PlayerReconnectSuccess,
+    );
+    tab3.emit(SocketEvent.PlayerReconnect, { reconnectToken: guest.token });
+    expect((await again).playerId).toBe(guest.id);
+    expect(game.getCurrentRoom('room-1')!.players).toHaveLength(2);
+  });
+
+  it('舊 socket 斷線（網路中斷或主動斷線）不會移除已在新 socket 恢復的玩家', async () => {
+    const [host, guest] = await twoPlayers();
+    const tab2 = await newClient();
+    const success = next(tab2, SocketEvent.PlayerReconnectSuccess);
+    tab2.emit(SocketEvent.PlayerReconnect, { reconnectToken: guest.token });
+    await success;
+
+    // 舊 socket 先網路中斷，再由另一個舊 socket 主動斷線
+    guest.socket.io.reconnection(false);
+    guest.socket.io.engine.close();
+    const tab3Old = await newClient();
+    tab3Old.disconnect();
+    // 等超過等待中的寬限期（300ms）
+    await new Promise(r => setTimeout(r, 500));
+
+    const room = game.getCurrentRoom('room-1')!;
+    expect(room.players.map(p => p.id).sort()).toEqual(
+      [host.id, guest.id].sort(),
+    );
+    expect(
+      room.players.find(p => p.id === guest.id)!.isDisconnected,
+    ).toBeFalsy();
+
+    // 新 socket 仍能代表玩家
+    const guestNow = () =>
+      game.getCurrentRoom('room-1')!.players.find(p => p.id === guest.id)!;
+    const before = guestNow().isReady;
+    const ready = waitFor(() => guestNow().isReady !== before);
+    tab2.emit(SocketEvent.ReadyGame, { roomId: 'room-1' });
+    await ready;
+  });
+
+  it('舊 socket 在新 socket 接手後才主動斷線，也不會讓玩家離開', async () => {
+    const [host, guest] = await twoPlayers();
+    const tab2 = await newClient();
+    const success = next(tab2, SocketEvent.PlayerReconnectSuccess);
+    tab2.emit(SocketEvent.PlayerReconnect, { reconnectToken: guest.token });
+    await success;
+    guest.socket.disconnect();
+    await new Promise(r => setTimeout(r, 500));
+    expect(
+      game
+        .getCurrentRoom('room-1')!
+        .players.map(p => p.id)
+        .sort(),
+    ).toEqual([host.id, guest.id].sort());
+  });
+
+  it('延後送出的 LeaveRoom 帶的是舊房間：已經在新房間的玩家不會被拉出來', async () => {
+    const host = await join('Host', 'room-1', { roomName: 'R1' });
+    const guest = await join('Guest', 'room-1');
+    // guest 換到 room-2（加入時伺服器會先讓他離開 room-1）
+    const joined = next(guest.socket, SocketEvent.JoinRoomSuccess);
+    guest.socket.emit(SocketEvent.JoinRoom, {
+      roomId: 'room-2',
+      playerName: 'Guest',
+      mode: GameMode.Multiple,
+      maxPlayers: 2,
+      roomName: 'R2',
+    });
+    await joined;
+    guest.socket.emit(SocketEvent.LeaveRoom, { roomId: 'room-1' });
+    await new Promise(r => setTimeout(r, 200));
+    expect(game.getCurrentRoom('room-2')!.players.map(p => p.id)).toEqual([
+      guest.id,
+    ]);
+    expect(game.getCurrentRoom('room-1')!.players.map(p => p.id)).toEqual([
+      host.id,
+    ]);
+    // 帶目前的房間：照常離開
+    guest.socket.emit(SocketEvent.LeaveRoom, { roomId: 'room-2' });
+    await waitFor(() => !game.getCurrentRoom('room-2'));
+  });
+});

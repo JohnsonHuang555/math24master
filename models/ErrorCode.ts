@@ -17,6 +17,8 @@ export enum ErrorCode {
   NotRoomMaster = 'NOT_ROOM_MASTER',
   /** 暱稱是空白 */
   PlayerNameRequired = 'PLAYER_NAME_REQUIRED',
+  /** 這個連線已經代表另一位還在房間裡的玩家，要先離開房間才能換人 */
+  PlayerAlreadyBound = 'PLAYER_ALREADY_BOUND',
   /** 遊戲進行中不能做（加入、改設定、踢人等） */
   GameInProgress = 'GAME_IN_PROGRESS',
   /** 房間設定值不合法（人數、倒數秒數等） */
