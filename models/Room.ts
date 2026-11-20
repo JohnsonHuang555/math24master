@@ -1,5 +1,5 @@
 import { GameStatus } from './GameStatus';
-import { CardColor, NumberCard, Player } from './Player';
+import { CardColor, HandResult, NumberCard, Player } from './Player';
 import { SelectedCard } from './SelectedCard';
 
 // 起始手牌數
@@ -65,6 +65,11 @@ export type BuzzerState = {
   answerStartAt: number | null;
   noSolutionVotes: string[];
   playerStates: { [playerId: string]: BuzzerPlayerState };
+  /**
+   * 這一題是否開放搶答：倒數結束（BuzzerOpen）才開放；
+   * 有人答對、無解投票通過、回合超時後關閉，直到下一題，避免同一題被重複得分
+   */
+  roundOpen?: boolean;
 };
 
 export type RoomSettings = {
@@ -93,6 +98,19 @@ export type Room = {
   isQuickMatch?: boolean;
   /** 快速配對倒數中、還沒開局（開局後就變成一般房間，可以再開下一局） */
   quickMatchPending?: boolean;
+  /**
+   * 傳統對戰：伺服器驗證答對後先記下這一手的得分，等前端播完計分動畫送 UpdateScore 才入帳並換人；
+   * 玩家斷線或回合時間到時由伺服器直接入帳。分數只由伺服器計算，不接受前端傳入
+   */
+  pendingPlay?: PendingPlay;
+};
+
+export type PendingPlay = {
+  playerId: string;
+  score: number;
+  /** 出牌用掉幾張，入帳後補回同樣張數 */
+  drawCount: number;
+  handResult?: HandResult;
 };
 
 /** 快速配對：房間人數上限、開局時補到幾人、等待真人的秒數、補位電腦難度 */

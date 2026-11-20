@@ -170,11 +170,10 @@ export default function MultiplePlayPage() {
   useEffect(() => {
     searchRooms();
 
-    socket.on(SocketEvent.GetRoomsResponse, (r: Room[]) => {
+    const handleRooms = (r: Room[]) => {
       setRooms(r || []);
-    });
-
-    socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
+    };
+    const handleJoined = (room: Room) => {
       if (room.roomId) {
         // 房間頁看到同一間房的 token 就不會重複加入（快速配對由 server 直接分配房間）
         sessionStorage.setItem('reconnectRoomId', room.roomId);
@@ -182,7 +181,14 @@ export default function MultiplePlayPage() {
       } else {
         toast.error(tLobby('createFailed'));
       }
-    });
+    };
+    socket.on(SocketEvent.GetRoomsResponse, handleRooms);
+    socket.on(SocketEvent.JoinRoomSuccess, handleJoined);
+    // 離開大廳後不再處理：否則別人加入同一間房時（伺服器對整間房廣播 JoinRoomSuccess）又會被導頁
+    return () => {
+      socket.off(SocketEvent.GetRoomsResponse, handleRooms);
+      socket.off(SocketEvent.JoinRoomSuccess, handleJoined);
+    };
   }, [router, socket, searchRooms, tLobby]);
 
   useEffect(() => {
@@ -215,6 +221,11 @@ export default function MultiplePlayPage() {
 
   // 建立房間可帶入預填名稱；modal 以 key 重新掛載，用預填值初始化
   const openCreateRoom = (name: string) => {
+    // 暱稱還沒載入或沒設定：先設定暱稱，不然會建立沒有名字的房主
+    if (!playerName) {
+      setIsOpenNameModal(true);
+      return;
+    }
     setCreateRoomName(name);
     setIsOpenCreateRoomModal(true);
   };

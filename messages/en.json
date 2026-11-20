@@ -323,7 +323,13 @@
     "INVALID_CARDS": "Invalid cards.",
     "ANSWER_NOT_24": "That doesn't equal 24.",
     "ANSWER_TIMEOUT": "Time's up.",
-    "INAPPROPRIATE_NAME": "That nickname isn't allowed. Please choose another one."
+    "INAPPROPRIATE_NAME": "That nickname isn't allowed. Please choose another one.",
+    "PLAYER_NAME_REQUIRED": "Please set a nickname first",
+    "NOT_ROOM_MASTER": "Only the host can do that",
+    "GAME_IN_PROGRESS": "You can't do that while a game is in progress",
+    "INVALID_ROOM_SETTINGS": "Invalid room settings",
+    "GAME_NOT_STARTED": "The game hasn't started",
+    "CARD_NOT_IN_HAND": "That card isn't in your hand"
   },
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "Game countdown cancelled.",

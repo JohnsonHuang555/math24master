@@ -116,9 +116,8 @@ export default function RoomPage() {
       event.preventDefault();
       event.returnValue = '';
     };
-    const handleUnload = () => {
-      socket.disconnect();
-    };
+    // 重新整理與關閉分頁不主動斷線：伺服器把它當成暫時斷線（保留位置、寬限期內用 token 回來），
+    // 主動離開改由「離開房間」按鈕與 SPA 導頁送 LeaveRoom
     if (playerName) {
       const storedToken = sessionStorage.getItem('reconnectToken');
       const storedRoomId = sessionStorage.getItem('reconnectRoomId');
@@ -126,11 +125,9 @@ export default function RoomPage() {
         joinRoom(playerName, roomId);
       }
       window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('unload', handleUnload);
     }
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('unload', handleUnload);
       // SPA 導頁（例如按瀏覽器上一頁）：主動通知 server 離開，避免幽靈玩家殘留
       if (playerName) {
         socket.emit(SocketEvent.LeaveRoom);
@@ -141,22 +138,30 @@ export default function RoomPage() {
   }, [joinRoom, playerName, roomId, socket]);
 
   useEffect(() => {
-    if (playerId) {
-      socket.on(SocketEvent.RemovePlayerResponse, (removedPlayerId: string) => {
-        if (removedPlayerId === playerId) {
-          toast.info(t('kicked'));
-          router.push('/multiple-play');
-        }
-      });
-    }
+    if (!playerId) return;
+    const handleRemoved = (removedPlayerId: string) => {
+      if (removedPlayerId === playerId) {
+        // 伺服器已經把我們移出房間、token 也失效了
+        sessionStorage.removeItem('reconnectToken');
+        sessionStorage.removeItem('reconnectRoomId');
+        toast.info(t('kicked'));
+        router.push('/multiple-play');
+      }
+    };
+    socket.on(SocketEvent.RemovePlayerResponse, handleRemoved);
+    return () => {
+      socket.off(SocketEvent.RemovePlayerResponse, handleRemoved);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, playerId]);
 
   useEffect(() => {
-    socket.on(SocketEvent.NeedRoomPassword, () => {
-      setIsOpenEnterRoomPasswordModal(true);
-    });
-  }, [socket, joinRoom]);
+    const handleNeedPassword = () => setIsOpenEnterRoomPasswordModal(true);
+    socket.on(SocketEvent.NeedRoomPassword, handleNeedPassword);
+    return () => {
+      socket.off(SocketEvent.NeedRoomPassword, handleNeedPassword);
+    };
+  }, [socket]);
 
   const tQuickMatch = useTranslations('Multiplayer.quickMatch');
   // 快速配對的房間沒有房名，顯示「快速配對」
@@ -168,6 +173,8 @@ export default function RoomPage() {
     : undefined;
 
   const leaveRoom = () => {
+    // 主動離開：先通知伺服器立即移除（不經過斷線寬限期），再整頁回大廳
+    socket.emit(SocketEvent.LeaveRoom);
     sessionStorage.removeItem('reconnectToken');
     sessionStorage.removeItem('reconnectRoomId');
     hardNavigate('/multiple-play');

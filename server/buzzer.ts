@@ -1,5 +1,5 @@
-import { evaluate } from 'mathjs';
 import { v4 as uuidv4 } from 'uuid';
+import { checkAnswer } from '../lib/answer-check';
 import { canMake24 } from '../lib/daily-seed';
 import { ErrorCode } from '../models/ErrorCode';
 import { NumberCard, Player } from '../models/Player';
@@ -22,19 +22,28 @@ export type BuzzInResult =
       reason: 'already_answering' | 'player_locked' | 'not_open' | 'not_found';
     };
 
+/**
+ * 作答結果：
+ * - correct：答對，room 已加分並關閉這一題
+ * - wrong：作答者答錯（扣分、鎖定），room 已更新
+ * - rejected：不是作答者、題目不存在等，房間狀態完全不變（不能拿 room 去更新）
+ */
 export type BuzzerAnswerResult =
   | {
-      success: true;
+      kind: 'correct';
       room: Room;
       scoreDelta: number;
       streak: number;
       streakBonus: number;
       winner?: Player;
     }
-  | { success: false; error: ErrorCode };
+  | { kind: 'wrong'; room: Room; error: ErrorCode; scoreDelta: number }
+  | { kind: 'rejected'; error: ErrorCode };
 
 export type NoSolutionVoteResult =
-  { passed: false; votes: string[] } | { passed: true; room: Room };
+  | { status: 'rejected' }
+  | { status: 'counted'; room: Room; votes: string[] }
+  | { status: 'passed'; room: Room };
 
 export type RoundTimeoutResult =
   { success: true; room: Room } | { success: false; error: ErrorCode };
@@ -95,9 +104,17 @@ export function startBuzzerRound(room: Room): Room {
     answerStartAt: null,
     noSolutionVotes: [],
     playerStates,
+    // 先倒數，倒數結束（openBuzzerRound）才開放搶答
+    roundOpen: false,
   };
 
   return { ...room, buzzerState: newState };
+}
+
+/** 倒數結束、開放搶答 */
+export function openBuzzerRound(room: Room): Room {
+  if (!room.buzzerState) return room;
+  return { ...room, buzzerState: { ...room.buzzerState, roundOpen: true } };
 }
 
 // ─── 搶答 ────────────────────────────────────────────────────────────────────
@@ -105,6 +122,9 @@ export function startBuzzerRound(room: Room): Room {
 export function processBuzzIn(room: Room, playerId: string): BuzzInResult {
   const state = room.buzzerState;
   if (!state) return { success: false, reason: 'not_found' };
+  // 倒數中、已經有人答對、投票通過或回合超時：這一題不開放
+  if (room.status !== 'playing' || !state.roundOpen)
+    return { success: false, reason: 'not_open' };
   if (state.currentAnswerPlayerId !== null)
     return { success: false, reason: 'already_answering' };
 
@@ -164,85 +184,94 @@ function _applyScoreFloor(
 
 // ─── 作答處理 ────────────────────────────────────────────────────────────────
 
+const VALID_SYMBOLS = new Set<string>(Object.values(Symbol));
+
+/**
+ * 把前端送來的算式換成伺服器版本：數字牌只認 id，數值一律取公共牌；
+ * 符號必須是合法的運算符號或括號。格式不對回傳 null
+ */
+function _normalizeTokens(
+  input: unknown,
+  publicCards: NumberCard[],
+): SelectedCard[] | null {
+  if (!Array.isArray(input) || input.length > 32) return null;
+  const tokens: SelectedCard[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') return null;
+    const token = raw as SelectedCard;
+    if (token.number) {
+      const card = publicCards.find(c => c.id === token.number?.id);
+      // 不是這題的牌：保留 id 讓後面判定為 InvalidCards，數值不採用
+      tokens.push({
+        number: card
+          ? { ...card }
+          : { id: String(token.number.id), value: NaN },
+      });
+    } else if (
+      typeof token.symbol === 'string' &&
+      VALID_SYMBOLS.has(token.symbol)
+    ) {
+      tokens.push({ symbol: token.symbol });
+    } else {
+      return null;
+    }
+  }
+  return tokens;
+}
+
 export function processBuzzerAnswer(
   room: Room,
   playerId: string,
-  selectedCards: SelectedCard[],
+  selectedCards: unknown,
 ): BuzzerAnswerResult {
   const state = room.buzzerState;
-  if (!state) return { success: false, error: ErrorCode.BuzzerNotStarted };
+  if (!state) return { kind: 'rejected', error: ErrorCode.BuzzerNotStarted };
   if (state.currentAnswerPlayerId !== playerId)
-    return { success: false, error: ErrorCode.NotAnsweringPlayer };
+    return { kind: 'rejected', error: ErrorCode.NotAnsweringPlayer };
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
   if (playerIndex === -1)
-    return { success: false, error: ErrorCode.PlayerNotFound };
+    return { kind: 'rejected', error: ErrorCode.PlayerNotFound };
+
+  const fail = (error: ErrorCode) =>
+    _handleAnswerFail(room, playerId, playerIndex, settings, error);
+
+  const tokens = _normalizeTokens(selectedCards, state.publicCards);
+  if (!tokens) return fail(ErrorCode.InvalidEquation);
 
   // 驗證數字牌必須全部來自公共牌，且每張最多用一次
-  const usedCardIds = selectedCards
-    .filter(c => c.number)
-    .map(c => c.number!.id);
+  const usedCardIds = tokens.filter(c => c.number).map(c => c.number!.id);
   const publicIds = state.publicCards.map(c => c.id);
-
-  if (usedCardIds.length !== 4) {
-    return _handleAnswerFail(
-      room,
-      playerId,
-      playerIndex,
-      settings,
-      ErrorCode.MustUseAllCards,
-    );
-  }
+  if (usedCardIds.length !== 4) return fail(ErrorCode.MustUseAllCards);
   const allFromPublic = usedCardIds.every(id => publicIds.includes(id));
   const noDuplicate = new Set(usedCardIds).size === 4;
-  if (!allFromPublic || !noDuplicate) {
-    return _handleAnswerFail(
-      room,
-      playerId,
-      playerIndex,
-      settings,
-      ErrorCode.InvalidCards,
-    );
-  }
+  if (!allFromPublic || !noDuplicate) return fail(ErrorCode.InvalidCards);
 
-  // 驗算結果
-  let result: number;
-  try {
-    const expr = selectedCards
-      .map(c => (c.number ? c.number.value : c.symbol))
-      .join('');
-    result = evaluate(expr);
-  } catch {
-    return _handleAnswerFail(
-      room,
-      playerId,
-      playerIndex,
-      settings,
-      ErrorCode.InvalidEquation,
-    );
-  }
-
-  if (Math.abs(result - 24) > 1e-6) {
-    return _handleAnswerFail(
-      room,
-      playerId,
-      playerIndex,
-      settings,
-      ErrorCode.AnswerNot24,
+  // 以伺服器的牌值驗算：數字與符號交替、括號平衡、等於 24
+  const check = checkAnswer(publicIds, tokens);
+  if (!check.ok) {
+    return fail(
+      check.error === 'NOT_24'
+        ? ErrorCode.AnswerNot24
+        : ErrorCode.InvalidEquation,
     );
   }
 
   // 答對：計算分數
-  const ps = state.playerStates[playerId];
+  const ps = state.playerStates[playerId] ?? {
+    isLocked: false,
+    lockUntil: null,
+    streak: 0,
+  };
   const newStreak = ps.streak + 1;
   // ps.streak 是「之前」的連勝數：第 1 次答對時 ps.streak=0（bonus=0），
   // 第 2 次連續答對時 ps.streak=1（bonus=1），符合「連續答對才算連勝」定義
-  const {
-    base,
-    streakBonus: bonus,
-    total,
-  } = calculateBuzzerScore(selectedCards, ps.streak, settings.streakBonus);
+  const { streakBonus: bonus, total } = calculateBuzzerScore(
+    tokens,
+    ps.streak,
+    settings.streakBonus,
+  );
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score + total;
@@ -262,6 +291,8 @@ export function processBuzzerAnswer(
     answerStartAt: null,
     roundTimerPaused: false,
     playerStates: newPlayerStates,
+    // 這一題已經有人答對，換下一題前不再開放搶答
+    roundOpen: false,
   };
 
   const newRoom = { ...room, players: newPlayers, buzzerState: newState };
@@ -273,7 +304,7 @@ export function processBuzzerAnswer(
       : undefined;
 
   return {
-    success: true,
+    kind: 'correct',
     room: newRoom,
     scoreDelta: total,
     streak: newStreak,
@@ -321,16 +352,15 @@ function _handleAnswerFail(
 
   const failedRoom = { ...room, players: newPlayers, buzzerState: newState };
   return {
-    success: false,
+    kind: 'wrong',
     error,
     room: failedRoom,
     scoreDelta: -settings.penaltyPoints,
-  } as BuzzerAnswerFailed as unknown as BuzzerAnswerResult;
+  };
 }
 
-// 失敗時帶 room 的型別（供 index.ts 取用更新後的 room）
+/** 作答超時的結果：room 一定可以套用 */
 export type BuzzerAnswerFailed = {
-  success: false;
   error: ErrorCode;
   room: Room;
   scoreDelta: number;
@@ -346,7 +376,6 @@ export function processBuzzerAnswerTimeout(
   const state = room.buzzerState;
   if (!state)
     return {
-      success: false,
       error: ErrorCode.BuzzerNotStarted,
       room,
       scoreDelta: 0,
@@ -354,13 +383,25 @@ export function processBuzzerAnswerTimeout(
 
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   const playerIndex = room.players.findIndex(p => p.id === playerId);
-  if (playerIndex === -1)
+  if (playerIndex === -1) {
+    // 作答者已經離開：只收回作答權，避免這一題卡住沒人能搶
     return {
-      success: false,
       error: ErrorCode.PlayerNotFound,
-      room,
+      room: {
+        ...room,
+        buzzerState: {
+          ...state,
+          currentAnswerPlayerId:
+            state.currentAnswerPlayerId === playerId
+              ? null
+              : state.currentAnswerPlayerId,
+          answerStartAt: null,
+          roundTimerPaused: false,
+        },
+      },
       scoreDelta: 0,
     };
+  }
 
   const newPlayers = [...room.players];
   const rawScore = newPlayers[playerIndex].score - settings.penaltyPoints;
@@ -385,7 +426,6 @@ export function processBuzzerAnswerTimeout(
   };
 
   return {
-    success: false,
     error: ErrorCode.AnswerTimeout,
     room: { ...room, players: newPlayers, buzzerState: newState },
     scoreDelta: -settings.penaltyPoints,
@@ -399,10 +439,19 @@ export function processNoSolutionVote(
   playerId: string,
 ): NoSolutionVoteResult {
   const state = room.buzzerState;
-  if (!state) return { passed: false, votes: [] };
+  // 只有這一題的參與者、在開放搶答且沒人作答時才能投票
+  if (
+    !state ||
+    room.status !== 'playing' ||
+    !state.roundOpen ||
+    state.currentAnswerPlayerId !== null ||
+    !state.playerStates[playerId]
+  ) {
+    return { status: 'rejected' };
+  }
 
   if (state.noSolutionVotes.includes(playerId)) {
-    return { passed: false, votes: state.noSolutionVotes };
+    return { status: 'counted', room, votes: state.noSolutionVotes };
   }
 
   const newVotes = [...state.noSolutionVotes, playerId];
@@ -410,21 +459,32 @@ export function processNoSolutionVote(
   const passed = newVotes.length > totalPlayers / 2;
 
   if (passed) {
-    const newState: BuzzerState = { ...state, noSolutionVotes: newVotes };
-    return { passed: true, room: { ...room, buzzerState: newState } };
+    const newState: BuzzerState = {
+      ...state,
+      noSolutionVotes: newVotes,
+      roundOpen: false,
+    };
+    return { status: 'passed', room: { ...room, buzzerState: newState } };
   }
 
   const newState: BuzzerState = { ...state, noSolutionVotes: newVotes };
   return {
-    passed: false,
+    status: 'counted',
     votes: newVotes,
     room: { ...room, buzzerState: newState },
-  } as NoSolutionVoteResult;
+  };
 }
 
 // ─── 回合超時 ────────────────────────────────────────────────────────────────
 
-export function applyRoundTimeout(room: Room): RoundTimeoutResult {
+export function applyRoundTimeout(roomBefore: Room): RoundTimeoutResult {
+  // 回合時間到：這一題關閉，換題前不再開放搶答
+  const room: Room = roomBefore.buzzerState
+    ? {
+        ...roomBefore,
+        buzzerState: { ...roomBefore.buzzerState, roundOpen: false },
+      }
+    : roomBefore;
   const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
   if (settings.roundTimeoutPenalty === 0) return { success: true, room };
   if (settings.roundSeconds === null) return { success: true, room };
@@ -463,7 +523,8 @@ export function applyRoundTimeout(room: Room): RoundTimeoutResult {
 
 export function unlockPlayer(room: Room, playerId: string): Room {
   const state = room.buzzerState;
-  if (!state) return room;
+  // 玩家已離開（或這一題沒有他）就不要憑空建立狀態
+  if (!state || !state.playerStates[playerId]) return room;
 
   const newPlayerStates = {
     ...state.playerStates,

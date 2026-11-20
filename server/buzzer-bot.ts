@@ -18,7 +18,8 @@ const OPS: { symbol: Symbol; fn: (a: number, b: number) => number | null }[] = [
   { symbol: Symbol.Divide, fn: (a, b) => (Math.abs(b) > 1e-8 ? a / b : null) },
 ];
 
-function solve24Cards(cards: NumberCard[]): SolverResult {
+/** 找出一組公共牌的 24 點解法（電腦玩家與測試共用） */
+export function solve24Cards(cards: NumberCard[]): SolverResult {
   const n = cards.length;
   if (n === 1) {
     return Math.abs(cards[0].value - 24) < 1e-6
@@ -118,8 +119,9 @@ function _scheduleAttempt(
     if (room.status !== 'playing') return;
     // 回合已換，停止
     if (room.buzzerState.roundNumber !== targetRound) return;
-    // 已有人作答
+    // 已有人作答，或這一題已經關閉（有人答對、投票通過、超時）
     if (room.buzzerState.currentAnswerPlayerId !== null) return;
+    if (!room.buzzerState.roundOpen) return;
     // 仍被鎖定
     const ps = room.buzzerState.playerStates[botId];
     if (ps?.isLocked) return;
@@ -157,12 +159,11 @@ function _scheduleAttempt(
         : _wrongAnswer(roomNow.buzzerState.publicCards);
 
       const answerResult = processBuzzerAnswer(roomNow, botId, cards);
-      const updated = applyBuzzerRoomUpdate(
-        answerResult.success ? answerResult.room : (answerResult as any).room,
-      );
+      if (answerResult.kind === 'rejected') return;
+      const updated = applyBuzzerRoomUpdate(answerResult.room);
       if (!updated) return;
 
-      if (answerResult.success) {
+      if (answerResult.kind === 'correct') {
         // ── 答對 ──────────────────────────────────────────────────────────────
         io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
           isCorrect: true,
@@ -192,11 +193,10 @@ function _scheduleAttempt(
         onCorrectAnswer(roomId);
       } else {
         // ── 答錯 ──────────────────────────────────────────────────────────────
-        const failResult = answerResult as any;
         io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
           isCorrect: false,
           playerId: botId,
-          scoreDelta: failResult.scoreDelta ?? 0,
+          scoreDelta: answerResult.scoreDelta,
           newScore: updated.players.find(p => p.id === botId)?.score ?? 0,
           streak: 0,
           streakBonus: 0,
@@ -226,7 +226,7 @@ function _scheduleAttempt(
           // 解鎖後決定是否重試
           setTimeout(() => {
             const r = getCurrentRoom(roomId);
-            if (!r) return;
+            if (!r || r.status !== 'playing') return;
             const unlockedRoom = unlockPlayer(r, botId);
             applyBuzzerRoomUpdate(unlockedRoom);
             io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, {
