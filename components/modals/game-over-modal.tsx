@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { RankMedal } from '@/components/leaderboard/rank-medal';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { cn } from '@/lib/utils';
-import { Player } from '@/models/Player';
+import { RankedPlayer } from '@/models/RoomView';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -19,7 +19,7 @@ type GameOverModalProps = {
   isOpen: boolean;
   onClose: () => void;
   /** 依分數由高到低排序的玩家列表 */
-  players: Player[];
+  players: RankedPlayer[];
   currentPlayerId?: string;
   isSinglePlay?: boolean;
   isNewBestScore?: boolean;

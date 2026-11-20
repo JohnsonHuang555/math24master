@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { unlockAchievement } from '@/lib/achievement-manager';
 import { calcRoundScore } from '@/lib/scoring';
 import { playSound } from '@/lib/sound-manager';
-import { Room } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
 import { Symbol } from '@/models/Symbol';
 import { useAchievementStore } from '@/stores/achievement-store';
@@ -12,7 +11,8 @@ import { useStatsStore } from '@/stores/stats-store';
 
 /** 提取兩個遊戲模式共用的動畫狀態與選牌計算邏輯 */
 export function useGameActions(
-  roomInfo: Room | undefined,
+  /** 目前要計分／顯示的算式（單人模式是房間的選牌，多人是自己的選牌或已公開的出牌） */
+  selectedCards: SelectedCard[] | undefined,
   checkAnswerCorrect: boolean | null,
   setCheckAnswerCorrect: (value: boolean | null) => void,
 ) {
@@ -24,7 +24,7 @@ export function useGameActions(
   // 已選的符號牌（僅計分符號）
   const selectedCardSymbols: SelectedCard[] = useMemo(() => {
     return (
-      roomInfo?.selectedCards.filter(
+      selectedCards?.filter(
         c =>
           c.symbol &&
           [Symbol.Plus, Symbol.Minus, Symbol.Times, Symbol.Divide].includes(
@@ -32,12 +32,12 @@ export function useGameActions(
           ),
       ) || []
     );
-  }, [roomInfo?.selectedCards]);
+  }, [selectedCards]);
 
   // 已選的數字牌
   const selectedCardNumbers: SelectedCard[] = useMemo(() => {
-    return roomInfo?.selectedCards.filter(c => c.number) || [];
-  }, [roomInfo?.selectedCards]);
+    return selectedCards?.filter(c => c.number) || [];
+  }, [selectedCards]);
 
   const isSymbolScoreAnimationFinished =
     checkAnswerCorrect === true &&

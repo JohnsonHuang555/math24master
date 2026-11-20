@@ -31,7 +31,7 @@ import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
 import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { QUICK_MATCH } from '@/models/Room';
-import { Room } from '@/models/Room';
+import { LobbyRoomSummary, RoomView } from '@/models/RoomView';
 import { SocketEvent } from '@/models/SocketEvent';
 import { useAlertDialogStore } from '@/providers/alert-dialog-store-provider';
 import { useMultiplePlay } from '@/providers/multiple-play-provider';
@@ -42,10 +42,16 @@ const roomId = uuidv4();
 
 type GameTypeFilter = 'all' | 'classic' | 'buzzer';
 
-function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
+function RoomCard({
+  room,
+  onClick,
+}: {
+  room: LobbyRoomSummary;
+  onClick: () => void;
+}) {
   const t = useTranslations('Multiplayer.lobby');
-  const isFull = room.players.length >= room.maxPlayers;
-  const gameType = room.settings.gameType;
+  const isFull = room.playerCount >= room.maxPlayers;
+  const gameType = room.gameType;
 
   // 遊戲類型用圖示區分，不用顏色；人數已滿時整張卡退成 sunken 並標示「已滿」
   return (
@@ -77,21 +83,21 @@ function RoomCard({ room, onClick }: { room: Room; onClick: () => void }) {
           {room.roomName}
         </span>
         <span className="flex items-center gap-1 text-[13px] text-ink-2">
-          {room.password && <Lock aria-hidden className="h-3.5 w-3.5" />}
+          {room.hasPassword && <Lock aria-hidden className="h-3.5 w-3.5" />}
           {t(`gameTypes.${gameType}`)}
-          {room.password && ` · ${t('hasPassword')}`}
+          {room.hasPassword && ` · ${t('hasPassword')}`}
         </span>
       </div>
       {isFull ? (
         <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2.5 text-[13px] font-bold whitespace-nowrap text-danger-ink">
           <Users aria-hidden className="h-3.5 w-3.5" />
-          {t('full', { count: room.players.length, max: room.maxPlayers })}
+          {t('full', { count: room.playerCount, max: room.maxPlayers })}
         </span>
       ) : (
         <>
           <span className="flex shrink-0 items-center gap-1 text-sm font-bold">
             <Users aria-hidden className="h-4 w-4 text-ink-2" />
-            {room.players.length}/{room.maxPlayers}
+            {room.playerCount}/{room.maxPlayers}
           </span>
           <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-ink-2" />
         </>
@@ -129,7 +135,7 @@ export default function MultiplePlayPage() {
   const hardNavigate = useHardNavigate();
   const reduceMotion = useReducedMotion();
 
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState<LobbyRoomSummary[]>([]);
   const router = useRouter();
   const { searchRooms, joinRoom, socket, quickMatch } = useMultiplePlay();
   const t = useTranslations('Multiplayer');
@@ -170,10 +176,10 @@ export default function MultiplePlayPage() {
   useEffect(() => {
     searchRooms();
 
-    const handleRooms = (r: Room[]) => {
+    const handleRooms = (r: LobbyRoomSummary[]) => {
       setRooms(r || []);
     };
-    const handleJoined = (room: Room) => {
+    const handleJoined = (room: RoomView) => {
       if (room.roomId) {
         // 房間頁看到同一間房的 token 就不會重複加入（快速配對由 server 直接分配房間）
         sessionStorage.setItem('reconnectRoomId', room.roomId);
@@ -233,7 +239,7 @@ export default function MultiplePlayPage() {
   const filteredRooms =
     gameTypeFilter === 'all'
       ? rooms
-      : rooms.filter(r => r.settings.gameType === gameTypeFilter);
+      : rooms.filter(r => r.gameType === gameTypeFilter);
 
   return (
     <main className="flex h-full flex-col">
@@ -445,7 +451,7 @@ export default function MultiplePlayPage() {
                       <RoomCard
                         room={room}
                         onClick={() => {
-                          if (room.players.length >= room.maxPlayers) {
+                          if (room.playerCount >= room.maxPlayers) {
                             toast.info(tError('ROOM_FULL'));
                             return;
                           }

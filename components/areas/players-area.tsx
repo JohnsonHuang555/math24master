@@ -8,11 +8,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { cn } from '@/lib/utils';
-import { Player } from '@/models/Player';
+import { PublicPlayerState } from '@/models/RoomView';
 
 type PlayersAreaProps = {
-  players?: Player[];
-  currentPlayer?: Player;
+  players?: PublicPlayerState[];
+  currentPlayer?: PublicPlayerState;
   onReady: () => void;
   onStart: () => void;
   onRemovePlayer: (playerId: string) => void;
@@ -207,8 +207,8 @@ export function WaitingRoomAction({
   onStart,
   notice,
 }: {
-  players?: Player[];
-  currentPlayer?: Player;
+  players?: PublicPlayerState[];
+  currentPlayer?: PublicPlayerState;
   onReady: () => void;
   onStart: () => void;
   /** 優先顯示的狀態（例如開始倒數） */

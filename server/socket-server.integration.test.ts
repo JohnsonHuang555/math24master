@@ -8,7 +8,7 @@ import { ErrorCode } from '@/models/ErrorCode';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { NumberCard } from '@/models/Player';
-import { Room } from '@/models/Room';
+import { LobbyRoomSummary, RoomView } from '@/models/RoomView';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -55,7 +55,7 @@ type Player = {
   id: string;
   token: string;
   /** 這位玩家最新收到的房間狀態 */
-  room: () => Room | undefined;
+  room: () => RoomView | undefined;
   errors: string[];
 };
 
@@ -114,16 +114,19 @@ async function join(
   }>,
 ): Promise<Player> {
   const socket = await newClient();
-  let latest: Room | undefined;
+  let latest: RoomView | undefined;
   const errors: string[] = [];
-  socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => (latest = room));
+  socket.on(SocketEvent.JoinRoomSuccess, (room: RoomView) => (latest = room));
   socket.on(
     SocketEvent.RoomUpdate,
-    ({ room }: { room: Room }) => (latest = room),
+    ({ room }: { room: RoomView }) => (latest = room),
   );
-  socket.on(SocketEvent.PlayerReconnectSuccess, ({ room }: { room: Room }) => {
-    latest = room;
-  });
+  socket.on(
+    SocketEvent.PlayerReconnectSuccess,
+    ({ room }: { room: RoomView }) => {
+      latest = room;
+    },
+  );
   socket.on(SocketEvent.ErrorMessage, (e: string) => errors.push(e));
   const idPromise = next<string>(socket, SocketEvent.GetPlayerId);
   const tokenPromise = next<string>(socket, SocketEvent.GetReconnectToken);
@@ -276,7 +279,10 @@ describe('房主權限（兩個獨立 client）', () => {
   it('房間列表與房間廣播都不含其他玩家的 reconnectToken', async () => {
     const [host, guest] = await twoPlayers();
     const viewer = await newClient();
-    const rooms = next<Room[]>(viewer, SocketEvent.GetRoomsResponse);
+    const rooms = next<LobbyRoomSummary[]>(
+      viewer,
+      SocketEvent.GetRoomsResponse,
+    );
     viewer.emit(SocketEvent.SearchRooms);
     const listJson = JSON.stringify(await rooms);
     const roomJson = JSON.stringify(host.room());
@@ -425,7 +431,7 @@ describe('斷線、重連與離開', () => {
     await markedDisconnected;
     await reconnected;
 
-    const success = next<{ room: Room; playerId: string }>(
+    const success = next<{ room: RoomView; playerId: string }>(
       current.socket,
       SocketEvent.PlayerReconnectSuccess,
     );
@@ -455,7 +461,7 @@ describe('斷線、重連與離開', () => {
     current.socket.io.reconnection(false);
     current.socket.io.engine.close();
 
-    const advanced = next<{ room: Room }>(
+    const advanced = next<{ room: RoomView }>(
       other.socket,
       SocketEvent.RoomUpdate,
       p => p.room.currentOrder !== orderBefore,
@@ -466,9 +472,7 @@ describe('斷線、重連與離開', () => {
       room.currentOrder,
     );
     // 斷線的人被替抽一張
-    expect(room.players.find(p => p.id === current.id)!.handCard).toHaveLength(
-      5,
-    );
+    expect(room.players.find(p => p.id === current.id)!.handCardCount).toBe(5);
   });
 
   it('答對後斷線沒送 UpdateScore：時間到伺服器入帳換人，分數只算一次', async () => {

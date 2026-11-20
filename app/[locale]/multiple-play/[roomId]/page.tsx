@@ -381,7 +381,7 @@ export default function RoomPage() {
           />
           <EditRoomModal
             roomName={roomInfo.roomName || ''}
-            password={roomInfo.password}
+            password={roomInfo.self?.roomPassword}
             onSubmit={(roomName, password) => {
               editRoom(roomName, password);
               setIsOpenEditRoomModal(false);
@@ -414,7 +414,7 @@ export default function RoomPage() {
             </Button>
             <div className="flex min-w-0 flex-1 flex-col">
               <strong className="flex items-center gap-1 truncate text-[17px] text-ink">
-                {roomInfo.password && (
+                {roomInfo.hasPassword && (
                   <Lock
                     aria-label={tLobby('hasPassword')}
                     className="h-4 w-4 shrink-0 text-ink-2"
@@ -519,7 +519,7 @@ export default function RoomPage() {
                       currentPlayer?.isMaster && !roomInfo.quickMatchPending
                     }
                     roomName={roomDisplayName}
-                    password={roomInfo.password}
+                    hasPassword={roomInfo.hasPassword}
                     maxPlayers={roomInfo.maxPlayers}
                     roomSettings={roomInfo.settings}
                     playersCount={roomInfo.players.length}

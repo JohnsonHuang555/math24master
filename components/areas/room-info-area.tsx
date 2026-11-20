@@ -23,7 +23,7 @@ import { Label } from '../ui/label';
 type RoomInfoAreaProps = {
   isMaster?: boolean;
   roomName?: string;
-  password?: string;
+  hasPassword?: boolean;
   maxPlayers: number;
   roomSettings: RoomSettings;
   playersCount: number;
@@ -95,7 +95,7 @@ const BUZZER_SECONDS = [10, 15, 20, 25, 30];
 const RoomInfoArea = ({
   isMaster,
   roomName,
-  password,
+  hasPassword,
   maxPlayers,
   roomSettings,
   playersCount = 2,
@@ -129,7 +129,7 @@ const RoomInfoArea = ({
             {t('title')}
           </h2>
           <div className="flex min-w-0 flex-1 items-center gap-1.5 max-md:hidden">
-            {password && (
+            {hasPassword && (
               <Lock
                 aria-label={tLobby('hasPassword')}
                 className="h-4 w-4 shrink-0 text-ink-2"

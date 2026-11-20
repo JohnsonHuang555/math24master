@@ -13,11 +13,11 @@ import { Flame, Lock, PenLine } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { PlayerCard, PlayerStatus } from '@/components/game/player-card';
 import { usePlayerName } from '@/hooks/usePlayerName';
-import { Player } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
+import { PublicPlayerState } from '@/models/RoomView';
 
 type BuzzerPlayerCardProps = {
-  player: Player;
+  player: PublicPlayerState;
   playerState: BuzzerPlayerState | undefined;
   isCurrentAnswerer: boolean;
   isCurrentPlayer: boolean;

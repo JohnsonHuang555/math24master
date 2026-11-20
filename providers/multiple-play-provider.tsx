@@ -21,8 +21,15 @@ import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
 import { Message } from '@/models/Message';
-import { NumberCard, Player } from '@/models/Player';
-import { BuzzerSettings, GameType, Room, RoomSettings } from '@/models/Room';
+import { NumberCard } from '@/models/Player';
+import { BuzzerSettings, GameType, RoomSettings } from '@/models/Room';
+import {
+  BuzzerGameOverPayload,
+  GameOverPayload,
+  PublicPlayerState,
+  RankedPlayer,
+  RoomView,
+} from '@/models/RoomView';
 import { SelectedCard } from '@/models/SelectedCard';
 import { SocketEvent } from '@/models/SocketEvent';
 import { Symbol } from '@/models/Symbol';
@@ -39,9 +46,12 @@ const socket = io(
 type GameOverData = {
   name: string;
   score: number;
-  players: Player[];
+  players: RankedPlayer[];
   isPenaltyGameOver?: boolean;
 };
+
+/** 自己：公開的玩家資料加上只有自己拿得到的手牌 */
+export type SelfPlayer = PublicPlayerState & { handCard: NumberCard[] };
 
 type GameAbortedData = {
   playerName: string;
@@ -60,7 +70,9 @@ type MultiplePlayContextData = {
     buzzerSettings?: BuzzerSettings,
   ) => void;
   socket: Socket;
-  roomInfo?: Room;
+  roomInfo?: RoomView;
+  /** 輪到自己時是正在組的算式；別人正在計分時是已公開的那一手 */
+  selectedCards: SelectedCard[];
   playerId?: string;
   onReadyGame: () => void;
   onStartGame: () => void;
@@ -87,7 +99,7 @@ type MultiplePlayContextData = {
   onPlayCard: () => void;
   onReselect: () => void;
   onDrawCard: () => void;
-  currentPlayer?: Player;
+  currentPlayer?: SelfPlayer;
   isYourTurn: boolean;
   onBack: () => void;
   isLastRound: boolean;
@@ -129,7 +141,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     null,
   );
 
-  const [roomInfo, setRoomInfo] = useState<Room>();
+  const [roomInfo, setRoomInfo] = useState<RoomView>();
   const [playerId, setPlayerId] = useState<string>();
   const playerIdRef = useRef<string | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -150,6 +162,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   // 用來區分「頁面首次載入」vs「遊戲中斷線重連」：
   // 只有 socket 曾觸發 disconnect 後才會為 true，新 socket instance 預設 false
   const wasReconnectingRef = useRef(false);
+  // 自己的回合用自己的選牌（私人資料）；別人答對正在計分時用公開的那一手
+  const selectedCards = useMemo<SelectedCard[]>(() => {
+    const own = roomInfo?.self?.selectedCards;
+    if (own && own.length > 0) return own;
+    return roomInfo?.playedCards ?? [];
+  }, [roomInfo?.self?.selectedCards, roomInfo?.playedCards]);
+
   const {
     selectedCardSymbols,
     selectedCardNumbers,
@@ -158,18 +177,22 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     resetAnimations,
     handlePlayCardResponse,
     markTurnStart,
-  } = useGameActions(roomInfo, checkAnswerCorrect, setCheckAnswerCorrect);
+  } = useGameActions(selectedCards, checkAnswerCorrect, setCheckAnswerCorrect);
 
   // 當前玩家
-  const currentPlayer = useMemo(
-    () => roomInfo?.players.find(p => p.id === playerId),
-    [playerId, roomInfo?.players],
-  );
+  // 手牌只從自己的私人資料取得，公開資料裡只有張數
+  const currentPlayer = useMemo<SelfPlayer | undefined>(() => {
+    const self = roomInfo?.self;
+    const pub = roomInfo?.players.find(
+      p => p.id === (self?.playerId ?? playerId),
+    );
+    if (!pub) return undefined;
+    return { ...pub, handCard: self?.handCard ?? [] };
+  }, [playerId, roomInfo?.players, roomInfo?.self]);
 
   const isLastRound = useMemo(
-    () =>
-      roomInfo?.status === GameStatus.Playing && roomInfo?.deck.length === 0,
-    [roomInfo?.deck.length, roomInfo?.status],
+    () => roomInfo?.status === GameStatus.Playing && roomInfo?.deckCount === 0,
+    [roomInfo?.deckCount, roomInfo?.status],
   );
 
   const isYourTurn = currentPlayer?.playerOrder === roomInfo?.currentOrder;
@@ -189,7 +212,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       toast.error(serverErrorText(error));
     });
 
-    listeners.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
+    listeners.on(SocketEvent.JoinRoomSuccess, (room: RoomView) => {
       setRoomInfo(room);
     });
 
@@ -236,7 +259,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     listeners.on(
       SocketEvent.PlayerReconnectSuccess,
-      ({ room, playerId: id }: { room: Room; playerId?: string }) => {
+      ({ room, playerId: id }: { room: RoomView; playerId?: string }) => {
         if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
         wasReconnectingRef.current = false;
         setRoomInfo(room);
@@ -279,7 +302,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         room,
         extra,
       }: {
-        room: Room;
+        room: RoomView;
         extra?: { event: SocketEvent; data: boolean };
       }) => {
         setRoomInfo(room);
@@ -308,17 +331,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
     listeners.on(
       SocketEvent.GameOver,
-      ({
-        name,
-        score,
-        players,
-        isPenaltyGameOver,
-      }: {
-        name: string;
-        score: number;
-        players: Player[];
-        isPenaltyGameOver?: boolean;
-      }) => {
+      ({ name, score, players, isPenaltyGameOver }: GameOverPayload) => {
         playSound('gameOverWin');
         trackGameComplete('multiplayer', { variant: 'classic' });
         setGameOverData({ name, score, players, isPenaltyGameOver });
@@ -329,21 +342,15 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       setGameAbortedData({ playerName });
     });
 
-    listeners.on(
-      SocketEvent.BuzzerGameOver,
-      (data: {
-        winner: { id: string; name: string; score: number };
-        players: { id: string; name: string; score: number }[];
-      }) => {
-        playSound('gameOverWin');
-        trackGameComplete('multiplayer', { variant: 'buzzer' });
-        setGameOverData({
-          name: data.winner.name,
-          score: data.winner.score,
-          players: data.players as unknown as Player[],
-        });
-      },
-    );
+    listeners.on(SocketEvent.BuzzerGameOver, (data: BuzzerGameOverPayload) => {
+      playSound('gameOverWin');
+      trackGameComplete('multiplayer', { variant: 'buzzer' });
+      setGameOverData({
+        name: data.winner.name,
+        score: data.winner.score,
+        players: data.players,
+      });
+    });
 
     return () => {
       listeners.off();
@@ -517,7 +524,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (roomInfo?.selectedCards.length === 0) {
+    if (selectedCards.length === 0) {
       toast.warning(tGameToast('buildEquation'));
       return;
     }
@@ -532,7 +539,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     roomInfo?.isGameOver,
     isYourTurn,
     roomInfo?.roomId,
-    roomInfo?.selectedCards,
+    selectedCards,
     tGameToast,
   ]);
 
@@ -574,7 +581,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     if (connectionStatus !== 'connected') return;
     if (roomInfo?.isGameOver || !isYourTurn) return;
 
-    if (socket && roomInfo?.selectedCards.length) {
+    if (socket && selectedCards.length) {
       socket.emit(SocketEvent.BackCard, {
         roomId: roomInfo?.roomId,
       });
@@ -584,7 +591,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     isYourTurn,
     roomInfo?.isGameOver,
     roomInfo?.roomId,
-    roomInfo?.selectedCards.length,
+    selectedCards.length,
   ]);
 
   const sendMessage = useCallback(
@@ -652,6 +659,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       joinRoom,
       socket,
       roomInfo,
+      selectedCards,
       playerId,
       onReadyGame,
       onStartGame,
@@ -721,6 +729,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     remainRoundTime?.countdown,
     removePlayer,
     roomInfo,
+    selectedCards,
     searchRooms,
     selectedCardNumbers,
     selectedCardSymbols,
