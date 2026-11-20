@@ -67,6 +67,10 @@ export enum SocketEvent {
   BuzzerSubmitAnswer = 'buzzer-submit-answer',
   BuzzerVoteNoSolution = 'buzzer-vote-no-solution',
   BuzzerSelectionUpdate = 'buzzer-selection-update',
+  // 搶答畫面載入後向伺服器要目前這一題的狀態（重新整理、重連後補齊）
+  BuzzerSync = 'buzzer-sync',
+  // 同一位玩家在別的分頁或裝置接手，這個連線不再代表他
+  SessionReplaced = 'session-replaced',
 
   // ── 快速配對 ──
   // C→S：找一間正在配對的房間加入，沒有就開一間新的

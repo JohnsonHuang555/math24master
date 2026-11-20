@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { createSocketListeners } from '@/lib/socket-listeners';
 import { NumberCard } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
 import { SelectedCard } from '@/models/SelectedCard';
@@ -89,6 +90,10 @@ export function BuzzerPlayProvider({
   const [publicCards, setPublicCards] = useState<NumberCard[]>([]);
   const [roundNumber, setRoundNumber] = useState(0);
   const [roundSeconds, setRoundSeconds] = useState<number | null>(null);
+  const roomIdRef = useRef<string | undefined>(roomInfo?.roomId);
+  roomIdRef.current = roomInfo?.roomId;
+  const roundSecondsRef = useRef<number | null>(null);
+  roundSecondsRef.current = roundSeconds;
   const [roundRemaining, setRoundRemaining] = useState<number | null>(null);
   const [roundTimerPaused, setRoundTimerPaused] = useState(false);
 
@@ -162,12 +167,14 @@ export function BuzzerPlayProvider({
 
   useEffect(() => {
     if (!socket) return;
+    const listeners = createSocketListeners(socket);
 
-    socket.on(
+    listeners.on(
       SocketEvent.BuzzerRoundStart,
       ({ publicCards: cards, roundNumber: num, roundSeconds: secs }) => {
         setPublicCards(cards);
         setRoundNumber(num);
+        roundSecondsRef.current = secs;
         setRoundSeconds(secs);
         setRoundRemaining(secs);
         setRoundTimerPaused(false);
@@ -183,16 +190,16 @@ export function BuzzerPlayProvider({
       },
     );
 
-    socket.on(SocketEvent.BuzzerCountdown, ({ countdown }) => {
+    listeners.on(SocketEvent.BuzzerCountdown, ({ countdown }) => {
       setCountdownValue(countdown);
     });
 
-    socket.on(SocketEvent.BuzzerOpen, () => {
+    listeners.on(SocketEvent.BuzzerOpen, () => {
       setCountdownValue(null);
       setIsBuzzerOpen(true);
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.BuzzerBuzzInSuccess,
       ({ playerId, answerSeconds: secs }) => {
         setCurrentAnswerPlayerId(playerId);
@@ -201,26 +208,29 @@ export function BuzzerPlayProvider({
       },
     );
 
-    socket.on(SocketEvent.BuzzerRoundTimerPaused, ({ elapsedSeconds }) => {
+    listeners.on(SocketEvent.BuzzerRoundTimerPaused, ({ elapsedSeconds }) => {
       setRoundTimerPaused(true);
       _clearRoundTick();
+      // 事件監聽只在 socket 變動時註冊，直接讀 roundSeconds 會拿到舊值，改讀 ref
+      const total = roundSecondsRef.current;
       setRoundRemaining(prev =>
-        prev !== null && roundSeconds !== null
-          ? roundSeconds - elapsedSeconds
-          : prev,
+        prev !== null && total !== null ? total - elapsedSeconds : prev,
       );
     });
 
-    socket.on(SocketEvent.BuzzerRoundTimerResumed, ({ remainingSeconds }) => {
-      setRoundTimerPaused(false);
-      setCurrentAnswerPlayerId(null);
-      setAnswerSelectedCards([]);
-      _clearAnswerTick();
-      setAnswerRemaining(null);
-      _startRoundTick(remainingSeconds);
-    });
+    listeners.on(
+      SocketEvent.BuzzerRoundTimerResumed,
+      ({ remainingSeconds }) => {
+        setRoundTimerPaused(false);
+        setCurrentAnswerPlayerId(null);
+        setAnswerSelectedCards([]);
+        _clearAnswerTick();
+        setAnswerRemaining(null);
+        _startRoundTick(remainingSeconds);
+      },
+    );
 
-    socket.on(
+    listeners.on(
       SocketEvent.BuzzerAnswerResult,
       (data: BuzzerAnswerResultData) => {
         setLastAnswerResult(data);
@@ -245,7 +255,7 @@ export function BuzzerPlayProvider({
       },
     );
 
-    socket.on(SocketEvent.BuzzerPlayerLocked, ({ playerId, lockUntil }) => {
+    listeners.on(SocketEvent.BuzzerPlayerLocked, ({ playerId, lockUntil }) => {
       setPlayerStates(prev => ({
         ...prev,
         [playerId]: {
@@ -256,7 +266,7 @@ export function BuzzerPlayProvider({
       }));
     });
 
-    socket.on(SocketEvent.BuzzerPlayerUnlocked, ({ playerId }) => {
+    listeners.on(SocketEvent.BuzzerPlayerUnlocked, ({ playerId }) => {
       setPlayerStates(prev => ({
         ...prev,
         [playerId]: {
@@ -267,18 +277,18 @@ export function BuzzerPlayProvider({
       }));
     });
 
-    socket.on(SocketEvent.BuzzerNoSolutionVoteUpdate, ({ votes }) => {
+    listeners.on(SocketEvent.BuzzerNoSolutionVoteUpdate, ({ votes }) => {
       setNoSolutionVotes(votes);
     });
 
-    socket.on(SocketEvent.BuzzerNoSolutionPassed, () => {
+    listeners.on(SocketEvent.BuzzerNoSolutionPassed, () => {
       setNoSolutionVotes([]);
       setIsBuzzerOpen(false);
       _clearRoundTick();
       _clearAnswerTick();
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.BuzzerRoundTimeout,
       ({ penaltyPoints }: { penaltyPoints: number; players: unknown[] }) => {
         _clearRoundTick();
@@ -290,25 +300,21 @@ export function BuzzerPlayProvider({
       },
     );
 
-    socket.on(SocketEvent.BuzzerSelectionUpdate, ({ selectedCards }) => {
+    listeners.on(SocketEvent.BuzzerSelectionUpdate, ({ selectedCards }) => {
       setAnswerSelectedCards(selectedCards);
     });
 
+    // 狀態都靠事件累積：畫面剛掛上（重新整理）或斷線重連回來時，向伺服器要目前這一題補齊
+    const requestSync = () => {
+      const roomId = roomIdRef.current;
+      if (roomId) socket.emit(SocketEvent.BuzzerSync, { roomId });
+    };
+    listeners.on(SocketEvent.PlayerReconnectSuccess, requestSync);
+    requestSync();
+
     return () => {
-      socket.off(SocketEvent.BuzzerRoundStart);
-      socket.off(SocketEvent.BuzzerCountdown);
-      socket.off(SocketEvent.BuzzerOpen);
-      socket.off(SocketEvent.BuzzerBuzzInSuccess);
-      socket.off(SocketEvent.BuzzerRoundTimerPaused);
-      socket.off(SocketEvent.BuzzerRoundTimerResumed);
-      socket.off(SocketEvent.BuzzerAnswerResult);
-      socket.off(SocketEvent.BuzzerPlayerLocked);
-      socket.off(SocketEvent.BuzzerPlayerUnlocked);
-      socket.off(SocketEvent.BuzzerNoSolutionVoteUpdate);
-      socket.off(SocketEvent.BuzzerNoSolutionPassed);
-      socket.off(SocketEvent.BuzzerRoundTimeout);
-      socket.off(SocketEvent.BuzzerGameOver);
-      socket.off(SocketEvent.BuzzerSelectionUpdate);
+      // 只移除自己登記的 handler；不帶 handler 的 socket.off 會把 MultiplePlayProvider 的 BuzzerGameOver 一起拿掉
+      listeners.off();
       _clearRoundTick();
       _clearAnswerTick();
     };

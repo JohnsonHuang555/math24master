@@ -121,7 +121,7 @@ describe('電腦玩家的名稱', () => {
   it('名稱是代碼，所有電腦依序編號，移除後補回最小的空號', () => {
     game.createQuickMatchRoom('r1', 'p1', '小明');
     const add = (difficulty: 'easy' | 'normal' | 'hard') => {
-      const result = game.addBotToRoom('r1', difficulty);
+      const result = game.addBotToRoom('r1', 'p1', difficulty);
       return result.success ? result.room!.players.at(-1)! : null;
     };
 
@@ -130,7 +130,7 @@ describe('電腦玩家的名稱', () => {
     expect([first.name, second.name]).toEqual(['bot:normal:1', 'bot:normal:2']);
     expect(add('hard')!.name).toBe('bot:hard:3');
 
-    game.removePlayer('r1', first.id);
+    game.removePlayer('r1', 'p1', first.id);
     expect(
       game.getCurrentRoom('r1')!.players.some(p => p.id === first.id),
     ).toBe(false);

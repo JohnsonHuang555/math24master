@@ -323,7 +323,14 @@
     "INVALID_CARDS": "牌组不合法",
     "ANSWER_NOT_24": "答案不等于 24",
     "ANSWER_TIMEOUT": "作答超时",
-    "INAPPROPRIATE_NAME": "暱称含有不雅字词，请换一个"
+    "INAPPROPRIATE_NAME": "暱称含有不雅字词，请换一个",
+    "PLAYER_NAME_REQUIRED": "请先设置暱称",
+    "PLAYER_ALREADY_BOUND": "你已经在另一个房间里，请先离开再加入",
+    "NOT_ROOM_MASTER": "只有房主可以这么做",
+    "GAME_IN_PROGRESS": "游戏进行中，无法这么做",
+    "INVALID_ROOM_SETTINGS": "房间设置不正确",
+    "GAME_NOT_STARTED": "游戏尚未开始",
+    "CARD_NOT_IN_HAND": "这张牌不在你的手牌里"
   },
   "SystemMessage": {
     "COUNTDOWN_CANCELLED": "游戏开始倒数已取消",
@@ -1055,6 +1062,7 @@
     },
     "room": {
       "kicked": "你已被踢出房间",
+      "sessionReplaced": "你已在另一个分页打开这个房间",
       "connecting": "连接中...",
       "connectingHint": "如果等待时间过长，请尝试刷新页面",
       "backHome": "回首页",

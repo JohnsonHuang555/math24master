@@ -13,11 +13,25 @@ export enum ErrorCode {
   ReconnectTokenInvalid = 'RECONNECT_TOKEN_INVALID',
   /** 暱稱含不雅字詞 */
   InappropriateName = 'INAPPROPRIATE_NAME',
+  /** 只有房主能做（改房名、改設定、踢人、加電腦、開始遊戲） */
+  NotRoomMaster = 'NOT_ROOM_MASTER',
+  /** 暱稱是空白 */
+  PlayerNameRequired = 'PLAYER_NAME_REQUIRED',
+  /** 這個連線已經代表另一位還在房間裡的玩家，要先離開房間才能換人 */
+  PlayerAlreadyBound = 'PLAYER_ALREADY_BOUND',
+  /** 遊戲進行中不能做（加入、改設定、踢人等） */
+  GameInProgress = 'GAME_IN_PROGRESS',
+  /** 房間設定值不合法（人數、倒數秒數等） */
+  InvalidRoomSettings = 'INVALID_ROOM_SETTINGS',
 
   // 開局與回合
   PlayersNotReady = 'PLAYERS_NOT_READY',
   StartGameFailed = 'START_GAME_FAILED',
   NotYourTurn = 'NOT_YOUR_TURN',
+  /** 遊戲還沒開始（或已結束）時送出牌面操作 */
+  GameNotStarted = 'GAME_NOT_STARTED',
+  /** 選的數字牌不在自己的手牌裡 */
+  CardNotInHand = 'CARD_NOT_IN_HAND',
 
   // 組算式
   InvalidEquation = 'INVALID_EQUATION',

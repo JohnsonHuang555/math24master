@@ -16,6 +16,7 @@ import { useGameActions } from '@/hooks/useGameActions';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { useServerErrorText } from '@/i18n/server-messages';
 import { trackEvent, trackGameComplete, trackGameStart } from '@/lib/analytics';
+import { createSocketListeners } from '@/lib/socket-listeners';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
 import { GameStatus } from '@/models/GameStatus';
@@ -181,37 +182,39 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   useEffect(() => {
     socket.emit(SocketEvent.SearchRooms);
+    // Provider 每次掛載（進出 /multiple-play）都會再登記一次；cleanup 只移除這次登記的 handler
+    const listeners = createSocketListeners(socket);
 
-    socket.on(SocketEvent.ErrorMessage, (error: string) => {
+    listeners.on(SocketEvent.ErrorMessage, (error: string) => {
       toast.error(serverErrorText(error));
     });
 
-    socket.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
+    listeners.on(SocketEvent.JoinRoomSuccess, (room: Room) => {
       setRoomInfo(room);
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.QuickMatchCountdown,
       ({ secondsLeft }: { secondsLeft: number }) => {
         setQuickMatchSecondsLeft(secondsLeft);
       },
     );
 
-    socket.on(SocketEvent.GetMessage, (message: Message) => {
+    listeners.on(SocketEvent.GetMessage, (message: Message) => {
       setMessages(state => [...state, message]);
     });
 
-    socket.on(SocketEvent.GetPlayerId, (id: string) => {
+    listeners.on(SocketEvent.GetPlayerId, (id: string) => {
       setPlayerId(id);
       playerIdRef.current = id;
     });
 
-    socket.on(SocketEvent.GetReconnectToken, (token: string) => {
+    listeners.on(SocketEvent.GetReconnectToken, (token: string) => {
       sessionStorage.setItem('reconnectToken', token);
     });
 
     // 斷線：顯示重連中 UI
-    socket.on('disconnect', () => {
+    listeners.on('disconnect', () => {
       wasReconnectingRef.current = true;
       setConnectionStatus('reconnecting');
       graceTimerRef.current = setTimeout(() => {
@@ -220,27 +223,33 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     });
 
     // transport 重連或頁面重載後，若有 token 則自動恢復遊戲
-    socket.on('connect', () => {
+    const reconnectWithToken = () => {
       const token = sessionStorage.getItem('reconnectToken');
       if (token) {
         socket.emit(SocketEvent.PlayerReconnect, { reconnectToken: token });
       }
-    });
+    };
+    listeners.on('connect', reconnectWithToken);
+    // socket 在模組載入時就開始連線，重新整理後常常在這個 effect 執行前就連上了，
+    // 錯過 connect 事件會卡在「連線中」：已連上就立即用 token 恢復
+    if (socket.connected) reconnectWithToken();
 
-    socket.on(
+    listeners.on(
       SocketEvent.PlayerReconnectSuccess,
-      ({ room }: { room: Room }) => {
+      ({ room, playerId: id }: { room: Room; playerId?: string }) => {
         if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
         wasReconnectingRef.current = false;
         setRoomInfo(room);
-        setPlayerId(socket.id);
-        playerIdRef.current = socket.id;
+        // 玩家 id 重連後不變（新的 socket 代表原本的玩家）；舊版 server 沒帶時才退回 socket.id
+        const stableId = id ?? socket.id;
+        setPlayerId(stableId);
+        playerIdRef.current = stableId;
         setConnectionStatus('connected');
         toast.success(t('reconnected'));
       },
     );
 
-    socket.on(SocketEvent.PlayerReconnectFailed, () => {
+    listeners.on(SocketEvent.PlayerReconnectFailed, () => {
       if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
 
       if (!wasReconnectingRef.current) {
@@ -264,7 +273,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       sessionStorage.removeItem('reconnectRoomId');
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.RoomUpdate,
       ({
         room,
@@ -286,18 +295,18 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       },
     );
 
-    socket.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
+    listeners.on(SocketEvent.PlayerLeaveRoom, (playerName: string) => {
       toast.info(t('playerLeft', { name: playerDisplayName(playerName) }));
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.CountdownTimeResponse,
       (res: { countdown: number; needDrawPlayerId: string }) => {
         setRemainRoundTime(res);
       },
     );
 
-    socket.on(
+    listeners.on(
       SocketEvent.GameOver,
       ({
         name,
@@ -316,11 +325,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       },
     );
 
-    socket.on(SocketEvent.GameAborted, (playerName: string) => {
+    listeners.on(SocketEvent.GameAborted, (playerName: string) => {
       setGameAbortedData({ playerName });
     });
 
-    socket.on(
+    listeners.on(
       SocketEvent.BuzzerGameOver,
       (data: {
         winner: { id: string; name: string; score: number };
@@ -335,6 +344,11 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         });
       },
     );
+
+    return () => {
+      listeners.off();
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+    };
   }, [resetState]);
 
   useEffect(() => {
@@ -630,15 +644,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     wasQuickMatchPendingRef.current = pending;
   }, [roomInfo]);
 
-  useEffect(() => {
-    if (
-      remainRoundTime?.countdown === 0 &&
-      remainRoundTime.needDrawPlayerId === playerId
-    ) {
-      onDrawCard();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDrawCard, playerId, remainRoundTime?.countdown]);
+  // 回合時間到由伺服器直接換人（玩家斷線也會推進），前端不再代送抽牌事件
 
   const multiplePlayContextData: MultiplePlayContextData = useMemo(() => {
     return {
