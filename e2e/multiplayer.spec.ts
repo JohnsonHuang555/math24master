@@ -383,6 +383,12 @@ test.describe('多人分析事件', () => {
       };
     });
     const alice = await context.newPage();
+    // 本機不是正式網域：不能有任何往 Google 的請求
+    const googleRequests: string[] = [];
+    alice.on('request', req => {
+      if (/googletagmanager\.com|google-analytics\.com/.test(req.url()))
+        googleRequests.push(req.url());
+    });
     const recorded = async () =>
       alice.evaluate(
         () =>
@@ -444,6 +450,15 @@ test.describe('多人分析事件', () => {
       bot_player_count: 2,
     });
     expect(start.match_id).toEqual(expect.any(String));
+    // 初始化 script 在 hydration 前執行，管線狀態是 local（只留在本地）
+    expect(
+      await alice.evaluate(
+        () =>
+          (window as unknown as { __m24Analytics?: { state?: string } })
+            .__m24Analytics?.state,
+      ),
+    ).toBe('local');
+    expect(googleRequests).toEqual([]);
     const sent = JSON.stringify(events);
     expect(sent).not.toContain('Alice');
     expect(sent).not.toContain(roomId);

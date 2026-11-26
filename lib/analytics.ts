@@ -1,3 +1,8 @@
+import {
+  ANALYTICS_STATE_EVENT,
+  ANALYTICS_STATE_KEY,
+  type AnalyticsPipelineState,
+} from './analytics-env';
 import type { ShareOutcome } from './share';
 
 /**
@@ -28,16 +33,63 @@ declare global {
   }
 }
 
-/** 送出 GA4 事件；GA 尚未載入、被擋或在伺服器端時直接略過，不影響遊戲 */
-export function trackEvent(name: string, params?: EventParams): void {
+/** 正在收集事件的呼叫（captureEvents 使用）；平常是 null */
+let capturing: [string, EventParams | undefined][] | null = null;
+
+/**
+ * 送出 GA4 事件：放進 gtag 的佇列（window.dataLayer）。
+ * 回傳 true 代表已排入佇列（Queued），不代表 GA4 伺服器已經收到；
+ * 沒有 gtag（伺服器端，或初始化 script 被移除）時回傳 false，不影響遊戲
+ */
+export function trackEvent(name: string, params?: EventParams): boolean {
+  capturing?.push([name, params]);
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
-    return;
+    return false;
   }
   try {
     window.gtag('event', name, params);
+    return true;
   } catch {
     // 分析失敗不能影響遊戲流程
+    return false;
   }
+}
+
+/** 執行 fn，回傳它送出的事件（名稱與參數），讓呼叫端在需要時原樣重送 */
+export function captureEvents(
+  fn: () => void,
+): [string, EventParams | undefined][] {
+  const previous = capturing;
+  const events: [string, EventParams | undefined][] = [];
+  capturing = events;
+  try {
+    fn();
+  } finally {
+    capturing = previous;
+  }
+  return events;
+}
+
+/**
+ * 追蹤管線目前的狀態（見 lib/analytics-env.ts 的 AnalyticsPipelineState）。
+ * unavailable：沒有 gtag 可以用（伺服器端，或初始化 script 沒有執行）。
+ * 有 gtag 但沒有狀態紀錄（例如測試直接注入 gtag）時視為 ready
+ */
+export function getAnalyticsState(): AnalyticsPipelineState | 'unavailable' {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
+    return 'unavailable';
+  }
+  const status = (window as unknown as Record<string, unknown>)[
+    ANALYTICS_STATE_KEY
+  ] as { state?: AnalyticsPipelineState } | undefined;
+  return status?.state ?? 'ready';
+}
+
+/** 管線狀態變動時呼叫 listener；回傳取消監聽的函式。伺服器端什麼都不做 */
+export function onAnalyticsStateChange(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(ANALYTICS_STATE_EVENT, listener);
+  return () => window.removeEventListener(ANALYTICS_STATE_EVENT, listener);
 }
 
 /**

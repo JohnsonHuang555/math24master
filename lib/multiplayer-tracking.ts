@@ -6,6 +6,10 @@ import {
   QuickMatchCancelMethod,
   QuickMatchSource,
   RematchSource,
+  captureEvents,
+  getAnalyticsState,
+  onAnalyticsStateChange,
+  trackEvent,
   trackMultiplayerGameCompleted,
   trackMultiplayerGameStarted,
   trackMultiplayerLobbyView,
@@ -22,7 +26,7 @@ import {
  * 多人模式的分析事件都從這裡送出，並在這裡去重（見 docs/MULTIPLAYER_ANALYTICS.md）。
  *
  * 不靠 React effect 判斷「是不是新的一局」：一局以伺服器產生的 matchId 識別，
- * 已經送過的事件記在 sessionStorage，所以
+ * 已經排入 gtag 佇列的事件記在 sessionStorage（排入佇列才記，見 once），所以
  * - 重新整理、斷線重連（同一個分頁、同一局）不會再送一次開局或結束
  * - React Strict Mode 重跑 effect、同一份房間資料收到兩次，也只送一次
  * - 再玩一場換到下一局（新的 matchId）才會再送
@@ -32,6 +36,10 @@ import {
  */
 
 const PREFIX = 'mp_analytics:';
+/** 暫存（還沒交給 gtag.js）的去重事件最多幾筆；超過就丟掉最舊的，不會無限累積 */
+const MAX_PENDING = 20;
+/** 沒送出的事件最多重送幾次（含第一次），之後放棄，不會無限重試 */
+const MAX_ATTEMPTS = 2;
 /** 再玩一場的意圖超過這麼久還沒開局，就不再算成再戰開局 */
 const REMATCH_INTENT_TTL_MS = 15 * 60 * 1000;
 
@@ -82,13 +90,116 @@ export function createMultiplayerTracker(
       // 忽略
     }
   };
-  /** 同一個 key 只執行一次（跨重新整理） */
-  const once = (key: string, fn: () => void) => {
+  // ── 去重與傳送狀態 ──────────────────────────────────────────────────────
+  //
+  // 每個去重 key 記在 once:<key>，值是：
+  // - done：已交給 gtag.js（ready）、或只放進本地 dataLayer（local）、或 gtag.js 被擋（blocked，不重試）
+  // - queued:<pageId>：已放進 dataLayer，但當時 gtag.js 還沒載入完；事件內容另外存在 pending
+  // 沒有 gtag 可以用（unavailable）時不標記，事件留在記憶體，等管線可用再送（Pending）
+  //
+  // queued 的事件如果在 gtag.js 載入前頁面就被關掉或重新整理（從來沒送出），
+  // 下一頁會原樣重送，最多 MAX_ATTEMPTS 次；這一頁 gtag.js 載入完成就改成 done。
+
+  /** 這一次頁面載入的 id（區分「這一頁排入的」與「上一頁沒送出的」） */
+  const pageId = `${now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  type PendingEntry = {
+    key: string;
+    events: [
+      string,
+      Record<string, string | number | boolean | undefined> | undefined,
+    ][];
+    attempts: number;
+    pageId: string;
+  };
+  const readPending = (): PendingEntry[] => {
+    try {
+      const list = JSON.parse(get('pending') ?? '[]');
+      return Array.isArray(list) ? (list as PendingEntry[]) : [];
+    } catch {
+      return [];
+    }
+  };
+  const writePending = (list: PendingEntry[]) => {
+    if (list.length === 0) remove('pending');
+    else set('pending', JSON.stringify(list.slice(-MAX_PENDING)));
+  };
+  /** 這一頁排入佇列的事件都已交出去（或確定送不出去）：標記完成，不再重送 */
+  const settleQueued = () => {
+    const keep: PendingEntry[] = [];
+    for (const entry of readPending()) {
+      if (entry.pageId === pageId) set(`once:${entry.key}`, 'done');
+      else keep.push(entry);
+    }
+    writePending(keep);
+  };
+
+  /** 沒有 gtag 時暫存的去重事件（記憶體，有上限） */
+  const waiting = new Map<string, () => void>();
+
+  /**
+   * 同一個 key 只送一次（跨重新整理）。只有事件真的排入 gtag 佇列後才標記，
+   * 沒有可用的管線時不標記，避免「沒送出卻當作送過」而永久漏報
+   */
+  const once = (key: string, fn: () => void): boolean => {
     if (get(`once:${key}`)) return false;
-    set(`once:${key}`, '1');
-    fn();
+    const state = getAnalyticsState();
+    if (state === 'unavailable') {
+      if (waiting.size < MAX_PENDING || waiting.has(key)) waiting.set(key, fn);
+      return false;
+    }
+    waiting.delete(key);
+    const events = captureEvents(fn);
+    if (state === 'loading') {
+      set(`once:${key}`, `queued:${pageId}`);
+      writePending([
+        ...readPending().filter(e => e.key !== key),
+        { key, events, attempts: 1, pageId },
+      ]);
+    } else {
+      set(`once:${key}`, 'done');
+    }
     return true;
   };
+
+  /** 管線可以用了：送出暫存的事件；這一頁排入的事件已交給 gtag.js，標記完成 */
+  const onPipelineChange = () => {
+    const state = getAnalyticsState();
+    if (state === 'unavailable') return;
+    for (const [key, fn] of [...waiting]) once(key, fn);
+    if (state !== 'loading') settleQueued();
+  };
+
+  /**
+   * 上一頁排入佇列、但 gtag.js 還沒載入完頁面就關掉的事件：原樣重送一次。
+   * 被擋（blocked）或超過重送次數就放棄（去重標記保留，不會之後又被重送）
+   */
+  const replayPrevious = () => {
+    const state = getAnalyticsState();
+    if (state === 'unavailable') return;
+    const keep: PendingEntry[] = [];
+    for (const entry of readPending()) {
+      if (entry.pageId === pageId) {
+        keep.push(entry);
+        continue;
+      }
+      if (state === 'blocked' || entry.attempts >= MAX_ATTEMPTS) {
+        set(`once:${entry.key}`, 'done');
+        continue;
+      }
+      for (const [name, params] of entry.events) trackEvent(name, params);
+      if (state === 'loading') {
+        set(`once:${entry.key}`, `queued:${pageId}`);
+        keep.push({ ...entry, attempts: entry.attempts + 1, pageId });
+      } else {
+        set(`once:${entry.key}`, 'done');
+      }
+    }
+    writePending(keep);
+  };
+
+  replayPrevious();
+  const stopListening = onAnalyticsStateChange(onPipelineChange);
 
   const readRematch = (): RematchIntent | null => {
     const raw = get('rematch');
@@ -117,6 +228,8 @@ export function createMultiplayerTracker(
   };
 
   return {
+    /** 停止監聽管線狀態（測試用；瀏覽器裡的共用實例不需要） */
+    dispose: stopListening,
     /** 已經等了幾秒（從按下快速開始或再玩一場起算；重新整理後仍然接得上） */
     quickMatchWaitSeconds: waitSeconds,
 

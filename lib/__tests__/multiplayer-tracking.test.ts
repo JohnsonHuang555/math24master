@@ -10,9 +10,25 @@ import {
 import { GameStatus } from '@/models/GameStatus';
 import { RoomView } from '@/models/RoomView';
 import {
+  ANALYTICS_STATE_EVENT,
+  ANALYTICS_STATE_KEY,
+  type AnalyticsPipelineState,
+} from '../analytics-env';
+import {
   TrackerStorage,
   createMultiplayerTracker,
 } from '../multiplayer-tracking';
+
+/** 每個測試建立的 tracker 都在結束時停止監聽，避免前一個測試的 tracker 收到下一個測試的狀態事件 */
+const created: { dispose: () => void }[] = [];
+const make = (...args: Parameters<typeof createMultiplayerTracker>) => {
+  const t = createMultiplayerTracker(...args);
+  created.push(t);
+  return t;
+};
+afterEach(() => {
+  for (const t of created.splice(0)) t.dispose();
+});
 
 /** 模擬同一個分頁的 sessionStorage（重新整理後還在） */
 function fakeStorage(): TrackerStorage & { data: Map<string, string> } {
@@ -99,7 +115,7 @@ describe('多人分析事件的去重', () => {
   });
 
   it('漏斗 A：大廳 → 快速開始 → 進配對房 → 配對完成 → 開局，各一次，等待秒數正確', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.lobbyView();
     t.quickMatchRequested('lobby');
     t.roomView(pending());
@@ -125,7 +141,7 @@ describe('多人分析事件的去重', () => {
   });
 
   it('同一份房間資料收到多次（Strict Mode 重跑、RoomUpdate 重送）只算一次', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     for (let i = 0; i < 3; i++) t.roomView(pending());
     for (let i = 0; i < 3; i++) t.roomView(playing('m1'));
     expect(events().filter(e => e === 'quick_match_joined')).toHaveLength(1);
@@ -134,19 +150,19 @@ describe('多人分析事件的去重', () => {
 
   it('遊戲中重新整理（新的 tracker、同一個 sessionStorage）不會重複記錄開局或配對完成', () => {
     const storage = fakeStorage();
-    const before = createMultiplayerTracker(storage, now);
+    const before = make(storage, now);
     before.quickMatchRequested('lobby');
     before.roomView(pending());
     before.roomView(playing('m1'));
     // 重新整理：模組重新載入，重連後拿到同一局
-    const after = createMultiplayerTracker(storage, now);
+    const after = make(storage, now);
     after.roomView(playing('m1'));
     expect(events().filter(e => e === 'game_start')).toHaveLength(1);
     expect(events().filter(e => e === 'quick_match_start')).toHaveLength(1);
   });
 
   it('斷線重連（同一個 tracker，房間資料重新送來）不算新的一局', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.roomView(playing('m1'));
     t.roomView(
       playing('m1', {
@@ -159,7 +175,7 @@ describe('多人分析事件的去重', () => {
 
   it('正常結算只算一次（收到兩次結算、重新整理後再收到也一樣）', () => {
     const storage = fakeStorage();
-    const t = createMultiplayerTracker(storage, now);
+    const t = make(storage, now);
     const over = {
       gameType: 'buzzer' as const,
       matchId: 'm1',
@@ -168,7 +184,7 @@ describe('多人分析事件的去重', () => {
     };
     t.gameOver(over);
     t.gameOver(over);
-    createMultiplayerTracker(storage, now).gameOver(over);
+    make(storage, now).gameOver(over);
     expect(paramsOf('game_complete')).toHaveLength(1);
     expect(paramsOf('game_complete')[0]).toMatchObject({
       completion_status: 'won',
@@ -179,7 +195,7 @@ describe('多人分析事件的去重', () => {
   });
 
   it('中斷不算正常完成；同一局中斷後再收到結算也不會再算一次完成', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.aborted(playing('m1'));
     t.gameOver({ gameType: 'buzzer', matchId: 'm1', won: false, players: [] });
     expect(events()).toEqual(['multiplayer_game_aborted']);
@@ -189,7 +205,7 @@ describe('多人分析事件的去重', () => {
   });
 
   it('快速配對取消不算配對完成；取消和離開房間各記錄方式，同一間房只算一次', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.quickMatchRequested('lobby');
     t.roomView(pending());
     clock += 4_000;
@@ -211,7 +227,7 @@ describe('多人分析事件的去重', () => {
 
   it('再戰：下一局的開局帶 rematch_source，並和原本的場次區分（from_match_id）；連點只算一次', () => {
     const storage = fakeStorage();
-    const t = createMultiplayerTracker(storage, now);
+    const t = make(storage, now);
     t.roomView(playing('m1'));
     t.gameOver({
       gameType: 'buzzer',
@@ -222,7 +238,7 @@ describe('多人分析事件的去重', () => {
     t.rematchClicked(playing('m1'));
     t.rematchClicked(playing('m1'));
     // 再戰配對中重新整理：意圖還在
-    const after = createMultiplayerTracker(storage, now);
+    const after = make(storage, now);
     after.roomView({ ...pending(), roomId: 'room-2' });
     after.roomView(playing('m2', { roomId: 'room-2' }));
     expect(
@@ -245,13 +261,13 @@ describe('多人分析事件的去重', () => {
   });
 
   it('按了再玩一場卻回到大廳：之後從大廳開的局不算再戰；意圖過期也不算', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.rematchClicked(playing('m1'));
     t.lobbyView();
     t.roomView(playing('m2', { roomId: 'room-2' }));
     expect(events()).not.toContain('multiplayer_rematch_started');
 
-    const t2 = createMultiplayerTracker(fakeStorage(), now);
+    const t2 = make(fakeStorage(), now);
     t2.rematchClicked(view({ status: GameStatus.Playing, matchId: 'm5' }));
     clock += 16 * 60 * 1000;
     t2.roomView(playing('m6'));
@@ -259,7 +275,7 @@ describe('多人分析事件的去重', () => {
   });
 
   it('參與作答每局只算一次；不在遊戲中不算', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.participated(view({ matchId: 'm1' }));
     t.participated(playing('m1'));
     t.participated(playing('m1'));
@@ -271,14 +287,14 @@ describe('多人分析事件的去重', () => {
   });
 
   it('舊版伺服器沒有 matchId：不送開局（無法去重），結算照常送一次', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     t.roomView(view({ status: GameStatus.Playing }));
     t.gameOver({ gameType: 'buzzer', won: false, players: [] });
     expect(events()).toEqual(['game_complete']);
   });
 
   it('事件參數不含暱稱、房間 id、密碼或 token', () => {
-    const t = createMultiplayerTracker(fakeStorage(), now);
+    const t = make(fakeStorage(), now);
     const room = playing('m1', {
       hasPassword: true,
       self: {
@@ -328,7 +344,7 @@ describe('多人分析事件的去重', () => {
         throw new Error('denied');
       },
     };
-    const t = createMultiplayerTracker(broken, now);
+    const t = make(broken, now);
     expect(() => {
       t.lobbyView();
       t.quickMatchRequested('lobby');
@@ -338,9 +354,186 @@ describe('多人分析事件的去重', () => {
       t.rematchClicked(playing('m1'));
       t.quickMatchWaitSeconds();
     }).not.toThrow();
-    // 記憶體去重仍然有效
+    // 沒送出的事件沒有被當成送過：gtag 可以用之後照常送，而且只送一次（記憶體去重）
     window.gtag = gtag;
     t.roomView(playing('m1'));
-    expect(events()).not.toContain('game_start');
+    t.roomView(playing('m1'));
+    expect(events().filter(e => e === 'game_start')).toHaveLength(1);
+  });
+});
+
+// ── 追蹤管線還沒就緒（GA4 初始化前、gtag.js 載入中、被擋） ─────────────────────
+
+describe('追蹤管線還沒就緒時不漏報、也不重複計數', () => {
+  let gtag: Mock<NonNullable<Window['gtag']>>;
+  const trackers: { dispose: () => void }[] = [];
+  const names = () => gtag.mock.calls.map(c => c[1] as string);
+  const count = (name: string) => names().filter(n => n === name).length;
+
+  /** 設定管線狀態並發出狀態變動事件（模擬 lib/analytics-env.ts 的初始化 script） */
+  const setPipeline = (state: AnalyticsPipelineState) => {
+    (window as unknown as Record<string, unknown>)[ANALYTICS_STATE_KEY] = {
+      state,
+    };
+    window.dispatchEvent(new Event(ANALYTICS_STATE_EVENT));
+  };
+  const track = (storage: TrackerStorage | null) => {
+    const t = make(storage, () => 1_000_000);
+    trackers.push(t);
+    return t;
+  };
+
+  beforeEach(() => {
+    gtag = vi.fn<NonNullable<Window['gtag']>>();
+  });
+  afterEach(() => {
+    for (const t of trackers.splice(0)) t.dispose();
+    delete window.gtag;
+    delete (window as unknown as Record<string, unknown>)[ANALYTICS_STATE_KEY];
+  });
+
+  it('gtag 還不存在時觸發：不送出、也不標記成已送（不會永久漏報），遊戲照常', () => {
+    const storage = fakeStorage();
+    const t = track(storage);
+    expect(() => t.roomView(playing('m1'))).not.toThrow();
+    expect([...storage.data.keys()].some(k => k.includes('start:m1'))).toBe(
+      false,
+    );
+  });
+
+  it('初始化完成後，之前觸發的事件仍會進入追蹤管線；初始化前觸發多次只送一次', () => {
+    const t = track(fakeStorage());
+    for (let i = 0; i < 3; i++) t.roomView(playing('m1'));
+    t.gameOver({ gameType: 'buzzer', matchId: 'm1', won: true, players: [] });
+    t.gameOver({ gameType: 'buzzer', matchId: 'm1', won: true, players: [] });
+    expect(gtag).not.toHaveBeenCalled();
+
+    window.gtag = gtag;
+    setPipeline('ready');
+    expect(count('game_start')).toBe(1);
+    expect(count('game_complete')).toBe(1);
+    // 之後再收到同一局的資料也不會再送
+    t.roomView(playing('m1'));
+    expect(count('game_start')).toBe(1);
+  });
+
+  it('初始化前就重新整理：事件沒有被標記，下一頁重連拿到同一局時照常送出一次', () => {
+    const storage = fakeStorage();
+    track(storage).roomView(playing('m1'));
+    // 重新整理：這一頁初始化正常
+    window.gtag = gtag;
+    setPipeline('ready');
+    const after = track(storage);
+    after.roomView(playing('m1'));
+    after.roomView(playing('m1'));
+    expect(count('game_start')).toBe(1);
+  });
+
+  it('gtag.js 載入中就排入佇列、還沒載入完就重新整理：下一頁原樣重送一次，之後不再重送', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    setPipeline('loading');
+    const first = track(storage);
+    first.roomView(playing('m1'));
+    expect(count('game_start')).toBe(1); // 已排入 dataLayer（Queued）
+    const firstParams = gtag.mock.calls[0][2];
+
+    // 重新整理：上一頁的 gtag.js 沒載入完，那次的事件沒有送出 → 這一頁重送
+    gtag.mockClear();
+    setPipeline('loading');
+    const second = track(storage);
+    expect(names()).toEqual(['game_start']);
+    expect(gtag.mock.calls[0][2]).toEqual(firstParams);
+    // 這一頁收到同一局的資料不會再送（去重標記還在）
+    second.roomView(playing('m1'));
+    expect(count('game_start')).toBe(1);
+
+    // 這一頁 gtag.js 載入完成：交出去了，之後重新整理不再重送
+    setPipeline('ready');
+    gtag.mockClear();
+    track(storage).roomView(playing('m1'));
+    expect(gtag).not.toHaveBeenCalled();
+  });
+
+  it('一直沒載入完（每次都太慢就重新整理）：最多重送有限次數，不會無限重試', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    for (let reload = 0; reload < 6; reload++) {
+      setPipeline('loading');
+      track(storage).roomView(playing('m1'));
+    }
+    // 第一次排入 + 有限次數的重送
+    expect(count('game_start')).toBeLessThanOrEqual(2);
+    expect(count('game_start')).toBeGreaterThanOrEqual(1);
+  });
+
+  it('GA4 被擋（gtag.js 載入失敗）：不重試、不重複，遊戲照常', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    setPipeline('loading');
+    track(storage).roomView(playing('m1'));
+    setPipeline('blocked');
+    // 重新整理後也被擋：不重送
+    gtag.mockClear();
+    setPipeline('blocked');
+    const after = track(storage);
+    after.roomView(playing('m1'));
+    after.gameOver({
+      gameType: 'buzzer',
+      matchId: 'm1',
+      won: false,
+      players: [],
+    });
+    expect(names()).toEqual(['game_complete']);
+    // 之後再重新整理也不會重送開局
+    gtag.mockClear();
+    track(storage).roomView(playing('m1'));
+    expect(gtag).not.toHaveBeenCalled();
+  });
+
+  it('已經交給 gtag.js（ready）的事件，重新整理後不會重複送出', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    setPipeline('ready');
+    track(storage).roomView(playing('m1'));
+    track(storage).roomView(playing('m1'));
+    setPipeline('loading');
+    track(storage).roomView(playing('m1'));
+    expect(count('game_start')).toBe(1);
+  });
+
+  it('本機與 preview（local）：只放進本地 dataLayer，視為完成，不會重送', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    setPipeline('local');
+    track(storage).roomView(playing('m1'));
+    track(storage).roomView(playing('m1'));
+    expect(count('game_start')).toBe(1);
+  });
+
+  it('下一局不受上一局的去重紀錄影響；再戰的新局正確關聯上一局', () => {
+    const storage = fakeStorage();
+    window.gtag = gtag;
+    setPipeline('ready');
+    const t = track(storage);
+    t.roomView(playing('m1'));
+    t.gameOver({ gameType: 'buzzer', matchId: 'm1', won: true, players: [] });
+    t.rematchClicked(playing('m1'));
+    t.roomView(playing('m2', { roomId: 'room-2' }));
+    t.gameOver({ gameType: 'buzzer', matchId: 'm2', won: false, players: [] });
+    expect(count('game_start')).toBe(2);
+    expect(count('game_complete')).toBe(2);
+    const rematch = gtag.mock.calls.find(
+      c => c[1] === 'multiplayer_rematch_started',
+    )![2];
+    expect(rematch).toMatchObject({ match_id: 'm2', from_match_id: 'm1' });
+  });
+
+  it('暫存的事件有上限，不會無限累積', () => {
+    const t = track(fakeStorage());
+    for (let i = 0; i < 100; i++) t.roomView(playing(`m${i}`));
+    window.gtag = gtag;
+    setPipeline('ready');
+    expect(count('game_start')).toBeLessThanOrEqual(20);
   });
 });

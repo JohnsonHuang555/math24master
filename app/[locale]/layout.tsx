@@ -6,11 +6,11 @@ import {
   Noto_Sans_TC,
 } from 'next/font/google';
 import { notFound } from 'next/navigation';
+import Script from 'next/script';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AchievementToaster } from '@/components/achievement-toaster';
-import { GoogleAnalytics } from '@/components/analytics';
 import { GuestKeyRegistrar } from '@/components/guest-key-registrar';
 import { PendingScoreSubmitter } from '@/components/pending-score-submitter';
 import { SessionProvider } from '@/components/session-provider';
@@ -19,9 +19,12 @@ import { HTML_LANG } from '@/i18n/locales';
 import { resolveLocale } from '@/i18n/page-metadata';
 import { routing } from '@/i18n/routing';
 import { SITE_URL } from '@/i18n/seo';
+import { gaInitScript } from '@/lib/analytics-env';
 import { cn } from '@/lib/utils';
 import { AlertDialogStoreProvider } from '@/providers/alert-dialog-store-provider';
 import '../globals.css';
+
+const GA_MEASUREMENT_ID = 'G-HWFWE6ED59';
 
 // 內文字型依語系切換，三者共用 --font-noto-sans：簡中字形與繁中不同，英文不需要載入 CJK 字型
 const fontNotoSansTC = Noto_Sans_TC({
@@ -137,7 +140,14 @@ export default async function RootLayout({
           aria-hidden
           className="pointer-events-none fixed inset-0 -z-10 bg-[url('/b2.webp')] bg-cover bg-center opacity-[0.18] dark:opacity-[0.07]"
         />
-        <GoogleAnalytics measurementId="G-HWFWE6ED59" />
+        {/*
+          GA4 初始化（判斷網域與 DebugView 開關見 lib/analytics-env.ts）。
+          beforeInteractive：Next.js 先執行這個 script 再開始 hydration，
+          所以任何頁面的事件觸發時 window.gtag 與 dataLayer 都已經存在，不會因為初始化較晚而漏掉
+        */}
+        <Script id="ga4-init" strategy="beforeInteractive">
+          {gaInitScript(GA_MEASUREMENT_ID)}
+        </Script>
         <NextIntlClientProvider>
           <SessionProvider>
             <AlertDialogStoreProvider>{children}</AlertDialogStoreProvider>

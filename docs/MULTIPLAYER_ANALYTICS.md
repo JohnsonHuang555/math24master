@@ -21,7 +21,7 @@
 
 ### 前端去重
 
-所有多人事件都經過 `lib/multiplayer-tracking.ts`。已送過的事件記在分頁的 sessionStorage：
+所有多人事件都經過 `lib/multiplayer-tracking.ts`。事件**排入 gtag 佇列之後**才記在分頁的 sessionStorage：
 
 | 情況 | 結果 |
 |------|------|
@@ -31,6 +31,45 @@
 | 收到舊房間的結算（已經再玩一場換房） | 前端以 `roomId` 過濾，不處理 |
 | 同一局先中斷又收到結算 | 共用同一個去重 key，只會記其中一個 |
 | sessionStorage 不能用（隱私模式等） | 改用記憶體去重；重新整理後無法去重，可能多算 |
+
+### 初始化前後的事件流程（避免漏報與重複）
+
+GA4 初始化 script 用 `next/script` 的 `beforeInteractive` 放在根 layout。
+
+- Next.js 先依序執行這類 script，**再開始 hydration**（`next/dist/client/app-bootstrap.js`）。
+- 所以任何 React 程式碼觸發事件時，`window.gtag` 與 `dataLayer` 都已存在。
+- 在這之前用的是 `afterInteractive`：初始化在 Script 元件的 `useEffect` 裡才執行，能不能比頁面的 effect 早，取決於 React effect 順序與 Suspense 邊界的 hydration 時機，沒有保證。
+
+**管線狀態**（`window.__m24Analytics.state`，見 `lib/analytics-env.ts`）
+
+| 狀態 | 意義 |
+|------|------|
+| `local` | 不是正式網域：事件只放進本地 dataLayer，不送往 Google |
+| `loading` | 正式網域：`config` 已排在 dataLayer 最前面，事件排在後面，等 `gtag.js` 載入後依序處理 |
+| `ready` | `gtag.js` 已載入並處理過佇列；之後的事件直接交給它 |
+| `blocked` | `gtag.js` 載入失敗（廣告攔截、網路錯誤）：事件不會送出，也不重試 |
+| `unavailable` | 沒有 `gtag`（伺服器端，或初始化 script 沒執行） |
+
+**三種狀態的區分**
+- **Pending：** 沒有可用的管線（`unavailable`）。事件不排入、**也不標記**，暫存在記憶體（最多 20 筆），管線可用時再送。
+- **Queued：** 呼叫 `gtag()` 只代表事件放進了 dataLayer 佇列。`trackEvent` 回傳 `true` 也只代表這件事。
+- **Sent：** 不使用。前端無法確認 GA4 伺服器已經收到，所以文件與程式都不把「排入佇列」當成「已送達」。
+
+**去重 key 的標記**（`once:<key>`）
+
+| 標記 | 什麼時候 | 之後 |
+|------|----------|------|
+| `done` | 在 `ready`、`local`、`blocked` 狀態排入 | 不再送出 |
+| `queued:<頁面 id>` | 在 `loading` 狀態排入（`gtag.js` 還沒載入完） | 事件內容另外存一份（最多 20 筆） |
+
+`queued` 之後的兩種結果：
+- **這一頁 `gtag.js` 載入完成：** 改成 `done`。
+- **頁面在 `gtag.js` 載入前就被關掉或重新整理**（佇列從來沒被處理過）：下一頁原樣重送一次。含第一次最多 2 次，之後放棄；被擋時直接放棄。
+
+**為什麼這樣不會重複計數**
+- 只有「上一頁排入、而且上一頁的 `gtag.js` 從沒載入完」的事件才會重送。
+- 已經交給 `gtag.js` 的事件一律標成 `done`，不重送。
+- 唯一的重複窗口：`gtag.js` 已經執行、但 `onload` 回呼還沒觸發的那一瞬間就關掉頁面。這是毫秒等級，實務上可以忽略。
 
 ### 只在正式網域送資料
 
@@ -209,7 +248,22 @@ GA4 的 `gtag.js` 只在 `math24master.com` 和 `www.math24master.com` 載入（
 2. **關掉分頁不會送事件：** 配對中直接關掉分頁、遊戲中直接關掉分頁，都沒有事件，所以「取消」和「中途離開」會少算。指標 9 是推算值。
 3. **場次數需要 BigQuery：** GA4 介面無法以 `match_id` 計算不重複的場次。完成率、真人局比例都是「玩家局」的比例，不是「場次」的比例。若要算場次，需要 BigQuery 匯出（GA4 標準版可免費設定，但查詢會產生 BigQuery 費用）。
 4. **廣告攔截器：** 擋 GA 的玩家完全不會出現在數據裡。
-5. **GA4 自動收集的網址含房間 id：** 房間頁網址是 `/multiple-play/<房間 id>`，GA4 的 `page_view` 會收到。房間 id 是隨機 uuid，但可以用來加入沒有密碼的私人房間。GA4 只有專案成員能看到。如果在意，可以在 GA4 資料串流設定裡關閉加強型評估的「瀏覽記錄變更」頁面瀏覽，或之後改成手動送出遮蔽過的 `page_location`；這次沒有改。
+5. **GA4 自動收集的網址含房間 id（已確認，這次沒有改）**
+
+   房間頁網址是 `/multiple-play/<房間 id>`。房間 id 是隨機 uuid，但可以用來加入沒有密碼的私人房間；GA4 只有專案成員看得到。
+
+   GA4 有兩條會收到完整網址的途徑：
+   - `config` 送出的第一個 page_view，`page_location` 預設是 `location.href`。
+   - 加強型評估（Enhanced Measurement）在瀏覽器歷史變更時（`pushState`、`replaceState`）送出的 page_view。這包含 Next.js App Router 的路由切換，例如從大廳快速開始進入房間、再玩一場換房。
+
+   其他自訂事件都不帶網址或房間 id。
+
+   | 方案 | 涵蓋範圍 | 風險 |
+   |------|----------|------|
+   | 只改第一個 `config` 的 `page_location` | 只有整頁載入（邀請連結、重新整理）；路由切換仍送原始網址 | 遮蔽不完整，容易誤以為已處理 |
+   | `send_page_view: false`，改由前端在每次路由變更時手動送遮蔽過的 page_view | 完整 | 必須**同時**在 GA4 後台關閉「依瀏覽器歷史事件判斷網頁變更」：沒關就全站重複計算，只關不改程式就全站少算。會改變全站追蹤，部署需要協調 |
+
+   **建議：** 另開 PR 做第二個方案。程式碼與 GA4 後台設定同一天上線，上線後用 DebugView 確認每次換頁只有一個 page_view，房間頁的 `page_location` 是 `/multiple-play/room`。
 6. **從邀請連結進入配對房：** 這種情況沒有 `quick_match_requested`，但有 `quick_match_joined`。所以漏斗 A 第 2、3 步之間可能出現「後面比前面多」。
 7. **傳統對戰目前沒有 UI 入口：** 事件已經接上，但實際上只會有搶答模式的資料。
 
