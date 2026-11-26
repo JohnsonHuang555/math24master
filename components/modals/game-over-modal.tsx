@@ -1,6 +1,6 @@
 'use client';
 
-import { Star, Trophy } from 'lucide-react';
+import { Bot, Star, Trophy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { RankMedal } from '@/components/leaderboard/rank-medal';
 import { usePlayerName } from '@/hooks/usePlayerName';
@@ -26,8 +26,12 @@ type GameOverModalProps = {
   isPenaltyGameOver?: boolean;
   onPlayAgain: () => void;
   onGoHome: () => void;
-  /** 多人模式：只顯示「回到房間頁」按鈕，不可點外部關閉 */
+  /** 多人模式：顯示勝利者、自己的名次、「再玩一場」與「回大廳」，不可點外部關閉 */
   isMultiplePlay?: boolean;
+  /** 多人模式的勝利者 id；沒有時以排序第一位為勝利者 */
+  winnerId?: string;
+  /** 再玩一場會怎麼做：快速配對重新配對對手，私人房間回到房間準備下一局 */
+  rematchSource?: 'quick_match' | 'private_room';
 };
 
 const RANK_KEYS = ['first', 'second', 'third'] as const;
@@ -43,10 +47,23 @@ export function GameOverModal({
   onPlayAgain,
   onGoHome,
   isMultiplePlay,
+  winnerId,
+  rematchSource,
 }: GameOverModalProps) {
   const t = useTranslations('Multiplayer.gameOver');
   const tPlayers = useTranslations('Multiplayer.players');
+  const tBot = useTranslations('Multiplayer.bot');
   const playerDisplayName = usePlayerName();
+  const winner = players.find(p => p.id === winnerId) ?? players[0];
+  const selfIndex = players.findIndex(p => p.id === currentPlayerId);
+  const isSelfWinner = !!winner && winner.id === currentPlayerId;
+  // 多人結算的標題：自己贏了，或誰贏了（殘局結算沿用原本的標題）
+  const multiplayerTitle =
+    isMultiplePlay && !isPenaltyGameOver && winner
+      ? isSelfWinner
+        ? t('youWon')
+        : t('winner', { name: playerDisplayName(winner.name) })
+      : null;
   return (
     <Dialog
       open={isOpen}
@@ -64,11 +81,20 @@ export function GameOverModal({
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-tint text-amber-ink">
             <Trophy aria-hidden className="h-7 w-7" />
           </span>
-          <DialogTitle className="pr-0 text-2xl">
-            {isPenaltyGameOver ? t('penaltyTitle') : t('title')}
+          <DialogTitle className="pr-0 text-2xl" data-testid="game-over-title">
+            {multiplayerTitle ??
+              (isPenaltyGameOver ? t('penaltyTitle') : t('title'))}
           </DialogTitle>
           {isPenaltyGameOver && (
             <DialogDescription>{t('penaltyDescription')}</DialogDescription>
+          )}
+          {isMultiplePlay && selfIndex >= 0 && (
+            <DialogDescription
+              className="text-[15px] font-semibold text-ink-2"
+              data-testid="game-over-self-rank"
+            >
+              {t('yourRank', { rank: selfIndex + 1, total: players.length })}
+            </DialogDescription>
           )}
         </DialogHeader>
 
@@ -96,6 +122,8 @@ export function GameOverModal({
               return (
                 <li
                   key={player.id}
+                  data-testid="game-over-player"
+                  data-player-kind={player.isBot ? 'bot' : 'human'}
                   className={cn(
                     'flex min-h-14 items-center gap-3 rounded-2xl border px-3 py-2',
                     isSelf
@@ -112,6 +140,12 @@ export function GameOverModal({
                       {isSelf && (
                         <span className="shrink-0 rounded-full bg-primary-ink px-[7px] py-0.5 text-[11px] font-extrabold text-white">
                           {tPlayers('youBadge')}
+                        </span>
+                      )}
+                      {player.isBot && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line-strong bg-sunken px-[7px] py-0.5 text-[11px] font-bold text-ink-2">
+                          <Bot aria-hidden className="h-3 w-3" />
+                          {tBot('name')}
                         </span>
                       )}
                     </span>
@@ -139,9 +173,22 @@ export function GameOverModal({
 
         <div className="flex gap-2.5 pt-1">
           {isMultiplePlay ? (
-            <Button variant="tactile" className="flex-1" onClick={onGoHome}>
-              {t('backToRoom')}
-            </Button>
+            <>
+              <Button
+                variant="tactileOutline"
+                className="flex-1"
+                onClick={onGoHome}
+              >
+                {t('backToLobby')}
+              </Button>
+              <Button
+                variant="tactile"
+                className="flex-1"
+                onClick={onPlayAgain}
+              >
+                {t('rematch')}
+              </Button>
+            </>
           ) : (
             <>
               <Button
@@ -161,6 +208,11 @@ export function GameOverModal({
             </>
           )}
         </div>
+        {isMultiplePlay && rematchSource && (
+          <p className="-mt-1 text-center text-[13px] text-ink-2">
+            {t(`rematchHint.${rematchSource}`)}
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

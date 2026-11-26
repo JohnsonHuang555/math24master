@@ -993,7 +993,10 @@
       "secondsLeft": "<n>{seconds}</n> 秒后开局",
       "fillHint": "时间到还没凑满，会由电脑玩家补位",
       "startNow": "不等了，直接开始",
-      "roomName": "快速配对"
+      "roomName": "快速配对",
+      "humansJoined": "已有 {count} 位玩家（最多 {max} 人）",
+      "startingSoon": "配对完成，即将开局",
+      "cancel": "取消配对"
     },
     "privateRoom": {
       "title": "开私人房间",
@@ -1209,7 +1212,16 @@
       "score": "<b>{score}</b> 分",
       "backToRoom": "回到房间页",
       "home": "回首页",
-      "playAgain": "再来一局"
+      "playAgain": "再来一局",
+      "youWon": "你赢了！",
+      "winner": "{name} 获胜",
+      "yourRank": "你是第 {rank} 名（共 {total} 人）",
+      "rematch": "再玩一场",
+      "backToLobby": "回大厅",
+      "rematchHint": {
+        "quick_match": "会重新配对对手，没人时由电脑补位",
+        "private_room": "回到房间自动准备，等房主开始下一局"
+      }
     },
     "editRoom": {
       "title": "编辑房间名称",

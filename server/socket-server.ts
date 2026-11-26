@@ -17,7 +17,7 @@ import {
   startBuzzerRound,
   unlockPlayer,
 } from './buzzer';
-import { triggerBuzzerBot } from './buzzer-bot';
+import { BuzzerBotHooks, triggerBuzzerBot } from './buzzer-bot';
 import {
   type TurnResult,
   addBotToRoom,
@@ -84,6 +84,12 @@ export type GameServerOptions = {
   disconnectGracePlayingMs: number;
   /** 斷線寬限期：等待中（重新整理幾秒內就會回來，太長會讓空位卡住無法開局） */
   disconnectGraceIdleMs: number;
+  /** 快速配對等真人的秒數；時間到由電腦補位開局 */
+  quickMatchWaitSeconds: number;
+  /** 電腦用的隨機數（測試可以固定；正式環境是 Math.random） */
+  botRandom: () => number;
+  /** 測試用：固定電腦的搶答、思考、重試等待（毫秒）。正式環境不設，依難度隨機 */
+  botTiming?: BuzzerBotHooks['timing'];
 };
 
 export const DEFAULT_GAME_SERVER_OPTIONS: GameServerOptions = {
@@ -96,6 +102,8 @@ export const DEFAULT_GAME_SERVER_OPTIONS: GameServerOptions = {
   buzzerGameOverResetMs: 3000,
   disconnectGracePlayingMs: 300_000,
   disconnectGraceIdleMs: 30_000,
+  quickMatchWaitSeconds: QUICK_MATCH.waitSeconds,
+  botRandom: Math.random,
 };
 
 type BuzzerRoundTimer = {
@@ -188,10 +196,22 @@ export function attachGameServer(
   const buzzerCountdownMap = new Map<string, NodeJS.Timeout>(); // 亮牌後的倒數
   const buzzerScheduleMap = new Map<string, NodeJS.Timeout>(); // 下一題 / 結束重設
   const buzzerResumeMap = new Map<string, NodeJS.Timeout>();
+  /**
+   * 搶答的作答編號（每次有人搶到就加一）。電腦交卷時要帶上搶到時拿到的編號，
+   * 不是目前這次作答就不算：超時後同一題又被重新搶到時，舊的交卷計時不能結算
+   */
+  const buzzerAttemptMap = new Map<string, number>(); // key = roomId
+  /** 電腦的搶答與重試等待（一間房可能同時有好幾個） */
+  const botTimerMap = new Map<string, Set<NodeJS.Timeout>>(); // key = roomId
+  /** 搶到作答權的電腦正在思考（一間房同時只有一位作答者） */
+  const botThinkMap = new Map<string, NodeJS.Timeout>(); // key = roomId
   const startCountdownMap = new Map<string, ReturnType<typeof setTimeout>[]>();
   const quickMatchTimerMap = new Map<
     string,
-    { timer: ReturnType<typeof setInterval>; secondsLeft: number }
+    {
+      timer: ReturnType<typeof setInterval> | null;
+      secondsLeft: number;
+    }
   >();
 
   const _clearTurnTimer = (roomId: string) => {
@@ -200,10 +220,26 @@ export function attachGameServer(
     turnTimerMap.delete(roomId);
   };
 
+  /** 作答結束（交卷、超時、作答者離開）：作答倒數與作答中電腦的思考一起取消 */
   const _clearBuzzerAnswerTimer = (roomId: string) => {
     const t = buzzerAnswerTimerMap.get(roomId);
     if (t) clearTimeout(t);
     buzzerAnswerTimerMap.delete(roomId);
+    _clearBotThink(roomId);
+  };
+
+  const _clearBotThink = (roomId: string) => {
+    const think = botThinkMap.get(roomId);
+    if (think) clearTimeout(think);
+    botThinkMap.delete(roomId);
+  };
+
+  /** 電腦這一題排好的搶答、重試都取消（換題、結束、刪房） */
+  const _clearBotTimers = (roomId: string) => {
+    const timers = botTimerMap.get(roomId);
+    if (timers) for (const t of timers) clearTimeout(t);
+    botTimerMap.delete(roomId);
+    _clearBotThink(roomId);
   };
 
   const _clearBuzzerRoundTimer = (roomId: string) => {
@@ -215,6 +251,8 @@ export function attachGameServer(
   const _clearBuzzerTimers = (roomId: string) => {
     _clearBuzzerAnswerTimer(roomId);
     _clearBuzzerRoundTimer(roomId);
+    _clearBotTimers(roomId);
+    buzzerAttemptMap.delete(roomId);
     for (const map of [
       buzzerCountdownMap,
       buzzerScheduleMap,
@@ -238,7 +276,7 @@ export function attachGameServer(
   const _clearQuickMatchTimer = (roomId: string) => {
     const entry = quickMatchTimerMap.get(roomId);
     if (!entry) return;
-    clearInterval(entry.timer);
+    if (entry.timer) clearInterval(entry.timer);
     quickMatchTimerMap.delete(roomId);
   };
 
@@ -299,15 +337,20 @@ export function attachGameServer(
       if (entry.elapsed < entry.total) return;
       _clearBuzzerRoundTimer(roomId);
       const current = getCurrentRoom(roomId);
-      if (!current || current.status !== GameStatus.Playing) return;
+      if (
+        !current ||
+        current.status !== GameStatus.Playing ||
+        current.isGameOver
+      )
+        return;
       const result = applyRoundTimeout(current);
       if (!result.success) return;
       const updated = applyBuzzerRoomUpdate(result.room);
       if (!updated) return;
+      // 分數變化由接著的 RoomUpdate（公開玩家資料）帶出，這裡不送內部的 players
       io.to(roomId).emit(SocketEvent.BuzzerRoundTimeout, {
         penaltyPoints:
           updated.settings.buzzerSettings?.roundTimeoutPenalty ?? 1,
-        players: updated.players,
       });
       emitRoomUpdate(io, updated);
       _scheduleNextBuzzerRound(roomId, options.buzzerTimeoutNextRoundDelayMs);
@@ -329,12 +372,130 @@ export function attachGameServer(
     );
   };
 
+  /**
+   * 電腦的搶答與交卷呼叫和真人相同的 _buzzIn / _submitBuzzerAnswer：
+   * 一樣啟動作答倒數、超時一樣扣分鎖定並恢復這一題；所有等待都登記在 botTimerMap / botThinkMap
+   */
+  const botHooks: BuzzerBotHooks = {
+    buzzIn: (roomId, botId) => {
+      const result = _buzzIn(roomId, botId);
+      return result.ok ? { attempt: result.attempt } : null;
+    },
+    submitAnswer: (roomId, botId, attempt, cards) => {
+      if (buzzerAttemptMap.get(roomId) !== attempt) return 'rejected';
+      return _submitBuzzerAnswer(roomId, botId, cards);
+    },
+    schedule: (roomId, ms, fn) => {
+      const timers = botTimerMap.get(roomId) ?? new Set<NodeJS.Timeout>();
+      botTimerMap.set(roomId, timers);
+      const t = setTimeout(() => {
+        timers.delete(t);
+        if (timers.size === 0 && botTimerMap.get(roomId) === timers) {
+          botTimerMap.delete(roomId);
+        }
+        fn();
+      }, ms);
+      timers.add(t);
+    },
+    scheduleThink: (roomId, ms, fn) => {
+      _clearBotThink(roomId);
+      botThinkMap.set(
+        roomId,
+        setTimeout(() => {
+          botThinkMap.delete(roomId);
+          fn();
+        }, ms),
+      );
+    },
+    random: () => options.botRandom(),
+    timing: options.botTiming,
+  };
+
+  /**
+   * 搶答（真人與電腦共用）：暫停回合計時、通知所有人、啟動作答倒數。
+   * 回傳這次作答的編號；搶不到時回傳原因
+   */
+  const _buzzIn = (
+    roomId: string,
+    playerId: string,
+  ): { ok: true; attempt: number } | { ok: false; reason: string } => {
+    const room = getCurrentRoom(roomId);
+    if (!room) return { ok: false, reason: 'not_found' };
+    const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+    const result = processBuzzIn(room, playerId);
+    if (!result.success) return { ok: false, reason: result.reason };
+    const updated = applyBuzzerRoomUpdate(result.room);
+    if (!updated) return { ok: false, reason: 'not_found' };
+
+    const attempt = (buzzerAttemptMap.get(roomId) ?? 0) + 1;
+    buzzerAttemptMap.set(roomId, attempt);
+    _pauseBuzzerRoundTimer(roomId);
+    io.to(roomId).emit(SocketEvent.BuzzerBuzzInSuccess, {
+      playerId,
+      playerName: updated.players.find(p => p.id === playerId)?.name ?? '',
+      answerSeconds: settings.answerSeconds,
+    });
+    _startAnswerTimer(roomId, playerId, settings.answerSeconds);
+    return { ok: true, attempt };
+  };
+
+  /**
+   * 交卷（真人與電腦共用）。不是目前的作答者（重複送出、已超時、整局已結束）就是 rejected，
+   * 房間狀態不變；答對換題或結束，答錯扣分、鎖定並恢復這一題
+   */
+  const _submitBuzzerAnswer = (
+    roomId: string,
+    playerId: string,
+    selectedCards: unknown,
+    onRejected?: (error: ErrorCode) => void,
+  ): 'correct' | 'wrong' | 'rejected' => {
+    const room = getCurrentRoom(roomId);
+    // 房間已刪除、回到等待中或已分出勝負：不再結算
+    if (!room || room.status !== GameStatus.Playing || room.isGameOver)
+      return 'rejected';
+    const result = processBuzzerAnswer(room, playerId, selectedCards);
+    if (result.kind === 'rejected') {
+      onRejected?.(result.error);
+      return 'rejected';
+    }
+
+    _clearBuzzerAnswerTimer(roomId);
+    const updated = applyBuzzerRoomUpdate(result.room);
+    if (!updated) return 'rejected';
+
+    io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
+      isCorrect: result.kind === 'correct',
+      playerId,
+      scoreDelta: result.scoreDelta,
+      newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
+      streak: result.kind === 'correct' ? result.streak : 0,
+      streakBonus: result.kind === 'correct' ? result.streakBonus : 0,
+    });
+    emitRoomUpdate(io, updated);
+
+    if (result.kind === 'correct') {
+      if (result.winner) {
+        _finishBuzzerGame(roomId, updated, result.winner);
+      } else {
+        // 答題成功：清除舊回合計時，稍後換新題
+        _scheduleNextBuzzerRound(roomId, options.buzzerNextRoundDelayMs);
+      }
+      return 'correct';
+    }
+    _announceLock(roomId, updated, playerId);
+    _scheduleResume(roomId);
+    return 'wrong';
+  };
+
   const _startBuzzerRoundWithCountdown = (roomId: string) => {
     const room = getCurrentRoom(roomId);
-    if (!room || room.status !== GameStatus.Playing) return;
+    // 已經分出勝負：等重設為等待中，不再開新題
+    if (!room || room.status !== GameStatus.Playing || room.isGameOver) return;
 
     _clearBuzzerAnswerTimer(roomId);
     _clearBuzzerRoundTimer(roomId);
+    // 上一題電腦排好的搶答、重試都作廢
+    _clearBotTimers(roomId);
     const previousCountdown = buzzerCountdownMap.get(roomId);
     if (previousCountdown) clearInterval(previousCountdown);
 
@@ -361,9 +522,7 @@ export function attachGameServer(
       }
       applyBuzzerRoomUpdate(openBuzzerRound(current));
       io.to(roomId).emit(SocketEvent.BuzzerOpen);
-      triggerBuzzerBot(roomId, io, rid =>
-        _scheduleNextBuzzerRound(rid, options.buzzerNextRoundDelayMs),
-      );
+      triggerBuzzerBot(roomId, botHooks);
       if (settings.roundSeconds !== null) {
         buzzerRoundTimerMap.set(roomId, {
           timer: null,
@@ -399,6 +558,8 @@ export function attachGameServer(
     _clearBuzzerAnswerTimer(roomId);
     const t = setTimeout(() => {
       buzzerAnswerTimerMap.delete(roomId);
+      // 作答時間到：還在思考的電腦不能再交卷
+      _clearBotThink(roomId);
       const room = getCurrentRoom(roomId);
       if (!room || room.buzzerState?.currentAnswerPlayerId !== playerId) return;
 
@@ -446,6 +607,36 @@ export function attachGameServer(
     );
   };
 
+  /**
+   * 斷線玩家的寬限期：期限內用 token 回來就保留位置，沒回來就當作離開。
+   * 同一位玩家重排時取代原本的計時（例如遊戲結束回到等待中，改用等待中的寬限期）
+   */
+  const _scheduleGraceLeave = (playerId: string, ms: number) => {
+    const existing = disconnectGraceTimerMap.get(playerId);
+    if (existing) clearTimeout(existing);
+    disconnectGraceTimerMap.set(
+      playerId,
+      setTimeout(() => {
+        disconnectGraceTimerMap.delete(playerId);
+        // 寬限期內已經重連（有新的 socket）就不處理
+        if (socketOfPlayer.has(playerId)) return;
+        _handleLeave(playerId);
+      }, ms),
+    );
+  };
+
+  /**
+   * 回到等待中：還在斷線寬限期的真人改用等待中的寬限期（較短）。
+   * 例如勝負剛確定時斷線，不會因為斷線當下還在遊戲中，就在房裡佔位 5 分鐘
+   */
+  const _shortenGraceForIdleRoom = (room: Room) => {
+    for (const p of room.players) {
+      if (p.isDisconnected && disconnectGraceTimerMap.has(p.id)) {
+        _scheduleGraceLeave(p.id, options.disconnectGraceIdleMs);
+      }
+    }
+  };
+
   const _finishBuzzerGame = (
     roomId: string,
     room: Room,
@@ -456,7 +647,9 @@ export function attachGameServer(
     // 稍後將房間重設為 Idle，讓玩家可以回大廳等待下一局
     _scheduleBuzzer(roomId, options.buzzerGameOverResetMs, () => {
       const idleRoom = endBuzzerGame(roomId);
-      if (idleRoom) emitRoomUpdate(io, idleRoom);
+      if (!idleRoom) return;
+      emitRoomUpdate(io, idleRoom);
+      _shortenGraceForIdleRoom(idleRoom);
     });
   };
 
@@ -515,6 +708,7 @@ export function attachGameServer(
     if (winner) {
       _clearTurnTimer(roomId);
       emitGameOver(io, room, winner);
+      _shortenGraceForIdleRoom(room);
       return;
     }
     _startTurnTimer(roomId);
@@ -647,24 +841,70 @@ export function attachGameServer(
     _actuallyStartGame(roomId);
   };
 
+  /** 配對房裡還有連線中的真人 */
+  const _hasConnectedHuman = (room: Room) =>
+    room.players.some(p => !p.isBot && !p.isDisconnected);
+
+  /**
+   * 倒數到 0 時開局；但如果真人全都斷線了（例如唯一的真人關掉分頁），
+   * 不要讓電腦對著空房開局：停在 0 等。有人在寬限期內回來就立即開局，
+   * 沒回來的話寬限期到會把他移除，最後一位真人離開時房間連同計時器一起刪掉
+   */
+  const _quickMatchTimeUp = (roomId: string) => {
+    const room = getCurrentRoom(roomId);
+    const entry = quickMatchTimerMap.get(roomId);
+    if (!room || !entry) return;
+    if (_hasConnectedHuman(room)) {
+      _startQuickMatch(roomId);
+      return;
+    }
+    if (entry.timer) clearInterval(entry.timer);
+    entry.timer = null;
+  };
+
   const _startQuickMatchCountdown = (roomId: string) => {
     if (quickMatchTimerMap.has(roomId)) return;
-    const entry = {
-      secondsLeft: QUICK_MATCH.waitSeconds,
-      timer: setInterval(() => {
-        // 房間在倒數中被刪掉（真人都離開了）就停止
-        if (!getCurrentRoom(roomId)) {
-          _clearQuickMatchTimer(roomId);
-          return;
-        }
-        entry.secondsLeft -= 1;
-        io.to(roomId).emit(SocketEvent.QuickMatchCountdown, {
-          secondsLeft: entry.secondsLeft,
-        });
-        if (entry.secondsLeft <= 0) _startQuickMatch(roomId);
-      }, 1000),
+    const entry: {
+      timer: ReturnType<typeof setInterval> | null;
+      secondsLeft: number;
+    } = {
+      secondsLeft: options.quickMatchWaitSeconds,
+      timer: null,
     };
+    entry.timer = setInterval(() => {
+      // 房間在倒數中被刪掉（真人都離開了）就停止
+      if (!getCurrentRoom(roomId)) {
+        _clearQuickMatchTimer(roomId);
+        return;
+      }
+      entry.secondsLeft = Math.max(0, entry.secondsLeft - 1);
+      io.to(roomId).emit(SocketEvent.QuickMatchCountdown, {
+        secondsLeft: entry.secondsLeft,
+      });
+      if (entry.secondsLeft <= 0) _quickMatchTimeUp(roomId);
+    }, 1000);
     quickMatchTimerMap.set(roomId, entry);
+  };
+
+  /**
+   * 剛進入配對中房間的連線（加入、重新整理、重連）：立即補送剩餘秒數，不用等下一秒；
+   * 停在 0 等真人回來的房間，有人回來就開局；從邀請連結加入讓真人滿房也立即開局
+   */
+  const _syncQuickMatch = (socket: Socket, roomId: string) => {
+    const room = getCurrentRoom(roomId);
+    if (!room?.quickMatchPending) return;
+    const entry = quickMatchTimerMap.get(roomId);
+    socket.emit(SocketEvent.QuickMatchCountdown, {
+      secondsLeft: entry?.secondsLeft ?? options.quickMatchWaitSeconds,
+    });
+    const humans = room.players.filter(p => !p.isBot).length;
+    if (humans >= room.maxPlayers) {
+      _startQuickMatch(roomId);
+      return;
+    }
+    if (entry && !entry.timer && entry.secondsLeft <= 0) {
+      _quickMatchTimeUp(roomId);
+    }
   };
 
   // ── 事件 ──────────────────────────────────────────────────────────────────
@@ -795,6 +1035,7 @@ export function attachGameServer(
         emitJoinRoomSuccess(io, result.room);
         socket.emit(SocketEvent.GetPlayerId, playerId);
         socket.emit(SocketEvent.GetReconnectToken, result.reconnectToken);
+        _syncQuickMatch(socket, roomId);
       } else if ('needPassword' in result) {
         socket.emit(SocketEvent.NeedRoomPassword);
       } else {
@@ -804,18 +1045,24 @@ export function attachGameServer(
 
     // 快速開始：有正在配對的房間就加入，沒有就開一間並開始倒數；真人滿房立即開局
     on<{ playerName: string }>(SocketEvent.QuickMatch, ({ playerName }) => {
-      if (typeof playerName !== 'string' || !playerName.trim()) return;
+      // 不能默默略過：大廳的快速開始按鈕要靠錯誤訊息才能恢復
+      if (typeof playerName !== 'string' || !playerName.trim()) {
+        fail(ErrorCode.PlayerNameRequired);
+        return;
+      }
       if (containsProfanity(playerName)) {
         fail(ErrorCode.InappropriateName);
         return;
       }
       const playerId = me();
-      const existing = findQuickMatchRoom();
-      // 連點兩次「快速開始」：已經在這間房裡就不要重複加入
-      if (existing?.players.some(p => p.id === playerId)) {
-        emitJoinRoomSuccessTo(socket, existing);
+      // 連點兩次「快速開始」或「再玩一場」：已經在配對中的房間裡就沿用，不重複加入或換房
+      const currentRoom = getCurrentRoom(getCurrentRoomId(playerId) ?? '');
+      if (currentRoom?.quickMatchPending) {
+        emitJoinRoomSuccessTo(socket, currentRoom);
+        _syncQuickMatch(socket, currentRoom.roomId);
         return;
       }
+      const existing = findQuickMatchRoom();
       _leavePreviousRoom(playerId, existing?.roomId);
 
       const roomId = existing?.roomId ?? uuidv4();
@@ -840,12 +1087,7 @@ export function attachGameServer(
       emitJoinRoomSuccess(io, result.room);
 
       if (!existing) _startQuickMatchCountdown(roomId);
-      const secondsLeft =
-        quickMatchTimerMap.get(roomId)?.secondsLeft ?? QUICK_MATCH.waitSeconds;
-      socket.emit(SocketEvent.QuickMatchCountdown, { secondsLeft });
-
-      const humans = result.room.players.filter(p => !p.isBot).length;
-      if (humans >= result.room.maxPlayers) _startQuickMatch(roomId);
+      _syncQuickMatch(socket, roomId);
     });
 
     // 不等了：房間裡任何一位真人都可以讓電腦補位、立即開局
@@ -933,17 +1175,24 @@ export function attachGameServer(
       _afterTurn(roomId, result, socket);
     });
 
-    on<{ roomId: string }>(SocketEvent.ReadyGame, ({ roomId }) => {
-      const playerId = me();
-      const result = readyGame(roomId, playerId);
-      if (!result.success) {
-        fail(result.error);
-        return;
-      }
-      const player = result.room.players.find(p => p.id === playerId);
-      if (player && !player.isReady) _cancelGameCountdown(roomId);
-      emitRoomUpdate(io, result.room);
-    });
+    on<{ roomId: string; ready?: unknown }>(
+      SocketEvent.ReadyGame,
+      ({ roomId, ready }) => {
+        const playerId = me();
+        const result = readyGame(
+          roomId,
+          playerId,
+          typeof ready === 'boolean' ? ready : undefined,
+        );
+        if (!result.success) {
+          fail(result.error);
+          return;
+        }
+        const player = result.room.players.find(p => p.id === playerId);
+        if (player && !player.isReady) _cancelGameCountdown(roomId);
+        emitRoomUpdate(io, result.room);
+      },
+    );
 
     on<{ roomName: string; showEmpty: boolean } | undefined>(
       SocketEvent.SearchRooms,
@@ -1025,76 +1274,21 @@ export function attachGameServer(
 
     on<{ roomId: string }>(SocketEvent.BuzzerBuzzIn, ({ roomId }) => {
       const playerId = me();
-      const room = getCurrentRoom(roomId);
-      if (!room || !isRoomMember(roomId, playerId)) return;
-      const settings = room.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
-
-      const result = processBuzzIn(room, playerId);
-      if (!result.success) {
+      if (!isRoomMember(roomId, playerId)) return;
+      const result = _buzzIn(roomId, playerId);
+      if (!result.ok) {
         // 已有人作答、被鎖定、尚未開放 → 僅通知本人
         socket.emit(SocketEvent.BuzzerBuzzInFailed, { reason: result.reason });
-        return;
       }
-      const updated = applyBuzzerRoomUpdate(result.room);
-      if (!updated) return;
-
-      _pauseBuzzerRoundTimer(roomId);
-      io.to(roomId).emit(SocketEvent.BuzzerBuzzInSuccess, {
-        playerId,
-        playerName: updated.players.find(p => p.id === playerId)?.name ?? '',
-        answerSeconds: settings.answerSeconds,
-      });
-      _startAnswerTimer(roomId, playerId, settings.answerSeconds);
     });
 
     on<{ roomId: string; selectedCards: unknown }>(
       SocketEvent.BuzzerSubmitAnswer,
       ({ roomId, selectedCards }) => {
         const playerId = me();
-        const room = getCurrentRoom(roomId);
-        if (!room || !isRoomMember(roomId, playerId)) return;
-
-        const result = processBuzzerAnswer(room, playerId, selectedCards);
+        if (!isRoomMember(roomId, playerId)) return;
         // 不是作答者（重複送出、搶答失敗的人送答案）：房間狀態不變，只回錯誤給本人
-        if (result.kind === 'rejected') {
-          fail(result.error);
-          return;
-        }
-
-        _clearBuzzerAnswerTimer(roomId);
-        const updated = applyBuzzerRoomUpdate(result.room);
-        if (!updated) return;
-
-        if (result.kind === 'correct') {
-          io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
-            isCorrect: true,
-            playerId,
-            scoreDelta: result.scoreDelta,
-            newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
-            streak: result.streak,
-            streakBonus: result.streakBonus,
-          });
-          emitRoomUpdate(io, updated);
-          if (result.winner) {
-            _finishBuzzerGame(roomId, updated, result.winner);
-            return;
-          }
-          // 答題成功：清除舊回合計時，稍後換新題
-          _scheduleNextBuzzerRound(roomId, options.buzzerNextRoundDelayMs);
-          return;
-        }
-
-        io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
-          isCorrect: false,
-          playerId,
-          scoreDelta: result.scoreDelta,
-          newScore: updated.players.find(p => p.id === playerId)?.score ?? 0,
-          streak: 0,
-          streakBonus: 0,
-        });
-        emitRoomUpdate(io, updated);
-        _announceLock(roomId, updated, playerId);
-        _scheduleResume(roomId);
+        _submitBuzzerAnswer(roomId, playerId, selectedCards, fail);
       },
     );
 
@@ -1172,20 +1366,11 @@ export function attachGameServer(
       if (!marked) return;
       emitRoomUpdate(io, marked.room);
 
-      const graceMs =
+      _scheduleGraceLeave(
+        playerId,
         marked.room.status === GameStatus.Playing
           ? options.disconnectGracePlayingMs
-          : options.disconnectGraceIdleMs;
-      const existing = disconnectGraceTimerMap.get(playerId);
-      if (existing) clearTimeout(existing);
-      disconnectGraceTimerMap.set(
-        playerId,
-        setTimeout(() => {
-          disconnectGraceTimerMap.delete(playerId);
-          // 寬限期內已經重連（有新的 socket）就不處理
-          if (socketOfPlayer.has(playerId)) return;
-          _handleLeave(playerId);
-        }, graceMs),
+          : options.disconnectGraceIdleMs,
       );
     });
 
@@ -1223,6 +1408,7 @@ export function attachGameServer(
         socket.emit(SocketEvent.GetPlayerId, playerId);
         emitPlayerReconnectSuccess(socket, room);
         emitRoomUpdate(io, room);
+        _syncQuickMatch(socket, room.roomId);
         // 回到遊戲中的傳統對戰：補送目前剩餘秒數
         const turn = turnTimerMap.get(room.roomId);
         if (turn) {
@@ -1239,6 +1425,30 @@ export function attachGameServer(
 
   return {
     options,
+    /** 測試用：這間房還有哪些計時器在跑（用來確認離開、結束、刪房後沒有殘留） */
+    activeTimers(roomId: string): string[] {
+      const named: [string, Map<string, unknown>][] = [
+        ['turn', turnTimerMap],
+        ['buzzerAnswer', buzzerAnswerTimerMap],
+        ['buzzerRound', buzzerRoundTimerMap],
+        ['buzzerCountdown', buzzerCountdownMap],
+        ['buzzerSchedule', buzzerScheduleMap],
+        ['buzzerResume', buzzerResumeMap],
+        ['startCountdown', startCountdownMap],
+        ['quickMatch', quickMatchTimerMap],
+        ['botAttempt', botTimerMap],
+        ['botThink', botThinkMap],
+      ];
+      const active = named.filter(([, map]) => map.has(roomId)).map(([n]) => n);
+      for (const key of buzzerLockTimerMap.keys()) {
+        if (key.startsWith(`${roomId}:`)) active.push('buzzerLock');
+      }
+      return active;
+    },
+    /** 測試用：有哪些玩家還在斷線寬限期 */
+    graceTimers(): string[] {
+      return [...disconnectGraceTimerMap.keys()];
+    },
     /** 測試用：停掉所有計時器 */
     close() {
       for (const map of [
@@ -1261,6 +1471,8 @@ export function attachGameServer(
       startCountdownMap.clear();
       for (const roomId of [...quickMatchTimerMap.keys()])
         _clearQuickMatchTimer(roomId);
+      for (const roomId of [...botTimerMap.keys(), ...botThinkMap.keys()])
+        _clearBotTimers(roomId);
     },
   };
 }

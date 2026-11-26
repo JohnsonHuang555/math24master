@@ -36,6 +36,7 @@ import {
 import { useLeaveRoomOnUnmount } from '@/hooks/useLeaveRoomOnUnmount';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate, useRouter } from '@/i18n/navigation';
+import { trackQuickMatchCancelled } from '@/lib/analytics';
 import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
@@ -90,7 +91,20 @@ export default function RoomPage() {
     gameAbortedData,
     clearGameAbortedData,
     connectionStatus,
+    requestRematch,
+    rematchRoomId,
+    clearRematchRoomId,
+    quickMatchWaitSeconds,
   } = useMultiplePlay();
+
+  // 再玩一場配到新的配對房：換到新房間的網址（舊房間已由伺服器移出）
+  useEffect(() => {
+    if (!rematchRoomId) return;
+    clearRematchRoomId();
+    if (rematchRoomId !== roomId) {
+      router.replace(`/multiple-play/${rematchRoomId}`);
+    }
+  }, [rematchRoomId, roomId, router, clearRematchRoomId]);
 
   const { data: session, status } = useSession();
   const { guestName } = useGuestStore();
@@ -186,17 +200,37 @@ export default function RoomPage() {
   const roomDisplayName =
     roomInfo?.roomName ??
     (roomInfo?.isQuickMatch ? tQuickMatch('roomName') : '');
-  const quickMatchProps = roomInfo?.quickMatchPending
-    ? { secondsLeft: quickMatchSecondsLeft, onStartNow: startQuickMatchNow }
-    : undefined;
-
   const leaveRoom = () => {
-    // 主動離開：先通知伺服器立即移除（不經過斷線寬限期），再整頁回大廳
-    socket.emit(SocketEvent.LeaveRoom, { roomId });
+    // 主動離開：先通知伺服器立即移除（不經過斷線寬限期），再整頁回大廳。
+    // 用目前所在的房間（再玩一場換房後，網址可能還沒更新）
+    socket.emit(SocketEvent.LeaveRoom, { roomId: roomInfo?.roomId ?? roomId });
     sessionStorage.removeItem('reconnectToken');
     sessionStorage.removeItem('reconnectRoomId');
     hardNavigate('/multiple-play');
   };
+
+  // 取消配對：和離開房間相同（伺服器立即移除；只剩自己時連房間一起刪掉），另外記錄等了多久才放棄
+  const cancelQuickMatch = () => {
+    if (roomInfo) {
+      const bots = roomInfo.players.filter(p => p.isBot).length;
+      trackQuickMatchCancelled({
+        humanPlayerCount: roomInfo.players.length - bots,
+        botPlayerCount: bots,
+        matchWaitSeconds: quickMatchWaitSeconds(),
+      });
+    }
+    leaveRoom();
+  };
+
+  const quickMatchProps = roomInfo?.quickMatchPending
+    ? {
+        secondsLeft: quickMatchSecondsLeft,
+        humanCount: roomInfo.players.filter(p => !p.isBot).length,
+        maxPlayers: roomInfo.maxPlayers,
+        onStartNow: startQuickMatchNow,
+        onCancel: cancelQuickMatch,
+      }
+    : undefined;
 
   // 最新一則系統訊息是開始倒數時，手機底部也顯示秒數（聊天分頁不一定開著）
   const lastSystemMessage = [...messages].reverse().find(m => m.isSystem);
@@ -306,8 +340,12 @@ export default function RoomPage() {
           currentPlayerId={playerId}
           isPenaltyGameOver={gameOverData.isPenaltyGameOver}
           isMultiplePlay
-          onPlayAgain={onCloseGameOver}
-          onGoHome={onCloseGameOver}
+          winnerId={gameOverData.winnerId}
+          rematchSource={
+            roomInfo?.isQuickMatch ? 'quick_match' : 'private_room'
+          }
+          onPlayAgain={requestRematch}
+          onGoHome={leaveRoom}
         />
       )}
       {gameAbortedData && (

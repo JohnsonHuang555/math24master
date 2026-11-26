@@ -244,9 +244,9 @@ const _checkGameOver = (
     _rooms[roomIndex].status = GameStatus.Idle;
     _rooms[roomIndex].pendingPlay = undefined;
     _rooms[roomIndex].players.forEach((_, i) => {
-      if (!_rooms[roomIndex].players[i].isMaster) {
-        _rooms[roomIndex].players[i].isReady = false;
-      }
+      // 真人要重新按準備；電腦一直是準備好的，否則有電腦的房間無法再開下一局
+      const p = _rooms[roomIndex].players[i];
+      if (!p.isMaster && !p.isBot) p.isReady = false;
     });
 
     const playersScoreRank = _rooms[roomIndex].players.sort(
@@ -467,7 +467,10 @@ export function leaveRoom(
   // 離開的玩家資訊
   const leavingPlayer = room.players.find(player => player.id === playerId);
   const leftPlayerName = leavingPlayer?.name;
-  const wasPlaying = room.status === GameStatus.Playing;
+  const inPlayingStatus = room.status === GameStatus.Playing;
+  // 已經分出勝負、正在顯示結算（搶答會在幾秒後重設為等待中）：這時離開不算中途離開，
+  // 不會讓其他人看到「遊戲中斷」，也不影響已經送出的結算
+  const wasPlaying = inPlayingStatus && !room.isGameOver;
 
   // 清除 reconnect token，防止已離開玩家的 token 觸發意外重連
   _revokeToken(playerId);
@@ -497,7 +500,9 @@ export function leaveRoom(
 
   // 遊戲中且剩餘 ≥ 2 人：繼續遊戲；否則回到等待狀態
   const newStatus =
-    wasPlaying && newPlayers.length >= 2 ? GameStatus.Playing : GameStatus.Idle;
+    inPlayingStatus && newPlayers.length >= 2
+      ? GameStatus.Playing
+      : GameStatus.Idle;
 
   // 搶答：離開的人的狀態、投票一併移除；正在作答就把作答權收回
   let buzzerState = room.buzzerState;
@@ -736,14 +741,21 @@ export function startGame(roomId: string): GameResponse {
   }
 }
 
-// 準備遊戲（只在等待中有意義；房主一律視為準備好）
-export function readyGame(roomId: string, playerId: string): GameResponse {
+/**
+ * 準備遊戲（只在等待中有意義；房主一律視為準備好）。
+ * 沒帶 ready 時切換（準備按鈕）；帶 ready 時直接設定，連點或重送都是同一個結果（再玩一場用）
+ */
+export function readyGame(
+  roomId: string,
+  playerId: string,
+  ready?: boolean,
+): GameResponse {
   const m = _member(roomId, playerId);
   if (!m.ok) return _fail(m.error);
   if (m.room.status !== GameStatus.Idle) return _fail(ErrorCode.GameInProgress);
   if (m.player.isMaster) return { success: true, room: m.room };
 
-  m.player.isReady = !m.player.isReady;
+  m.player.isReady = typeof ready === 'boolean' ? ready : !m.player.isReady;
   return { success: true, room: m.room };
 }
 
@@ -1391,6 +1403,8 @@ export function endBuzzerGame(roomId: string): Room | null {
   _rooms[roomIndex].buzzerState = undefined;
   _rooms[roomIndex].players = _rooms[roomIndex].players.map(p => ({
     ...p,
+    // 結算已經送出；回到等待中時分數歸零，下一局（再玩一場）不會看到上一局的分數
+    score: 0,
     // 房主一律是準備好的狀態（與傳統對戰結束時一致）
     isReady: !!p.isBot || p.isMaster,
   }));

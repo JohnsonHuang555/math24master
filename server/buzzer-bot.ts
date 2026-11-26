@@ -1,12 +1,8 @@
-import { Server } from 'socket.io';
 import { NumberCard } from '../models/Player';
 import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
 import { SelectedCard } from '../models/SelectedCard';
-import { SocketEvent } from '../models/SocketEvent';
 import { Symbol } from '../models/Symbol';
-import { processBuzzIn, processBuzzerAnswer, unlockPlayer } from './buzzer';
-import { applyBuzzerRoomUpdate, endBuzzerGame, getCurrentRoom } from './game';
-import { emitBuzzerGameOver, emitRoomUpdate } from './room-emitter';
+import { getCurrentRoom } from './game';
 
 // ── 24 點 Solver ─────────────────────────────────────────────────────────────
 
@@ -101,187 +97,110 @@ const DIFFICULTY_CONFIG = {
 
 // ── 核心：排程一次搶答嘗試 ────────────────────────────────────────────────────
 
-function _scheduleAttempt(
-  roomId: string,
-  botId: string,
-  botName: string,
-  difficulty: keyof typeof DIFFICULTY_CONFIG,
-  solution: SolverResult,
-  targetRound: number,
-  delay: number,
-  io: Server,
-  onCorrectAnswer: (roomId: string) => void,
-) {
-  const config = DIFFICULTY_CONFIG[difficulty];
+/**
+ * 電腦只負責「決定」：什麼時候搶、想多久、交什麼答案、答錯後要不要再試。
+ * 搶答、作答倒數、交卷判定、鎖定與所有計時器都由 socket-server 用和真人相同的函式處理，
+ * 所以電腦一樣受作答時限約束，計時器也跟著房間一起取消（換題、結束、刪房）。
+ */
+export type BuzzerBotHooks = {
+  /** 用和真人相同的流程搶答；成功時回傳這次作答的編號（交卷時要帶上） */
+  buzzIn: (roomId: string, botId: string) => { attempt: number } | null;
+  /**
+   * 交卷。編號不是目前這次作答（已超時、已換題、整局結束）就回 rejected，不會結算；
+   * 同一題只會有一個有效作答者
+   */
+  submitAnswer: (
+    roomId: string,
+    botId: string,
+    attempt: number,
+    cards: SelectedCard[],
+  ) => 'correct' | 'wrong' | 'rejected';
+  /** 搶答與重試的等待：換題、結束、刪房時一起取消 */
+  schedule: (roomId: string, ms: number, fn: () => void) => void;
+  /** 搶到後的思考時間：作答結束（交卷、超時）、換題、結束、刪房時取消 */
+  scheduleThink: (roomId: string, ms: number, fn: () => void) => void;
+  /** 隨機數（測試可以固定） */
+  random: () => number;
+  /** 測試用：固定電腦的等待時間（毫秒）；正式環境不設，依難度隨機 */
+  timing?: {
+    attemptDelayMs?: number;
+    thinkMs?: number;
+    retryDelayMs?: number;
+  };
+};
 
-  setTimeout(() => {
-    const room = getCurrentRoom(roomId);
-    if (!room?.buzzerState) return;
-    if (room.status !== 'playing') return;
-    // 回合已換，停止
-    if (room.buzzerState.roundNumber !== targetRound) return;
-    // 已有人作答，或這一題已經關閉（有人答對、投票通過、超時）
-    if (room.buzzerState.currentAnswerPlayerId !== null) return;
-    if (!room.buzzerState.roundOpen) return;
-    // 仍被鎖定
-    const ps = room.buzzerState.playerStates[botId];
-    if (ps?.isLocked) return;
+type BotContext = {
+  roomId: string;
+  botId: string;
+  difficulty: keyof typeof DIFFICULTY_CONFIG;
+  solution: SolverResult;
+  targetRound: number;
+  hooks: BuzzerBotHooks;
+};
 
-    const buzzResult = processBuzzIn(room, botId);
-    if (!buzzResult.success) return;
+/** 這一題還在進行、可以搶答（排程的動作執行時再確認一次，房間可能已經換題、結束或刪除） */
+function _canStillBuzz(ctx: BotContext): boolean {
+  const room = getCurrentRoom(ctx.roomId);
+  const state = room?.buzzerState;
+  if (!room || !state) return false;
+  if (room.status !== 'playing' || room.isGameOver) return false;
+  if (state.roundNumber !== ctx.targetRound || !state.roundOpen) return false;
+  if (state.currentAnswerPlayerId !== null) return false;
+  if (!room.players.some(p => p.id === ctx.botId)) return false;
+  return !state.playerStates[ctx.botId]?.isLocked;
+}
 
-    const afterBuzz = applyBuzzerRoomUpdate(buzzResult.room);
-    if (!afterBuzz) return;
+function _scheduleAttempt(ctx: BotContext, delay: number) {
+  const { hooks } = ctx;
+  const config = DIFFICULTY_CONFIG[ctx.difficulty];
 
-    const settings =
-      afterBuzz.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+  hooks.schedule(ctx.roomId, delay, () => {
+    if (!_canStillBuzz(ctx)) return;
+    const buzz = hooks.buzzIn(ctx.roomId, ctx.botId);
+    if (!buzz) return;
 
-    io.to(roomId).emit(SocketEvent.BuzzerBuzzInSuccess, {
-      playerId: botId,
-      playerName: botName,
-      answerSeconds: settings.answerSeconds,
-    });
-    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerPaused, {
-      elapsedSeconds: afterBuzz.buzzerState!.roundTimerElapsed,
-    });
-
-    // 模擬「思考 + 輸入」時間後提交
-    const thinkTime = 1500 + Math.random() * 2000;
-    setTimeout(() => {
-      const roomNow = getCurrentRoom(roomId);
-      if (!roomNow?.buzzerState) return;
-      if (roomNow.buzzerState.currentAnswerPlayerId !== botId) return;
-      if (roomNow.buzzerState.roundNumber !== targetRound) return;
-
+    // 模擬「思考 + 輸入」時間後交卷；超過作答時限的話伺服器會先判定超時並取消這個計時
+    const thinkTime = hooks.timing?.thinkMs ?? 1500 + hooks.random() * 2000;
+    hooks.scheduleThink(ctx.roomId, thinkTime, () => {
+      const room = getCurrentRoom(ctx.roomId);
+      if (!room?.buzzerState) return;
       const answerCorrectly =
-        solution !== null && Math.random() < config.accuracy;
+        ctx.solution !== null && hooks.random() < config.accuracy;
       const cards = answerCorrectly
-        ? solution!.expr
-        : _wrongAnswer(roomNow.buzzerState.publicCards);
+        ? ctx.solution!.expr
+        : _wrongAnswer(room.buzzerState.publicCards);
 
-      const answerResult = processBuzzerAnswer(roomNow, botId, cards);
-      if (answerResult.kind === 'rejected') return;
-      const updated = applyBuzzerRoomUpdate(answerResult.room);
-      if (!updated) return;
+      const outcome = hooks.submitAnswer(
+        ctx.roomId,
+        ctx.botId,
+        buzz.attempt,
+        cards,
+      );
+      if (outcome !== 'wrong') return;
 
-      if (answerResult.kind === 'correct') {
-        // ── 答對 ──────────────────────────────────────────────────────────────
-        io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
-          isCorrect: true,
-          playerId: botId,
-          scoreDelta: answerResult.scoreDelta,
-          newScore: updated.players.find(p => p.id === botId)?.score ?? 0,
-          streak: answerResult.streak,
-          streakBonus: answerResult.streakBonus,
-        });
-        emitRoomUpdate(io, updated);
-
-        if (answerResult.winner) {
-          emitBuzzerGameOver(io, updated, answerResult.winner);
-          setTimeout(() => {
-            const idleRoom = endBuzzerGame(roomId);
-            if (idleRoom) emitRoomUpdate(io, idleRoom);
-          }, 3000);
-          return;
-        }
-
-        // 答對但未勝利：通知 index.ts 換新題（清計時器 + 1.5s 後啟動新回合）
-        onCorrectAnswer(roomId);
-      } else {
-        // ── 答錯 ──────────────────────────────────────────────────────────────
-        io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
-          isCorrect: false,
-          playerId: botId,
-          scoreDelta: answerResult.scoreDelta,
-          newScore: updated.players.find(p => p.id === botId)?.score ?? 0,
-          streak: 0,
-          streakBonus: 0,
-        });
-        emitRoomUpdate(io, updated);
-
-        const ps2 = updated.buzzerState?.playerStates[botId];
-
-        // 恢復回合倒數顯示（client side）
-        setTimeout(() => {
-          if (settings.roundSeconds !== null) {
-            io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, {
-              remainingSeconds:
-                settings.roundSeconds -
-                (updated.buzzerState?.roundTimerElapsed ?? 0),
-            });
-          }
-        }, 1500);
-
-        if (ps2?.isLocked && ps2.lockUntil) {
-          io.to(roomId).emit(SocketEvent.BuzzerPlayerLocked, {
-            playerId: botId,
-            lockSeconds: settings.lockSeconds,
-            lockUntil: ps2.lockUntil,
-          });
-
-          // 解鎖後決定是否重試
-          setTimeout(() => {
-            const r = getCurrentRoom(roomId);
-            if (!r || r.status !== 'playing') return;
-            const unlockedRoom = unlockPlayer(r, botId);
-            applyBuzzerRoomUpdate(unlockedRoom);
-            io.to(roomId).emit(SocketEvent.BuzzerPlayerUnlocked, {
-              playerId: botId,
-            });
-
-            if (Math.random() < config.retryChance) {
-              const retryDelay =
-                config.retryMinDelay +
-                Math.random() * (config.retryMaxDelay - config.retryMinDelay);
-              _scheduleAttempt(
-                roomId,
-                botId,
-                botName,
-                difficulty,
-                solution,
-                targetRound,
-                retryDelay,
-                io,
-                onCorrectAnswer,
-              );
-            }
-          }, settings.lockSeconds * 1000);
-        } else {
-          // 無鎖定：直接重試
-          if (Math.random() < config.retryChance) {
-            const retryDelay =
-              config.retryMinDelay +
-              Math.random() * (config.retryMaxDelay - config.retryMinDelay);
-            _scheduleAttempt(
-              roomId,
-              botId,
-              botName,
-              difficulty,
-              solution,
-              targetRound,
-              retryDelay,
-              io,
-              onCorrectAnswer,
-            );
-          }
-        }
-      }
-    }, thinkTime);
-  }, delay);
+      // 答錯：要不要再試一次。被鎖定的話等解鎖（伺服器的鎖定計時）之後再等一下
+      if (hooks.random() >= config.retryChance) return;
+      const retryDelay =
+        hooks.timing?.retryDelayMs ??
+        config.retryMinDelay +
+          hooks.random() * (config.retryMaxDelay - config.retryMinDelay);
+      const after = getCurrentRoom(ctx.roomId);
+      const lock = after?.buzzerState?.playerStates[ctx.botId];
+      const settings =
+        after?.settings.buzzerSettings ?? DEFAULT_BUZZER_SETTINGS;
+      const lockWait = lock?.isLocked ? settings.lockSeconds * 1000 : 0;
+      _scheduleAttempt(ctx, lockWait + retryDelay);
+    });
+  });
 }
 
 // ── 公開入口 ─────────────────────────────────────────────────────────────────
 
 /**
- * 每回合開始後呼叫一次。
+ * 每題開放搶答後呼叫一次。
  * 找出所有 bot，依照難度決定是否及何時搶答。
- * onCorrectAnswer：bot 答對（未勝利）時呼叫，由 index.ts 負責換新題。
  */
-export function triggerBuzzerBot(
-  roomId: string,
-  io: Server,
-  onCorrectAnswer: (roomId: string) => void,
-) {
+export function triggerBuzzerBot(roomId: string, hooks: BuzzerBotHooks) {
   const room = getCurrentRoom(roomId);
   if (!room || !room.buzzerState) return;
 
@@ -298,20 +217,14 @@ export function triggerBuzzerBot(
     const config = DIFFICULTY_CONFIG[difficulty];
 
     // 決定這回合是否出手（easy bot 有 40% 機率直接放棄）
-    if (solution === null || Math.random() >= config.accuracy) continue;
+    if (solution === null || hooks.random() >= config.accuracy) continue;
 
     const delay =
-      config.minDelay + Math.random() * (config.maxDelay - config.minDelay);
+      hooks.timing?.attemptDelayMs ??
+      config.minDelay + hooks.random() * (config.maxDelay - config.minDelay);
     _scheduleAttempt(
-      roomId,
-      bot.id,
-      bot.name,
-      difficulty,
-      solution,
-      targetRound,
+      { roomId, botId: bot.id, difficulty, solution, targetRound, hooks },
       delay,
-      io,
-      onCorrectAnswer,
     );
   }
 }
