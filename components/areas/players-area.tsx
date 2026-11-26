@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Bot, CircleCheck, Crown, Info, UserMinus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -19,7 +20,7 @@ type PlayersAreaProps = {
   onAddBot?: (difficulty: 'easy' | 'normal' | 'hard') => void;
   canAddBot?: boolean;
   /** 快速配對倒數中：主要按鈕換成配對倒數與「直接開始」 */
-  quickMatch?: { secondsLeft: number | null; onStartNow: () => void };
+  quickMatch?: ComponentProps<typeof QuickMatchAction>;
 };
 
 const PILL_CLASS =

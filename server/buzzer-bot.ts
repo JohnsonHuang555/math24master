@@ -1,12 +1,12 @@
 import { Server } from 'socket.io';
 import { NumberCard } from '../models/Player';
-import { DEFAULT_BUZZER_SETTINGS } from '../models/Room';
+import { DEFAULT_BUZZER_SETTINGS, Room } from '../models/Room';
 import { SelectedCard } from '../models/SelectedCard';
 import { SocketEvent } from '../models/SocketEvent';
 import { Symbol } from '../models/Symbol';
 import { processBuzzIn, processBuzzerAnswer, unlockPlayer } from './buzzer';
-import { applyBuzzerRoomUpdate, endBuzzerGame, getCurrentRoom } from './game';
-import { emitBuzzerGameOver, emitRoomUpdate } from './room-emitter';
+import { applyBuzzerRoomUpdate, getCurrentRoom } from './game';
+import { emitRoomUpdate } from './room-emitter';
 
 // ── 24 點 Solver ─────────────────────────────────────────────────────────────
 
@@ -101,6 +101,21 @@ const DIFFICULTY_CONFIG = {
 
 // ── 核心：排程一次搶答嘗試 ────────────────────────────────────────────────────
 
+/**
+ * 電腦的動作交給 socket-server 用和真人相同的流程處理，計時器只有一份：
+ * 搶到時暫停回合計時、答錯後恢復、答對換題、獲勝時清掉所有計時器並排程重設
+ */
+export type BuzzerBotHooks = {
+  onBuzzIn: (roomId: string) => void;
+  onWrongAnswer: (roomId: string) => void;
+  onCorrectAnswer: (roomId: string) => void;
+  onWin: (
+    roomId: string,
+    room: Room,
+    winner: { id: string; name: string; score: number },
+  ) => void;
+};
+
 function _scheduleAttempt(
   roomId: string,
   botId: string,
@@ -110,7 +125,7 @@ function _scheduleAttempt(
   targetRound: number,
   delay: number,
   io: Server,
-  onCorrectAnswer: (roomId: string) => void,
+  hooks: BuzzerBotHooks,
 ) {
   const config = DIFFICULTY_CONFIG[difficulty];
 
@@ -141,9 +156,8 @@ function _scheduleAttempt(
       playerName: botName,
       answerSeconds: settings.answerSeconds,
     });
-    io.to(roomId).emit(SocketEvent.BuzzerRoundTimerPaused, {
-      elapsedSeconds: afterBuzz.buzzerState!.roundTimerElapsed,
-    });
+    // 伺服器的回合計時要真的暫停（原本只通知前端，計時其實還在跑）
+    hooks.onBuzzIn(roomId);
 
     // 模擬「思考 + 輸入」時間後提交
     const thinkTime = 1500 + Math.random() * 2000;
@@ -177,16 +191,13 @@ function _scheduleAttempt(
         emitRoomUpdate(io, updated);
 
         if (answerResult.winner) {
-          emitBuzzerGameOver(io, updated, answerResult.winner);
-          setTimeout(() => {
-            const idleRoom = endBuzzerGame(roomId);
-            if (idleRoom) emitRoomUpdate(io, idleRoom);
-          }, 3000);
+          // 和真人獲勝同一個流程：清掉回合、作答、鎖定等計時器再排程重設
+          hooks.onWin(roomId, updated, answerResult.winner);
           return;
         }
 
-        // 答對但未勝利：通知 index.ts 換新題（清計時器 + 1.5s 後啟動新回合）
-        onCorrectAnswer(roomId);
+        // 答對但未勝利：由 socket-server 換新題（清計時器後啟動新回合）
+        hooks.onCorrectAnswer(roomId);
       } else {
         // ── 答錯 ──────────────────────────────────────────────────────────────
         io.to(roomId).emit(SocketEvent.BuzzerAnswerResult, {
@@ -201,16 +212,8 @@ function _scheduleAttempt(
 
         const ps2 = updated.buzzerState?.playerStates[botId];
 
-        // 恢復回合倒數顯示（client side）
-        setTimeout(() => {
-          if (settings.roundSeconds !== null) {
-            io.to(roomId).emit(SocketEvent.BuzzerRoundTimerResumed, {
-              remainingSeconds:
-                settings.roundSeconds -
-                (updated.buzzerState?.roundTimerElapsed ?? 0),
-            });
-          }
-        }, 1500);
+        // 恢復回合計時（伺服器計時與前端顯示一起）
+        hooks.onWrongAnswer(roomId);
 
         if (ps2?.isLocked && ps2.lockUntil) {
           io.to(roomId).emit(SocketEvent.BuzzerPlayerLocked, {
@@ -242,7 +245,7 @@ function _scheduleAttempt(
                 targetRound,
                 retryDelay,
                 io,
-                onCorrectAnswer,
+                hooks,
               );
             }
           }, settings.lockSeconds * 1000);
@@ -261,7 +264,7 @@ function _scheduleAttempt(
               targetRound,
               retryDelay,
               io,
-              onCorrectAnswer,
+              hooks,
             );
           }
         }
@@ -275,12 +278,12 @@ function _scheduleAttempt(
 /**
  * 每回合開始後呼叫一次。
  * 找出所有 bot，依照難度決定是否及何時搶答。
- * onCorrectAnswer：bot 答對（未勝利）時呼叫，由 index.ts 負責換新題。
+ * hooks：電腦搶到、答錯、答對、獲勝時交給 socket-server 處理（見 BuzzerBotHooks）。
  */
 export function triggerBuzzerBot(
   roomId: string,
   io: Server,
-  onCorrectAnswer: (roomId: string) => void,
+  hooks: BuzzerBotHooks,
 ) {
   const room = getCurrentRoom(roomId);
   if (!room || !room.buzzerState) return;
@@ -311,7 +314,7 @@ export function triggerBuzzerBot(
       targetRound,
       delay,
       io,
-      onCorrectAnswer,
+      hooks,
     );
   }
 }

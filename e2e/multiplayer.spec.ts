@@ -1,4 +1,10 @@
-import { type Browser, type Page, expect, test } from '@playwright/test';
+import {
+  type Browser,
+  type Locator,
+  type Page,
+  expect,
+  test,
+} from '@playwright/test';
 import { enterFormula, readCardValues } from './helpers/play';
 import { solve24 } from './helpers/solver';
 
@@ -243,4 +249,116 @@ test('瀏覽器實際收到的 WebSocket 封包不含牌庫、密碼、對方 to
     f => f.includes('"handCard"') && !f.includes('"self"'),
   );
   expect(handOutsideSelf).toEqual([]);
+});
+
+/** 等到可以搶答，或已經出現結算；回傳是哪一個 */
+async function waitForBuzzOrGameOver(
+  buzz: Locator,
+  gameOverTitle: Locator,
+): Promise<'buzz' | 'over'> {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (await gameOverTitle.isVisible()) return 'over';
+    if ((await buzz.isVisible()) && (await buzz.isEnabled())) return 'buzz';
+    await new Promise(r => setTimeout(r, 100));
+  }
+  throw new Error('等不到可以搶答，也沒有出現結算');
+}
+
+test.describe('快速配對與再玩一場', () => {
+  test('快速開始看得到配對狀態，可以取消；取消後按鈕不會一直轉圈', async ({
+    browser,
+  }) => {
+    const alice = await openPlayer(browser, 'Alice');
+    await alice.goto('/multiple-play');
+    await expect(
+      alice.getByRole('button', { name: '修改暱稱：Alice' }),
+    ).toBeVisible();
+    await alice.getByRole('button', { name: '快速開始' }).click();
+    await alice.waitForURL(/\/multiple-play\/[^/]+$/);
+
+    const panel = alice.locator('[data-testid="quick-match-panel"]:visible');
+    await expect(panel.getByText('正在尋找對手')).toBeVisible();
+    await expect(
+      alice.locator('[data-testid="quick-match-humans"]:visible'),
+    ).toHaveText('已有 1 位玩家（最多 4 人）');
+    await expect(panel.getByText(/秒後開局/)).toBeVisible();
+
+    await panel.getByRole('button', { name: '取消配對' }).click();
+    await alice.waitForURL(/\/multiple-play$/);
+    await expect(alice.getByRole('button', { name: '快速開始' })).toBeEnabled();
+  });
+
+  test('不等了直接開局、電腦補位；打到結算看得到勝負與真人電腦，再玩一場進到新的配對房', async ({
+    browser,
+  }) => {
+    test.setTimeout(180_000);
+    const alice = await openPlayer(browser, 'Alice');
+    await alice.goto('/multiple-play');
+    await expect(
+      alice.getByRole('button', { name: '修改暱稱：Alice' }),
+    ).toBeVisible();
+    await alice.getByRole('button', { name: '快速開始' }).click();
+    await alice.waitForURL(/\/multiple-play\/[^/]+$/);
+    const firstRoomUrl = alice.url();
+
+    await alice
+      .locator('[data-testid="quick-match-panel"]:visible')
+      .getByRole('button', { name: '不等了，直接開始' })
+      .click();
+    // 電腦補到 3 人
+    await expect(alice.getByTestId('buzzer-player')).toHaveCount(3);
+
+    // 每題一開放就搶答（電腦最快 2 秒才出手），答對後等分數更新，一直答到結算
+    const gameOverTitle = alice.getByTestId('game-over-title');
+    const buzz = alice.getByRole('button', { name: '搶答！' });
+    const myScore = scoreOf(alice, 'Alice');
+    for (let round = 0; round < 20; round++) {
+      const state = await waitForBuzzOrGameOver(buzz, gameOverTitle);
+      if (state === 'over') break;
+      const before = await myScore.getAttribute('data-score');
+      await buzzAndAnswer(alice);
+      await expect
+        .poll(
+          async () =>
+            (await gameOverTitle.isVisible()) ||
+            (await myScore.getAttribute('data-score')) !== before,
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+    }
+
+    await expect(gameOverTitle).toBeVisible({ timeout: 30_000 });
+    await expect(gameOverTitle).toHaveText('你贏了！');
+    await expect(alice.getByTestId('game-over-self-rank')).toHaveText(
+      '你是第 1 名（共 3 人）',
+    );
+    const rows = alice.getByTestId('game-over-player');
+    await expect(rows).toHaveCount(3);
+    await expect(
+      rows.and(alice.locator('[data-player-kind="bot"]')),
+    ).toHaveCount(2);
+    await expect(
+      rows.and(alice.locator('[data-player-kind="human"]')),
+    ).toHaveCount(1);
+
+    // 再玩一場：不用重新設定，直接進到新的配對房（不是原本那間）
+    await alice.getByRole('button', { name: '再玩一場' }).click();
+    await expect.poll(() => alice.url()).not.toBe(firstRoomUrl);
+    await expect(alice).toHaveURL(/\/multiple-play\/[^/]+$/);
+    await expect(
+      alice.locator('[data-testid="quick-match-humans"]:visible'),
+    ).toHaveText('已有 1 位玩家（最多 4 人）');
+    await expect(gameOverTitle).toBeHidden();
+
+    // 新房間：再開一局，分數從 0 開始
+    await alice
+      .locator('[data-testid="quick-match-panel"]:visible')
+      .getByRole('button', { name: '不等了，直接開始' })
+      .click();
+    await expect(alice.getByTestId('buzzer-player')).toHaveCount(3);
+    for (const player of await alice.getByTestId('buzzer-player').all()) {
+      await expect(player).toHaveAttribute('data-score', '0');
+    }
+  });
 });

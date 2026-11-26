@@ -251,3 +251,126 @@ export function trackShareCardOpen(
 ): void {
   trackEvent('share_card_open', { mode, has_image: hasImage });
 }
+
+// ---------------------------------------------------------------------------
+// 多人模式漏斗（Phase 3：配對與再戰）
+// 大廳曝光 → 按快速開始 → 配對完成開局（或取消）→ 一局結束 → 再玩一場 → 下一局開局。
+// 只送人數、秒數、類型等統計值；不送暱稱、房間名稱、密碼、token 或房間 id。
+// 開局與完成沿用既有的 game_start / game_complete（mode: multiplayer），配對完成沿用 quick_match_start。
+// ---------------------------------------------------------------------------
+
+export type MultiplayerGameType = 'classic' | 'buzzer';
+
+/** 快速開始的來源：大廳按鈕，或結算畫面的「再玩一場」 */
+export type QuickMatchSource = 'lobby' | 'rematch';
+
+/** 再玩一場的來源：快速配對的房間會重新配對，私人房間留在原房間再開一局 */
+export type RematchSource = 'quick_match' | 'private_room';
+
+export type PlayerCounts = {
+  humanPlayerCount: number;
+  botPlayerCount: number;
+};
+
+const countParams = (c: PlayerCounts) => ({
+  human_player_count: c.humanPlayerCount,
+  bot_player_count: c.botPlayerCount,
+});
+
+/** 等待的秒數取整數，負數或非數字視為 0 */
+const seconds = (value: number) =>
+  Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
+
+export function trackMultiplayerLobbyView(): void {
+  trackEvent('multiplayer_lobby_view');
+}
+
+export function trackQuickMatchRequested(source: QuickMatchSource): void {
+  trackEvent('quick_match_requested', { source });
+}
+
+/**
+ * 配對結束開局（沿用既有事件名 quick_match_start；humans、bots、outcome 也保留，讓舊報表接得上）
+ */
+export function trackQuickMatchStarted(
+  params: PlayerCounts & { matchWaitSeconds: number },
+): void {
+  trackEvent('quick_match_start', {
+    humans: params.humanPlayerCount,
+    bots: params.botPlayerCount,
+    outcome: params.humanPlayerCount > 1 ? 'matched' : 'bots_only',
+    game_type: 'buzzer',
+    ...countParams(params),
+    match_wait_seconds: seconds(params.matchWaitSeconds),
+  });
+}
+
+export function trackQuickMatchCancelled(
+  params: PlayerCounts & { matchWaitSeconds: number },
+): void {
+  trackEvent('quick_match_cancelled', {
+    ...countParams(params),
+    match_wait_seconds: seconds(params.matchWaitSeconds),
+  });
+}
+
+/** 多人開局：沿用 game_start（mode: multiplayer），variant 保留給舊報表 */
+export function trackMultiplayerGameStarted(
+  params: PlayerCounts & {
+    gameType: MultiplayerGameType;
+    rematchSource?: RematchSource;
+  },
+): void {
+  trackGameStart('multiplayer', {
+    variant: params.gameType,
+    game_type: params.gameType,
+    ...countParams(params),
+    ...(params.rematchSource ? { rematch_source: params.rematchSource } : {}),
+  });
+}
+
+/**
+ * 多人一局結束。completion_status：won／lost 是正常結算（送 game_complete），
+ * aborted 是有人離開造成中斷（送 multiplayer_game_aborted，不灌高完成數）
+ */
+export function trackMultiplayerGameCompleted(
+  params: PlayerCounts & {
+    gameType: MultiplayerGameType;
+    completionStatus: 'won' | 'lost' | 'aborted';
+  },
+): void {
+  const payload = {
+    game_type: params.gameType,
+    completion_status: params.completionStatus,
+    ...countParams(params),
+  };
+  if (params.completionStatus === 'aborted') {
+    trackEvent('multiplayer_game_aborted', payload);
+    return;
+  }
+  trackGameComplete('multiplayer', { variant: params.gameType, ...payload });
+}
+
+export function trackRematchClicked(params: {
+  gameType: MultiplayerGameType;
+  rematchSource: RematchSource;
+}): void {
+  trackEvent('multiplayer_rematch_clicked', {
+    game_type: params.gameType,
+    rematch_source: params.rematchSource,
+  });
+}
+
+/** 按了再玩一場之後，下一局真的開局了 */
+export function trackRematchStarted(
+  params: PlayerCounts & {
+    gameType: MultiplayerGameType;
+    rematchSource: RematchSource;
+  },
+): void {
+  trackEvent('multiplayer_rematch_started', {
+    game_type: params.gameType,
+    rematch_source: params.rematchSource,
+    ...countParams(params),
+  });
+}

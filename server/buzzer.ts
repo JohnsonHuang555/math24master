@@ -123,7 +123,7 @@ export function processBuzzIn(room: Room, playerId: string): BuzzInResult {
   const state = room.buzzerState;
   if (!state) return { success: false, reason: 'not_found' };
   // 倒數中、已經有人答對、投票通過或回合超時：這一題不開放
-  if (room.status !== 'playing' || !state.roundOpen)
+  if (room.status !== 'playing' || room.isGameOver || !state.roundOpen)
     return { success: false, reason: 'not_open' };
   if (state.currentAnswerPlayerId !== null)
     return { success: false, reason: 'already_answering' };
@@ -295,13 +295,19 @@ export function processBuzzerAnswer(
     roundOpen: false,
   };
 
-  const newRoom = { ...room, players: newPlayers, buzzerState: newState };
-
   // 勝利判定
   const winner =
     newPlayers[playerIndex].score >= settings.winScore
       ? newPlayers[playerIndex]
       : undefined;
+
+  // 有人獲勝：標記整局結束。之後到重設為等待中之前，排好的下一題、回合超時、搶答與投票都不再生效
+  const newRoom = {
+    ...room,
+    players: newPlayers,
+    buzzerState: newState,
+    isGameOver: !!winner || room.isGameOver,
+  };
 
   return {
     kind: 'correct',
@@ -443,6 +449,7 @@ export function processNoSolutionVote(
   if (
     !state ||
     room.status !== 'playing' ||
+    room.isGameOver ||
     !state.roundOpen ||
     state.currentAnswerPlayerId !== null ||
     !state.playerStates[playerId]

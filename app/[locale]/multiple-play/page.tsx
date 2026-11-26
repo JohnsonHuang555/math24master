@@ -28,6 +28,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
+import { trackMultiplayerLobbyView } from '@/lib/analytics';
 import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { QUICK_MATCH } from '@/models/Room';
@@ -38,6 +39,8 @@ import { useMultiplePlay } from '@/providers/multiple-play-provider';
 import { useGuestStore } from '@/stores/guest-store';
 
 const RELOAD_ROOMS_TIMER = 1000;
+/** 按下快速開始後最多等伺服器回應多久，超過就讓按鈕恢復 */
+const QUICK_MATCH_RESPONSE_TIMEOUT_MS = 10_000;
 const roomId = uuidv4();
 
 type GameTypeFilter = 'all' | 'classic' | 'buzzer';
@@ -224,6 +227,25 @@ export default function MultiplePlayPage() {
     setIsMatching(true);
     quickMatch(playerName);
   };
+
+  useEffect(() => {
+    trackMultiplayerLobbyView();
+  }, []);
+
+  // 快速開始送出後，伺服器拒絕（例如暱稱不合規）或一直沒有回應：按鈕恢復可以再按，不會永遠轉圈。
+  // 成功時會直接導到房間頁，不需要在這裡處理
+  useEffect(() => {
+    if (!isMatching) return;
+    const handleError = () => setIsMatching(false);
+    const timer = setTimeout(handleError, QUICK_MATCH_RESPONSE_TIMEOUT_MS);
+    socket.on(SocketEvent.ErrorMessage, handleError);
+    socket.on('disconnect', handleError);
+    return () => {
+      clearTimeout(timer);
+      socket.off(SocketEvent.ErrorMessage, handleError);
+      socket.off('disconnect', handleError);
+    };
+  }, [isMatching, socket]);
 
   // 建立房間可帶入預填名稱；modal 以 key 重新掛載，用預填值初始化
   const openCreateRoom = (name: string) => {

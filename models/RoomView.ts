@@ -99,6 +99,10 @@ export type LobbyRoomSummary = ViewBrand & {
 export type RankedPlayer = PublicPlayerState;
 
 export type GameOverPayload = {
+  /** 哪一間房的結算；前端只處理目前所在房間的（再玩一場換房後，舊房的結算不會蓋到新房） */
+  roomId: string;
+  /** 勝利者的 id（平手時排序不一定把勝利者排第一，前端用這個判斷自己有沒有贏） */
+  winnerId: string;
   name: string;
   score: number;
   players: RankedPlayer[];
@@ -106,6 +110,7 @@ export type GameOverPayload = {
 };
 
 export type BuzzerGameOverPayload = {
+  roomId: string;
   winner: { id: string; name: string; score: number };
   players: RankedPlayer[];
 };

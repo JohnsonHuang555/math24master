@@ -290,7 +290,7 @@ export function BuzzerPlayProvider({
 
     listeners.on(
       SocketEvent.BuzzerRoundTimeout,
-      ({ penaltyPoints }: { penaltyPoints: number; players: unknown[] }) => {
+      ({ penaltyPoints }: { penaltyPoints: number }) => {
         _clearRoundTick();
         setRoundRemaining(0);
         if (penaltyPoints > 0) {

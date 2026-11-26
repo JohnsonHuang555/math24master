@@ -993,7 +993,10 @@
       "secondsLeft": "Starting in <n>{seconds}</n>s",
       "fillHint": "If the room isn't full when time runs out, bots will join",
       "startNow": "Start now",
-      "roomName": "Quick Match"
+      "roomName": "Quick Match",
+      "humansJoined": "{count, plural, one {# player} other {# players}} here (up to {max})",
+      "startingSoon": "Match found, starting soon",
+      "cancel": "Cancel"
     },
     "privateRoom": {
       "title": "Private room",
@@ -1209,7 +1212,16 @@
       "score": "<b>{score}</b> {score, plural, one {pt} other {pts}}",
       "backToRoom": "Back to room",
       "home": "Home",
-      "playAgain": "Play again"
+      "playAgain": "Play again",
+      "youWon": "You win!",
+      "winner": "{name} wins",
+      "yourRank": "You placed {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} of {total}",
+      "rematch": "Play again",
+      "backToLobby": "Back to lobby",
+      "rematchHint": {
+        "quick_match": "We'll find new opponents, with bots filling empty seats",
+        "private_room": "Back to the room, ready for the host to start the next game"
+      }
     },
     "editRoom": {
       "title": "Edit room",
