@@ -362,3 +362,91 @@ test.describe('快速配對與再玩一場', () => {
     }
   });
 });
+
+test.describe('多人分析事件', () => {
+  test('快速開始到開局、參與作答：每個事件只送一次，遊戲中重新整理不會重複記錄開局，參數沒有個人資料', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext();
+    await context.addInitScript(() => {
+      window.localStorage.setItem('playerName', 'Alice');
+      // 本機不會載入 GA4；換成記錄器，事件存在 sessionStorage，重新整理後還看得到
+      const key = 'e2e_ga_events';
+      (window as unknown as { gtag: unknown }).gtag = (
+        _command: string,
+        name: string,
+        params?: Record<string, unknown>,
+      ) => {
+        const list = JSON.parse(sessionStorage.getItem(key) ?? '[]');
+        list.push({ name, params: params ?? null });
+        sessionStorage.setItem(key, JSON.stringify(list));
+      };
+    });
+    const alice = await context.newPage();
+    const recorded = async () =>
+      alice.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem('e2e_ga_events') ?? '[]') as {
+            name: string;
+            params: Record<string, unknown> | null;
+          }[],
+      );
+    const count = async (name: string) =>
+      (await recorded()).filter(e => e.name === name).length;
+
+    await alice.goto('/multiple-play');
+    await expect(
+      alice.getByRole('button', { name: '修改暱稱：Alice' }),
+    ).toBeVisible();
+    await alice.getByRole('button', { name: '快速開始' }).click();
+    await alice.waitForURL(/\/multiple-play\/[^/]+$/);
+    const roomId = new URL(alice.url()).pathname.split('/').pop()!;
+    await alice
+      .locator('[data-testid="quick-match-panel"]:visible')
+      .getByRole('button', { name: '不等了，直接開始' })
+      .click();
+    await expect(alice.getByTestId('buzzer-player')).toHaveCount(3);
+    await expect.poll(() => count('game_start')).toBe(1);
+
+    // 遊戲中重新整理：回到同一局，開局與配對完成都不會再記一次
+    await alice.reload();
+    await expect(alice.getByTestId('buzzer-player')).toHaveCount(3);
+    await alice.waitForTimeout(1000);
+    expect(await count('game_start')).toBe(1);
+    expect(await count('quick_match_start')).toBe(1);
+
+    // 參與作答：搶到一次就記一次，同一局之後不再記
+    const buzz = alice.getByRole('button', { name: '搶答！' });
+    await expect(buzz).toBeEnabled({ timeout: 30_000 });
+    await buzzAndAnswer(alice);
+    await expect.poll(() => count('multiplayer_participated')).toBe(1);
+
+    const events = await recorded();
+    const names = events.map(e => e.name);
+    for (const name of [
+      'multiplayer_lobby_view',
+      'quick_match_requested',
+      'quick_match_joined',
+      'quick_match_start',
+      'game_start',
+      'multiplayer_participated',
+    ]) {
+      expect(
+        names.filter(n => n === name),
+        name,
+      ).toHaveLength(1);
+    }
+    const start = events.find(e => e.name === 'game_start')!.params!;
+    expect(start).toMatchObject({
+      mode: 'multiplayer',
+      game_type: 'buzzer',
+      human_player_count: 1,
+      bot_player_count: 2,
+    });
+    expect(start.match_id).toEqual(expect.any(String));
+    const sent = JSON.stringify(events);
+    expect(sent).not.toContain('Alice');
+    expect(sent).not.toContain(roomId);
+    expect(sent).not.toMatch(/token|password/i);
+  });
+});

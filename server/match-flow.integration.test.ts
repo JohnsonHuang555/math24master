@@ -762,3 +762,136 @@ describe('斷線與離開', () => {
     expect(host.log.map(r => r.event)).not.toContain(SocketEvent.GameAborted);
   }, 15000);
 });
+
+// ── 場次 id（分析去重用） ────────────────────────────────────────────────────
+
+describe('場次 id（matchId）', () => {
+  it('開局時產生；同房每個人一樣、重連沿用、結算事件帶同一個；下一局換新', async () => {
+    const { host, guest } = await privateRoom();
+    expect(host.room()?.matchId).toBeUndefined();
+    guest.socket.emit(SocketEvent.ReadyGame, { roomId: 'private-1' });
+    await waitFor(
+      () => !!serverRoom('private-1')?.players.every(p => p.isReady),
+    );
+    host.socket.emit(SocketEvent.StartGame, { roomId: 'private-1' });
+    await waitFor(
+      () =>
+        host.room()?.status === GameStatus.Playing &&
+        guest.room()?.status === GameStatus.Playing,
+    );
+    const first = host.room()!.matchId!;
+    expect(first).toMatch(/^[0-9a-f-]{36}$/);
+    expect(guest.room()!.matchId).toBe(first);
+
+    // 重新整理（新的 socket）：同一局、同一個 id
+    guest.socket.io.engine.close();
+    await waitFor(
+      () =>
+        !!serverRoom('private-1')?.players.find(p => p.id === guest.id)
+          ?.isDisconnected,
+    );
+    const fresh = await newSocket();
+    const success = next<{ room: RoomView }>(
+      fresh.socket,
+      SocketEvent.PlayerReconnectSuccess,
+    );
+    fresh.socket.emit(SocketEvent.PlayerReconnect, {
+      reconnectToken: guest.token,
+    });
+    expect((await success).room.matchId).toBe(first);
+
+    const over = await winGame(host, 'private-1');
+    expect(over.matchId).toBe(first);
+
+    // 私人房間再一局：新的 id
+    await waitFor(() => serverRoom('private-1')?.status === GameStatus.Idle);
+    fresh.socket.emit(SocketEvent.ReadyGame, {
+      roomId: 'private-1',
+      ready: true,
+    });
+    await waitFor(
+      () => !!serverRoom('private-1')?.players.every(p => p.isReady),
+    );
+    host.socket.emit(SocketEvent.StartGame, { roomId: 'private-1' });
+    await waitFor(() => host.room()?.status === GameStatus.Playing);
+    const second = host.room()!.matchId!;
+    expect(second).toBeTruthy();
+    expect(second).not.toBe(first);
+  });
+
+  it('快速配對再戰的下一局是另一個 id；不同房間的 id 不會相同', async () => {
+    const a = await quick('Alice');
+    const first = roomOf(a)!;
+    a.socket.emit(SocketEvent.QuickMatchStartNow, { roomId: first });
+    await waitFor(() => !!a.room()?.matchId);
+    const firstMatch = a.room()!.matchId!;
+    const b = await quick('Bob');
+    b.socket.emit(SocketEvent.QuickMatchStartNow, { roomId: roomOf(b)! });
+    await waitFor(() => !!b.room()?.matchId);
+    expect(b.room()!.matchId).not.toBe(firstMatch);
+
+    await winGame(a, first);
+    await quick('Alice', a);
+    const second = roomOf(a)!;
+    a.socket.emit(SocketEvent.QuickMatchStartNow, { roomId: second });
+    await waitFor(() => a.room()?.roomId === second && !!a.room()?.matchId);
+    expect(a.room()!.matchId).not.toBe(firstMatch);
+  });
+});
+
+describe('再戰流程的回歸', () => {
+  it('連續完成三場：每一場都從第 1 題、0 分開始，舊房都清掉', async () => {
+    const a = await quick('Alice');
+    const rooms: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) await quick('Alice', a);
+      const roomId = roomOf(a)!;
+      rooms.push(roomId);
+      a.socket.emit(SocketEvent.QuickMatchStartNow, { roomId });
+      await waitFor(() => !!serverRoom(roomId)?.buzzerState?.roundOpen);
+      const room = serverRoom(roomId)!;
+      expect(room.buzzerState!.roundNumber).toBe(1);
+      expect(room.players.every(p => p.score === 0)).toBe(true);
+      const over = await winGame(a, roomId);
+      expect(over.roomId).toBe(roomId);
+    }
+    expect(new Set(rooms).size).toBe(3);
+    // 前兩間在按再玩一場時已清掉；最後一間結算後離開也清掉
+    expect(serverRoom(rooms[0])).toBeUndefined();
+    expect(serverRoom(rooms[1])).toBeUndefined();
+    a.socket.emit(SocketEvent.LeaveRoom, { roomId: rooms[2] });
+    await waitFor(() => !serverRoom(rooms[2]));
+    for (const roomId of rooms) {
+      expect(gameServer.activeTimers(roomId)).toEqual([]);
+    }
+  }, 30000);
+
+  it('再戰配對中重新整理：用新房間的 token 回到新的配對房，舊房不受影響也不會回去', async () => {
+    const a = await quick('Alice');
+    const first = roomOf(a)!;
+    a.socket.emit(SocketEvent.QuickMatchStartNow, { roomId: first });
+    await winGame(a, first);
+    const rematch = await quick('Alice', a);
+    const second = roomOf(rematch)!;
+    expect(second).not.toBe(first);
+
+    a.socket.io.engine.close();
+    await waitFor(
+      () =>
+        !!serverRoom(second)?.players.find(p => p.id === a.id)?.isDisconnected,
+    );
+    const fresh = await newSocket();
+    const success = next<{ room: RoomView }>(
+      fresh.socket,
+      SocketEvent.PlayerReconnectSuccess,
+    );
+    fresh.socket.emit(SocketEvent.PlayerReconnect, {
+      reconnectToken: rematch.token,
+    });
+    const { room } = await success;
+    expect(room.roomId).toBe(second);
+    expect(room.quickMatchPending).toBe(true);
+    expect(serverRoom(first)).toBeUndefined();
+    await waitFor(() => serverRoom(second)?.status === GameStatus.Playing);
+  });
+});

@@ -28,7 +28,7 @@ import { RuleModal } from '@/components/modals/rule-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, useHardNavigate, useRouter } from '@/i18n/navigation';
-import { trackMultiplayerLobbyView } from '@/lib/analytics';
+import { getMultiplayerTracker } from '@/lib/multiplayer-tracking';
 import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { QUICK_MATCH } from '@/models/Room';
@@ -229,7 +229,7 @@ export default function MultiplePlayPage() {
   };
 
   useEffect(() => {
-    trackMultiplayerLobbyView();
+    getMultiplayerTracker().lobbyView();
   }, []);
 
   // 快速開始送出後，伺服器拒絕（例如暱稱不合規）或一直沒有回應：按鈕恢復可以再按，不會永遠轉圈。

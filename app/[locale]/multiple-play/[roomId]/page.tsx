@@ -36,7 +36,8 @@ import {
 import { useLeaveRoomOnUnmount } from '@/hooks/useLeaveRoomOnUnmount';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { useHardNavigate, useRouter } from '@/i18n/navigation';
-import { trackQuickMatchCancelled } from '@/lib/analytics';
+import { QuickMatchCancelMethod } from '@/lib/analytics';
+import { getMultiplayerTracker } from '@/lib/multiplayer-tracking';
 import { containsProfanity } from '@/lib/profanity';
 import { cn } from '@/lib/utils';
 import { GameStatus } from '@/models/GameStatus';
@@ -94,7 +95,6 @@ export default function RoomPage() {
     requestRematch,
     rematchRoomId,
     clearRematchRoomId,
-    quickMatchWaitSeconds,
   } = useMultiplePlay();
 
   // 再玩一場配到新的配對房：換到新房間的網址（舊房間已由伺服器移出）
@@ -200,7 +200,9 @@ export default function RoomPage() {
   const roomDisplayName =
     roomInfo?.roomName ??
     (roomInfo?.isQuickMatch ? tQuickMatch('roomName') : '');
-  const leaveRoom = () => {
+  const leaveRoom = (method: QuickMatchCancelMethod = 'leave_button') => {
+    // 還在配對中就離開也算取消配對（tracker 只在配對中才送，同一間房只算一次）
+    if (roomInfo) getMultiplayerTracker().quickMatchCancelled(roomInfo, method);
     // 主動離開：先通知伺服器立即移除（不經過斷線寬限期），再整頁回大廳。
     // 用目前所在的房間（再玩一場換房後，網址可能還沒更新）
     socket.emit(SocketEvent.LeaveRoom, { roomId: roomInfo?.roomId ?? roomId });
@@ -209,18 +211,8 @@ export default function RoomPage() {
     hardNavigate('/multiple-play');
   };
 
-  // 取消配對：和離開房間相同（伺服器立即移除；只剩自己時連房間一起刪掉），另外記錄等了多久才放棄
-  const cancelQuickMatch = () => {
-    if (roomInfo) {
-      const bots = roomInfo.players.filter(p => p.isBot).length;
-      trackQuickMatchCancelled({
-        humanPlayerCount: roomInfo.players.length - bots,
-        botPlayerCount: bots,
-        matchWaitSeconds: quickMatchWaitSeconds(),
-      });
-    }
-    leaveRoom();
-  };
+  // 取消配對：和離開房間相同（伺服器立即移除；只剩自己時連房間一起刪掉），記錄等了多久才放棄
+  const cancelQuickMatch = () => leaveRoom('cancel_button');
 
   const quickMatchProps = roomInfo?.quickMatchPending
     ? {
@@ -345,7 +337,7 @@ export default function RoomPage() {
             roomInfo?.isQuickMatch ? 'quick_match' : 'private_room'
           }
           onPlayAgain={requestRematch}
-          onGoHome={leaveRoom}
+          onGoHome={() => leaveRoom()}
         />
       )}
       {gameAbortedData && (
@@ -445,7 +437,7 @@ export default function RoomPage() {
               variant="ghost"
               size="icon"
               className="h-11 w-11 shrink-0 text-ink"
-              onClick={leaveRoom}
+              onClick={() => leaveRoom()}
               aria-label={t('leave')}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -561,7 +553,7 @@ export default function RoomPage() {
                     maxPlayers={roomInfo.maxPlayers}
                     roomSettings={roomInfo.settings}
                     playersCount={roomInfo.players.length}
-                    onLeaveRoom={leaveRoom}
+                    onLeaveRoom={() => leaveRoom()}
                     onRoomSettingsChange={editRoomSettings}
                     onEditRoomName={() => setIsOpenEditRoomModal(true)}
                   />

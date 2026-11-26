@@ -272,6 +272,13 @@ export type PlayerCounts = {
   botPlayerCount: number;
 };
 
+/**
+ * 伺服器產生的場次 id（每局一個隨機 uuid，與玩家身分無關）。
+ * 用來把同一局的開局、結束、再戰串起來；不是使用者或裝置識別碼
+ */
+const matchParam = (matchId: string | undefined) =>
+  matchId ? { match_id: matchId } : {};
+
 const countParams = (c: PlayerCounts) => ({
   human_player_count: c.humanPlayerCount,
   bot_player_count: c.botPlayerCount,
@@ -305,12 +312,37 @@ export function trackQuickMatchStarted(
   });
 }
 
+/** 成功進到配對中的房間（漏斗 A 第 3 步：伺服器接受了快速開始） */
+export function trackQuickMatchJoined(source: QuickMatchSource): void {
+  trackEvent('quick_match_joined', { source });
+}
+
+/** 取消的方式：配對面板的「取消配對」，或頂部的「離開房間」 */
+export type QuickMatchCancelMethod = 'cancel_button' | 'leave_button';
+
 export function trackQuickMatchCancelled(
-  params: PlayerCounts & { matchWaitSeconds: number },
+  params: PlayerCounts & {
+    matchWaitSeconds: number;
+    cancelMethod?: QuickMatchCancelMethod;
+  },
 ): void {
   trackEvent('quick_match_cancelled', {
     ...countParams(params),
     match_wait_seconds: seconds(params.matchWaitSeconds),
+    ...(params.cancelMethod ? { cancel_method: params.cancelMethod } : {}),
+  });
+}
+
+/**
+ * 這位玩家在這一局第一次參與作答（搶答成功或出牌），漏斗 B 第 2 步。每局每位玩家最多一次
+ */
+export function trackMultiplayerParticipated(params: {
+  gameType: MultiplayerGameType;
+  matchId?: string;
+}): void {
+  trackEvent('multiplayer_participated', {
+    game_type: params.gameType,
+    ...matchParam(params.matchId),
   });
 }
 
@@ -319,11 +351,13 @@ export function trackMultiplayerGameStarted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     rematchSource?: RematchSource;
+    matchId?: string;
   },
 ): void {
   trackGameStart('multiplayer', {
     variant: params.gameType,
     game_type: params.gameType,
+    ...matchParam(params.matchId),
     ...countParams(params),
     ...(params.rematchSource ? { rematch_source: params.rematchSource } : {}),
   });
@@ -337,11 +371,13 @@ export function trackMultiplayerGameCompleted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     completionStatus: 'won' | 'lost' | 'aborted';
+    matchId?: string;
   },
 ): void {
   const payload = {
     game_type: params.gameType,
     completion_status: params.completionStatus,
+    ...matchParam(params.matchId),
     ...countParams(params),
   };
   if (params.completionStatus === 'aborted') {
@@ -354,10 +390,13 @@ export function trackMultiplayerGameCompleted(
 export function trackRematchClicked(params: {
   gameType: MultiplayerGameType;
   rematchSource: RematchSource;
+  /** 剛結束的那一局 */
+  fromMatchId?: string;
 }): void {
   trackEvent('multiplayer_rematch_clicked', {
     game_type: params.gameType,
     rematch_source: params.rematchSource,
+    ...(params.fromMatchId ? { from_match_id: params.fromMatchId } : {}),
   });
 }
 
@@ -366,11 +405,16 @@ export function trackRematchStarted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     rematchSource: RematchSource;
+    /** 再戰開始的這一局，與按下再玩一場時的那一局 */
+    matchId?: string;
+    fromMatchId?: string;
   },
 ): void {
   trackEvent('multiplayer_rematch_started', {
     game_type: params.gameType,
     rematch_source: params.rematchSource,
+    ...matchParam(params.matchId),
+    ...(params.fromMatchId ? { from_match_id: params.fromMatchId } : {}),
     ...countParams(params),
   });
 }

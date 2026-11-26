@@ -37,6 +37,8 @@ beforeEach(async () => {
     buzzerGameOverResetMs: 100,
     disconnectGraceIdleMs: 300,
     disconnectGracePlayingMs: 5000,
+    // 電腦一定出手、一定答對：電腦的測試不會因為隨機不出手而等到回合超時
+    botRandom: () => 0,
   });
   await new Promise<void>(resolve => httpServer.listen(0, resolve));
   url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;
@@ -189,6 +191,7 @@ const ROOM_KEYS = new Set([
   'isQuickMatch',
   'quickMatchPending',
   'playedCards',
+  'matchId',
   'self',
 ]);
 const PLAYER_KEYS = new Set([

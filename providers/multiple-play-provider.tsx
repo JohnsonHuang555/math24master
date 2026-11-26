@@ -15,17 +15,8 @@ import { toast } from 'sonner';
 import { useGameActions } from '@/hooks/useGameActions';
 import { usePlayerName } from '@/hooks/usePlayerName';
 import { useServerErrorText } from '@/i18n/server-messages';
-import {
-  MultiplayerGameType,
-  PlayerCounts,
-  RematchSource,
-  trackMultiplayerGameCompleted,
-  trackMultiplayerGameStarted,
-  trackQuickMatchRequested,
-  trackQuickMatchStarted,
-  trackRematchClicked,
-  trackRematchStarted,
-} from '@/lib/analytics';
+import { MultiplayerGameType, RematchSource } from '@/lib/analytics';
+import { getMultiplayerTracker } from '@/lib/multiplayer-tracking';
 import { createSocketListeners } from '@/lib/socket-listeners';
 import { playSound } from '@/lib/sound-manager';
 import { GameMode } from '@/models/GameMode';
@@ -154,12 +145,6 @@ type MultiplePlayProviderProps = {
   defaultCount?: number;
   children: React.ReactNode;
 };
-/** 分析用：真人與電腦人數（不送名字） */
-function countPlayers(players: { isBot?: boolean }[]): PlayerCounts {
-  const bots = players.filter(p => p.isBot).length;
-  return { humanPlayerCount: players.length - bots, botPlayerCount: bots };
-}
-
 export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const serverErrorText = useServerErrorText();
   const t = useTranslations('Multiplayer.toast');
@@ -198,8 +183,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     gameType: MultiplayerGameType;
     fromRoomId: string;
   } | null>(null);
-  /** 這次配對從什麼時候開始等（算 match_wait_seconds） */
-  const quickMatchStartedAtRef = useRef<number | null>(null);
   /** 結算事件是不是目前所在房間的（舊版伺服器沒帶 roomId 時一律接受） */
   const isCurrentRoom = (roomId: string | undefined) =>
     !roomId || !roomInfoRef.current || roomInfoRef.current.roomId === roomId;
@@ -397,6 +380,7 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       SocketEvent.GameOver,
       ({
         roomId,
+        matchId,
         winnerId,
         name,
         score,
@@ -406,38 +390,29 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
         // 已經換到別的房間（再玩一場）：舊房的結算不顯示
         if (!isCurrentRoom(roomId)) return;
         playSound('gameOverWin');
-        trackMultiplayerGameCompleted({
+        getMultiplayerTracker().gameOver({
           gameType: 'classic',
-          completionStatus:
-            (winnerId ?? players[0]?.id) === playerIdRef.current
-              ? 'won'
-              : 'lost',
-          ...countPlayers(players),
+          matchId,
+          won: (winnerId ?? players[0]?.id) === playerIdRef.current,
+          players,
         });
         setGameOverData({ winnerId, name, score, players, isPenaltyGameOver });
       },
     );
 
     listeners.on(SocketEvent.GameAborted, (playerName: string) => {
-      const room = roomInfoRef.current;
-      if (room) {
-        trackMultiplayerGameCompleted({
-          gameType: room.settings.gameType,
-          completionStatus: 'aborted',
-          ...countPlayers(room.players),
-        });
-      }
+      getMultiplayerTracker().aborted(roomInfoRef.current);
       setGameAbortedData({ playerName });
     });
 
     listeners.on(SocketEvent.BuzzerGameOver, (data: BuzzerGameOverPayload) => {
       if (!isCurrentRoom(data.roomId)) return;
       playSound('gameOverWin');
-      trackMultiplayerGameCompleted({
+      getMultiplayerTracker().gameOver({
         gameType: 'buzzer',
-        completionStatus:
-          data.winner.id === playerIdRef.current ? 'won' : 'lost',
-        ...countPlayers(data.players),
+        matchId: data.matchId,
+        won: data.winner.id === playerIdRef.current,
+        players: data.players,
       });
       setGameOverData({
         winnerId: data.winner.id,
@@ -459,27 +434,16 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
   }, [isLastRound, t]);
 
-  // 房間從等待進入遊戲中時算一次開局（每位玩家各送一次）；按過再玩一場的話也記一次再戰開局
+  // 分析事件：每次拿到房間資料都交給 tracker，由它依伺服器的 matchId 判斷開局、配對進度並去重
+  // （重新整理、斷線重連、Strict Mode 重跑都不會重複記錄）
+  useEffect(() => {
+    getMultiplayerTracker().roomView(roomInfo);
+  }, [roomInfo]);
+
+  // 開局了：私人房間再戰的「待自動準備」不再需要
   const roomStatus = roomInfo?.status;
   useEffect(() => {
-    const room = roomInfoRef.current;
-    if (roomStatus !== GameStatus.Playing || !room) return;
-    const counts = countPlayers(room.players);
-    const rematch = rematchRef.current;
-    trackMultiplayerGameStarted({
-      gameType: room.settings.gameType,
-      rematchSource: rematch?.source,
-      ...counts,
-    });
-    if (rematch) {
-      trackRematchStarted({
-        gameType: room.settings.gameType,
-        rematchSource: rematch.source,
-        ...counts,
-      });
-      rematchRef.current = null;
-    }
-    setIsRematchPending(false);
+    if (roomStatus === GameStatus.Playing) setIsRematchPending(false); // eslint-disable-line react-hooks/set-state-in-effect
   }, [roomStatus]);
 
   const searchRooms = useCallback(
@@ -637,18 +601,13 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
     }
 
     if (socket) {
+      // 漏斗 B：這一局第一次參與作答（每局只算一次）
+      getMultiplayerTracker().participated(roomInfo);
       socket.emit(SocketEvent.PlayCard, {
         roomId: roomInfo?.roomId,
       });
     }
-  }, [
-    connectionStatus,
-    roomInfo?.isGameOver,
-    isYourTurn,
-    roomInfo?.roomId,
-    selectedCards,
-    tGameToast,
-  ]);
+  }, [connectionStatus, roomInfo, isYourTurn, selectedCards, tGameToast]);
 
   // 重選
   const onReselect = useCallback(() => {
@@ -734,27 +693,21 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
 
   const quickMatch = useCallback((playerName: string) => {
     sessionStorage.removeItem('reconnectToken');
-    quickMatchStartedAtRef.current = Date.now();
-    trackQuickMatchRequested('lobby');
+    getMultiplayerTracker().quickMatchRequested('lobby');
     socket.emit(SocketEvent.QuickMatch, { playerName });
   }, []);
 
-  const quickMatchWaitSeconds = useCallback(() => {
-    const startedAt = quickMatchStartedAtRef.current;
-    return startedAt ? (Date.now() - startedAt) / 1000 : 0;
-  }, []);
+  const quickMatchWaitSeconds = useCallback(
+    () => getMultiplayerTracker().quickMatchWaitSeconds(),
+    [],
+  );
 
   const requestRematch = useCallback(() => {
     const room = roomInfoRef.current;
     if (!room) return;
     const gameType = room.settings.gameType;
-    const source: RematchSource = room.isQuickMatch
-      ? 'quick_match'
-      : 'private_room';
-    // 連點：同一局只算一次；實際的重複請求由伺服器擋（已在配對中就沿用、準備狀態直接設為 true）
-    if (rematchRef.current?.fromRoomId !== room.roomId) {
-      trackRematchClicked({ gameType, rematchSource: source });
-    }
+    // 連點：同一局只算一次（tracker 去重）；實際的重複請求由伺服器擋（已在配對中就沿用、準備狀態直接設為 true）
+    const source: RematchSource = getMultiplayerTracker().rematchClicked(room);
     rematchRef.current = { source, gameType, fromRoomId: room.roomId };
     setGameOverData(null);
     setCheckAnswerCorrect(null);
@@ -766,8 +719,6 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
       )?.name;
       const playerName = selfName || localStorage.getItem('playerName') || '';
       if (!playerName) return;
-      quickMatchStartedAtRef.current = Date.now();
-      trackQuickMatchRequested('rematch');
       socket.emit(SocketEvent.QuickMatch, { playerName });
       return;
     }
@@ -801,16 +752,12 @@ export function MultiplePlayProvider({ children }: MultiplePlayProviderProps) {
   const wasQuickMatchPendingRef = useRef(false);
   useEffect(() => {
     const pending = !!roomInfo?.quickMatchPending;
+    // 配對完成的分析事件由 tracker 的 roomView 送出，這裡只清掉倒數
     if (wasQuickMatchPendingRef.current && !pending && roomInfo) {
-      trackQuickMatchStarted({
-        ...countPlayers(roomInfo.players),
-        matchWaitSeconds: quickMatchWaitSeconds(),
-      });
-      quickMatchStartedAtRef.current = null;
       setQuickMatchSecondsLeft(null);
     }
     wasQuickMatchPendingRef.current = pending;
-  }, [roomInfo, quickMatchWaitSeconds]);
+  }, [roomInfo]);
 
   // 回合時間到由伺服器直接換人（玩家斷線也會推進），前端不再代送抽牌事件
 
