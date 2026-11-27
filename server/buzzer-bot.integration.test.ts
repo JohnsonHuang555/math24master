@@ -102,7 +102,7 @@ type AnswerResult = {
  */
 async function hostWithBots(
   bots: number,
-  beforeStart?: () => void,
+  beforeStart?: (socket: Socket) => void,
 ): Promise<{ socket: Socket; log: Received[]; id: string; botIds: string[] }> {
   const socket = connect(url, {
     transports: ['websocket'],
@@ -129,7 +129,7 @@ async function hostWithBots(
     socket.emit(SocketEvent.AddBotToRoom, { roomId: ROOM, difficulty: 'hard' });
   }
   await waitFor(() => room()?.players.length === bots + 1);
-  beforeStart?.();
+  beforeStart?.(socket);
   socket.emit(SocketEvent.StartGame, { roomId: ROOM });
   await waitFor(() => room()?.status === GameStatus.Playing);
   const botIds = room()!
@@ -357,5 +357,59 @@ describe('電腦受伺服器作答時限約束', () => {
     await sleep(300);
     expect(eventsOf(host.log, SocketEvent.BuzzerGameOver)).toHaveLength(1);
     expect(room()!.players.every(p => p.score === 0)).toBe(true);
+  });
+
+  it('真人與電腦同時搶答：只有一位拿到作答權，另一位收到搶答失敗，這一題只結算一次', async () => {
+    // 電腦在開放的同一刻（0ms）搶答，真人在收到開放的 handler 裡立刻搶
+    await start({ botTiming: { attemptDelayMs: 0, thinkMs: 100 } });
+    const failures: string[] = [];
+    // 監聽都在開局前登記：負載高時也不會錯過第 1 題的事件
+    let firstResult!: Promise<AnswerResult>;
+    const host = await hostWithBots(1, socket => {
+      socket.on(SocketEvent.BuzzerBuzzInFailed, ({ reason }) =>
+        failures.push(reason),
+      );
+      socket.once(SocketEvent.BuzzerOpen, () =>
+        socket.emit(SocketEvent.BuzzerBuzzIn, { roomId: ROOM }),
+      );
+      // 真人搶到的話立刻交出正確答案（不然要等到作答時限）
+      socket.once(
+        SocketEvent.BuzzerBuzzInSuccess,
+        ({ playerId }: { playerId: string }) => {
+          const r = room();
+          if (!r?.buzzerState || playerId === r.players.find(p => p.isBot)?.id)
+            return;
+          socket.emit(SocketEvent.BuzzerSubmitAnswer, {
+            roomId: ROOM,
+            selectedCards: solve24Cards(r.buzzerState.publicCards)!.expr,
+          });
+        },
+      );
+      firstResult = next<AnswerResult>(socket, SocketEvent.BuzzerAnswerResult);
+    });
+    const result = await firstResult;
+    await sleep(100);
+    const firstOpen = host.log.findIndex(
+      r => r.event === SocketEvent.BuzzerOpen,
+    );
+    const firstResultIndex = host.log.findIndex(
+      r => r.event === SocketEvent.BuzzerAnswerResult,
+    );
+    const buzzes = host.log
+      .slice(firstOpen, firstResultIndex)
+      .filter(r => r.event === SocketEvent.BuzzerBuzzInSuccess);
+    expect(buzzes).toHaveLength(1);
+    const winnerId = (buzzes[0].payload as { playerId: string }).playerId;
+    expect(result.playerId).toBe(winnerId);
+    // 第 1 題（開放到下一題開始之前）只結算一次
+    const nextRound = host.log.findIndex(
+      (r, i) => i > firstOpen && r.event === SocketEvent.BuzzerRoundStart,
+    );
+    const round1Results = host.log
+      .slice(firstOpen, nextRound === -1 ? undefined : nextRound)
+      .filter(r => r.event === SocketEvent.BuzzerAnswerResult);
+    expect(round1Results).toHaveLength(1);
+    // 真人沒搶到一定收到失敗通知；真人搶到的話電腦的搶答在伺服器被擋下（電腦不會收到通知）
+    if (winnerId !== host.id) expect(failures).toContain('already_answering');
   });
 });

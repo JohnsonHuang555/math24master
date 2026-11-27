@@ -1,3 +1,8 @@
+import {
+  ANALYTICS_STATE_EVENT,
+  ANALYTICS_STATE_KEY,
+  type AnalyticsPipelineState,
+} from './analytics-env';
 import type { ShareOutcome } from './share';
 
 /**
@@ -28,16 +33,63 @@ declare global {
   }
 }
 
-/** 送出 GA4 事件；GA 尚未載入、被擋或在伺服器端時直接略過，不影響遊戲 */
-export function trackEvent(name: string, params?: EventParams): void {
+/** 正在收集事件的呼叫（captureEvents 使用）；平常是 null */
+let capturing: [string, EventParams | undefined][] | null = null;
+
+/**
+ * 送出 GA4 事件：放進 gtag 的佇列（window.dataLayer）。
+ * 回傳 true 代表已排入佇列（Queued），不代表 GA4 伺服器已經收到；
+ * 沒有 gtag（伺服器端，或初始化 script 被移除）時回傳 false，不影響遊戲
+ */
+export function trackEvent(name: string, params?: EventParams): boolean {
+  capturing?.push([name, params]);
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
-    return;
+    return false;
   }
   try {
     window.gtag('event', name, params);
+    return true;
   } catch {
     // 分析失敗不能影響遊戲流程
+    return false;
   }
+}
+
+/** 執行 fn，回傳它送出的事件（名稱與參數），讓呼叫端在需要時原樣重送 */
+export function captureEvents(
+  fn: () => void,
+): [string, EventParams | undefined][] {
+  const previous = capturing;
+  const events: [string, EventParams | undefined][] = [];
+  capturing = events;
+  try {
+    fn();
+  } finally {
+    capturing = previous;
+  }
+  return events;
+}
+
+/**
+ * 追蹤管線目前的狀態（見 lib/analytics-env.ts 的 AnalyticsPipelineState）。
+ * unavailable：沒有 gtag 可以用（伺服器端，或初始化 script 沒有執行）。
+ * 有 gtag 但沒有狀態紀錄（例如測試直接注入 gtag）時視為 ready
+ */
+export function getAnalyticsState(): AnalyticsPipelineState | 'unavailable' {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
+    return 'unavailable';
+  }
+  const status = (window as unknown as Record<string, unknown>)[
+    ANALYTICS_STATE_KEY
+  ] as { state?: AnalyticsPipelineState } | undefined;
+  return status?.state ?? 'ready';
+}
+
+/** 管線狀態變動時呼叫 listener；回傳取消監聽的函式。伺服器端什麼都不做 */
+export function onAnalyticsStateChange(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(ANALYTICS_STATE_EVENT, listener);
+  return () => window.removeEventListener(ANALYTICS_STATE_EVENT, listener);
 }
 
 /**
@@ -272,6 +324,13 @@ export type PlayerCounts = {
   botPlayerCount: number;
 };
 
+/**
+ * 伺服器產生的場次 id（每局一個隨機 uuid，與玩家身分無關）。
+ * 用來把同一局的開局、結束、再戰串起來；不是使用者或裝置識別碼
+ */
+const matchParam = (matchId: string | undefined) =>
+  matchId ? { match_id: matchId } : {};
+
 const countParams = (c: PlayerCounts) => ({
   human_player_count: c.humanPlayerCount,
   bot_player_count: c.botPlayerCount,
@@ -305,12 +364,37 @@ export function trackQuickMatchStarted(
   });
 }
 
+/** 成功進到配對中的房間（漏斗 A 第 3 步：伺服器接受了快速開始） */
+export function trackQuickMatchJoined(source: QuickMatchSource): void {
+  trackEvent('quick_match_joined', { source });
+}
+
+/** 取消的方式：配對面板的「取消配對」，或頂部的「離開房間」 */
+export type QuickMatchCancelMethod = 'cancel_button' | 'leave_button';
+
 export function trackQuickMatchCancelled(
-  params: PlayerCounts & { matchWaitSeconds: number },
+  params: PlayerCounts & {
+    matchWaitSeconds: number;
+    cancelMethod?: QuickMatchCancelMethod;
+  },
 ): void {
   trackEvent('quick_match_cancelled', {
     ...countParams(params),
     match_wait_seconds: seconds(params.matchWaitSeconds),
+    ...(params.cancelMethod ? { cancel_method: params.cancelMethod } : {}),
+  });
+}
+
+/**
+ * 這位玩家在這一局第一次參與作答（搶答成功或出牌），漏斗 B 第 2 步。每局每位玩家最多一次
+ */
+export function trackMultiplayerParticipated(params: {
+  gameType: MultiplayerGameType;
+  matchId?: string;
+}): void {
+  trackEvent('multiplayer_participated', {
+    game_type: params.gameType,
+    ...matchParam(params.matchId),
   });
 }
 
@@ -319,11 +403,13 @@ export function trackMultiplayerGameStarted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     rematchSource?: RematchSource;
+    matchId?: string;
   },
 ): void {
   trackGameStart('multiplayer', {
     variant: params.gameType,
     game_type: params.gameType,
+    ...matchParam(params.matchId),
     ...countParams(params),
     ...(params.rematchSource ? { rematch_source: params.rematchSource } : {}),
   });
@@ -337,11 +423,13 @@ export function trackMultiplayerGameCompleted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     completionStatus: 'won' | 'lost' | 'aborted';
+    matchId?: string;
   },
 ): void {
   const payload = {
     game_type: params.gameType,
     completion_status: params.completionStatus,
+    ...matchParam(params.matchId),
     ...countParams(params),
   };
   if (params.completionStatus === 'aborted') {
@@ -354,10 +442,13 @@ export function trackMultiplayerGameCompleted(
 export function trackRematchClicked(params: {
   gameType: MultiplayerGameType;
   rematchSource: RematchSource;
+  /** 剛結束的那一局 */
+  fromMatchId?: string;
 }): void {
   trackEvent('multiplayer_rematch_clicked', {
     game_type: params.gameType,
     rematch_source: params.rematchSource,
+    ...(params.fromMatchId ? { from_match_id: params.fromMatchId } : {}),
   });
 }
 
@@ -366,11 +457,16 @@ export function trackRematchStarted(
   params: PlayerCounts & {
     gameType: MultiplayerGameType;
     rematchSource: RematchSource;
+    /** 再戰開始的這一局，與按下再玩一場時的那一局 */
+    matchId?: string;
+    fromMatchId?: string;
   },
 ): void {
   trackEvent('multiplayer_rematch_started', {
     game_type: params.gameType,
     rematch_source: params.rematchSource,
+    ...matchParam(params.matchId),
+    ...(params.fromMatchId ? { from_match_id: params.fromMatchId } : {}),
     ...countParams(params),
   });
 }

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  captureEvents,
+  getAnalyticsState,
+  trackEvent,
   trackMultiplayerGameCompleted,
   trackMultiplayerGameStarted,
   trackMultiplayerLobbyView,
@@ -150,5 +153,46 @@ describe('多人模式漏斗事件', () => {
     ]) {
       expect(keys).not.toContain(forbidden);
     }
+  });
+});
+
+describe('事件只代表「已排入佇列」', () => {
+  afterEach(() => {
+    delete window.gtag;
+    delete (window as unknown as Record<string, unknown>).__m24Analytics;
+  });
+
+  it('沒有 gtag 時回傳 false、管線是 unavailable；有 gtag 才算排入佇列', () => {
+    expect(trackEvent('x')).toBe(false);
+    expect(getAnalyticsState()).toBe('unavailable');
+    window.gtag = vi.fn();
+    expect(trackEvent('x')).toBe(true);
+    // 沒有初始化 script 的狀態紀錄（例如測試直接注入 gtag）視為 ready
+    expect(getAnalyticsState()).toBe('ready');
+    (window as unknown as Record<string, unknown>).__m24Analytics = {
+      state: 'loading',
+    };
+    expect(getAnalyticsState()).toBe('loading');
+  });
+
+  it('gtag 丟錯時回傳 false，不影響呼叫端', () => {
+    window.gtag = () => {
+      throw new Error('blocked');
+    };
+    expect(trackEvent('x')).toBe(false);
+  });
+
+  it('captureEvents 收集 fn 裡送出的事件（沒有 gtag 也收集得到，供之後重送）', () => {
+    const events = captureEvents(() => {
+      trackEvent('a', { n: 1 });
+      trackEvent('b');
+    });
+    expect(events).toEqual([
+      ['a', { n: 1 }],
+      ['b', undefined],
+    ]);
+    // 收集結束後不再收集
+    trackEvent('c');
+    expect(events).toHaveLength(2);
   });
 });

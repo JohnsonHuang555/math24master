@@ -734,6 +734,8 @@ export function startGame(roomId: string): GameResponse {
     _rooms[roomIndex].selectedCards = [];
     _rooms[roomIndex].pendingPlay = undefined;
     _rooms[roomIndex].buzzerState = undefined;
+    // 每一局一個新的場次 id（分析去重用；重連沿用、下一局換新）
+    _rooms[roomIndex].matchId = uuidv4();
 
     return { success: true, room: _rooms[roomIndex] };
   } catch (e) {

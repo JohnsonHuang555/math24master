@@ -111,6 +111,7 @@ export function emitGameOver(
 ) {
   io.to(room.roomId).emit(SocketEvent.GameOver, {
     roomId: room.roomId,
+    matchId: room.matchId,
     winnerId: winner.id,
     name: winner.name,
     score: winner.score,
@@ -127,6 +128,7 @@ export function emitBuzzerGameOver(
 ) {
   io.to(room.roomId).emit(SocketEvent.BuzzerGameOver, {
     roomId: room.roomId,
+    matchId: room.matchId,
     winner: { id: winner.id, name: winner.name, score: winner.score },
     players: serializeRanking(room.players),
   } satisfies BuzzerGameOverPayload);

@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { getMultiplayerTracker } from '@/lib/multiplayer-tracking';
 import { createSocketListeners } from '@/lib/socket-listeners';
 import { NumberCard } from '@/models/Player';
 import { BuzzerPlayerState } from '@/models/Room';
@@ -91,6 +92,11 @@ export function BuzzerPlayProvider({
   const [roundNumber, setRoundNumber] = useState(0);
   const [roundSeconds, setRoundSeconds] = useState<number | null>(null);
   const roomIdRef = useRef<string | undefined>(roomInfo?.roomId);
+  /** 監聽器只在 socket 變動時登記，讀最新的房間要用 ref */
+  const roomInfoRef = useRef(roomInfo);
+  useEffect(() => {
+    roomInfoRef.current = roomInfo;
+  }, [roomInfo]);
   roomIdRef.current = roomInfo?.roomId;
   const roundSecondsRef = useRef<number | null>(null);
   roundSecondsRef.current = roundSeconds;
@@ -202,6 +208,11 @@ export function BuzzerPlayProvider({
     listeners.on(
       SocketEvent.BuzzerBuzzInSuccess,
       ({ playerId, answerSeconds: secs }) => {
+        // 漏斗 B：自己這一局第一次搶到作答權就算參與作答（重連補送的同一次也不會重複算）
+        const room = roomInfoRef.current;
+        if (room?.self && playerId === room.self.playerId) {
+          getMultiplayerTracker().participated(room);
+        }
         setCurrentAnswerPlayerId(playerId);
         setAnswerSeconds(secs);
         _startAnswerTick(secs);

@@ -61,6 +61,8 @@ export type PublicRoomState = ViewBrand & {
   buzzerState?: PublicBuzzerState;
   isQuickMatch?: boolean;
   quickMatchPending?: boolean;
+  /** 這一局的場次 id（見 Room.matchId）；還沒開過局時沒有 */
+  matchId?: string;
   /**
    * 傳統對戰：伺服器已判定正確、正在計分的這一手。牌已經打出去，所以公開給大家看計分動畫；
    * 還在組算式時是私人資料（只在 self.selectedCards）
@@ -101,6 +103,8 @@ export type RankedPlayer = PublicPlayerState;
 export type GameOverPayload = {
   /** 哪一間房的結算；前端只處理目前所在房間的（再玩一場換房後，舊房的結算不會蓋到新房） */
   roomId: string;
+  /** 哪一局的結算（分析事件去重用） */
+  matchId?: string;
   /** 勝利者的 id（平手時排序不一定把勝利者排第一，前端用這個判斷自己有沒有贏） */
   winnerId: string;
   name: string;
@@ -111,6 +115,7 @@ export type GameOverPayload = {
 
 export type BuzzerGameOverPayload = {
   roomId: string;
+  matchId?: string;
   winner: { id: string; name: string; score: number };
   players: RankedPlayer[];
 };

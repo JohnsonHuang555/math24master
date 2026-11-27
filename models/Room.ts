@@ -103,6 +103,12 @@ export type Room = {
    * 玩家斷線或回合時間到時由伺服器直接入帳。分數只由伺服器計算，不接受前端傳入
    */
   pendingPlay?: PendingPlay;
+  /**
+   * 這一局的場次 id：每次開局由伺服器產生（隨機 uuid，與玩家身分無關），
+   * 斷線重連、重新整理沿用同一個；下一局（再玩一場）換新的。
+   * 前端用來替分析事件去重（同一局只算一次開局、一次結束）
+   */
+  matchId?: string;
 };
 
 export type PendingPlay = {

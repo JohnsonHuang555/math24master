@@ -84,6 +84,7 @@ export function serializePublicRoom(room: Room): PublicRoomState {
       : undefined,
     isQuickMatch: room.isQuickMatch,
     quickMatchPending: room.quickMatchPending,
+    matchId: room.matchId,
     // 已判定正確、正在計分的這一手才公開；還在組的算式是出牌者的私人資料
     playedCards: room.pendingPlay
       ? room.selectedCards.map(c => ({ ...c }))
